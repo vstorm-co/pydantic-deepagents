@@ -35,7 +35,7 @@ async def get_user_approval(tool_name: str, args: dict) -> bool:
 async def main():
     # Create agent with approval required for sensitive operations
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="You are a system administrator assistant.",
         interrupt_on={
             "write_file": True,  # Require approval for file writes

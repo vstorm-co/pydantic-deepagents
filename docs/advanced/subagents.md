@@ -138,7 +138,7 @@ subagents = [
         name="code-reviewer",
         description="Reviews code (uses powerful model)",
         instructions="...",
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
     ),
     SubAgentConfig(
         name="simple-formatter",

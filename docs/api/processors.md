@@ -12,7 +12,7 @@ History processors for managing conversation context.
 
 ```python
 def create_summarization_processor(
-    model: str = "anthropic:claude-sonnet-4-20250514",
+    model: str = "openai:gpt-4.1",
     trigger: ContextSize | list[ContextSize] | None = ("tokens", 170000),
     keep: ContextSize = ("messages", 20),
     max_input_tokens: int | None = None,
@@ -25,7 +25,7 @@ def create_summarization_processor(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `"anthropic:claude-sonnet-4-20250514"` | Model for generating summaries |
+| `model` | `str` | `"openai:gpt-4.1"` | Model for generating summaries |
 | `trigger` | `ContextSize \| list[ContextSize] \| None` | `("tokens", 170000)` | When to trigger summarization |
 | `keep` | `ContextSize` | `("messages", 20)` | How much context to keep |
 | `max_input_tokens` | `int \| None` | `None` | Max tokens (required for fraction triggers) |
@@ -100,7 +100,7 @@ Process messages and summarize if needed. This is called automatically by pydant
 from pydantic_deep.processors import SummarizationProcessor
 
 processor = SummarizationProcessor(
-    model="anthropic:claude-sonnet-4-20250514",
+    model="openai:gpt-4.1",
     trigger=[
         ("messages", 50),
         ("tokens", 100000),

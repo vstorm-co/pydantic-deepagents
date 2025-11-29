@@ -25,7 +25,7 @@ async def main():
     try:
         # Create the agent with the sandbox backend
         agent = create_deep_agent(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             instructions="""
             You are a Python development assistant.
             You can write code, save it to files, and execute it in a sandbox.

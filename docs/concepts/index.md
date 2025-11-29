@@ -90,7 +90,7 @@ graph TD
 from pydantic_deep import create_deep_agent
 
 agent = create_deep_agent(
-    model="anthropic:claude-sonnet-4-20250514",  # LLM to use
+    model="openai:gpt-4.1",  # LLM to use
     instructions="You are a coding assistant.",   # System prompt
     include_todo=True,                            # Planning tools
     include_filesystem=True,                      # File operations

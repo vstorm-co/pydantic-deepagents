@@ -53,7 +53,7 @@ Use this for:
 
 def create_subagent_toolset(
     subagents: list[SubAgentConfig] | None = None,
-    default_model: str = "anthropic:claude-sonnet-4-20250514",
+    default_model: str = "openai:gpt-4.1",
     include_general_purpose: bool = True,
     id: str | None = None,
 ) -> FunctionToolset[DeepAgentDeps]:

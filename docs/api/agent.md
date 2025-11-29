@@ -34,7 +34,7 @@ def create_deep_agent(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str \| None` | `"anthropic:claude-sonnet-4-20250514"` | LLM model identifier |
+| `model` | `str \| None` | `"openai:gpt-4.1"` | LLM model identifier |
 | `instructions` | `str \| None` | Default instructions | System prompt for the agent |
 | `tools` | `Sequence[Tool \| Any] \| None` | `None` | Additional custom tools |
 | `toolsets` | `Sequence[AbstractToolset] \| None` | `None` | Additional toolsets |
@@ -64,7 +64,7 @@ When `output_type` is provided, returns an agent typed with the output model.
 from pydantic_deep import create_deep_agent, SubAgentConfig
 
 agent = create_deep_agent(
-    model="anthropic:claude-sonnet-4-20250514",
+    model="openai:gpt-4.1",
     instructions="You are a coding assistant.",
     subagents=[
         SubAgentConfig(

@@ -14,7 +14,7 @@ from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
 async def main():
     # Create a deep agent with default settings
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="""
         You are a helpful coding assistant.
         When given a task:

@@ -16,7 +16,7 @@ Example:
 
     # Create agent with all capabilities
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="You are a helpful coding assistant",
         interrupt_on={"execute": True},
     )

@@ -23,7 +23,7 @@ SKILLS_DIR = Path(__file__).parent / "skills"
 async def main():
     # Create the agent with skills
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="""
         You are a helpful coding assistant with access to specialized skills.
 

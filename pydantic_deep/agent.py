@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 OutputDataT = TypeVar("OutputDataT")
 
 
-DEFAULT_MODEL = "anthropic:claude-sonnet-4-20250514"
+DEFAULT_MODEL = "openai:gpt-4.1"
 
 DEFAULT_INSTRUCTIONS = """
 You are a helpful AI assistant with access to planning, filesystem, subagent, and skills tools.
@@ -159,7 +159,7 @@ def create_deep_agent(  # noqa: C901
 
         # Basic usage with string output
         agent = create_deep_agent(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             instructions="You are a coding assistant",
         )
 

@@ -28,7 +28,7 @@ async def main():
     # Create a deep agent with default settings
     # This includes: TodoToolset, FilesystemToolset, SubAgentToolset, SkillsToolset
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="""
         You are a helpful coding assistant.
         When given complex tasks, break them down using the todo list.
@@ -157,7 +157,7 @@ Usage Statistics:
 
 ```python
 agent = create_deep_agent(
-    model="anthropic:claude-sonnet-4-20250514",  # LLM model
+    model="openai:gpt-4.1",  # LLM model
     instructions="...",                           # System prompt
 )
 ```

@@ -49,7 +49,7 @@ from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
 async def main():
     # Create a deep agent with all capabilities
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="You are a helpful coding assistant.",
     )
 

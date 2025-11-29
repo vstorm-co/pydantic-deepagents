@@ -175,7 +175,7 @@ class TestSummarizationProcessor:
     def test_create_with_defaults(self):
         """Test creating processor with default settings."""
         processor = create_summarization_processor()
-        assert processor.model == "anthropic:claude-sonnet-4-20250514"
+        assert processor.model == "openai:gpt-4.1"
         assert processor.trigger == ("tokens", 170000)
         assert processor.keep == ("messages", 20)
 
@@ -193,7 +193,7 @@ class TestSummarizationProcessor:
     def test_create_with_multiple_triggers(self):
         """Test creating processor with multiple triggers."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=[("messages", 50), ("tokens", 100000)],
             keep=("messages", 10),
         )
@@ -203,14 +203,14 @@ class TestSummarizationProcessor:
         """Test that fraction trigger requires max_input_tokens."""
         with pytest.raises(ValueError, match="max_input_tokens is required"):
             SummarizationProcessor(
-                model="anthropic:claude-sonnet-4-20250514",
+                model="openai:gpt-4.1",
                 trigger=("fraction", 0.8),
             )
 
     def test_fraction_trigger_with_max_tokens(self):
         """Test fraction trigger with max_input_tokens provided."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("fraction", 0.8),
             max_input_tokens=200000,
         )
@@ -220,7 +220,7 @@ class TestSummarizationProcessor:
         """Test that invalid fraction values are rejected."""
         with pytest.raises(ValueError, match="between 0 and 1"):
             SummarizationProcessor(
-                model="anthropic:claude-sonnet-4-20250514",
+                model="openai:gpt-4.1",
                 trigger=("fraction", 1.5),
                 max_input_tokens=200000,
             )
@@ -229,14 +229,14 @@ class TestSummarizationProcessor:
         """Test that invalid message thresholds are rejected."""
         with pytest.raises(ValueError, match="greater than 0"):
             SummarizationProcessor(
-                model="anthropic:claude-sonnet-4-20250514",
+                model="openai:gpt-4.1",
                 trigger=("messages", -1),
             )
 
     def test_should_summarize_no_trigger(self):
         """Test that no summarization happens without trigger."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=None,
         )
         messages: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="Hello")])] * 100
@@ -245,7 +245,7 @@ class TestSummarizationProcessor:
     def test_should_summarize_message_trigger(self):
         """Test summarization triggers on message count."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("messages", 10),
         )
         messages: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="Hello")])] * 15
@@ -254,7 +254,7 @@ class TestSummarizationProcessor:
     def test_should_summarize_token_trigger(self):
         """Test summarization triggers on token count."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("tokens", 100),
         )
         messages: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="Hello")])]
@@ -263,7 +263,7 @@ class TestSummarizationProcessor:
     def test_find_safe_cutoff(self):
         """Test finding safe cutoff point."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             keep=("messages", 5),
         )
         messages: list[ModelMessage] = [
@@ -276,7 +276,7 @@ class TestSummarizationProcessor:
     def test_find_safe_cutoff_with_tool_pairs(self):
         """Test that safe cutoff preserves tool call pairs."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             keep=("messages", 3),
         )
         messages: list[ModelMessage] = [
@@ -297,7 +297,7 @@ class TestSummarizationProcessor:
     def test_is_safe_cutoff_point(self):
         """Test checking if cutoff point is safe."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
         )
         messages: list[ModelMessage] = [
             ModelResponse(parts=[ToolCallPart(tool_name="test", args={}, tool_call_id="call_1")]),
@@ -314,7 +314,7 @@ class TestSummarizationProcessor:
     async def test_call_no_summarization_needed(self):
         """Test processor returns messages unchanged when no summarization needed."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("messages", 100),  # High threshold
         )
         messages: list[ModelMessage] = [
@@ -328,7 +328,7 @@ class TestSummarizationProcessor:
     async def test_call_below_cutoff_threshold(self):
         """Test processor returns messages when below cutoff."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("messages", 5),
             keep=("messages", 10),  # Keep more than we have
         )
@@ -340,7 +340,7 @@ class TestSummarizationProcessor:
     def test_should_summarize_fraction_trigger(self):
         """Test summarization triggers on fraction of max tokens."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("fraction", 0.5),
             max_input_tokens=1000,
         )
@@ -353,7 +353,7 @@ class TestSummarizationProcessor:
     def test_determine_cutoff_with_token_keep(self):
         """Test cutoff determination with token-based keep."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("messages", 5),
             keep=("tokens", 100),
         )
@@ -367,7 +367,7 @@ class TestSummarizationProcessor:
     def test_determine_cutoff_with_fraction_keep(self):
         """Test cutoff determination with fraction-based keep."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("messages", 5),
             keep=("fraction", 0.5),
             max_input_tokens=1000,
@@ -381,14 +381,14 @@ class TestSummarizationProcessor:
     def test_find_token_based_cutoff_empty(self):
         """Test token-based cutoff with empty messages."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
         )
         assert processor._find_token_based_cutoff([], 100) == 0
 
     def test_find_token_based_cutoff_below_limit(self):
         """Test token-based cutoff when already below limit."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
         )
         messages: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="Hi")])]
         assert processor._find_token_based_cutoff(messages, 10000) == 0
@@ -396,7 +396,7 @@ class TestSummarizationProcessor:
     def test_find_token_based_cutoff_needs_cut(self):
         """Test token-based cutoff when cut is needed."""
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
         )
         # Create messages with substantial content
         messages: list[ModelMessage] = [
@@ -411,7 +411,7 @@ class TestSummarizationProcessor:
         """Test that invalid context type raises error."""
         with pytest.raises(ValueError, match="Unsupported context size type"):
             SummarizationProcessor(
-                model="anthropic:claude-sonnet-4-20250514",
+                model="openai:gpt-4.1",
                 trigger=("invalid", 10),
             )
 

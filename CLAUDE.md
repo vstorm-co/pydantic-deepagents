@@ -76,7 +76,7 @@ from pydantic_deep import create_deep_agent, DeepAgentDeps
 from pydantic_deep.toolsets import TodoToolset, FilesystemToolset
 
 agent = create_deep_agent(
-    model="anthropic:claude-sonnet-4-20250514",
+    model="openai:gpt-4.1",
     toolsets=[TodoToolset(), FilesystemToolset()],
 )
 ```

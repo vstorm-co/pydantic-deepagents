@@ -134,7 +134,7 @@ For more control, use `SummarizationProcessor` directly:
 from pydantic_deep.processors import SummarizationProcessor
 
 processor = SummarizationProcessor(
-    model="anthropic:claude-sonnet-4-20250514",
+    model="openai:gpt-4.1",
     trigger=("tokens", 100000),
     keep=("messages", 20),
     max_input_tokens=None,

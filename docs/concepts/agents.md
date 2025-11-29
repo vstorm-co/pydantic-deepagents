@@ -21,7 +21,7 @@ result = await agent.run("Hello!", deps=deps)
 
 ```python
 # Anthropic (default)
-agent = create_deep_agent(model="anthropic:claude-sonnet-4-20250514")
+agent = create_deep_agent(model="openai:gpt-4.1")
 
 # OpenAI
 agent = create_deep_agent(model="openai:gpt-4")

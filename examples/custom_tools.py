@@ -99,7 +99,7 @@ async def analyze_code_complexity(
 async def main():
     # Create agent with custom tools
     agent = create_deep_agent(
-        model="anthropic:claude-sonnet-4-20250514",
+        model="openai:gpt-4.1",
         instructions="""
         You are a development assistant with custom tools:
         - get_current_time: Get the current timestamp

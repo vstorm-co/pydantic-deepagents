@@ -162,7 +162,7 @@ class SummarizationProcessor:
         from pydantic_deep.processors import SummarizationProcessor
 
         processor = SummarizationProcessor(
-            model="anthropic:claude-sonnet-4-20250514",
+            model="openai:gpt-4.1",
             trigger=("tokens", 100000),
             keep=("messages", 10),
         )
@@ -427,7 +427,7 @@ class SummarizationProcessor:
 
 
 def create_summarization_processor(
-    model: str = "anthropic:claude-sonnet-4-20250514",
+    model: str = "openai:gpt-4.1",
     trigger: ContextSize | list[ContextSize] | None = ("tokens", _DEFAULT_TRIGGER_TOKENS),
     keep: ContextSize = ("messages", _DEFAULT_MESSAGES_TO_KEEP),
     max_input_tokens: int | None = None,

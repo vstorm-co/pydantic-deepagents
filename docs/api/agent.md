@@ -24,8 +24,10 @@ def create_deep_agent(
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
     interrupt_on: dict[str, bool] | None = None,
+    output_type: OutputSpec[OutputDataT] | None = None,
+    history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     **agent_kwargs: Any,
-) -> Agent[DeepAgentDeps, str]
+) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]
 ```
 
 ### Parameters
@@ -46,11 +48,15 @@ def create_deep_agent(
 | `include_skills` | `bool` | `True` | Include SkillsToolset |
 | `include_general_purpose_subagent` | `bool` | `True` | Include general-purpose subagent |
 | `interrupt_on` | `dict[str, bool] \| None` | `None` | Tools requiring approval |
+| `output_type` | `OutputSpec \| None` | `None` | Pydantic model for structured output |
+| `history_processors` | `Sequence[HistoryProcessor] \| None` | `None` | History processors (e.g., summarization) |
 | `**agent_kwargs` | `Any` | - | Additional Agent constructor args |
 
 ### Returns
 
-`Agent[DeepAgentDeps, str]` - Configured Pydantic AI agent.
+`Agent[DeepAgentDeps, str]` or `Agent[DeepAgentDeps, OutputDataT]` - Configured Pydantic AI agent.
+
+When `output_type` is provided, returns an agent typed with the output model.
 
 ### Example
 

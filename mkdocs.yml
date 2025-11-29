@@ -90,6 +90,8 @@ nav:
       - advanced/human-in-the-loop.md
       - advanced/subagents.md
       - advanced/streaming.md
+      - advanced/structured-output.md
+      - advanced/processors.md
   - Examples:
     - examples/index.md
     - examples/basic-usage.md
@@ -101,6 +103,7 @@ nav:
     - api/agent.md
     - api/backends.md
     - api/toolsets.md
+    - api/processors.md
     - api/types.md
 
 extra_css:

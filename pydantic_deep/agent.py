@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from pydantic_ai import Agent
+from pydantic_ai._agent_graph import HistoryProcessor
 from pydantic_ai.models import Model
+from pydantic_ai.output import OutputSpec
 from pydantic_ai.tools import Tool
 
 from pydantic_deep.backends.protocol import BackendProtocol, SandboxProtocol
@@ -23,6 +25,8 @@ from pydantic_deep.types import Skill, SkillDirectory, SubAgentConfig
 
 if TYPE_CHECKING:
     from pydantic_ai.toolsets import AbstractToolset
+
+OutputDataT = TypeVar("OutputDataT")
 
 
 DEFAULT_MODEL = "anthropic:claude-sonnet-4-20250514"
@@ -46,6 +50,51 @@ You are a helpful AI assistant with access to planning, filesystem, subagent, an
 """
 
 
+@overload
+def create_deep_agent(
+    model: str | Model | None = None,
+    instructions: str | None = None,
+    tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
+    toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    subagents: list[SubAgentConfig] | None = None,
+    skills: list[Skill] | None = None,
+    skill_directories: list[SkillDirectory] | None = None,
+    backend: BackendProtocol | None = None,
+    include_todo: bool = True,
+    include_filesystem: bool = True,
+    include_subagents: bool = True,
+    include_skills: bool = True,
+    include_general_purpose_subagent: bool = True,
+    interrupt_on: dict[str, bool] | None = None,
+    output_type: None = None,
+    history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
+    **agent_kwargs: Any,
+) -> Agent[DeepAgentDeps, str]: ...
+
+
+@overload
+def create_deep_agent(
+    model: str | Model | None = None,
+    instructions: str | None = None,
+    tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
+    toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    subagents: list[SubAgentConfig] | None = None,
+    skills: list[Skill] | None = None,
+    skill_directories: list[SkillDirectory] | None = None,
+    backend: BackendProtocol | None = None,
+    include_todo: bool = True,
+    include_filesystem: bool = True,
+    include_subagents: bool = True,
+    include_skills: bool = True,
+    include_general_purpose_subagent: bool = True,
+    interrupt_on: dict[str, bool] | None = None,
+    *,
+    output_type: OutputSpec[OutputDataT],
+    history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
+    **agent_kwargs: Any,
+) -> Agent[DeepAgentDeps, OutputDataT]: ...
+
+
 def create_deep_agent(  # noqa: C901
     model: str | Model | None = None,
     instructions: str | None = None,
@@ -61,8 +110,10 @@ def create_deep_agent(  # noqa: C901
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
     interrupt_on: dict[str, bool] | None = None,
+    output_type: OutputSpec[OutputDataT] | None = None,
+    history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     **agent_kwargs: Any,
-) -> Agent[DeepAgentDeps, str]:
+) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
 
     This factory function creates a fully-configured Agent with:
@@ -71,6 +122,8 @@ def create_deep_agent(  # noqa: C901
     - Subagent toolset for task delegation
     - Skills toolset for modular capability extension
     - Dynamic system prompts based on current state
+    - Optional structured output via output_type
+    - Optional history processing (e.g., summarization)
 
     Args:
         model: Model to use (default: Claude Sonnet 4).
@@ -88,24 +141,50 @@ def create_deep_agent(  # noqa: C901
         include_general_purpose_subagent: Whether to include a general-purpose subagent.
         interrupt_on: Map of tool names to approval requirements.
             e.g., {"execute": True, "write_file": True}
+        output_type: Structured output type (Pydantic model, dataclass, TypedDict).
+            When specified, the agent will return this type instead of str.
+        history_processors: Sequence of history processors to apply to messages
+            before sending to the model. Useful for summarization, filtering, etc.
         **agent_kwargs: Additional arguments passed to Agent constructor.
 
     Returns:
-        Configured Agent[DeepAgentDeps, str] instance.
+        Configured Agent instance. Returns Agent[DeepAgentDeps, OutputDataT] if
+        output_type is specified, otherwise Agent[DeepAgentDeps, str].
 
     Example:
         ```python
+        from pydantic import BaseModel
         from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+        from pydantic_deep.processors import create_summarization_processor
 
+        # Basic usage with string output
         agent = create_deep_agent(
             model="anthropic:claude-sonnet-4-20250514",
             instructions="You are a coding assistant",
-            skill_directories=[{"path": "~/.pydantic-deep/skills"}],
-            interrupt_on={"execute": True},
+        )
+
+        # With structured output
+        class CodeAnalysis(BaseModel):
+            language: str
+            issues: list[str]
+            suggestions: list[str]
+
+        agent = create_deep_agent(
+            output_type=CodeAnalysis,
+        )
+
+        # With summarization for long conversations
+        agent = create_deep_agent(
+            history_processors=[
+                create_summarization_processor(
+                    trigger=("tokens", 100000),
+                    keep=("messages", 20),
+                )
+            ],
         )
 
         deps = DeepAgentDeps(backend=StateBackend())
-        result = await agent.run("Create a hello world script", deps=deps)
+        result = await agent.run("Analyze this code", deps=deps)
         ```
     """
     model = model or DEFAULT_MODEL
@@ -170,13 +249,25 @@ def create_deep_agent(  # noqa: C901
     # Build base instructions
     base_instructions = instructions or DEFAULT_INSTRUCTIONS
 
+    # Build agent kwargs with optional output_type and history_processors
+    agent_create_kwargs: dict[str, Any] = {
+        "deps_type": DeepAgentDeps,
+        "toolsets": all_toolsets,
+        "instructions": base_instructions,
+    }
+
+    if output_type is not None:
+        agent_create_kwargs["output_type"] = output_type
+
+    if history_processors is not None:
+        agent_create_kwargs["history_processors"] = list(history_processors)
+
+    agent_create_kwargs.update(agent_kwargs)
+
     # Create the agent
-    agent: Agent[DeepAgentDeps, str] = Agent(
+    agent: Agent[DeepAgentDeps, Any] = Agent(
         model,
-        deps_type=DeepAgentDeps,
-        toolsets=all_toolsets,
-        instructions=base_instructions,
-        **agent_kwargs,
+        **agent_create_kwargs,
     )
 
     # Add dynamic system prompts

@@ -71,6 +71,43 @@ agent = create_deep_agent(
 )
 ```
 
+### Structured Output
+
+Get type-safe responses with Pydantic models:
+
+```python
+from pydantic import BaseModel
+
+class TaskAnalysis(BaseModel):
+    summary: str
+    priority: str
+    estimated_hours: float
+
+agent = create_deep_agent(output_type=TaskAnalysis)
+
+result = await agent.run("Analyze this task: implement auth", deps=deps)
+print(result.output.priority)  # Type-safe access
+```
+
+See [Structured Output](../advanced/structured-output.md) for more details.
+
+### Context Management
+
+Automatically summarize long conversations:
+
+```python
+from pydantic_deep.processors import create_summarization_processor
+
+processor = create_summarization_processor(
+    trigger=("tokens", 100000),
+    keep=("messages", 20),
+)
+
+agent = create_deep_agent(history_processors=[processor])
+```
+
+See [History Processors](../advanced/processors.md) for more details.
+
 ## Dependencies
 
 The `DeepAgentDeps` class holds all runtime state:

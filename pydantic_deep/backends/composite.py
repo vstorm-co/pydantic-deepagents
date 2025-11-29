@@ -1,5 +1,3 @@
-"""Composite backend for routing operations by path prefix."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

@@ -1,5 +1,3 @@
-"""Sandbox backends for isolated command execution."""
-
 from __future__ import annotations
 
 import uuid

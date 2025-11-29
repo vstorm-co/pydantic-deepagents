@@ -13,6 +13,8 @@ Deep agent framework built on [pydantic-ai](https://github.com/pydantic/pydantic
 - **Multiple Backends**: StateBackend (in-memory), FilesystemBackend, DockerSandbox, CompositeBackend
 - **Rich Toolsets**: TodoToolset, FilesystemToolset, SubAgentToolset, SkillsToolset
 - **Skills System**: Extensible skill definitions with markdown prompts
+- **Structured Output**: Type-safe responses with Pydantic models via `output_type`
+- **Context Management**: Automatic conversation summarization for long sessions
 - **Human-in-the-Loop**: Built-in support for human confirmation workflows
 - **Streaming**: Full streaming support for agent responses
 
@@ -53,6 +55,42 @@ async def main():
     print(result.output)
 
 asyncio.run(main())
+```
+
+## Structured Output
+
+Get type-safe responses with Pydantic models:
+
+```python
+from pydantic import BaseModel
+from pydantic_deep import create_deep_agent, create_default_deps
+
+class TaskAnalysis(BaseModel):
+    summary: str
+    priority: str
+    estimated_hours: float
+
+agent = create_deep_agent(output_type=TaskAnalysis)
+deps = create_default_deps()
+
+result = await agent.run("Analyze this task: implement user auth", deps=deps)
+print(result.output.priority)  # Type-safe access
+```
+
+## Context Management
+
+Automatically summarize long conversations to manage token limits:
+
+```python
+from pydantic_deep import create_deep_agent
+from pydantic_deep.processors import create_summarization_processor
+
+processor = create_summarization_processor(
+    trigger=("tokens", 100000),  # Summarize when reaching 100k tokens
+    keep=("messages", 20),       # Keep last 20 messages
+)
+
+agent = create_deep_agent(history_processors=[processor])
 ```
 
 ## Documentation

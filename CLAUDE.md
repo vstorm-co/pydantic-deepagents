@@ -43,11 +43,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `SubAgentToolset`: Spawn and delegate to subagents
 - `SkillsToolset`: Load and use skill definitions from markdown files
 
+**Processors (`pydantic_deep/processors/`)**
+- `SummarizationProcessor`: Automatic conversation summarization for token management
+- `create_summarization_processor()`: Factory function for creating summarization processors
+
 **Types (`pydantic_deep/types.py`)**
 - Pydantic models for all data structures
 - `FileData`, `FileInfo`, `WriteResult`, `EditResult`, `GrepMatch`
 - `Todo`, `SubAgentConfig`, `CompiledSubAgent`
 - `Skill`, `SkillDirectory`, `SkillFrontmatter`
+- `ResponseFormat`: Alias for structured output specification
 
 ### Key Design Patterns
 
@@ -84,6 +89,33 @@ deps = DeepAgentDeps(
     backend=StateBackend(),
     skills_dirs=["/path/to/skills"],
 )
+```
+
+**Structured Output**
+```python
+from pydantic import BaseModel
+from pydantic_deep import create_deep_agent
+
+class TaskResult(BaseModel):
+    status: str
+    details: str
+
+# Agent returns TaskResult instead of str
+agent = create_deep_agent(output_type=TaskResult)
+```
+
+**Context Management / Summarization**
+```python
+from pydantic_deep import create_deep_agent
+from pydantic_deep.processors import create_summarization_processor
+
+# Automatically summarize when reaching token limits
+processor = create_summarization_processor(
+    trigger=("tokens", 100000),  # or ("messages", 50) or ("fraction", 0.8)
+    keep=("messages", 20),       # Keep last N messages after summarization
+)
+
+agent = create_deep_agent(history_processors=[processor])
 ```
 
 ## Testing Strategy

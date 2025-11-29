@@ -9,6 +9,7 @@ Complete API documentation for pydantic-deep.
 | [`pydantic_deep.agent`](agent.md) | Agent factory and configuration |
 | [`pydantic_deep.backends`](backends.md) | Storage backends |
 | [`pydantic_deep.toolsets`](toolsets.md) | Tool collections |
+| [`pydantic_deep.processors`](processors.md) | History processors |
 | [`pydantic_deep.types`](types.md) | Type definitions |
 
 ## Quick Reference
@@ -37,6 +38,10 @@ from pydantic_deep import (
     SubAgentToolset,
     SkillsToolset,
 
+    # Processors
+    SummarizationProcessor,
+    create_summarization_processor,
+
     # Types
     FileData,
     FileInfo,
@@ -50,6 +55,7 @@ from pydantic_deep import (
     Skill,
     SkillDirectory,
     SkillFrontmatter,
+    ResponseFormat,
 )
 ```
 

@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, TypeVar
 
 from pydantic import BaseModel
+from pydantic_ai.output import OutputSpec
 from typing_extensions import NotRequired
+
+# Re-export OutputSpec from pydantic-ai for structured output support
+# This allows users to specify the response format for agents
+ResponseFormat = OutputSpec
+
+# Type variable for output types
+OutputT = TypeVar("OutputT")
 
 
 class FileData(TypedDict):

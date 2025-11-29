@@ -110,6 +110,9 @@ fail_under = 100
 skip_covered = true
 show_missing = true
 precision = 2
+exclude_also = [
+    "# pragma: no branch",
+]
 exclude_lines = [
     "pragma: no cover",
     "pragma: lax no cover",

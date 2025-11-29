@@ -1,5 +1,3 @@
-"""In-memory state backend for ephemeral file storage."""
-
 from __future__ import annotations
 
 import re

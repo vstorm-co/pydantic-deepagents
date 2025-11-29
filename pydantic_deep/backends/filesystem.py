@@ -1,5 +1,3 @@
-"""Real filesystem backend for file operations."""
-
 from __future__ import annotations
 
 import re

@@ -34,9 +34,13 @@ class DeepAgentDeps:
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
-        if isinstance(self.backend, StateBackend) and self.files:
-            # Sync files to state backend
-            self.backend._files = self.files
+        if isinstance(self.backend, StateBackend):
+            if self.files:
+                # Sync files to state backend
+                self.backend._files = self.files
+            else:
+                # Use backend's files dict as the shared reference
+                object.__setattr__(self, "files", self.backend._files)
 
     def get_todo_prompt(self) -> str:
         """Generate system prompt section for todos."""

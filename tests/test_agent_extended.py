@@ -111,6 +111,20 @@ This is a test skill.
         )
         assert agent is not None
 
+    def test_create_with_output_type_and_interrupt_on(self):
+        """Test creating with both output_type and interrupt_on."""
+        from pydantic import BaseModel
+
+        class TestOutput(BaseModel):
+            result: str
+
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            output_type=TestOutput,
+            interrupt_on={"write_file": True},
+        )
+        assert agent is not None
+
 
 class TestDeepAgentDepsExtended:
     """Extended tests for DeepAgentDeps."""

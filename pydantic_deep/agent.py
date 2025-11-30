@@ -9,7 +9,7 @@ from pydantic_ai import Agent
 from pydantic_ai._agent_graph import HistoryProcessor
 from pydantic_ai.models import Model
 from pydantic_ai.output import OutputSpec
-from pydantic_ai.tools import Tool
+from pydantic_ai.tools import DeferredToolRequests, Tool
 
 from pydantic_deep.backends.protocol import BackendProtocol, SandboxProtocol
 from pydantic_deep.backends.state import StateBackend
@@ -256,8 +256,18 @@ def create_deep_agent(  # noqa: C901
         "instructions": base_instructions,
     }
 
+    # Determine if any tools require approval (interrupt_on has True values)
+    has_interrupt_tools = any(interrupt_on.values())
+
     if output_type is not None:
-        agent_create_kwargs["output_type"] = output_type
+        # If interrupt_on is used, combine output_type with DeferredToolRequests
+        if has_interrupt_tools:
+            agent_create_kwargs["output_type"] = [output_type, DeferredToolRequests]
+        else:
+            agent_create_kwargs["output_type"] = output_type
+    elif has_interrupt_tools:
+        # No custom output_type but interrupt_on is used
+        agent_create_kwargs["output_type"] = [str, DeferredToolRequests]
 
     if history_processors is not None:
         agent_create_kwargs["history_processors"] = list(history_processors)

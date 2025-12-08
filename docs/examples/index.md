@@ -42,6 +42,12 @@ uv run python examples/<example_name>.py
 <a href="docker-sandbox/">View Example →</a>
 </div>
 
+<div class="feature-card">
+<h3>📤 File Uploads</h3>
+<p>Upload files for agent processing with run_with_files() or deps.upload_file().</p>
+<a href="file-uploads/">View Example →</a>
+</div>
+
 </div>
 
 ## Quick Examples
@@ -185,6 +191,7 @@ async def main():
 | `streaming.py` | Real-time output |
 | `custom_tools.py` | Adding custom tools |
 | `skills_usage.py` | Skills system |
+| `file_uploads.py` | File uploads for agent processing |
 
 ## Next Steps
 

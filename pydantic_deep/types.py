@@ -123,3 +123,74 @@ class SkillDirectory(TypedDict):
 
     path: str  # Path to the skills directory
     recursive: NotRequired[bool]  # Whether to search recursively
+
+
+class UploadedFile(TypedDict):
+    """Metadata for an uploaded file.
+
+    Uploaded files are stored in the backend and can be accessed by the agent
+    through file tools (read_file, grep, glob, execute).
+    """
+
+    name: str  # Original filename
+    path: str  # Path in backend (e.g., /uploads/sales.csv)
+    size: int  # Size in bytes
+    line_count: int | None  # Number of lines (for text files)
+
+
+class RuntimeConfig(BaseModel):
+    """Configuration for a runtime environment.
+
+    A runtime defines a pre-configured execution environment with specific
+    packages and settings. Can be used with DockerSandbox to provide
+    ready-to-use environments without manual package installation.
+
+    Example:
+        ```python
+        from pydantic_deep import RuntimeConfig, DockerSandbox
+
+        # Custom runtime with ML packages
+        ml_runtime = RuntimeConfig(
+            name="ml-env",
+            description="Machine learning environment",
+            base_image="python:3.12-slim",
+            packages=["torch", "transformers", "datasets"],
+        )
+
+        sandbox = DockerSandbox(runtime=ml_runtime)
+        ```
+    """
+
+    name: str
+    """Unique name for the runtime (e.g., "python-datascience")."""
+
+    description: str = ""
+    """Human-readable description of the runtime."""
+
+    # Image source (one of these)
+    image: str | None = None
+    """Ready-to-use Docker image (e.g., "myregistry/python-ds:v1")."""
+
+    base_image: str | None = None
+    """Base image to build upon (e.g., "python:3.12-slim")."""
+
+    # Packages to install (only if base_image)
+    packages: list[str] = []
+    """Packages to install (e.g., ["pandas", "numpy", "matplotlib"])."""
+
+    package_manager: Literal["pip", "npm", "apt", "cargo"] = "pip"
+    """Package manager to use for installation."""
+
+    # Additional configuration
+    setup_commands: list[str] = []
+    """Additional setup commands to run (e.g., ["apt-get update"])."""
+
+    env_vars: dict[str, str] = {}
+    """Environment variables to set in the container."""
+
+    work_dir: str = "/workspace"
+    """Working directory inside the container."""
+
+    # Cache settings
+    cache_image: bool = True
+    """Whether to cache the built image locally."""

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pydantic-deep Demo</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🤖 pydantic-deep Demo</h1>
+            <p class="subtitle">Full-featured AI Agent with Files, Tools, Skills & Subagents</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- File Upload -->
+                <section class="sidebar-section">
+                    <h3>📁 Upload Files</h3>
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="file-input" accept=".csv,.pdf,.txt,.json,.py" hidden>
+                        <p>Drop files here or <button onclick="document.getElementById('file-input').click()">browse</button></p>
+                        <small>CSV, PDF, TXT, JSON, Python</small>
+                    </div>
+                    <div id="upload-status"></div>
+                </section>
+
+                <!-- Files List -->
+                <section class="sidebar-section">
+                    <h3>📂 Files</h3>
+                    <div class="files-tabs">
+                        <button class="tab-btn active" data-tab="uploads">Uploads</button>
+                        <button class="tab-btn" data-tab="workspace">Workspace</button>
+                    </div>
+                    <div id="files-list" class="files-list"></div>
+                </section>
+
+                <!-- Todos -->
+                <section class="sidebar-section">
+                    <h3>📋 Agent Todos</h3>
+                    <div id="todos-list" class="todos-list">
+                        <p class="empty-state">No todos yet</p>
+                    </div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="sidebar-section">
+                    <h3>⚡ Quick Actions</h3>
+                    <div class="quick-actions">
+                        <button onclick="sendQuickMessage('List my GitHub repositories')">GitHub Repos</button>
+                        <button onclick="sendQuickMessage('Tell me a joke about programming')">Tell a Joke</button>
+                        <button onclick="sendQuickMessage('Load the data-analysis skill')">Load Data Skill</button>
+                        <button onclick="resetAgent()">🔄 Reset Agent</button>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Chat Area -->
+            <main class="chat-area">
+                <div id="messages" class="messages">
+                    <div class="message system">
+                        <div class="message-content">
+                            <p><strong>Welcome!</strong> I'm a demo of pydantic-deep capabilities:</p>
+                            <ul>
+                                <li>📁 <strong>File Operations</strong> - Upload CSV/PDF, read, write, edit files</li>
+                                <li>🐙 <strong>GitHub Tools</strong> - Query repos, issues, PRs (mock data)</li>
+                                <li>🐍 <strong>Code Execution</strong> - Run Python in a sandbox</li>
+                                <li>📊 <strong>Data Analysis</strong> - Load the skill for CSV analysis</li>
+                                <li>😄 <strong>Joke Generator</strong> - Ask me to tell jokes!</li>
+                            </ul>
+                            <p>Try uploading a CSV file and asking me to analyze it!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <textarea
+                        id="message-input"
+                        placeholder="Ask me anything... (Shift+Enter for new line)"
+                        rows="1"
+                    ></textarea>
+                    <button id="send-btn" onclick="sendMessage()">
+                        <span>Send</span>
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ Deep agent framework built on [pydantic-ai](https://github.com/pydantic/pydantic
 
 - **Multiple Backends**: StateBackend (in-memory), FilesystemBackend, DockerSandbox, CompositeBackend
 - **Rich Toolsets**: TodoToolset, FilesystemToolset, SubAgentToolset, SkillsToolset
+- **File Uploads**: Upload files for agent processing with `run_with_files()` or `deps.upload_file()`
 - **Skills System**: Extensible skill definitions with markdown prompts
 - **Structured Output**: Type-safe responses with Pydantic models via `output_type`
 - **Context Management**: Automatic conversation summarization for long sessions
@@ -75,6 +76,34 @@ deps = create_default_deps()
 
 result = await agent.run("Analyze this task: implement user auth", deps=deps)
 print(result.output.priority)  # Type-safe access
+```
+
+## File Uploads
+
+Process user-uploaded files with the agent:
+
+```python
+from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
+from pydantic_deep.backends import StateBackend
+
+agent = create_deep_agent()
+deps = DeepAgentDeps(backend=StateBackend())
+
+# Upload and process files
+with open("sales.csv", "rb") as f:
+    result = await run_with_files(
+        agent,
+        "Analyze this sales data and find top products",
+        deps,
+        files=[("sales.csv", f.read())],
+    )
+```
+
+Or upload files directly to deps:
+
+```python
+deps.upload_file("config.json", b'{"key": "value"}')
+# File is now at /uploads/config.json and agent sees it in system prompt
 ```
 
 ## Context Management

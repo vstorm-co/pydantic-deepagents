@@ -65,6 +65,7 @@ def create_deep_agent(
     include_subagents: bool = True,
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
+    include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
@@ -87,6 +88,7 @@ def create_deep_agent(
     include_subagents: bool = True,
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
+    include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     *,
     output_type: OutputSpec[OutputDataT],
@@ -109,6 +111,7 @@ def create_deep_agent(  # noqa: C901
     include_subagents: bool = True,
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
+    include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: OutputSpec[OutputDataT] | None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
@@ -139,6 +142,10 @@ def create_deep_agent(  # noqa: C901
         include_subagents: Whether to include the subagent toolset.
         include_skills: Whether to include the skills toolset.
         include_general_purpose_subagent: Whether to include a general-purpose subagent.
+        include_execute: Whether to include the execute tool. If None (default),
+            automatically determined based on whether backend is a SandboxProtocol.
+            Set to True to force include even when backend is None (useful when
+            backend is provided via deps at runtime).
         interrupt_on: Map of tool names to approval requirements.
             e.g., {"execute": True, "write_file": True}
         output_type: Structured output type (Pydantic model, dataclass, TypedDict).
@@ -204,11 +211,16 @@ def create_deep_agent(  # noqa: C901
             "edit_file", False
         )
         require_execute_approval = interrupt_on.get("execute", True)
-        include_execute = isinstance(backend, SandboxProtocol)
+
+        # Determine if execute should be included
+        # If explicitly set, use that; otherwise auto-detect from backend type
+        should_include_execute = (
+            include_execute if include_execute is not None else isinstance(backend, SandboxProtocol)
+        )
 
         fs_toolset = create_filesystem_toolset(
             id="deep-filesystem",
-            include_execute=include_execute,
+            include_execute=should_include_execute,
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
         )
@@ -286,6 +298,11 @@ def create_deep_agent(  # noqa: C901
         """Generate dynamic instructions based on current state."""
         parts = []
 
+        # Show uploaded files first (most relevant for user's current task)
+        uploads_prompt = ctx.deps.get_uploads_summary()
+        if uploads_prompt:
+            parts.append(uploads_prompt)
+
         if include_todo:
             todo_prompt = get_todo_system_prompt(ctx.deps)
             if todo_prompt:
@@ -331,3 +348,53 @@ def create_default_deps(
         DeepAgentDeps instance.
     """
     return DeepAgentDeps(backend=backend or StateBackend())
+
+
+async def run_with_files(
+    agent: Agent[DeepAgentDeps, OutputDataT],
+    query: str,
+    deps: DeepAgentDeps,
+    files: list[tuple[str, bytes]] | None = None,
+    *,
+    upload_dir: str = "/uploads",
+) -> OutputDataT:
+    """Run agent with file uploads.
+
+    This is a convenience function that uploads files to the backend
+    before running the agent. The files are accessible via file tools
+    (read_file, grep, glob, execute).
+
+    Args:
+        agent: The agent to run.
+        query: The user query/prompt.
+        deps: Agent dependencies.
+        files: List of (filename, content) tuples to upload.
+        upload_dir: Directory to store uploads (default: "/uploads")
+
+    Returns:
+        Agent output (type depends on agent's output_type).
+
+    Example:
+        ```python
+        from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
+        from pydantic_deep.backends import StateBackend
+
+        agent = create_deep_agent()
+        deps = DeepAgentDeps(backend=StateBackend())
+
+        with open("sales.csv", "rb") as f:
+            result = await run_with_files(
+                agent,
+                "Analyze the sales data and find top products",
+                deps,
+                files=[("sales.csv", f.read())],
+            )
+        ```
+    """
+    # Upload files (synchronous)
+    for name, content in files or []:
+        deps.upload_file(name, content, upload_dir=upload_dir)
+
+    # Run agent
+    result = await agent.run(query, deps=deps)
+    return result.output

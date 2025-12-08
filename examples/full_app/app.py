@@ -132,7 +132,7 @@ MAIN_INSTRUCTIONS = """You are a powerful AI assistant with multiple capabilitie
 
 When you receive a task:
 1. **First**, use `write_todos` to create a task list breaking down the work into steps
-2. **During work**, update todos as you complete them (mark as "completed") or start them (mark as "in_progress")
+2. **During work**, update todos as you complete them ("completed") or start them ("in_progress")
 3. **Always** keep exactly ONE todo as "in_progress" at any time
 4. **Mark completed** immediately after finishing each step - don't batch completions
 
@@ -157,7 +157,7 @@ The user can see your TODO list in real-time, so keep it updated!
 
 ## Error Handling - BE AUTONOMOUS
 
-**CRITICAL**: When something fails, FIX IT YOURSELF. Do NOT ask the user for permission to fix obvious issues.
+**CRITICAL**: When something fails, FIX IT YOURSELF. Don't ask for permission to fix obvious issues.
 
 Examples of things you should fix automatically WITHOUT asking:
 - Missing Python modules → `pip install <module>` and retry
@@ -618,9 +618,7 @@ async def _send_todos_update(websocket: WebSocket, session: UserSession) -> None
     )
 
 
-async def process_node(
-    websocket: WebSocket, node: Any, run: Any, session: UserSession
-) -> None:
+async def process_node(websocket: WebSocket, node: Any, run: Any, session: UserSession) -> None:
     """Process a node and send appropriate WebSocket events with streaming."""
     if isinstance(node, UserPromptNode):
         logger.debug("  -> UserPromptNode")
@@ -641,7 +639,9 @@ async def process_node(
 @app.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),  # noqa: B008
-    session_id: str = Query("", description="Session ID (optional, will create new if not provided)"),
+    session_id: str = Query(
+        "", description="Session ID (optional, will create new if not provided)"
+    ),
 ):
     """Upload a file (CSV, PDF, etc.) to a specific session."""
     try:
@@ -837,7 +837,9 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
             binary_content = base64.b64decode(b64_output)
             return Response(content=binary_content, media_type=content_type)
         else:
-            raise HTTPException(status_code=500, detail="Backend does not support binary file reading")
+            raise HTTPException(
+                status_code=500, detail="Backend does not support binary file reading"
+            )
 
     except HTTPException:
         raise

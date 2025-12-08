@@ -97,22 +97,24 @@ class TestFilesystemToolset:
                 work_dir="/workspace",
             )
 
-            def ls_info(self, path: str):
+            def ls_info(self, path: str) -> list[object]:
                 return []
 
-            def read(self, path: str, offset: int = 0, limit: int = 2000):
+            def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
                 return ""
 
-            def write(self, path: str, content: str):
+            def write(self, path: str, content: str) -> None:
                 pass
 
-            def edit(self, path: str, old: str, new: str, replace_all: bool = False):
+            def edit(self, path: str, old: str, new: str, replace_all: bool = False) -> None:
                 pass
 
-            def glob_info(self, pattern: str, path: str = "/"):
+            def glob_info(self, pattern: str, path: str = "/") -> list[object]:
                 return []
 
-            def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+            def grep_raw(
+                self, pattern: str, path: str | None = None, glob: str | None = None
+            ) -> list[object]:
                 return []
 
         deps = DeepAgentDeps(backend=MockBackendWithRuntime())
@@ -123,13 +125,13 @@ class TestFilesystemToolset:
         assert "Runtime Environment" in prompt
         assert "test-runtime" in prompt
 
-    def test_get_runtime_system_prompt_no_runtime(self):
+    def test_get_runtime_system_prompt_no_runtime(self) -> None:
         """Test runtime system prompt with no runtime configured."""
         deps = DeepAgentDeps(backend=StateBackend())
         prompt = _get_runtime_system_prompt(deps)
         assert prompt is None
 
-    def test_get_runtime_system_prompt_with_runtime(self):
+    def test_get_runtime_system_prompt_with_runtime(self) -> None:
         """Test runtime system prompt with runtime configured."""
 
         class MockBackendWithRuntime:
@@ -143,22 +145,24 @@ class TestFilesystemToolset:
                 work_dir="/workspace",
             )
 
-            def ls_info(self, path: str):
+            def ls_info(self, path: str) -> list[object]:
                 return []
 
-            def read(self, path: str, offset: int = 0, limit: int = 2000):
+            def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
                 return ""
 
-            def write(self, path: str, content: str):
+            def write(self, path: str, content: str) -> None:
                 pass
 
-            def edit(self, path: str, old: str, new: str, replace_all: bool = False):
+            def edit(self, path: str, old: str, new: str, replace_all: bool = False) -> None:
                 pass
 
-            def glob_info(self, pattern: str, path: str = "/"):
+            def glob_info(self, pattern: str, path: str = "/") -> list[object]:
                 return []
 
-            def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+            def grep_raw(
+                self, pattern: str, path: str | None = None, glob: str | None = None
+            ) -> list[object]:
                 return []
 
         deps = DeepAgentDeps(backend=MockBackendWithRuntime())
@@ -172,7 +176,7 @@ class TestFilesystemToolset:
         assert "pandas" in prompt
         assert "numpy" in prompt
 
-    def test_get_runtime_system_prompt_with_env_vars(self):
+    def test_get_runtime_system_prompt_with_env_vars(self) -> None:
         """Test runtime system prompt with environment variables."""
 
         class MockBackendWithEnvVars:
@@ -185,22 +189,24 @@ class TestFilesystemToolset:
                 work_dir="/app",
             )
 
-            def ls_info(self, path: str):
+            def ls_info(self, path: str) -> list[object]:
                 return []
 
-            def read(self, path: str, offset: int = 0, limit: int = 2000):
+            def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
                 return ""
 
-            def write(self, path: str, content: str):
+            def write(self, path: str, content: str) -> None:
                 pass
 
-            def edit(self, path: str, old: str, new: str, replace_all: bool = False):
+            def edit(self, path: str, old: str, new: str, replace_all: bool = False) -> None:
                 pass
 
-            def glob_info(self, pattern: str, path: str = "/"):
+            def glob_info(self, pattern: str, path: str = "/") -> list[object]:
                 return []
 
-            def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+            def grep_raw(
+                self, pattern: str, path: str | None = None, glob: str | None = None
+            ) -> list[object]:
                 return []
 
         deps = DeepAgentDeps(backend=MockBackendWithEnvVars())
@@ -211,7 +217,7 @@ class TestFilesystemToolset:
         assert "DEBUG=true" in prompt
         assert "API_KEY=secret" in prompt
 
-    def test_get_runtime_system_prompt_no_packages(self):
+    def test_get_runtime_system_prompt_no_packages(self) -> None:
         """Test runtime system prompt without packages."""
 
         class MockBackendNoPackages:
@@ -223,22 +229,24 @@ class TestFilesystemToolset:
                 work_dir="/workspace",
             )
 
-            def ls_info(self, path: str):
+            def ls_info(self, path: str) -> list[object]:
                 return []
 
-            def read(self, path: str, offset: int = 0, limit: int = 2000):
+            def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
                 return ""
 
-            def write(self, path: str, content: str):
+            def write(self, path: str, content: str) -> None:
                 pass
 
-            def edit(self, path: str, old: str, new: str, replace_all: bool = False):
+            def edit(self, path: str, old: str, new: str, replace_all: bool = False) -> None:
                 pass
 
-            def glob_info(self, pattern: str, path: str = "/"):
+            def glob_info(self, pattern: str, path: str = "/") -> list[object]:
                 return []
 
-            def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+            def grep_raw(
+                self, pattern: str, path: str | None = None, glob: str | None = None
+            ) -> list[object]:
                 return []
 
         deps = DeepAgentDeps(backend=MockBackendNoPackages())
@@ -248,7 +256,7 @@ class TestFilesystemToolset:
         assert "minimal-runtime" in prompt
         assert "Pre-installed packages" not in prompt
 
-    def test_get_runtime_system_prompt_no_description(self):
+    def test_get_runtime_system_prompt_no_description(self) -> None:
         """Test runtime system prompt without description."""
 
         class MockBackendNoDesc:
@@ -260,22 +268,24 @@ class TestFilesystemToolset:
                 work_dir="/workspace",
             )
 
-            def ls_info(self, path: str):
+            def ls_info(self, path: str) -> list[object]:
                 return []
 
-            def read(self, path: str, offset: int = 0, limit: int = 2000):
+            def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
                 return ""
 
-            def write(self, path: str, content: str):
+            def write(self, path: str, content: str) -> None:
                 pass
 
-            def edit(self, path: str, old: str, new: str, replace_all: bool = False):
+            def edit(self, path: str, old: str, new: str, replace_all: bool = False) -> None:
                 pass
 
-            def glob_info(self, pattern: str, path: str = "/"):
+            def glob_info(self, pattern: str, path: str = "/") -> list[object]:
                 return []
 
-            def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None):
+            def grep_raw(
+                self, pattern: str, path: str | None = None, glob: str | None = None
+            ) -> list[object]:
                 return []
 
         deps = DeepAgentDeps(backend=MockBackendNoDesc())

@@ -17,8 +17,8 @@ class MockDockerSandbox:
         runtime: RuntimeConfig | str | None = None,
         session_id: str | None = None,
         idle_timeout: int = 3600,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         self._id = session_id or "test-id"
         self._runtime = runtime
         self._idle_timeout = idle_timeout
@@ -95,7 +95,7 @@ class TestSessionManager:
 
         with patch("pydantic_deep.backends.sandbox.DockerSandbox", MockDockerSandbox):
             sandbox1 = await manager.get_or_create("user-123")
-            sandbox1._alive = False  # Simulate container death
+            sandbox1._alive = False  # type: ignore[attr-defined]  # Mock attribute
 
             sandbox2 = await manager.get_or_create("user-123")
             assert sandbox1 is not sandbox2
@@ -171,18 +171,18 @@ class TestSessionManager:
     def test_sessions_property(self):
         """Test sessions property returns copy."""
         manager = SessionManager()
-        manager._sessions["test"] = MagicMock()  # type: ignore
+        manager._sessions["test"] = MagicMock()
 
         sessions = manager.sessions
         assert "test" in sessions
         # Verify it's a copy
-        sessions["new"] = MagicMock()  # type: ignore
+        sessions["new"] = MagicMock()
         assert "new" not in manager._sessions
 
     def test_contains(self):
         """Test __contains__ method."""
         manager = SessionManager()
-        manager._sessions["test"] = MagicMock()  # type: ignore
+        manager._sessions["test"] = MagicMock()
 
         assert "test" in manager
         assert "other" not in manager
@@ -192,8 +192,8 @@ class TestSessionManager:
         manager = SessionManager()
         assert len(manager) == 0
 
-        manager._sessions["a"] = MagicMock()  # type: ignore
-        manager._sessions["b"] = MagicMock()  # type: ignore
+        manager._sessions["a"] = MagicMock()
+        manager._sessions["b"] = MagicMock()
         assert len(manager) == 2
 
     def test_start_cleanup_loop(self):
@@ -209,7 +209,7 @@ class TestSessionManager:
 
         # Calling again should do nothing
         with patch("asyncio.create_task") as mock_create_task:
-            manager._cleanup_task = MagicMock()  # type: ignore
+            manager._cleanup_task = MagicMock()
             manager.start_cleanup_loop()
             mock_create_task.assert_not_called()
 

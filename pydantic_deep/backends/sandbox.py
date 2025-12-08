@@ -386,7 +386,7 @@ class DockerSandbox(BaseSandbox):  # pragma: no cover
         # Check if image exists (cache)
         if runtime.cache_image:
             try:
-                client.images.get(image_tag)  # type: ignore[union-attr]
+                client.images.get(image_tag)  # type: ignore[attr-defined]
                 return image_tag
             except docker.errors.ImageNotFound:
                 pass
@@ -395,7 +395,7 @@ class DockerSandbox(BaseSandbox):  # pragma: no cover
         dockerfile = self._generate_dockerfile(runtime)
 
         # Build image
-        client.images.build(  # type: ignore[union-attr]
+        client.images.build(  # type: ignore[attr-defined]
             fileobj=io.BytesIO(dockerfile.encode()),
             tag=image_tag,
             rm=True,

@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.1.0"
+version = "0.2.2"
 description = "Deep agent framework built on pydantic-ai with planning, filesystem, and subagent capabilities"
 readme = "README.md"
 license = "MIT"

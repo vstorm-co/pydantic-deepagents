@@ -45,7 +45,7 @@ Example:
     ```
 """
 
-from pydantic_deep.agent import create_deep_agent, create_default_deps
+from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.backends import (
     BackendProtocol,
     BaseSandbox,
@@ -60,6 +60,8 @@ from pydantic_deep.processors import (
     SummarizationProcessor,
     create_summarization_processor,
 )
+from pydantic_deep.runtimes import BUILTIN_RUNTIMES, get_runtime
+from pydantic_deep.session import SessionManager
 from pydantic_deep.toolsets import FilesystemToolset, SkillsToolset, SubAgentToolset, TodoToolset
 from pydantic_deep.types import (
     CompiledSubAgent,
@@ -69,11 +71,13 @@ from pydantic_deep.types import (
     FileInfo,
     GrepMatch,
     ResponseFormat,
+    RuntimeConfig,
     Skill,
     SkillDirectory,
     SkillFrontmatter,
     SubAgentConfig,
     Todo,
+    UploadedFile,
     WriteResult,
 )
 
@@ -83,6 +87,7 @@ __all__ = [
     # Main entry points
     "create_deep_agent",
     "create_default_deps",
+    "run_with_files",
     "DeepAgentDeps",
     # Backends
     "BackendProtocol",
@@ -92,6 +97,12 @@ __all__ = [
     "CompositeBackend",
     "BaseSandbox",
     "DockerSandbox",
+    # Runtimes
+    "RuntimeConfig",
+    "BUILTIN_RUNTIMES",
+    "get_runtime",
+    # Session Management
+    "SessionManager",
     # Toolsets
     "TodoToolset",
     "FilesystemToolset",
@@ -113,5 +124,6 @@ __all__ = [
     "Skill",
     "SkillDirectory",
     "SkillFrontmatter",
+    "UploadedFile",
     "ResponseFormat",
 ]

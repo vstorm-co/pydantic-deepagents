@@ -96,8 +96,10 @@ nav:
     - examples/index.md
     - examples/basic-usage.md
     - examples/filesystem.md
+    - examples/file-uploads.md
     - examples/skills.md
     - examples/docker-sandbox.md
+    - examples/docker-runtimes.md
   - API Reference:
     - api/index.md
     - api/agent.md

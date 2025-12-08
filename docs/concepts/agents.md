@@ -114,7 +114,7 @@ The `DeepAgentDeps` class holds all runtime state:
 
 ```python
 from dataclasses import dataclass
-from pydantic_deep import BackendProtocol, Todo
+from pydantic_deep import BackendProtocol, Todo, UploadedFile
 
 @dataclass
 class DeepAgentDeps:
@@ -122,6 +122,7 @@ class DeepAgentDeps:
     files: dict[str, FileData]  # File cache
     todos: list[Todo]  # Task list
     subagents: dict[str, Any]  # Preconfigured agents
+    uploads: dict[str, UploadedFile]  # Uploaded files metadata
 ```
 
 ### Creating Dependencies
@@ -142,6 +143,39 @@ deps = DeepAgentDeps(
     ]
 )
 ```
+
+### Uploading Files
+
+Upload files for agent processing:
+
+```python
+# Upload a file
+deps.upload_file("data.csv", csv_bytes)
+# File stored at /uploads/data.csv
+
+# Custom upload directory
+deps.upload_file("config.json", config_bytes, upload_dir="/configs")
+# File stored at /configs/config.json
+
+# Check uploads
+for path, info in deps.uploads.items():
+    print(f"{path}: {info['size']} bytes, {info['line_count']} lines")
+```
+
+Or use the `run_with_files()` helper:
+
+```python
+from pydantic_deep import run_with_files
+
+result = await run_with_files(
+    agent,
+    "Analyze this data",
+    deps,
+    files=[("data.csv", csv_bytes)],
+)
+```
+
+See [File Uploads](../examples/file-uploads.md) for more details.
 
 ## Running Agents
 

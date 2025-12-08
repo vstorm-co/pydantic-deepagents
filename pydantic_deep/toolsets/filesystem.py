@@ -277,17 +277,64 @@ def get_filesystem_system_prompt(deps: DeepAgentDeps) -> str:
     Returns:
         System prompt section for filesystem tools.
     """
-    prompt = FILESYSTEM_SYSTEM_PROMPT
+    parts = [FILESYSTEM_SYSTEM_PROMPT]
 
     if isinstance(deps.backend, SandboxProtocol):
-        prompt += "\n" + SANDBOX_SYSTEM_PROMPT
+        parts.append(SANDBOX_SYSTEM_PROMPT)
+
+    # Add runtime info if available
+    runtime_info = _get_runtime_system_prompt(deps)
+    if runtime_info:
+        parts.append(runtime_info)
 
     # Add files summary if any
     files_summary = deps.get_files_summary()
     if files_summary:
-        prompt += "\n\n" + files_summary
+        parts.append(files_summary)
 
-    return prompt
+    return "\n".join(parts)
+
+
+def _get_runtime_system_prompt(deps: DeepAgentDeps) -> str | None:
+    """Generate system prompt section for runtime environment.
+
+    Args:
+        deps: The agent dependencies.
+
+    Returns:
+        Runtime info prompt section, or None if no runtime configured.
+    """
+    backend = deps.backend
+
+    # Check if backend has runtime attribute (DockerSandbox with runtime)
+    runtime = getattr(backend, "_runtime", None)
+    if runtime is None:
+        return None
+
+    lines = [
+        "## Runtime Environment",
+        "",
+        f"**Name:** {runtime.name}",
+    ]
+
+    if runtime.description:
+        lines.append(f"**Description:** {runtime.description}")
+
+    lines.append(f"**Working directory:** {runtime.work_dir}")
+
+    if runtime.packages:
+        lines.append("")
+        lines.append("**Pre-installed packages** (use directly without installation):")
+        for pkg in runtime.packages:
+            lines.append(f"- {pkg}")
+
+    if runtime.env_vars:
+        lines.append("")
+        lines.append("**Environment variables:**")
+        for key, value in runtime.env_vars.items():
+            lines.append(f"- `{key}={value}`")
+
+    return "\n".join(lines)
 
 
 # Alias for convenience

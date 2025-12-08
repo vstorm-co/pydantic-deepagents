@@ -35,6 +35,11 @@ dependencies = [
 
 [project.optional-dependencies]
 sandbox = ["docker>=7.0"]
+dev = [
+    "fastapi>=0.124.0",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.38.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/vstorm-co/pydantic-deep"

@@ -1,5 +1,5 @@
 [project]
-name = "pydantic-deepagents"
+name = "pydantic-deep"
 version = "0.2.5"
 description = "Deep Agent framework built on Pydantic-ai with planning, filesystem, and subagent capabilities"
 readme = "README.md"

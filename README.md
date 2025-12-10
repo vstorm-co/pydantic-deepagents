@@ -132,23 +132,23 @@ agent = create_deep_agent(history_processors=[processor])
 
 ## Documentation
 
-- **[Full Documentation](https://vstorm-co.github.io/pydantic-deep/)** - Complete guides and API reference
+- **[Full Documentation](https://vstorm-co.github.io/pydantic-deepagents/)** - Complete guides and API reference
 - **[PyPI Package](https://pypi.org/project/pydantic-deep/)** - Package information and releases
-- **[GitHub Repository](https://github.com/vstorm-co/pydantic-deep)** - Source code and issues
+- **[GitHub Repository](https://github.com/vstorm-co/pydantic-deepagents)** - Source code and issues
 
 ### Quick Links
 
-- [Installation Guide](https://vstorm-co.github.io/pydantic-deep/installation/)
-- [Core Concepts](https://vstorm-co.github.io/pydantic-deep/concepts/)
-- [Examples](https://vstorm-co.github.io/pydantic-deep/examples/)
-- [API Reference](https://vstorm-co.github.io/pydantic-deep/api/)
+- [Installation Guide](https://vstorm-co.github.io/pydantic-deepagents/installation/)
+- [Core Concepts](https://vstorm-co.github.io/pydantic-deepagents/concepts/)
+- [Examples](https://vstorm-co.github.io/pydantic-deepagents/examples/)
+- [API Reference](https://vstorm-co.github.io/pydantic-deepagents/api/)
 
 ## Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/vstorm-co/pydantic-deep.git
-cd pydantic-deep
+git clone https://github.com/vstorm-co/pydantic-deepagents.git
+cd pydantic-deepagents
 
 # Install dependencies
 make install

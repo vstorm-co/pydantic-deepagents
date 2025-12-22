@@ -77,7 +77,7 @@ class CompositeBackend:
         """Read from the appropriate backend."""
         return self._get_backend(path).read(path, offset, limit)
 
-    def write(self, path: str, content: str) -> WriteResult:
+    def write(self, path: str, content: str | bytes) -> WriteResult:
         """Write to the appropriate backend."""
         return self._get_backend(path).write(path, content)
 

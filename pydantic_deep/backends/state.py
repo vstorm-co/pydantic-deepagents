@@ -142,7 +142,7 @@ class StateBackend:
 
         return result
 
-    def write(self, path: str, content: str) -> WriteResult:
+    def write(self, path: str, content: str | bytes) -> WriteResult:
         """Write content to a file."""
         error = _validate_path(path)
         if error:
@@ -150,6 +150,10 @@ class StateBackend:
 
         path = _normalize_path(path)
         now = self._get_timestamp()
+
+        # Convert bytes to string if needed
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="replace")
 
         # Split content into lines, preserving empty lines
         lines = content.split("\n")

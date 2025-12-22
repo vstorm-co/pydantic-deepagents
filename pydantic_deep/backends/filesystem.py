@@ -139,7 +139,7 @@ class FilesystemBackend:
 
         return result
 
-    def write(self, path: str, content: str) -> WriteResult:
+    def write(self, path: str, content: str | bytes) -> WriteResult:
         """Write content to a file."""
         error = _validate_path(path, self._root)
         if error:
@@ -151,8 +151,13 @@ class FilesystemBackend:
             # Create parent directories if needed
             full_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(content)
+            # Handle both str and bytes
+            if isinstance(content, bytes):
+                with open(full_path, "wb") as f:
+                    f.write(content)
+            else:
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
 
             return WriteResult(path=path)
         except PermissionError:  # pragma: no cover

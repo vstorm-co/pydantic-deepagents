@@ -141,6 +141,18 @@ class TestFilesystemBackend:
         content = backend.read("/test.txt")
         assert "Hello, World!" in content
 
+    def test_write_bytes(self, tmp_path):
+        """Test writing bytes to a file."""
+        backend = FilesystemBackend(tmp_path)
+
+        result = backend.write("/binary.dat", b"\x80\x81\x82")
+        assert result.error is None
+
+        # Verify file was written as bytes
+        full_path = tmp_path / "binary.dat"
+        assert full_path.exists()
+        assert full_path.read_bytes() == b"\x80\x81\x82"
+
     def test_virtual_mode(self, tmp_path):
         """Test virtual_mode creates directory."""
         new_dir = tmp_path / "new_virtual_dir"

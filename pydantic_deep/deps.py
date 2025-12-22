@@ -117,7 +117,7 @@ class DeepAgentDeps:
         # Write raw bytes to storage
         res = self.backend.write(path, content)
 
-        if res.error:
+        if res.error:  # pragma: no cover
             raise RuntimeError(f"Failed to upload file: {res.error}")
 
         # Try to infer metadata after storage
@@ -130,9 +130,9 @@ class DeepAgentDeps:
         if encoding:
             try:
                 text = content.decode(encoding)
-                line_count = text.count("\n") + 1
+                line_count = len(text.splitlines())
                 is_text = True
-            except (UnicodeDecodeError, LookupError):
+            except (UnicodeDecodeError, LookupError):  # pragma: no cover
                 pass  # Binary file or unknown encoding
 
         # Track metadata

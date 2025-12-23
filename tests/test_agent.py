@@ -243,6 +243,8 @@ class TestDeepAgentDeps:
             path="/uploads/test.txt",
             size=100,
             line_count=5,
+            mime_type="text/plain",
+            encoding="utf-8",
         )
 
         cloned = original.clone_for_subagent()

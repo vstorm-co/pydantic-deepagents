@@ -347,7 +347,8 @@ def create_default_deps(
     Returns:
         DeepAgentDeps instance.
     """
-    return DeepAgentDeps(backend=backend or StateBackend())
+    resolved_backend: BackendProtocol = backend or StateBackend()
+    return DeepAgentDeps(backend=resolved_backend)
 
 
 async def run_with_files(

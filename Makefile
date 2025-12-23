@@ -11,7 +11,7 @@
 .PHONY: install
 install: .uv .pre-commit ## Install the package, dependencies, and pre-commit for local development
 	uv sync --frozen --all-extras --group dev --group lint --group docs
-	pre-commit install --install-hooks
+	uv run pre-commit install --install-hooks
 
 .PHONY: install-all-python
 install-all-python: ## Install and synchronize an interpreter for every python version

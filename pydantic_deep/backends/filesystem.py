@@ -96,6 +96,23 @@ class FilesystemBackend:
 
         return sorted(results, key=lambda x: (not x["is_dir"], x["name"]))
 
+    def _read_bytes(self, path: str) -> bytes:
+        """Read raw bytes from a file."""
+        error = _validate_path(path, self._root)
+        if error:  # pragma: no cover
+            return b""
+
+        full_path = self._resolve_path(path)
+
+        if not full_path.exists() or not full_path.is_file():
+            return b""
+
+        try:
+            with open(full_path, "rb") as f:
+                return f.read()
+        except (PermissionError, OSError):  # pragma: no cover
+            return b""
+
     def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
         """Read file content with line numbers."""
         error = _validate_path(path, self._root)
@@ -139,7 +156,7 @@ class FilesystemBackend:
 
         return result
 
-    def write(self, path: str, content: str) -> WriteResult:
+    def write(self, path: str, content: str | bytes) -> WriteResult:
         """Write content to a file."""
         error = _validate_path(path, self._root)
         if error:
@@ -151,8 +168,13 @@ class FilesystemBackend:
             # Create parent directories if needed
             full_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(content)
+            # Handle both str and bytes
+            if isinstance(content, bytes):
+                with open(full_path, "wb") as f:
+                    f.write(content)
+            else:
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
 
             return WriteResult(path=path)
         except PermissionError:  # pragma: no cover

@@ -111,6 +111,27 @@ class StateBackend:
 
         return sorted(entries.values(), key=lambda x: (not x["is_dir"], x["name"]))
 
+    def _read_bytes(self, path: str) -> bytes:
+        """Read raw bytes from a file.
+
+        Args:
+            path: File path to read.
+
+        Returns:
+            File content as bytes.
+        """
+        error = _validate_path(path)
+        if error:  # pragma: no cover
+            return f"Error: {error}".encode()
+
+        path = _normalize_path(path)
+
+        if path not in self._files:
+            return b""
+
+        content = "\n".join(self._files[path]["content"])
+        return content.encode("utf-8", errors="replace")  # pragma: no cover
+
     def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
         """Read file content with line numbers."""
         error = _validate_path(path)
@@ -142,7 +163,7 @@ class StateBackend:
 
         return result
 
-    def write(self, path: str, content: str) -> WriteResult:
+    def write(self, path: str, content: str | bytes) -> WriteResult:
         """Write content to a file."""
         error = _validate_path(path)
         if error:
@@ -150,6 +171,10 @@ class StateBackend:
 
         path = _normalize_path(path)
         now = self._get_timestamp()
+
+        # Convert bytes to string if needed
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="replace")
 
         # Split content into lines, preserving empty lines
         lines = content.split("\n")

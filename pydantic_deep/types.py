@@ -129,6 +129,8 @@ class UploadedFile(TypedDict):
     path: str  # Path in backend (e.g., /uploads/sales.csv)
     size: int  # Size in bytes
     line_count: int | None  # Number of lines (for text files)
+    mime_type: str | None  # MIME type (e.g., text/plain)
+    encoding: str  # Encoding (e.g., utf-8, binary)
 
 
 class RuntimeConfig(BaseModel):

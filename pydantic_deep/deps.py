@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import mimetypes
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
+
+import chardet
 
 from pydantic_deep.backends.protocol import BackendProtocol
 from pydantic_deep.backends.state import StateBackend
@@ -111,24 +114,35 @@ class DeepAgentDeps:
         """
         path = f"{upload_dir}/{name}"
 
-        # Decode content to string for text files
-        try:
-            text_content = content.decode("utf-8")
-            line_count = len(text_content.splitlines())
-        except UnicodeDecodeError:
-            # Binary file - store as-is (limited support for now)
-            text_content = content.decode("latin-1")
-            line_count = None
+        # Write raw bytes to storage
+        res = self.backend.write(path, content)
 
-        # Write to backend
-        self.backend.write(path, text_content)
+        if res.error:  # pragma: no cover
+            raise RuntimeError(f"Failed to upload file: {res.error}")
 
-        # Track upload metadata
+        # Try to infer metadata after storage
+        line_count = None
+        is_text = False
+
+        # Detect encoding
+        detection = chardet.detect(content)
+        encoding = detection.get("encoding")
+        if encoding:
+            try:
+                text = content.decode(encoding)
+                line_count = len(text.splitlines())
+                is_text = True
+            except (UnicodeDecodeError, LookupError):  # pragma: no cover
+                pass  # Binary file or unknown encoding
+
+        # Track metadata
         self.uploads[path] = UploadedFile(
             name=name,
             path=path,
             size=len(content),
             line_count=line_count,
+            mime_type=mimetypes.guess_type(name)[0],
+            encoding=encoding if is_text and encoding else "binary",
         )
 
         return path

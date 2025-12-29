@@ -1,6 +1,6 @@
 env_file: .env
 logging_level: INFO
-model: openai:gpt-4o-mini
+model: openai:gpt-4o
 
 fact_check_max_resources: 3
 max_upload_file_size_mb: 10

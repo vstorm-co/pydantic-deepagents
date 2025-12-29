@@ -1,0 +1,5 @@
+env_file: .env
+logging_level: INFO
+model: openai:gpt-4o-mini
+
+fact_check_max_resources: 3

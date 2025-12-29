@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Assistant - Pydantic Deep</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <span class="brand-icon"><i class="ri-search-line"></i></span> Research Assistant
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="section-title">Files & Context</div>
+                <div class="upload-zone" id="upload-area">
+                    <input type="file" id="file-input" hidden>
+                    <span class="upload-icon"><i class="ri-upload-cloud-2-line"></i></span>
+                    <span class="upload-text">Upload File</span>
+                </div>
+                <div id="upload-status"></div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="uploads">Uploads</button>
+                    <button class="tab-btn" data-tab="workspace">Workspace</button>
+                </div>
+                <div id="files-list" class="file-tree"></div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="action-btn danger" onclick="resetAgent()">
+                    <span class="icon"><i class="ri-refresh-line"></i></span> Reset Session
+                </button>
+            </div>
+        </aside>
+
+        <div class="resizer" id="drag-handle"></div>
+
+        <main class="main-area" id="main-area">
+            <div class="chat-panel">
+                <div id="messages" class="chat-stream">
+                    <div class="message system">
+                        <div class="message-content">
+                            <div class="welcome-banner">
+                                <h3><i class="ri-flashlight-fill"></i> Ready via Deep Agent</h3>
+                                <p>System initialized. Waiting for commands.</p>
+                                <div class="capabilities">
+                                    <span><i class="ri-file-text-line"></i> File Ops</span> •
+                                    <span><i class="ri-github-fill"></i> GitHub</span> •
+                                    <span><i class="ri-terminal-box-line"></i> Python Sandbox</span> •
+                                    <span><i class="ri-bar-chart-box-line"></i> Data Analysis</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea
+                            id="message-input"
+                            placeholder="Type a command or request..."
+                            rows="1"
+                        ></textarea>
+                        <button id="send-btn" onclick="sendMessage()">
+                            <span><i class="ri-send-plane-fill"></i></span>
+                        </button>
+                    </div>
+                    <div class="input-hints">
+                        <button onclick="sendQuickMessage('Analyze the uploaded paper')"><i class="ri-file-text-line"></i> Analyze Paper</button>
+                        <button onclick="sendQuickMessage('Load the fact-checking skill')"><i class="ri-check-line"></i> Load Fact-Checking Skill</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="file-preview-panel" class="file-preview-panel hidden">
+                <div class="preview-header">
+                    <div class="preview-title">
+                        <span class="preview-icon" id="preview-icon"><i class="ri-file-text-line"></i></span>
+                        <span id="preview-filename">file.py</span>
+                    </div>
+                    <div class="preview-actions">
+                        <div class="preview-mode-toggle" id="preview-mode-toggle">
+                            <button class="mode-btn active" data-mode="code" onclick="setPreviewMode('code')" title="View code">
+                                <i class="ri-code-s-slash-line"></i>
+                            </button>
+                            <button class="mode-btn" data-mode="preview" onclick="setPreviewMode('preview')" title="Live preview">
+                                <i class="ri-eye-line"></i>
+                            </button>
+                        </div>
+                        <button class="preview-btn" onclick="copyFileContent()" title="Copy content">
+                            <i class="ri-file-copy-line"></i>
+                        </button>
+                        <button class="preview-btn" onclick="downloadPreviewFile()" title="Download">
+                            <i class="ri-download-line"></i>
+                        </button>
+                        <button class="preview-btn close-btn" onclick="closeFilePreview()" title="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-content" id="preview-container">
+                    </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

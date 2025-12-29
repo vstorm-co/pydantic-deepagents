@@ -31,7 +31,6 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.0.0",
     "rich>=13.0.0",
-    "pypdf>=5.1.0",
     "chardet>=5.2.0",
 ]
 
@@ -40,6 +39,7 @@ sandbox = ["pydantic-ai-backend[docker]>=0.0.3"]
 examples = [
     "fastapi>=0.124.0",
     "python-multipart>=0.0.21",
+    "pypdf>=5.1.0",
     "pymupdf>=1.26.7",
     "pymupdf4llm>=0.2.7",
     "pillow>=12.0.0",

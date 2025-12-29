@@ -635,7 +635,30 @@ async def upload_file(
         # Get or create session
         session = await get_or_create_session(session_id)
 
-        content = await file.read()
+        # Check file size from UploadFile headers if available
+        max_file_size_bytes = RUNTIME_CONFIG.get("max_upload_file_size_mb", 10) * 1024 * 1024
+        content_length = file.headers.get("content-length")
+        if content_length is not None and int(content_length) > max_file_size_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large (max {max_file_size_bytes // (1024 * 1024)}MB)",
+            )
+
+        # If content-length is not provided, read in chunks to avoid loading large files into memory
+        content = b""
+        size = 0
+        chunk_size = 1024 * 1024  # 1 MB
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > max_file_size_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large (max {max_file_size_bytes // (1024 * 1024)}MB)",
+                )
+            content += chunk
         filename = file.filename or "uploaded_file"
 
         logger.info(f"Uploading file: {filename} ({len(content)} bytes) to session {session_id}")
@@ -768,7 +791,12 @@ async def download_file(filepath: str, session_id: str = Query(..., description=
         from fastapi.responses import Response
 
         filename = decoded_path.split("/")[-1] or "download"
-        headers = {"Content-Disposition": f"inline; filename={filename}"}
+        # Sanitize filename to prevent header injection (e.g., via CR/LF or quotes)
+        safe_filename = filename.replace("\r", "").replace("\n", "")
+        safe_filename = safe_filename.replace('"', "'")
+        if not safe_filename:
+            safe_filename = "download"
+        headers = {"Content-Disposition": f'inline; filename="{safe_filename}"'}
         return Response(content=raw, media_type=content_type, headers=headers)
 
     except HTTPException:

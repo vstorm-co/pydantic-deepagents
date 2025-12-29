@@ -226,10 +226,6 @@ body {
     color: var(--accent-primary);
 }
 
-.folder-children {
-    /* Children are indented via inline padding-left */
-}
-
 .file-item.clickable {
     cursor: pointer;
 }

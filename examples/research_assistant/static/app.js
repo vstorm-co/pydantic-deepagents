@@ -466,6 +466,24 @@ function setupEventListeners() {
             refreshFiles();
         });
     });
+
+    // Delegated handler for file links to avoid inline onclick XSS
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('.file-link');
+        if (link && link.dataset.filePath) {
+            e.preventDefault();
+            openFilePreview(link.dataset.filePath);
+        }
+    });
+
+    // Delegated handler for citation links to avoid inline onclick XSS
+    document.addEventListener('click', (e) => {
+        const citation = e.target.closest('.citation-link[data-file-path]');
+        if (citation && citation.dataset.filePath) {
+            e.preventDefault();
+            openFilePreview(citation.dataset.filePath, citation.dataset.quote || null);
+        }
+    });
 }
 
 function setupResizer() {
@@ -580,15 +598,15 @@ function formatMessage(content) {
     // 5) Linkify file paths (safe because citations are placeholders)
     html = linkifyFilePaths(html);
 
-    // 6) Restore citations with safe HTML
+    // 6) Restore citations with safe HTML (using data attributes for security)
     citations.forEach((c, index) => {
         const safePath = c.path;
-        const safeQuote = c.quote.replace(/'/g, "\\'");
+        const safeQuote = c.quote;
         const isHttp = /^https?:\/\//i.test(safePath);
 
         const citationHtml = isHttp
             ? `<a class="citation-link" href="${escapeHtml(safePath)}" target="_blank" rel="noreferrer noopener" title="Source: ${escapeHtml(safePath)}"><i class="ri-links-line"></i> ${escapeHtml(c.quote)}</a>`
-            : `<span class="citation-link" onclick="openFilePreview('${safePath}', '${safeQuote}')" title="Source: ${escapeHtml(safePath)}"><i class="ri-links-line"></i> ${escapeHtml(c.quote)}</span>`;
+            : `<span class="citation-link" data-file-path="${escapeHtml(safePath)}" data-quote="${escapeHtml(safeQuote)}" title="Source: ${escapeHtml(safePath)}"><i class="ri-links-line"></i> ${escapeHtml(c.quote)}</span>`;
 
         html = html.replace(`__CITATION_${index}__`, citationHtml);
     });
@@ -816,7 +834,6 @@ function renderTodosWidget(messageEl, todos) {
     todosEl.style.display = 'block';
 
     const completed = todos.filter(t => t.status === 'completed').length;
-    const inProgress = todos.filter(t => t.status === 'in_progress').length;
     const total = todos.length;
 
     let html = `<div class="todos-header"><i class="ri-list-check-2"></i> Task Progress <span class="todos-count">${completed}/${total}</span></div>`;
@@ -1248,11 +1265,15 @@ function getFileIconClass(filename) {
         'md': 'ri-markdown-line',
         'txt': 'ri-file-text-line',
         'html': 'ri-html5-line',
+        'htm': 'ri-html5-line',
+        'svg': 'ri-image-2-line',
         'css': 'ri-css3-line',
-        'pdf': 'ri-file-pdf-line',
-        'zip': 'ri-file-zip-line',
+        'jpg': 'ri-image-line',
+        'jpeg': 'ri-image-line',
         'png': 'ri-image-line',
-        'jpg': 'ri-image-line'
+        'gif': 'ri-image-line',
+        'pdf': 'ri-file-pdf-line',
+        'zip': 'ri-archive-line',
     };
     return icons[ext] || 'ri-file-line';
 }
@@ -1270,6 +1291,6 @@ function linkifyFilePaths(html) {
 
         const cleanPath = path.replace(/[.,;:!?)]+$/, '');
         const trailing = path.slice(cleanPath.length);
-        return `${prefix}<span class="file-link" onclick="openFilePreview('${cleanPath}')" title="Click to preview">${escapeHtml(cleanPath)}</span>${trailing}`;
+        return `${prefix}<span class="file-link" data-file-path="${escapeHtml(cleanPath)}" title="Click to preview">${escapeHtml(cleanPath)}</span>${trailing}`;
     });
 }

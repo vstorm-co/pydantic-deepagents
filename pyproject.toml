@@ -31,18 +31,22 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.0.0",
     "rich>=13.0.0",
-    "prompt-toolkit>=3.0.0",
-    "fastapi>=0.125.0",
-    "uvicorn>=0.38.0",
     "chardet>=5.2.0",
 ]
 
 [project.optional-dependencies]
 sandbox = ["pydantic-ai-backend[docker]>=0.0.3"]
-dev = [
+examples = [
     "fastapi>=0.124.0",
     "python-multipart>=0.0.21",
+    "pypdf>=5.1.0",
+    "pymupdf>=1.26.7",
+    "pymupdf4llm>=0.2.7",
+    "pillow>=12.0.0",
+]
+dev = [
     "pre-commit>=4.5.1",
+    "prompt-toolkit>=3.0.0",
     "uvicorn>=0.38.0",
     "ruff>=0.14.9",
     "pyright>=1.1.407",
@@ -177,4 +181,3 @@ disable_error_code = ["arg-type", "list-item", "abstract"]
 # Codespell configuration
 [tool.codespell]
 skip = ".git,.venv*,uv.lock,site,htmlcov,.coverage"
-

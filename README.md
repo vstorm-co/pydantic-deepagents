@@ -62,6 +62,9 @@ uv add pydantic-deep
 ```bash
 # Docker sandbox support
 pip install pydantic-deep[sandbox]
+
+# Examples (FastAPI, interactive chat)
+pip install pydantic-deep[examples]
 ```
 
 ## Quick Start

@@ -12,7 +12,7 @@ from pydantic_ai_backends import BackendProtocol, StateBackend
 from pydantic_deep.types import FileData, Todo, UploadedFile
 
 if TYPE_CHECKING:
-    pass
+    from pydantic_deep.tracing.context import TraceContext
 
 
 @dataclass
@@ -27,6 +27,7 @@ class DeepAgentDeps:
         files: In-memory file cache (used with StateBackend)
         todos: Task list for planning
         subagents: Pre-configured subagents available for delegation
+        trace_context: Optional trace context for observability
     """
 
     backend: BackendProtocol = field(default_factory=StateBackend)
@@ -34,6 +35,7 @@ class DeepAgentDeps:
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
+    trace_context: TraceContext | None = None  # Optional tracing
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
@@ -177,6 +179,7 @@ class DeepAgentDeps:
         - Empty subagents (no nested delegation)
         - Same files (shared)
         - Same uploads (shared)
+        - Same trace context (shared for hierarchical tracing)
         """
         return DeepAgentDeps(
             backend=self.backend,
@@ -184,6 +187,7 @@ class DeepAgentDeps:
             todos=[],  # Fresh todo list
             subagents={},  # No nested subagents
             uploads=self.uploads,  # Shared reference
+            trace_context=self.trace_context,  # Shared for tracing
         )
 
 

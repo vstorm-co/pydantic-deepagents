@@ -73,6 +73,14 @@ from pydantic_deep.processors import (
     create_summarization_processor,
 )
 from pydantic_deep.toolsets import FilesystemToolset, SkillsToolset, SubAgentToolset, TodoToolset
+from pydantic_deep.tracing import (
+    ConsoleExporter,
+    InMemoryExporter,
+    OpenTelemetryExporter,
+    StructuredFileExporter,
+    TraceContext,
+    TraceExporterProtocol,
+)
 from pydantic_deep.types import (
     CompiledSubAgent,
     ResponseFormat,
@@ -115,6 +123,13 @@ __all__ = [
     # Processors
     "SummarizationProcessor",
     "create_summarization_processor",
+    # Tracing
+    "TraceContext",
+    "ConsoleExporter",
+    "InMemoryExporter",
+    "OpenTelemetryExporter",
+    "StructuredFileExporter",
+    "TraceExporterProtocol",
     # Types
     "FileData",
     "FileInfo",

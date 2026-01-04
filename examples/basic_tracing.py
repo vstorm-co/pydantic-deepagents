@@ -6,7 +6,7 @@ agent execution, track tool calls, and collect metrics.
 
 import asyncio
 
-from pydantic_ai.models import TestModel
+from pydantic_ai.models.test import TestModel
 from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import DeepAgentDeps, create_deep_agent

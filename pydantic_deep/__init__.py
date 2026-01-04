@@ -84,6 +84,14 @@ from pydantic_deep.guardrails import (
     create_production_guardrails,
     create_safe_agent_guardrails,
 )
+from pydantic_deep.checkpointing import (
+    Checkpoint,
+    CheckpointManager,
+    CheckpointProtocol,
+    FileCheckpointBackend,
+    StateCheckpointBackend,
+    run_with_checkpointing,
+)
 from pydantic_deep.processors import (
     SummarizationProcessor,
     create_summarization_processor,
@@ -194,6 +202,13 @@ __all__ = [
     "collect_stream_result",
     "StreamEvent",
     "StreamEventType",
+    # Checkpointing
+    "CheckpointManager",
+    "Checkpoint",
+    "CheckpointProtocol",
+    "FileCheckpointBackend",
+    "StateCheckpointBackend",
+    "run_with_checkpointing",
     # Testing
     "Recorder",
     "Replayer",

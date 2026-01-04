@@ -55,6 +55,7 @@ def create_deep_agent(
     instructions: str | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    builtin_tools: Sequence[Any] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory] | None = None,
@@ -78,6 +79,7 @@ def create_deep_agent(
     instructions: str | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    builtin_tools: Sequence[Any] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory] | None = None,
@@ -101,6 +103,7 @@ def create_deep_agent(  # noqa: C901
     instructions: str | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    builtin_tools: Sequence[Any] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory] | None = None,
@@ -132,6 +135,7 @@ def create_deep_agent(  # noqa: C901
         instructions: Custom instructions for the agent.
         tools: Additional tools to register.
         toolsets: Additional toolsets to register.
+        builtin_tools: Built-in tools to register (e.g., WebFetchTool, WebSearchTool).
         subagents: Subagent configurations for the task tool.
         skills: Pre-loaded skills to make available.
         skill_directories: Directories to discover skills from.
@@ -266,6 +270,10 @@ def create_deep_agent(  # noqa: C901
         "toolsets": all_toolsets,
         "instructions": base_instructions,
     }
+
+    # Add builtin_tools if provided
+    if builtin_tools is not None:
+        agent_create_kwargs["builtin_tools"] = builtin_tools
 
     # Determine if any tools require approval (interrupt_on has True values)
     has_interrupt_tools = any(interrupt_on.values())

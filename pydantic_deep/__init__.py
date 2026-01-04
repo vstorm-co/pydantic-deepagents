@@ -89,6 +89,22 @@ from pydantic_deep.processors import (
     create_summarization_processor,
 )
 from pydantic_deep.toolsets import FilesystemToolset, SkillsToolset, SubAgentToolset, TodoToolset
+from pydantic_deep.testing import (
+    FixtureFile,
+    FixtureValidationError,
+    RecordedInteraction,
+    RecordedRequest,
+    RecordedResponse,
+    Recorder,
+    ReplayMismatchError,
+    Replayer,
+    create_fixture,
+    get_current_recorder,
+    get_current_replayer,
+    record_mode,
+    replay_mode,
+    validate_fixture,
+)
 from pydantic_deep.tracing import (
     ConsoleExporter,
     InMemoryExporter,
@@ -161,6 +177,21 @@ __all__ = [
     "OpenTelemetryExporter",
     "StructuredFileExporter",
     "TraceExporterProtocol",
+    # Testing
+    "Recorder",
+    "Replayer",
+    "RecordedRequest",
+    "RecordedResponse",
+    "RecordedInteraction",
+    "FixtureFile",
+    "FixtureValidationError",
+    "ReplayMismatchError",
+    "record_mode",
+    "replay_mode",
+    "create_fixture",
+    "validate_fixture",
+    "get_current_recorder",
+    "get_current_replayer",
     # Types
     "FileData",
     "FileInfo",

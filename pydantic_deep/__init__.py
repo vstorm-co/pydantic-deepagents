@@ -88,6 +88,15 @@ from pydantic_deep.processors import (
     SummarizationProcessor,
     create_summarization_processor,
 )
+from pydantic_deep.streaming import (
+    StreamEvent,
+    StreamEventType,
+    collect_stream_result,
+    run_stream,
+    run_stream_with_tools,
+    stream_text,
+    stream_tool_calls,
+)
 from pydantic_deep.toolsets import FilesystemToolset, SkillsToolset, SubAgentToolset, TodoToolset
 from pydantic_deep.testing import (
     FixtureFile,
@@ -177,6 +186,14 @@ __all__ = [
     "OpenTelemetryExporter",
     "StructuredFileExporter",
     "TraceExporterProtocol",
+    # Streaming
+    "run_stream",
+    "run_stream_with_tools",
+    "stream_text",
+    "stream_tool_calls",
+    "collect_stream_result",
+    "StreamEvent",
+    "StreamEventType",
     # Testing
     "Recorder",
     "Replayer",

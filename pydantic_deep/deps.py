@@ -12,6 +12,8 @@ from pydantic_ai_backends import BackendProtocol, StateBackend
 from pydantic_deep.types import FileData, Todo, UploadedFile
 
 if TYPE_CHECKING:
+    from pydantic_deep.guardrails.manager import GuardrailManager
+    from pydantic_deep.guardrails.types import GuardrailContext
     from pydantic_deep.tracing.context import TraceContext
 
 
@@ -28,6 +30,8 @@ class DeepAgentDeps:
         todos: Task list for planning
         subagents: Pre-configured subagents available for delegation
         trace_context: Optional trace context for observability
+        guardrail_manager: Optional guardrail manager for safety gates
+        guardrail_context: Optional guardrail context for state tracking
     """
 
     backend: BackendProtocol = field(default_factory=StateBackend)
@@ -36,6 +40,8 @@ class DeepAgentDeps:
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
     trace_context: TraceContext | None = None  # Optional tracing
+    guardrail_manager: GuardrailManager | None = None  # Optional guardrails
+    guardrail_context: GuardrailContext | None = None  # Optional guardrail state
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
@@ -180,6 +186,7 @@ class DeepAgentDeps:
         - Same files (shared)
         - Same uploads (shared)
         - Same trace context (shared for hierarchical tracing)
+        - Same guardrail manager and context (shared for safety)
         """
         return DeepAgentDeps(
             backend=self.backend,
@@ -188,6 +195,8 @@ class DeepAgentDeps:
             subagents={},  # No nested subagents
             uploads=self.uploads,  # Shared reference
             trace_context=self.trace_context,  # Shared for tracing
+            guardrail_manager=self.guardrail_manager,  # Shared for safety
+            guardrail_context=self.guardrail_context,  # Shared for state tracking
         )
 
 

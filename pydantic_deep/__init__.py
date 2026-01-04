@@ -68,6 +68,22 @@ from pydantic_ai_backends import (
 
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.guardrails import (
+    CostLimitGuardrail,
+    GuardrailContext,
+    GuardrailManager,
+    GuardrailProtocol,
+    GuardrailResult,
+    GuardrailViolation,
+    IterationLimitGuardrail,
+    OutputValidationGuardrail,
+    TokenBudgetGuardrail,
+    ToolCall,
+    ToolChainValidationGuardrail,
+    ToolLoopDetectionGuardrail,
+    create_production_guardrails,
+    create_safe_agent_guardrails,
+)
 from pydantic_deep.processors import (
     SummarizationProcessor,
     create_summarization_processor,
@@ -123,6 +139,21 @@ __all__ = [
     # Processors
     "SummarizationProcessor",
     "create_summarization_processor",
+    # Guardrails
+    "GuardrailManager",
+    "GuardrailProtocol",
+    "GuardrailContext",
+    "GuardrailResult",
+    "GuardrailViolation",
+    "ToolCall",
+    "TokenBudgetGuardrail",
+    "CostLimitGuardrail",
+    "IterationLimitGuardrail",
+    "ToolChainValidationGuardrail",
+    "OutputValidationGuardrail",
+    "ToolLoopDetectionGuardrail",
+    "create_safe_agent_guardrails",
+    "create_production_guardrails",
     # Tracing
     "TraceContext",
     "ConsoleExporter",

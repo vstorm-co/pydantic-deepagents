@@ -50,9 +50,7 @@ class TraceContext:
             exporter.export_event(event)
 
     @contextmanager
-    def agent_run(
-        self, agent_name: str, prompt: str, model: str
-    ) -> Iterator[str]:
+    def agent_run(self, agent_name: str, prompt: str, model: str) -> Iterator[str]:
         """Context manager for tracing an agent run.
 
         Args:
@@ -268,9 +266,7 @@ class TraceContext:
             # If no error occurred, the tool must call tool_call_end explicitly
             # to provide the result
 
-    def tool_call_end(
-        self, tool_name: str, start_time: datetime, result: Any = None
-    ) -> None:
+    def tool_call_end(self, tool_name: str, start_time: datetime, result: Any = None) -> None:
         """Record successful tool call completion.
 
         Args:

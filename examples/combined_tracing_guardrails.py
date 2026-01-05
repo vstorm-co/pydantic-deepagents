@@ -90,10 +90,7 @@ async def combined_example():
 
     print(f"LLM calls: {len(llm_events)}")
     for event in llm_events:
-        print(
-            f"  - Duration: {event.duration_seconds:.2f}s, "
-            f"Tokens: {event.total_tokens or 'N/A'}"
-        )
+        print(f"  - Duration: {event.duration_seconds:.2f}s, Tokens: {event.total_tokens or 'N/A'}")
 
     print(f"\nTool calls: {len(tool_events)}")
     for event in tool_events:
@@ -135,9 +132,7 @@ async def guardrail_violation_with_tracing():
 
     print("Checking guardrails with permissive mode...\n")
 
-    with trace_ctx.agent_run(
-        "restricted-agent", "Task with restrictions", "test-model"
-    ):
+    with trace_ctx.agent_run("restricted-agent", "Task with restrictions", "test-model"):
         # Check guardrails (won't raise in permissive mode)
         results = guardrail_manager.check_all(context)
 

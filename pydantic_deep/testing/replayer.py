@@ -38,9 +38,7 @@ class Replayer:
     def _load_fixture(self) -> None:
         """Load fixture file."""
         if not self.fixture_file.exists():  # pragma: no branch
-            raise FixtureValidationError(
-                f"Fixture file not found: {self.fixture_file}"
-            )
+            raise FixtureValidationError(f"Fixture file not found: {self.fixture_file}")
 
         with open(self.fixture_file) as f:
             fixture_dict = json.load(f)
@@ -48,9 +46,7 @@ class Replayer:
         # Validate version
         version = fixture_dict.get("version", "unknown")
         if version != "1.0":
-            raise FixtureValidationError(
-                f"Unsupported fixture version: {version} (expected 1.0)"
-            )
+            raise FixtureValidationError(f"Unsupported fixture version: {version} (expected 1.0)")
 
         # Load interactions
         for interaction_dict in fixture_dict["interactions"]:
@@ -88,9 +84,7 @@ class Replayer:
 
             self.interactions.append(interaction)
 
-        print(
-            f"✓ Loaded {len(self.interactions)} interactions from {self.fixture_file}"
-        )
+        print(f"✓ Loaded {len(self.interactions)} interactions from {self.fixture_file}")
 
     def _hash_request(
         self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None

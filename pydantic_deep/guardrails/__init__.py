@@ -143,9 +143,7 @@ def redact_secrets(text: str) -> str:
     )
 
     # Redact tokens
-    text = re.sub(
-        r"(?i)(token)[\s:=]+['\"]?([a-z0-9_-]{20,})", r"\1=***REDACTED***", text
-    )
+    text = re.sub(r"(?i)(token)[\s:=]+['\"]?([a-z0-9_-]{20,})", r"\1=***REDACTED***", text)
 
     # Redact private keys
     text = re.sub(

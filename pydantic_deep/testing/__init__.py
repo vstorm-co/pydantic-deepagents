@@ -198,9 +198,7 @@ def validate_fixture(fixture_file: str | Path) -> dict[str, Any]:
     # Validate version
     version = fixture_dict.get("version", "unknown")
     if version != "1.0":
-        raise FixtureValidationError(
-            f"Unsupported fixture version: {version} (expected 1.0)"
-        )
+        raise FixtureValidationError(f"Unsupported fixture version: {version} (expected 1.0)")
 
     return {
         "version": fixture_dict["version"],

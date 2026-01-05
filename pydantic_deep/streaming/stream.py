@@ -195,7 +195,9 @@ async def run_stream_with_tools(
                         )
 
                     # Tool return (end)
-                    elif hasattr(part, "tool_name") or (current_tool_name and hasattr(part, "content")):  # pragma: no cover
+                    elif hasattr(part, "tool_name") or (
+                        current_tool_name and hasattr(part, "content")
+                    ):  # pragma: no cover
                         # This is a tool response
                         if current_tool_name:  # pragma: no cover
                             duration = None
@@ -318,7 +320,9 @@ async def stream_tool_calls(
                 print(f"  -> {result}")
         ```
     """
-    async for event in run_stream_with_tools(agent, prompt, deps, message_history, emit_progress=False):
+    async for event in run_stream_with_tools(
+        agent, prompt, deps, message_history, emit_progress=False
+    ):
         if event.event_type == StreamEventType.TOOL_START:
             yield (
                 event.data["tool_name"],

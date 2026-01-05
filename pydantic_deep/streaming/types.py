@@ -85,7 +85,9 @@ def llm_chunk_event(text: str, **extra: Any) -> StreamEvent:
     )
 
 
-def tool_start_event(tool_name: str, args: dict[str, Any] | None = None, **extra: Any) -> StreamEvent:
+def tool_start_event(
+    tool_name: str, args: dict[str, Any] | None = None, **extra: Any
+) -> StreamEvent:
     """Create a tool start event.
 
     Args:

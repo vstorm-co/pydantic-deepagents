@@ -162,9 +162,7 @@ class TestToolChainValidationGuardrail:
 
     def test_valid_sequence(self) -> None:
         """Test valid tool sequences."""
-        guardrail = ToolChainValidationGuardrail(
-            forbidden_sequences=[["delete_file", "read_file"]]
-        )
+        guardrail = ToolChainValidationGuardrail(forbidden_sequences=[["delete_file", "read_file"]])
         ctx = create_test_context(last_n_tools=["read_file", "write_file"])
 
         result = guardrail.check(ctx)
@@ -173,12 +171,8 @@ class TestToolChainValidationGuardrail:
 
     def test_forbidden_sequence(self) -> None:
         """Test forbidden sequence detection."""
-        guardrail = ToolChainValidationGuardrail(
-            forbidden_sequences=[["delete_file", "read_file"]]
-        )
-        ctx = create_test_context(
-            last_n_tools=["write_file", "delete_file", "read_file"]
-        )
+        guardrail = ToolChainValidationGuardrail(forbidden_sequences=[["delete_file", "read_file"]])
+        ctx = create_test_context(last_n_tools=["write_file", "delete_file", "read_file"])
 
         result = guardrail.check(ctx)
 
@@ -213,9 +207,7 @@ class TestToolChainValidationGuardrail:
 
     def test_on_violation_called(self) -> None:
         """Test on_violation is called."""
-        guardrail = ToolChainValidationGuardrail(
-            forbidden_sequences=[["delete_file", "read_file"]]
-        )
+        guardrail = ToolChainValidationGuardrail(forbidden_sequences=[["delete_file", "read_file"]])
         ctx = create_test_context(last_n_tools=["delete_file", "read_file"])
 
         # Should not raise
@@ -358,9 +350,7 @@ class TestToolLoopDetectionGuardrail:
     def test_no_loop(self) -> None:
         """Test normal operation without loops."""
         guardrail = ToolLoopDetectionGuardrail(window_size=5, max_repeats=3)
-        ctx = create_test_context(
-            last_n_tools=["read_file", "write_file", "execute", "grep"]
-        )
+        ctx = create_test_context(last_n_tools=["read_file", "write_file", "execute", "grep"])
 
         result = guardrail.check(ctx)
 
@@ -382,7 +372,14 @@ class TestToolLoopDetectionGuardrail:
         """Test detection of repeating patterns."""
         guardrail = ToolLoopDetectionGuardrail(window_size=6, max_repeats=3)
         ctx = create_test_context(
-            last_n_tools=["read_file", "write_file", "read_file", "write_file", "read_file", "write_file"]
+            last_n_tools=[
+                "read_file",
+                "write_file",
+                "read_file",
+                "write_file",
+                "read_file",
+                "write_file",
+            ]
         )
 
         result = guardrail.check(ctx)
@@ -580,14 +577,10 @@ class TestFactoryFunctions:
         def custom_validator(text: str) -> bool:
             return "custom" not in text
 
-        guardrails = create_production_guardrails(
-            custom_validators=[custom_validator]
-        )
+        guardrails = create_production_guardrails(custom_validators=[custom_validator])
 
         # Find OutputValidationGuardrail
-        output_guardrail = next(
-            g for g in guardrails if isinstance(g, OutputValidationGuardrail)
-        )
+        output_guardrail = next(g for g in guardrails if isinstance(g, OutputValidationGuardrail))
         assert len(output_guardrail.validators) == 3  # 2 default + 1 custom
 
 

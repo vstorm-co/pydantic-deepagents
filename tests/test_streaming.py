@@ -319,7 +319,9 @@ class TestStreamToolCalls:
         history = [{"role": "user", "content": "Previous"}]
 
         tool_calls = []
-        async for tool_name, args, result in stream_tool_calls(agent, "Task", deps, message_history=history):
+        async for tool_name, args, result in stream_tool_calls(
+            agent, "Task", deps, message_history=history
+        ):
             tool_calls.append((tool_name, args, result))
 
         # Should complete without errors

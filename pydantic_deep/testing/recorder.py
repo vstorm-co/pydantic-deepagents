@@ -34,7 +34,9 @@ class Recorder:
         # Create parent directory if needed
         self.fixture_file.parent.mkdir(parents=True, exist_ok=True)
 
-    def _hash_request(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None) -> str:
+    def _hash_request(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None
+    ) -> str:
         """Generate hash of request for matching during replay.
 
         Args:
@@ -157,10 +159,7 @@ class Recorder:
             description: Optional description of the fixture.
         """
         # Calculate statistics
-        total_tokens = sum(
-            i.response.total_tokens or 0
-            for i in self.interactions
-        )
+        total_tokens = sum(i.response.total_tokens or 0 for i in self.interactions)
 
         # Create fixture
         fixture = FixtureFile(

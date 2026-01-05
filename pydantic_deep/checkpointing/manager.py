@@ -218,7 +218,9 @@ class CheckpointManager:
         """
         await self.backend.delete_checkpoint(checkpoint_id)
 
-    async def cleanup_run_checkpoints(self, run_id: str, keep_last: int | None = None) -> int:  # pragma: no cover
+    async def cleanup_run_checkpoints(
+        self, run_id: str, keep_last: int | None = None
+    ) -> int:  # pragma: no cover
         """Clean up checkpoints for a specific run.
 
         Args:

@@ -72,9 +72,7 @@ class StateCheckpointBackend:
     async def cleanup_old_checkpoints(self, run_id: str, keep_last: int = 5) -> int:
         """Clean up old checkpoints from memory."""
         # Get checkpoints for this run
-        run_checkpoints = [
-            cp for cp in self._checkpoints.values() if cp.run_id == run_id
-        ]
+        run_checkpoints = [cp for cp in self._checkpoints.values() if cp.run_id == run_id]
 
         # Sort by timestamp (newest first)
         run_checkpoints.sort(key=lambda cp: cp.timestamp, reverse=True)

@@ -84,9 +84,7 @@ class TestRecorder:
         with tempfile.TemporaryDirectory() as tmpdir:
             recorder = Recorder(Path(tmpdir) / "test.json", model="gpt-4o")
 
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
 
             recorder.record_interaction(request, response, duration_seconds=1.5)
@@ -139,9 +137,7 @@ class TestReplayer:
             fixture_file = Path(tmpdir) / "test.json"
             recorder = Recorder(fixture_file, model="gpt-4o")
 
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
             recorder.record_interaction(request, response, duration_seconds=1.0)
             recorder.save()
@@ -179,9 +175,7 @@ class TestReplayer:
             fixture_file = Path(tmpdir) / "test.json"
             recorder = Recorder(fixture_file, model="gpt-4o")
 
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
             recorder.record_interaction(request, response, duration_seconds=1.0)
             recorder.save()
@@ -201,9 +195,7 @@ class TestReplayer:
             fixture_file = Path(tmpdir) / "test.json"
             recorder = Recorder(fixture_file, model="gpt-4o")
 
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
             recorder.record_interaction(request, response, duration_seconds=1.0)
             recorder.save()
@@ -212,9 +204,7 @@ class TestReplayer:
             replayer = Replayer(fixture_file, strict=False)
 
             # Should not raise, but warn
-            replayed_response = replayer.replay(
-                messages=[{"role": "user", "content": "Different"}]
-            )
+            replayed_response = replayer.replay(messages=[{"role": "user", "content": "Different"}])
 
             assert replayed_response.content == "Hello back!"
 
@@ -300,9 +290,7 @@ class TestContextManagers:
             fixture_file = Path(tmpdir) / "test.json"
 
             with record_mode(fixture_file, model="gpt-4o") as recorder:
-                request = recorder.record_request(
-                    messages=[{"role": "user", "content": "Hello"}]
-                )
+                request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
                 response = recorder.record_response(content="Hello back!")
                 recorder.record_interaction(request, response, duration_seconds=1.0)
 
@@ -354,9 +342,7 @@ class TestContextManagers:
             # Create fixture first
             fixture_file = Path(tmpdir) / "test.json"
             recorder = Recorder(fixture_file, model="gpt-4o")
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
             recorder.record_interaction(request, response, duration_seconds=1.0)
             recorder.save()
@@ -399,9 +385,7 @@ class TestValidation:
             # Create valid fixture
             fixture_file = Path(tmpdir) / "test.json"
             recorder = Recorder(fixture_file, model="gpt-4o")
-            request = recorder.record_request(
-                messages=[{"role": "user", "content": "Hello"}]
-            )
+            request = recorder.record_request(messages=[{"role": "user", "content": "Hello"}])
             response = recorder.record_response(content="Hello back!")
             recorder.record_interaction(request, response, duration_seconds=1.0)
             recorder.save(description="Test fixture")

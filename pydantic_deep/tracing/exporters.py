@@ -56,7 +56,9 @@ class ConsoleExporter:
 
         elif isinstance(event, LLMRequestEvent):  # pragma: no cover
             if self.verbose:
-                print(f"   🧠 LLM request ({event.messages_count} messages, {event.tools_count} tools)")
+                print(
+                    f"   🧠 LLM request ({event.messages_count} messages, {event.tools_count} tools)"
+                )
 
         elif isinstance(event, LLMResponseEvent):  # pragma: no cover
             tokens_info = ""
@@ -73,7 +75,9 @@ class ConsoleExporter:
         elif isinstance(event, ToolCallEndEvent):
             status = "✓" if event.success else "✗"
             error_info = f" - {event.error}" if event.error else ""
-            print(f"   ├─ {status} Tool: {event.tool_name} [{event.duration_seconds:.2f}s]{error_info}")
+            print(
+                f"   ├─ {status} Tool: {event.tool_name} [{event.duration_seconds:.2f}s]{error_info}"
+            )
 
         elif isinstance(event, ErrorEvent):  # pragma: no cover
             print(f"   ✗ Error: {event.error_type}: {event.error_message}")
@@ -154,9 +158,7 @@ class InMemoryExporter:
 
             # Add children
             if event.event_id in children_map:
-                node["children"] = [
-                    build_node(child) for child in children_map[event.event_id]
-                ]
+                node["children"] = [build_node(child) for child in children_map[event.event_id]]
 
             return node
 
@@ -322,49 +324,63 @@ class StructuredFileExporter:
 
         # Add type-specific fields
         if isinstance(event, AgentRunStartEvent):
-            event_dict.update({
-                "agent_name": event.agent_name,
-                "model": event.model,
-                "prompt": event.prompt,
-            })
+            event_dict.update(
+                {
+                    "agent_name": event.agent_name,
+                    "model": event.model,
+                    "prompt": event.prompt,
+                }
+            )
         elif isinstance(event, AgentRunEndEvent):
-            event_dict.update({
-                "agent_name": event.agent_name,
-                "duration_seconds": event.duration_seconds,
-                "total_tokens": event.total_tokens,
-                "success": event.success,
-            })
+            event_dict.update(
+                {
+                    "agent_name": event.agent_name,
+                    "duration_seconds": event.duration_seconds,
+                    "total_tokens": event.total_tokens,
+                    "success": event.success,
+                }
+            )
         elif isinstance(event, LLMRequestEvent):
-            event_dict.update({
-                "model": event.model,
-                "messages_count": event.messages_count,
-                "tools_count": event.tools_count,
-            })
+            event_dict.update(
+                {
+                    "model": event.model,
+                    "messages_count": event.messages_count,
+                    "tools_count": event.tools_count,
+                }
+            )
         elif isinstance(event, LLMResponseEvent):
-            event_dict.update({
-                "model": event.model,
-                "duration_seconds": event.duration_seconds,
-                "input_tokens": event.input_tokens,
-                "output_tokens": event.output_tokens,
-                "total_tokens": event.total_tokens,
-            })
+            event_dict.update(
+                {
+                    "model": event.model,
+                    "duration_seconds": event.duration_seconds,
+                    "input_tokens": event.input_tokens,
+                    "output_tokens": event.output_tokens,
+                    "total_tokens": event.total_tokens,
+                }
+            )
         elif isinstance(event, ToolCallStartEvent):
-            event_dict.update({
-                "tool_name": event.tool_name,
-                "args": event.args,
-            })
+            event_dict.update(
+                {
+                    "tool_name": event.tool_name,
+                    "args": event.args,
+                }
+            )
         elif isinstance(event, ToolCallEndEvent):
-            event_dict.update({
-                "tool_name": event.tool_name,
-                "duration_seconds": event.duration_seconds,
-                "success": event.success,
-                "error": event.error,
-            })
+            event_dict.update(
+                {
+                    "tool_name": event.tool_name,
+                    "duration_seconds": event.duration_seconds,
+                    "success": event.success,
+                    "error": event.error,
+                }
+            )
         elif isinstance(event, ErrorEvent):  # pragma: no cover
-            event_dict.update({
-                "error_type": event.error_type,
-                "error_message": event.error_message,
-            })
+            event_dict.update(
+                {
+                    "error_type": event.error_type,
+                    "error_message": event.error_message,
+                }
+            )
 
         self._file.write(json.dumps(event_dict) + "\n")
 

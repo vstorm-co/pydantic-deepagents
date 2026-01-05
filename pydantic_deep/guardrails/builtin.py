@@ -196,9 +196,7 @@ class ToolChainValidationGuardrail:
 
         return False
 
-    def _matches_pattern(
-        self, tool1: str, tool2: str, pattern1: str, pattern2: str
-    ) -> bool:
+    def _matches_pattern(self, tool1: str, tool2: str, pattern1: str, pattern2: str) -> bool:
         """Check if two tools match a forbidden pattern.
 
         Args:

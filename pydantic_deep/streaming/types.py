@@ -62,7 +62,7 @@ class StreamEvent:
                 raise ValueError("LLM_CHUNK events must include 'text' in data")
         elif self.event_type in (StreamEventType.TOOL_START, StreamEventType.TOOL_END):
             if "tool_name" not in self.data:
-                raise ValueError(f"{self.event_type} events must include 'tool_name' in data")
+                raise ValueError(f"{self.event_type.name} events must include 'tool_name'")
         elif self.event_type == StreamEventType.PROGRESS and "iteration" not in self.data:
             raise ValueError("PROGRESS events must include 'iteration' in data")
 

@@ -31,26 +31,26 @@ class TokenBudgetGuardrail:
         self.warn_threshold = int(max_tokens * warn_at)
         self.action = action
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if token budget is within limits.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if budget is within limits.
         """
-        if ctx.total_tokens > self.max_tokens:
+        if context.total_tokens > self.max_tokens:
             return GuardrailResult(
                 passed=False,
-                message=f"Token budget exceeded: {ctx.total_tokens}/{self.max_tokens}",
+                message=f"Token budget exceeded: {context.total_tokens}/{self.max_tokens}",
                 metadata={"action": self.action},
             )
-        elif ctx.total_tokens > self.warn_threshold:
+        elif context.total_tokens > self.warn_threshold:
             # Emit warning but continue
             return GuardrailResult(
                 passed=True,
-                message=f"Token budget warning: {ctx.total_tokens}/{self.max_tokens} ({ctx.total_tokens / self.max_tokens * 100:.1f}%)",
+                message=f"Token budget warning: {context.total_tokens}/{self.max_tokens} ({context.total_tokens / self.max_tokens * 100:.1f}%)",
                 metadata={"warning": True},
             )
         return GuardrailResult(passed=True)
@@ -83,19 +83,19 @@ class IterationLimitGuardrail:
         self.max_iterations = max_iterations
         self.action = action
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if iteration count is within limits.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if iteration count is within limits.
         """
-        if ctx.iteration_count > self.max_iterations:
+        if context.iteration_count > self.max_iterations:
             return GuardrailResult(
                 passed=False,
-                message=f"Iteration limit exceeded: {ctx.iteration_count}/{self.max_iterations}",
+                message=f"Iteration limit exceeded: {context.iteration_count}/{self.max_iterations}",
                 metadata={"action": self.action},
             )
         return GuardrailResult(passed=True)
@@ -126,24 +126,24 @@ class CostLimitGuardrail:
         self.max_cost_usd = max_cost_usd
         self.warn_threshold = max_cost_usd * warn_at
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if cost is within limits.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if cost is within limits.
         """
-        if ctx.total_cost_usd > self.max_cost_usd:
+        if context.total_cost_usd > self.max_cost_usd:
             return GuardrailResult(
                 passed=False,
-                message=f"Cost limit exceeded: ${ctx.total_cost_usd:.4f}/${self.max_cost_usd:.2f}",
+                message=f"Cost limit exceeded: ${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f}",
             )
-        elif ctx.total_cost_usd > self.warn_threshold:
+        elif context.total_cost_usd > self.warn_threshold:
             return GuardrailResult(
                 passed=True,
-                message=f"Cost warning: ${ctx.total_cost_usd:.4f}/${self.max_cost_usd:.2f} ({ctx.total_cost_usd / self.max_cost_usd * 100:.1f}%)",
+                message=f"Cost warning: ${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f} ({context.total_cost_usd / self.max_cost_usd * 100:.1f}%)",
                 metadata={"warning": True},
             )
         return GuardrailResult(passed=True)
@@ -214,18 +214,18 @@ class ToolChainValidationGuardrail:
 
         return fnmatch.fnmatch(tool1, pattern1) and fnmatch.fnmatch(tool2, pattern2)
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if tool call sequence is valid.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if tool sequence is valid.
         """
         # Check forbidden sequences
         for seq in self.forbidden_sequences:
-            if self._matches_sequence(ctx.last_n_tools, seq):
+            if self._matches_sequence(context.last_n_tools, seq):
                 return GuardrailResult(
                     passed=False,
                     message=f"Forbidden tool sequence: {' -> '.join(seq)}",
@@ -233,13 +233,13 @@ class ToolChainValidationGuardrail:
 
         # Check forbidden patterns
         for pattern1, pattern2 in self.forbidden_patterns:
-            for i in range(len(ctx.last_n_tools) - 1):
+            for i in range(len(context.last_n_tools) - 1):
                 if self._matches_pattern(
-                    ctx.last_n_tools[i], ctx.last_n_tools[i + 1], pattern1, pattern2
+                    context.last_n_tools[i], context.last_n_tools[i + 1], pattern1, pattern2
                 ):
                     return GuardrailResult(
                         passed=False,
-                        message=f"Forbidden pattern: {pattern1} -> {pattern2} (found: {ctx.last_n_tools[i]} -> {ctx.last_n_tools[i + 1]})",
+                        message=f"Forbidden pattern: {pattern1} -> {pattern2} (found: {context.last_n_tools[i]} -> {context.last_n_tools[i + 1]})",
                     )
 
         return GuardrailResult(passed=True)
@@ -273,17 +273,17 @@ class OutputValidationGuardrail:
         self.on_fail = on_fail
         self.sanitizer = sanitizer
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if output passes all validators.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if output is valid.
         """
         # For now, we'll check metadata for output
-        output = ctx.metadata.get("output", "")
+        output = context.metadata.get("output", "")
         if not isinstance(output, str):
             output = str(output)
 
@@ -363,16 +363,16 @@ class ToolLoopDetectionGuardrail:
 
         return False, ""
 
-    def check(self, ctx: GuardrailContext) -> GuardrailResult:
+    def check(self, context: GuardrailContext) -> GuardrailResult:
         """Check if agent is stuck in a loop.
 
         Args:
-            ctx: Guardrail context.
+            context: Guardrail context.
 
         Returns:
             Result indicating if a loop was detected.
         """
-        is_loop, pattern = self._detect_pattern(ctx.last_n_tools)
+        is_loop, pattern = self._detect_pattern(context.last_n_tools)
 
         if is_loop:
             return GuardrailResult(

@@ -275,7 +275,7 @@ async def run_with_checkpointing(
     message_history = None
     if resume_from:  # pragma: no cover
         checkpoint = await checkpoint_manager.restore_checkpoint(resume_from)
-        message_history = checkpoint.messages
+        message_history = checkpoint.messages  # type: ignore[assignment]
 
     # Run the agent
     # Note: Actual automatic checkpointing would require integration
@@ -283,7 +283,7 @@ async def run_with_checkpointing(
     result = await agent.run(
         prompt,
         deps=deps,
-        message_history=message_history,
+        message_history=message_history,  # type: ignore[arg-type]
     )
 
     # Create final checkpoint
@@ -300,7 +300,7 @@ async def run_with_checkpointing(
     serialized_messages = []
     for msg in messages:
         if hasattr(msg, "model_dump"):  # pragma: no branch
-            serialized_messages.append(msg.model_dump())
+            serialized_messages.append(msg.model_dump())  # type: ignore[union-attr]
         elif isinstance(msg, dict):  # pragma: no cover
             serialized_messages.append(msg)
         else:  # pragma: no cover

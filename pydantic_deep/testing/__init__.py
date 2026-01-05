@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
 
 from pydantic_deep.testing.recorder import Recorder
 from pydantic_deep.testing.replayer import Replayer
@@ -173,7 +173,7 @@ def create_fixture(
     return Recorder(fixture_file, model=model)
 
 
-def validate_fixture(fixture_file: str | Path) -> dict[str, any]:
+def validate_fixture(fixture_file: str | Path) -> dict[str, Any]:
     """Validate and get info about a fixture file.
 
     Args:

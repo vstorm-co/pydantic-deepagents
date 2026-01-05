@@ -173,7 +173,7 @@ def create_production_guardrails(
     Returns:
         List of configured production guardrails.
     """
-    validators = [validate_no_secrets, validate_no_pii]
+    validators: list[Callable[[str], bool]] = [validate_no_secrets, validate_no_pii]
     if custom_validators:
         validators.extend(custom_validators)
 

@@ -74,7 +74,7 @@ async def run_stream(
         async with agent.run_stream(
             prompt,
             deps=deps,
-            message_history=message_history,
+            message_history=message_history,  # type: ignore[arg-type]
         ) as result:
             # Stream text chunks from this result
             async for text_chunk in result.stream_text(delta=True):
@@ -168,7 +168,7 @@ async def run_stream_with_tools(
         result = await agent.run(
             prompt,
             deps=deps,
-            message_history=message_history,
+            message_history=message_history,  # type: ignore[arg-type]
         )
 
         # Get messages and extract tool calls
@@ -213,9 +213,9 @@ async def run_stream_with_tools(
                             current_tool_start_time = None
 
             # Emit text chunks from model responses
-            if hasattr(msg, "content") and isinstance(msg.content, str):  # pragma: no cover
+            if hasattr(msg, "content") and isinstance(msg.content, str):  # type: ignore[union-attr]  # pragma: no cover
                 # Split into chunks for streaming effect
-                content = msg.content
+                content = msg.content  # type: ignore[union-attr]
                 chunk_size = 50  # Characters per chunk
                 for i in range(0, len(content), chunk_size):
                     chunk = content[i : i + chunk_size]

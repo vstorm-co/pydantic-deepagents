@@ -37,13 +37,13 @@ async def basic_guardrails_example():
     manager = GuardrailManager(guardrails, mode="strict")
 
     # Create agent
-    agent = create_deep_agent(
+    create_deep_agent(
         model=TestModel(),
         instructions="You are a helpful assistant.",
     )
 
     # Create deps with guardrails
-    deps = DeepAgentDeps(
+    DeepAgentDeps(
         backend=StateBackend(),
         guardrail_manager=manager,
     )
@@ -64,7 +64,7 @@ async def basic_guardrails_example():
     try:
         results = manager.check_all(context)
         print(f"✓ All {len(results)} guardrail checks passed")
-        for i, result in enumerate(results):
+        for _i, result in enumerate(results):
             status = "✓ PASS" if result.passed else "✗ FAIL"
             print(f"  {status}: {result.message or 'No issues'}")
     except GuardrailViolation as e:
@@ -72,7 +72,7 @@ async def basic_guardrails_example():
 
     # Get summary
     summary = manager.get_summary()
-    print(f"\n=== Guardrail Summary ===")
+    print("\n=== Guardrail Summary ===")
     print(f"Total checks: {summary['total_checks']}")
     print(f"Violations: {summary['violations']}")
 
@@ -194,16 +194,16 @@ async def permissive_mode_example():
     results = manager.check_all(context)
 
     print("Guardrail results:")
-    for i, result in enumerate(results):
+    for _i, result in enumerate(results):
         status = "✓ PASS" if result.passed else "✗ FAIL"
         print(f"  {status}: {result.message or 'No message'}")
 
     # Get summary of violations
     summary = manager.get_summary()
-    print(f"\n=== Violation Summary ===")
+    print("\n=== Violation Summary ===")
     print(f"Total checks: {summary['total_checks']}")
     print(f"Violations: {summary['violations']}")
-    print(f"Violation types:")
+    print("Violation types:")
     for violation_msg in summary["violation_types"]:
         print(f"  - {violation_msg}")
 
@@ -251,7 +251,7 @@ async def output_validation_example():
 
     result = guardrail.check(ctx)
     print(f"\nOutput with secrets: {result.passed}")
-    print(f"  Original: Your api_key=sk-1234567890abcdefghij is ready!")
+    print("  Original: Your api_key=sk-1234567890abcdefghij is ready!")
 
     # Sanitize the output
     guardrail.on_violation(ctx)

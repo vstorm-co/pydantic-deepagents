@@ -56,9 +56,8 @@ class ConsoleExporter:
 
         elif isinstance(event, LLMRequestEvent):  # pragma: no cover
             if self.verbose:
-                print(
-                    f"   🧠 LLM request ({event.messages_count} messages, {event.tools_count} tools)"
-                )
+                msg = f"LLM request ({event.messages_count} messages, {event.tools_count} tools)"
+                print(f"   🧠 {msg}")
 
         elif isinstance(event, LLMResponseEvent):  # pragma: no cover
             tokens_info = ""
@@ -75,9 +74,8 @@ class ConsoleExporter:
         elif isinstance(event, ToolCallEndEvent):
             status = "✓" if event.success else "✗"
             error_info = f" - {event.error}" if event.error else ""
-            print(
-                f"   ├─ {status} Tool: {event.tool_name} [{event.duration_seconds:.2f}s]{error_info}"
-            )
+            msg = f"{status} Tool: {event.tool_name} [{event.duration_seconds:.2f}s]{error_info}"
+            print(f"   ├─ {msg}")
 
         elif isinstance(event, ErrorEvent):  # pragma: no cover
             print(f"   ✗ Error: {event.error_type}: {event.error_message}")

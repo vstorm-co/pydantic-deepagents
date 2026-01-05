@@ -6,12 +6,11 @@ from pathlib import Path
 
 import pytest
 from pydantic_ai.models.test import TestModel
-
 from pydantic_ai_backends import StateBackend
+
 from pydantic_deep import DeepAgentDeps, create_deep_agent
 from pydantic_deep.checkpointing import (
     Checkpoint,
-    CheckpointError,
     CheckpointManager,
     CheckpointNotFoundError,
     CheckpointValidationError,
@@ -698,7 +697,7 @@ class TestHelperFunctions:
         )
         deps = DeepAgentDeps(backend=StateBackend())
 
-        result = await run_with_checkpointing(
+        await run_with_checkpointing(
             agent=agent,
             prompt="Hello",
             deps=deps,

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from pydantic_deep.testing.types import (
-    FixtureFile,
     FixtureValidationError,
     RecordedInteraction,
     RecordedRequest,
@@ -126,9 +125,9 @@ class Replayer:
             ReplayMismatchError: If request doesn't match recorded request.
         """
         if self.current_index >= len(self.interactions):
-            raise ReplayMismatchError(
-                f"No more interactions available (exhausted {len(self.interactions)} recorded interactions)"
-            )
+            count = len(self.interactions)
+            msg = f"No more interactions available (exhausted {count} recorded interactions)"
+            raise ReplayMismatchError(msg)
 
         # Get current interaction
         interaction = self.interactions[self.current_index]
@@ -143,13 +142,14 @@ class Replayer:
                     f"Request mismatch at interaction {self.current_index}:\n"
                     f"  Expected hash: {interaction.request.request_hash}\n"
                     f"  Actual hash: {request_hash}\n"
-                    f"  Expected {interaction.request.messages_count} messages, {interaction.request.tools_count} tools\n"
+                    f"  Expected {interaction.request.messages_count} messages, "
+                    f"{interaction.request.tools_count} tools\n"
                     f"  Got {len(messages)} messages, {len(tools) if tools else 0} tools"
                 )
             else:
-                print(
-                    f"⚠️  Warning: Request mismatch at interaction {self.current_index}, using recorded response anyway"
-                )
+                idx = self.current_index
+                msg = f"Request mismatch at interaction {idx}, using recorded response anyway"
+                print(f"⚠️  Warning: {msg}")
 
         # Advance index
         self.current_index += 1

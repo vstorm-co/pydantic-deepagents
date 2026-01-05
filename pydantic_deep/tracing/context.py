@@ -229,11 +229,9 @@ class TraceContext:
         prev_parent = self._current_parent_id
         self._current_parent_id = event_id
 
-        error_occurred = False
         try:
             yield event_id
         except Exception as e:
-            error_occurred = True
             # Emit error event
             error_event = ErrorEvent(
                 event_id=self._generate_event_id(),

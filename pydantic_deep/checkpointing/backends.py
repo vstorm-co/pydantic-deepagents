@@ -6,7 +6,6 @@ including filesystem, in-memory (for testing), and cloud storage.
 
 import json
 from pathlib import Path
-from typing import Any
 
 from pydantic_deep.checkpointing.types import (
     Checkpoint,

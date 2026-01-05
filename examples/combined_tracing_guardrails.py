@@ -61,7 +61,7 @@ async def combined_example():
                 "Create a file hello.txt and write 'Hello, World!' to it",
                 deps=deps,
             )
-            print(f"\n✓ Agent completed successfully")
+            print("\n✓ Agent completed successfully")
             print(f"Result: {result.output}")
         except GuardrailViolation as e:
             print(f"\n✗ Guardrail violation prevented execution: {e}")
@@ -146,13 +146,13 @@ async def guardrail_violation_with_tracing():
 
     # Show violations collected
     summary = guardrail_manager.get_summary()
-    print(f"\n=== Violations Collected ===")
+    print("\n=== Violations Collected ===")
     print(f"Total violations: {summary['violations']}")
     for violation_msg in summary["violation_types"]:
         print(f"  - {violation_msg}")
 
     # Trace summary
-    print(f"\n=== Trace Summary ===")
+    print("\n=== Trace Summary ===")
     trace_summary = trace_ctx.get_summary()
     print(f"Total events captured: {trace_summary['total_events']}")
 
@@ -197,11 +197,11 @@ async def production_ready_agent():
 
     with trace_ctx.agent_run("prod-agent", "Production task", "test-model"):
         try:
-            result = await agent.run(
+            await agent.run(
                 "Perform a safe file operation",
                 deps=deps,
             )
-            print(f"\n✓ Production agent completed successfully")
+            print("\n✓ Production agent completed successfully")
         except GuardrailViolation as e:
             print(f"\n✗ Safety guardrail prevented unsafe operation: {e}")
 
@@ -209,7 +209,7 @@ async def production_ready_agent():
     file_exporter.flush()
     file_exporter.close()
 
-    print(f"\n✓ Trace data written to /tmp/agent-traces.jsonl")
+    print("\n✓ Trace data written to /tmp/agent-traces.jsonl")
     print(f"✓ Guardrail checks: {guardrail_manager.get_summary()['total_checks']}")
     print(f"✓ Events captured: {trace_ctx.get_summary()['total_events']}")
 

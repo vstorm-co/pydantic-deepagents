@@ -214,9 +214,8 @@ class TestTraceContext:
         """Test tool call error handling."""
         ctx = TraceContext()
 
-        with pytest.raises(ValueError):
-            with ctx.tool_call("failing_tool", {}):
-                raise ValueError("Tool failed")
+        with pytest.raises(ValueError), ctx.tool_call("failing_tool", {}):
+            raise ValueError("Tool failed")
 
         # Should have start + error + end events
         assert len(ctx.events) == 3
@@ -634,9 +633,8 @@ class TestTraceContextWithExporters:
         """Test error handling in agent run context."""
         ctx = TraceContext()
 
-        with pytest.raises(ValueError):
-            with ctx.agent_run("test", "Test", "gpt-4"):
-                raise ValueError("Test error")
+        with pytest.raises(ValueError), ctx.agent_run("test", "Test", "gpt-4"):
+            raise ValueError("Test error")
 
         # Should have start + error + end events
         assert len(ctx.events) == 3

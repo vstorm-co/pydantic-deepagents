@@ -31,11 +31,11 @@ async def basic_record_example():
             model="test",
             description="Test creating a file",
         ) as recorder:
-            agent = create_deep_agent(
+            create_deep_agent(
                 model=TestModel(),
                 instructions="You are a helpful file management assistant.",
             )
-            deps = DeepAgentDeps(backend=StateBackend())
+            DeepAgentDeps(backend=StateBackend())
 
             # Manually record request/response (for demonstration)
             messages = [{"role": "user", "content": "Create hello.txt"}]
@@ -154,7 +154,7 @@ async def performance_comparison():
                 replayer.replay(messages=messages)
         replay_time = time.time() - start_time
 
-        print(f"\n=== Results ===")
+        print("\n=== Results ===")
         print(f"Record time: {record_time:.3f}s")
         print(f"Replay time: {replay_time:.3f}s")
         print(f"Speedup: {record_time / replay_time:.1f}x faster")
@@ -201,7 +201,7 @@ async def multiple_interactions_example():
 
             # Check stats
             stats = replayer.get_stats()
-            print(f"\nReplay stats:")
+            print("\nReplay stats:")
             print(f"  Total: {stats['total_interactions']}")
             print(f"  Replayed: {stats['replayed']}")
             print(f"  Remaining: {stats['remaining']}")
@@ -254,10 +254,10 @@ async def conditional_recording_example():
         def get_mode(fixture_path: Path):
             """Auto-detect record vs replay mode."""
             if fixture_path.exists():
-                print(f"✓ Found fixture, using replay mode")
+                print("✓ Found fixture, using replay mode")
                 return replay_mode(fixture_path)
             else:
-                print(f"✓ No fixture found, using record mode")
+                print("✓ No fixture found, using record mode")
                 return record_mode(fixture_path, model="test")
 
         # First run - will record

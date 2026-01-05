@@ -164,4 +164,4 @@ class TraceSpan(TypedDict):
     duration_seconds: NotRequired[float]
     tokens: NotRequired[int]
     metadata: NotRequired[dict[str, Any]]
-    children: NotRequired[list["TraceSpan"]]
+    children: NotRequired[list[TraceSpan]]

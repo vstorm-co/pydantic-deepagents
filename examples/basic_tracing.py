@@ -43,7 +43,7 @@ async def basic_tracing_example():
 
     # Get summary statistics
     summary = trace_ctx.get_summary()
-    print(f"\n=== Trace Summary ===")
+    print("\n=== Trace Summary ===")
     print(f"Total events: {summary['total_events']}")
     print(f"Tool calls: {summary['tool_calls']}")
     print(f"LLM requests: {summary['llm_requests']}")
@@ -75,7 +75,7 @@ async def multi_exporter_example():
     )
 
     with trace_ctx.agent_run("data-processor", "Process data", "test-model"):
-        result = await agent.run("Read and analyze data.txt", deps=deps)
+        await agent.run("Read and analyze data.txt", deps=deps)
 
     # Get hierarchical tree view from memory exporter
     tree = memory_exporter.get_tree()
@@ -86,7 +86,7 @@ async def multi_exporter_example():
     from pydantic_deep.tracing import LLMResponseEvent
 
     llm_events = memory_exporter.get_events_by_type(LLMResponseEvent)
-    print(f"\n=== LLM Events ===")
+    print("\n=== LLM Events ===")
     for event in llm_events:
         print(
             f"  - Model: {event.model}, Duration: {event.duration_seconds:.2f}s, "
@@ -105,7 +105,7 @@ async def manual_tracing_example():
         print(f"Agent run ID: {run_id}")
 
         # Manually trace a tool call
-        with trace_ctx.tool_call("custom_tool", {"arg1": "value1"}) as call_id:
+        with trace_ctx.tool_call("custom_tool", {"arg1": "value1"}):
             # Simulate tool execution
             await asyncio.sleep(0.1)
             result = {"status": "success", "data": "processed"}

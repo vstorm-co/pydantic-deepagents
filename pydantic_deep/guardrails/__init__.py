@@ -85,11 +85,7 @@ def validate_no_secrets(text: str) -> bool:
         r"-----BEGIN [A-Z ]+ PRIVATE KEY-----",
     ]
 
-    for pattern in patterns:
-        if re.search(pattern, text):
-            return False
-
-    return True
+    return all(not re.search(pattern, text) for pattern in patterns)
 
 
 def validate_no_pii(text: str) -> bool:
@@ -110,11 +106,7 @@ def validate_no_pii(text: str) -> bool:
         r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",  # Email
     ]
 
-    for pattern in patterns:
-        if re.search(pattern, text, re.IGNORECASE):
-            return False
-
-    return True
+    return all(not re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
 
 
 def redact_secrets(text: str) -> str:

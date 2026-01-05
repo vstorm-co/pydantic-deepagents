@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic_deep.guardrails.types import (
     GuardrailContext,
@@ -48,9 +48,11 @@ class TokenBudgetGuardrail:
             )
         elif context.total_tokens > self.warn_threshold:
             # Emit warning but continue
+            pct = context.total_tokens / self.max_tokens * 100
+            msg = f"Token budget warning: {context.total_tokens}/{self.max_tokens} ({pct:.1f}%)"
             return GuardrailResult(
                 passed=True,
-                message=f"Token budget warning: {context.total_tokens}/{self.max_tokens} ({context.total_tokens / self.max_tokens * 100:.1f}%)",
+                message=msg,
                 metadata={"warning": True},
             )
         return GuardrailResult(passed=True)
@@ -93,9 +95,10 @@ class IterationLimitGuardrail:
             Result indicating if iteration count is within limits.
         """
         if context.iteration_count > self.max_iterations:
+            msg = f"Iteration limit exceeded: {context.iteration_count}/{self.max_iterations}"
             return GuardrailResult(
                 passed=False,
-                message=f"Iteration limit exceeded: {context.iteration_count}/{self.max_iterations}",
+                message=msg,
                 metadata={"action": self.action},
             )
         return GuardrailResult(passed=True)
@@ -136,14 +139,18 @@ class CostLimitGuardrail:
             Result indicating if cost is within limits.
         """
         if context.total_cost_usd > self.max_cost_usd:
+            msg = f"Cost limit exceeded: ${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f}"
             return GuardrailResult(
                 passed=False,
-                message=f"Cost limit exceeded: ${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f}",
+                message=msg,
             )
         elif context.total_cost_usd > self.warn_threshold:
+            pct = context.total_cost_usd / self.max_cost_usd * 100
+            cost_info = f"${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f}"
+            msg = f"Cost warning: {cost_info} ({pct:.1f}%)"
             return GuardrailResult(
                 passed=True,
-                message=f"Cost warning: ${context.total_cost_usd:.4f}/${self.max_cost_usd:.2f} ({context.total_cost_usd / self.max_cost_usd * 100:.1f}%)",
+                message=msg,
                 metadata={"warning": True},
             )
         return GuardrailResult(passed=True)
@@ -235,9 +242,11 @@ class ToolChainValidationGuardrail:
                 if self._matches_pattern(
                     context.last_n_tools[i], context.last_n_tools[i + 1], pattern1, pattern2
                 ):
+                    found = f"{context.last_n_tools[i]} -> {context.last_n_tools[i + 1]}"
+                    msg = f"Forbidden pattern: {pattern1} -> {pattern2} (found: {found})"
                     return GuardrailResult(
                         passed=False,
-                        message=f"Forbidden pattern: {pattern1} -> {pattern2} (found: {context.last_n_tools[i]} -> {context.last_n_tools[i + 1]})",
+                        message=msg,
                     )
 
         return GuardrailResult(passed=True)

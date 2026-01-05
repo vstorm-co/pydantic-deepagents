@@ -22,9 +22,10 @@ Example:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from pydantic_deep.testing.recorder import Recorder
 from pydantic_deep.testing.replayer import Replayer

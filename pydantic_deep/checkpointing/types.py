@@ -6,7 +6,6 @@ saving and restoring agent state during long-running tasks.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Protocol
 
 

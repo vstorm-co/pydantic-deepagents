@@ -9,7 +9,6 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from pydantic_ai import Agent
-from pydantic_ai.result import StreamedRunResult
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.streaming.types import (
@@ -81,7 +80,7 @@ async def run_stream(
                 yield llm_chunk_event(text=text_chunk)
 
             # Get final output
-            output = await result.get_output()
+            await result.get_output()
 
             # Update tracking
             iteration += 1

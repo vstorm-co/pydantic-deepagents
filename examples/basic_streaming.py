@@ -7,8 +7,8 @@ during agent execution.
 import asyncio
 
 from pydantic_ai.models.test import TestModel
-
 from pydantic_ai_backends import StateBackend
+
 from pydantic_deep import DeepAgentDeps, create_deep_agent
 from pydantic_deep.streaming import (
     StreamEventType,
@@ -145,7 +145,7 @@ async def collect_events_example():
         on_event=count_events,
     )
 
-    print(f"\n📊 Event Statistics:")
+    print("\n📊 Event Statistics:")
     for event_type, count in sorted(event_counts.items()):
         print(f"  {event_type}: {count}")
 
@@ -179,7 +179,7 @@ async def progress_monitoring():
 
         elif event.event_type == StreamEventType.AGENT_END:
             duration = event.data.get("duration_seconds", 0)
-            print(f"\n\n📊 Final Statistics:")
+            print("\n\n📊 Final Statistics:")
             print(f"  Duration: {duration:.2f}s")
             print(f"  Iterations: {iterations}")
             print(f"  Tokens: {total_tokens}")

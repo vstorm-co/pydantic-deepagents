@@ -23,29 +23,31 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pydantic-ai>=0.1.0",
+    "pydantic-ai-slim>=0.1.0",
     "pydantic-ai-todo>=0.1.0",
     "pydantic-ai-backend>=0.0.3",
     "pydantic>=2.0",
-    "typer>=0.12.0",
-    "httpx>=0.28.1",
-    "pydantic-settings>=2.0.0",
-    "rich>=13.0.0",
-    "prompt-toolkit>=3.0.0",
-    "fastapi>=0.125.0",
-    "uvicorn>=0.38.0",
     "chardet>=5.2.0",
 ]
 
 [project.optional-dependencies]
+# Docker sandbox support
 sandbox = ["pydantic-ai-backend[docker]>=0.0.3"]
-dev = [
-    "fastapi>=0.124.0",
-    "python-multipart>=0.0.21",
-    "pre-commit>=4.5.1",
+# CLI tools (for interactive chat examples)
+cli = [
+    "typer>=0.12.0",
+    "rich>=13.0.0",
+    "prompt-toolkit>=3.0.0",
+]
+# Web server support (for full_app example)
+web = [
+    "fastapi>=0.125.0",
     "uvicorn>=0.38.0",
-    "ruff>=0.14.9",
-    "pyright>=1.1.407",
+    "python-multipart>=0.0.21",
+]
+# All optional dependencies
+all = [
+    "pydantic-deep[sandbox,cli,web]",
 ]
 
 [project.urls]
@@ -64,12 +66,13 @@ packages = ["pydantic_deep"]
 # Dependency groups for development
 [dependency-groups]
 dev = [
+    "pydantic-deep[all]",
     "pytest>=9.0.0",
     "pytest-asyncio>=0.23.0",
     "coverage>=7.0.0",
     "build>=1.3.0",
     "twine>=6.2.0",
-    "pydantic-ai-todo",
+    "pre-commit>=4.5.1",
 ]
 lint = [
     "ruff>=0.8.0",
@@ -177,4 +180,3 @@ disable_error_code = ["arg-type", "list-item", "abstract"]
 # Codespell configuration
 [tool.codespell]
 skip = ".git,.venv*,uv.lock,site,htmlcov,.coverage"
-

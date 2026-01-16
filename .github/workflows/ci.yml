@@ -80,13 +80,13 @@ jobs:
         run: |
           uv run coverage run -m pytest
           uv run coverage report
+          uv run coverage lcov -o coverage.lcov
 
-      - name: Upload coverage
+      - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: coverallsapp/github-action@v2
         with:
-          name: coverage-report
-          path: .coverage/
+          file: coverage.lcov
 
   docs:
     name: Build Documentation

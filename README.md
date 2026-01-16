@@ -9,7 +9,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/pydantic-deep.svg)](https://pypi.org/project/pydantic-deep/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/vstorm-co/pydantic-deep)
+[![Coverage Status](https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main)](https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main)
 [![CI](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml/badge.svg)](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml)
 
 Deep agent framework built on [pydantic-ai](https://github.com/pydantic/pydantic-ai) with planning, filesystem, and subagent capabilities.

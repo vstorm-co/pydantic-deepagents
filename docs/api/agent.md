@@ -43,7 +43,7 @@ def create_deep_agent(
 | `skill_directories` | `list[SkillDirectory] \| None` | `None` | Directories to discover skills |
 | `backend` | `BackendProtocol \| None` | `StateBackend()` | File storage backend |
 | `include_todo` | `bool` | `True` | Include TodoToolset |
-| `include_filesystem` | `bool` | `True` | Include FilesystemToolset |
+| `include_filesystem` | `bool` | `True` | Include Console Toolset |
 | `include_subagents` | `bool` | `True` | Include SubAgentToolset |
 | `include_skills` | `bool` | `True` | Include SkillsToolset |
 | `include_general_purpose_subagent` | `bool` | `True` | Include general-purpose subagent |
@@ -109,13 +109,14 @@ def create_default_deps(
 ### Example
 
 ```python
-from pydantic_deep import create_default_deps, FilesystemBackend
+from pydantic_deep import create_default_deps
+from pydantic_ai_backends import LocalBackend
 
 # With default StateBackend
 deps = create_default_deps()
 
 # With custom backend
-deps = create_default_deps(backend=FilesystemBackend("/workspace"))
+deps = create_default_deps(backend=LocalBackend("/workspace"))
 ```
 
 ---

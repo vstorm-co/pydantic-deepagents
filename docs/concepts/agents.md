@@ -132,7 +132,8 @@ class DeepAgentDeps:
 deps = DeepAgentDeps(backend=StateBackend())
 
 # With filesystem storage
-deps = DeepAgentDeps(backend=FilesystemBackend("/workspace"))
+from pydantic_ai_backends import LocalBackend
+deps = DeepAgentDeps(backend=LocalBackend("/workspace"))
 
 # With initial todos
 from pydantic_deep import Todo

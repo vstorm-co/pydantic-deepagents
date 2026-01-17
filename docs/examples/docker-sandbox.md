@@ -1,10 +1,7 @@
 # Docker Sandbox Example
 
-!!! tip "Standalone Usage"
-    DockerSandbox is also available in [`pydantic-ai-backend`](https://github.com/vstorm-co/pydantic-ai-backend) for use with any pydantic-ai agent:
-    ```bash
-    pip install pydantic-ai-backend[docker]
-    ```
+!!! info "Full Documentation"
+    For complete Docker sandbox documentation, see **[pydantic-ai-backend Docker docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/docker/)**.
 
 This example demonstrates isolated code execution using DockerSandbox.
 
@@ -301,19 +298,19 @@ finally:
     sandbox.stop()
 ```
 
-## Alternative: LocalSandbox
+## Alternative: LocalBackend
 
-For development/testing without Docker:
+For development/testing without Docker, use `LocalBackend` which supports shell execution:
 
 ```python
-from pydantic_deep import LocalSandbox
+from pydantic_deep import LocalBackend
 
-# Executes on local machine (DANGEROUS in production!)
-sandbox = LocalSandbox(work_dir="/tmp/workspace")
+# Executes on local machine
+backend = LocalBackend(root_dir="./workspace", enable_execute=True)
 ```
 
 !!! warning
-    LocalSandbox runs commands on your actual machine with no isolation.
+    LocalBackend runs commands on your actual machine with no isolation.
     Only use for trusted code in development.
 
 ## Running the Example

@@ -144,6 +144,22 @@ class TestDeepAgentDepsExtended:
         # Files should be synced to backend
         assert "/test.txt" in backend.files
 
+    def test_post_init_with_non_state_backend(self, local_backend):
+        """Test that __post_init__ works with non-StateBackend."""
+        # This covers the branch where backend is NOT a StateBackend
+        deps = DeepAgentDeps(backend=local_backend)
+        assert deps.backend is local_backend
+        # files dict should remain empty (not synced from backend)
+        assert deps.files == {}
+
+    def test_get_files_summary_empty(self):
+        """Test get_files_summary with empty files."""
+        deps = DeepAgentDeps(backend=StateBackend())
+        # Ensure files is empty
+        deps.files.clear()
+        summary = deps.get_files_summary()
+        assert summary == ""
+
     def test_get_files_summary_with_files(self):
         """Test get_files_summary with files."""
         deps = DeepAgentDeps(backend=StateBackend())

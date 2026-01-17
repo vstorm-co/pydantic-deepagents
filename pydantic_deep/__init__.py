@@ -2,7 +2,7 @@
 
 This library provides a deep agent framework with:
 - Planning via TodoToolset
-- Filesystem operations via FilesystemToolset
+- Filesystem operations via create_console_toolset (from pydantic-ai-backend)
 - Subagent delegation via SubAgentToolset
 - Multiple backend options for file storage
 - Structured output support via output_type
@@ -11,17 +11,18 @@ This library provides a deep agent framework with:
 Example:
     ```python
     from pydantic import BaseModel
-    from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+    from pydantic_deep import (
+        create_deep_agent, DeepAgentDeps, LocalBackend, create_console_toolset
+    )
     from pydantic_deep.processors import create_summarization_processor
 
-    # Create agent with all capabilities
+    # Create agent with file tools
     agent = create_deep_agent(
         model="openai:gpt-4.1",
         instructions="You are a helpful coding assistant",
-        interrupt_on={"execute": True},
     )
 
-    # With structured output
+    # With structured output and summarization
     class Analysis(BaseModel):
         summary: str
         issues: list[str]
@@ -36,8 +37,8 @@ Example:
         ],
     )
 
-    # Create dependencies
-    deps = DeepAgentDeps(backend=StateBackend())
+    # Create dependencies with LocalBackend
+    deps = DeepAgentDeps(backend=LocalBackend(root_dir="."))
 
     # Run agent
     result = await agent.run("Create a Python script", deps=deps)
@@ -50,19 +51,21 @@ from pydantic_ai_backends import (
     BackendProtocol,
     BaseSandbox,
     CompositeBackend,
+    ConsoleDeps,
     DockerSandbox,
     EditResult,
     ExecuteResponse,
     FileData,
     FileInfo,
-    FilesystemBackend,
     GrepMatch,
-    LocalSandbox,
+    LocalBackend,
     RuntimeConfig,
     SandboxProtocol,
     SessionManager,
     StateBackend,
     WriteResult,
+    create_console_toolset,
+    get_console_system_prompt,
     get_runtime,
 )
 
@@ -72,7 +75,7 @@ from pydantic_deep.processors import (
     SummarizationProcessor,
     create_summarization_processor,
 )
-from pydantic_deep.toolsets import FilesystemToolset, SkillsToolset, SubAgentToolset, TodoToolset
+from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset
 from pydantic_deep.types import (
     CompiledSubAgent,
     ResponseFormat,
@@ -97,15 +100,14 @@ __all__ = [
     "create_default_deps",
     "run_with_files",
     "DeepAgentDeps",
-    # Backends
+    # Backends (from pydantic-ai-backend)
     "BackendProtocol",
     "SandboxProtocol",
+    "LocalBackend",
     "StateBackend",
-    "FilesystemBackend",
     "CompositeBackend",
     "BaseSandbox",
     "DockerSandbox",
-    "LocalSandbox",
     # Runtimes
     "RuntimeConfig",
     "BUILTIN_RUNTIMES",
@@ -114,7 +116,9 @@ __all__ = [
     "SessionManager",
     # Toolsets
     "TodoToolset",
-    "FilesystemToolset",
+    "create_console_toolset",
+    "get_console_system_prompt",
+    "ConsoleDeps",
     "SubAgentToolset",
     "SkillsToolset",
     # Processors

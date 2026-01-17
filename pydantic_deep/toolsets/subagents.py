@@ -122,15 +122,14 @@ def create_subagent_toolset(
             subagent = ctx.deps.subagents[subagent_type]
         else:
             # Create the subagent on-the-fly
+            from pydantic_ai_backends import create_console_toolset
             from pydantic_ai_todo import create_todo_toolset
-
-            from pydantic_deep.toolsets.filesystem import create_filesystem_toolset
 
             model = config.get("model", default_model)
             tools = config.get("tools", [])
 
             # Create toolsets for the subagent
-            fs_toolset = create_filesystem_toolset(
+            console_toolset = create_console_toolset(
                 include_execute=True,
                 require_write_approval=False,
                 require_execute_approval=False,
@@ -141,7 +140,7 @@ def create_subagent_toolset(
                 model,
                 instructions=config["instructions"],
                 deps_type=type(ctx.deps),
-                toolsets=[fs_toolset, todo_toolset],
+                toolsets=[console_toolset, todo_toolset],
             )
 
             # Add custom tools if any

@@ -108,9 +108,11 @@ print(storage.todos)  # Access todos directly
 
 ---
 
-## FilesystemToolset
+## Console Toolset
 
-File operation tools.
+File operation tools. Provided by [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend).
+
+For full documentation, see [pydantic-ai-backend Console Toolset](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console/).
 
 ### Tools
 
@@ -127,132 +129,29 @@ File operation tools.
 ### Factory
 
 ```python
-def create_filesystem_toolset(
-    *,
-    id: str = "filesystem",
-    include_execute: bool = False,
-    require_write_approval: bool = False,
-    require_execute_approval: bool = True,
-) -> FilesystemToolset
+from pydantic_ai_backends import create_console_toolset
+
+toolset = create_console_toolset(
+    id="console",
+    include_execute=False,
+    require_write_approval=False,
+    require_execute_approval=True,
+)
 ```
 
-### Tool: ls
+### Usage with pydantic-deep
+
+The console toolset is automatically included when you create a deep agent with `include_filesystem=True` (the default):
 
 ```python
-async def ls(
-    ctx: RunContext[DeepAgentDeps],
-    path: str = "/",
-) -> str
+from pydantic_deep import create_deep_agent
+
+# Console toolset is included by default
+agent = create_deep_agent()
+
+# Or explicitly disable it
+agent = create_deep_agent(include_filesystem=False)
 ```
-
-List directory contents.
-
-**Returns:** Formatted directory listing.
-
-### Tool: read_file
-
-```python
-async def read_file(
-    ctx: RunContext[DeepAgentDeps],
-    path: str,
-    offset: int = 0,
-    limit: int = 2000,
-) -> str
-```
-
-Read file contents with line numbers.
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `path` | `str` | Required | File path |
-| `offset` | `int` | `0` | Starting line (0-indexed) |
-| `limit` | `int` | `2000` | Maximum lines |
-
-**Returns:** File content with line numbers.
-
-### Tool: write_file
-
-```python
-async def write_file(
-    ctx: RunContext[DeepAgentDeps],
-    path: str,
-    content: str,
-) -> str
-```
-
-Create or overwrite a file.
-
-**Returns:** Confirmation or error message.
-
-### Tool: edit_file
-
-```python
-async def edit_file(
-    ctx: RunContext[DeepAgentDeps],
-    path: str,
-    old_string: str,
-    new_string: str,
-    replace_all: bool = False,
-) -> str
-```
-
-Replace strings in a file.
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `path` | `str` | Required | File path |
-| `old_string` | `str` | Required | String to replace |
-| `new_string` | `str` | Required | Replacement string |
-| `replace_all` | `bool` | `False` | Replace all occurrences |
-
-**Returns:** Confirmation with occurrence count.
-
-### Tool: glob
-
-```python
-async def glob(
-    ctx: RunContext[DeepAgentDeps],
-    pattern: str,
-    path: str = "/",
-) -> str
-```
-
-Find files matching glob pattern.
-
-**Returns:** List of matching files.
-
-### Tool: grep
-
-```python
-async def grep(
-    ctx: RunContext[DeepAgentDeps],
-    pattern: str,
-    path: str | None = None,
-    file_glob: str | None = None,
-) -> str
-```
-
-Search file contents with regex.
-
-**Returns:** Matching lines with context.
-
-### Tool: execute
-
-```python
-async def execute(
-    ctx: RunContext[DeepAgentDeps],
-    command: str,
-    timeout: int = 30,
-) -> str
-```
-
-Execute a shell command (sandbox only).
-
-**Returns:** Command output or error.
 
 ---
 

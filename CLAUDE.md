@@ -30,16 +30,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `DeepAgentDeps`: Dataclass holding agent dependencies (backend, working_dir, skills_dirs, subagents)
 - Passed to agent.run() for runtime configuration
 
-**Backends (`pydantic_deep/backends/`)**
+**Backends (from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend))**
 - `BackendProtocol`: Interface for file storage backends
 - `StateBackend`: In-memory file storage (for testing, ephemeral use)
-- `FilesystemBackend`: Real filesystem operations
+- `LocalBackend`: Real filesystem operations
 - `DockerSandbox`: Isolated Docker container execution
 - `CompositeBackend`: Combines multiple backends with routing
 
 **Toolsets (`pydantic_deep/toolsets/`)**
-- `TodoToolset`: Task planning and tracking tools (read_todos, write_todos)
-- `FilesystemToolset`: File operations (read, write, edit, glob, grep, mkdir, execute)
+- `TodoToolset`: Task planning and tracking tools (read_todos, write_todos) - from [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)
+- `create_console_toolset`: File operations (ls, read, write, edit, glob, grep, execute) - from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
 - `SubAgentToolset`: Spawn and delegate to subagents
 - `SkillsToolset`: Load and use skill definitions from markdown files
 
@@ -58,26 +58,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Backend Abstraction**
 ```python
-from pydantic_deep import StateBackend, FilesystemBackend, CompositeBackend
+from pydantic_ai_backends import StateBackend, LocalBackend, CompositeBackend
 
 # In-memory for testing
 backend = StateBackend()
 
 # Real filesystem
-backend = FilesystemBackend(root="/path/to/workspace")
+backend = LocalBackend(root="/path/to/workspace")
 
 # Combined backends
-backend = CompositeBackend(backends=[StateBackend(), FilesystemBackend()])
+backend = CompositeBackend(backends=[StateBackend(), LocalBackend()])
 ```
 
 **Toolset Registration**
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps
-from pydantic_deep.toolsets import TodoToolset, FilesystemToolset
+from pydantic_ai_backends import create_console_toolset
+from pydantic_ai_todo import create_todo_toolset
 
 agent = create_deep_agent(
     model="openai:gpt-4.1",
-    toolsets=[TodoToolset(), FilesystemToolset()],
+    toolsets=[create_todo_toolset(), create_console_toolset()],
 )
 ```
 

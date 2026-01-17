@@ -23,20 +23,14 @@ from pydantic_deep import (
     create_default_deps,
     DeepAgentDeps,
 
-    # Backends
+    # Backends (from pydantic-ai-backend)
     BackendProtocol,
     SandboxProtocol,
     StateBackend,
-    FilesystemBackend,
+    LocalBackend,
     CompositeBackend,
     BaseSandbox,
     DockerSandbox,
-
-    # Toolsets
-    TodoToolset,
-    FilesystemToolset,
-    SubAgentToolset,
-    SkillsToolset,
 
     # Processors
     SummarizationProcessor,
@@ -57,6 +51,11 @@ from pydantic_deep import (
     SkillFrontmatter,
     ResponseFormat,
 )
+
+# Toolsets (from their respective packages)
+from pydantic_ai_backends import create_console_toolset
+from pydantic_ai_todo import create_todo_toolset
+from pydantic_deep.toolsets import SubAgentToolset, SkillsToolset
 ```
 
 ### Creating an Agent

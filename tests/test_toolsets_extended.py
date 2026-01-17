@@ -4,9 +4,6 @@ from pydantic_ai_backends import StateBackend
 from pydantic_ai_todo import TodoItem
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.filesystem import (
-    get_filesystem_system_prompt,
-)
 from pydantic_deep.toolsets.subagents import (
     create_subagent_toolset,
     get_subagent_system_prompt,
@@ -27,58 +24,6 @@ class TestTodoToolsetExtended:
         assert item.content == "Test task"
         assert item.status == "pending"
         assert item.active_form == "Testing"
-
-
-class TestFilesystemToolsetExtended:
-    """Extended tests for FilesystemToolset."""
-
-    def test_get_filesystem_system_prompt_basic(self):
-        """Test basic filesystem system prompt."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        prompt = get_filesystem_system_prompt(deps)
-        assert "Filesystem Tools" in prompt
-
-    def test_get_filesystem_system_prompt_with_sandbox(self):
-        """Test filesystem system prompt with sandbox backend."""
-        from pydantic_ai_backends import SandboxProtocol
-
-        # Create a mock sandbox backend
-        class MockSandbox(SandboxProtocol):  # type: ignore[misc]
-            def execute(self, command, timeout=None):
-                pass
-
-            def ls_info(self, path):
-                return []
-
-            def read(self, path, offset=0, limit=2000):
-                return ""
-
-            def write(self, path, content):
-                pass
-
-            def edit(self, path, old, new, replace_all=False):
-                pass
-
-            def glob_info(self, pattern, path="/"):
-                return []
-
-            def grep_raw(self, pattern, path=None, glob=None):
-                return []
-
-        deps = DeepAgentDeps(backend=MockSandbox())
-        prompt = get_filesystem_system_prompt(deps)
-        assert "Command Execution" in prompt
-
-    def test_get_filesystem_system_prompt_with_files(self):
-        """Test filesystem system prompt with files summary."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        deps.files["/test.txt"] = {
-            "content": ["test"],
-            "created_at": "2024-01-01",
-            "modified_at": "2024-01-01",
-        }
-        prompt = get_filesystem_system_prompt(deps)
-        assert "Files in Memory" in prompt
 
 
 class TestSubagentToolsetExtended:

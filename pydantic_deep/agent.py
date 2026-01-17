@@ -10,14 +10,16 @@ from pydantic_ai._agent_graph import HistoryProcessor
 from pydantic_ai.models import Model
 from pydantic_ai.output import OutputSpec
 from pydantic_ai.tools import DeferredToolRequests, Tool
-from pydantic_ai_backends import BackendProtocol, SandboxProtocol, StateBackend
+from pydantic_ai_backends import (
+    BackendProtocol,
+    SandboxProtocol,
+    StateBackend,
+    create_console_toolset,
+    get_console_system_prompt,
+)
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.filesystem import (
-    create_filesystem_toolset,
-    get_filesystem_system_prompt,
-)
 from pydantic_deep.toolsets.skills import create_skills_toolset, get_skills_system_prompt
 from pydantic_deep.toolsets.subagents import create_subagent_toolset, get_subagent_system_prompt
 from pydantic_deep.types import Skill, SkillDirectory, SubAgentConfig
@@ -217,13 +219,13 @@ def create_deep_agent(  # noqa: C901
             include_execute if include_execute is not None else isinstance(backend, SandboxProtocol)
         )
 
-        fs_toolset = create_filesystem_toolset(
-            id="deep-filesystem",
+        console_toolset = create_console_toolset(
+            id="deep-console",
             include_execute=should_include_execute,
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
         )
-        all_toolsets.append(fs_toolset)
+        all_toolsets.append(console_toolset)
 
     if include_subagents:
         # For subagents, convert model to string if it's a Model instance
@@ -308,9 +310,9 @@ def create_deep_agent(  # noqa: C901
                 parts.append(todo_prompt)
 
         if include_filesystem:
-            fs_prompt = get_filesystem_system_prompt(ctx.deps)
-            if fs_prompt:
-                parts.append(fs_prompt)
+            console_prompt = get_console_system_prompt()
+            if console_prompt:
+                parts.append(console_prompt)
 
         if include_subagents:
             subagent_prompt = get_subagent_system_prompt(ctx.deps, subagents)

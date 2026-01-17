@@ -24,8 +24,8 @@ See the [full demo application](https://github.com/vstorm-co/pydantic-deepagents
 
 ## Features
 
-- **Multiple Backends**: StateBackend (in-memory), FilesystemBackend, DockerSandbox, CompositeBackend - via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
-- **Rich Toolsets**: TodoToolset (via [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)), FilesystemToolset, SubAgentToolset, SkillsToolset
+- **Multiple Backends**: StateBackend (in-memory), LocalBackend, DockerSandbox, CompositeBackend - via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
+- **Rich Toolsets**: TodoToolset (via [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)), Console Toolset (via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)), SubAgentToolset, SkillsToolset
 - **File Uploads**: Upload files for agent processing with `run_with_files()` or `deps.upload_file()`
 - **Skills System**: Extensible skill definitions with markdown prompts
 - **Structured Output**: Type-safe responses with Pydantic models via `output_type`

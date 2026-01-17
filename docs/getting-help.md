@@ -110,11 +110,11 @@ async def chat(prompt: str):
 
 ### How do I persist files between runs?
 
-Use `FilesystemBackend` instead of `StateBackend`:
+Use `LocalBackend` instead of `StateBackend`:
 
 ```python
-from pydantic_deep import FilesystemBackend
+from pydantic_ai_backends import LocalBackend
 
-backend = FilesystemBackend("/path/to/workspace")
+backend = LocalBackend("/path/to/workspace")
 deps = DeepAgentDeps(backend=backend)
 ```

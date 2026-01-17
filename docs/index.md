@@ -97,7 +97,7 @@ agent = create_deep_agent(
 | **Filesystem** | Read, write, edit, glob, grep operations |
 | **Subagents** | Context-isolated task delegation |
 | **Skills** | Modular capability packages with progressive disclosure |
-| **Backends** | StateBackend, FilesystemBackend, DockerSandbox, CompositeBackend |
+| **Backends** | StateBackend, LocalBackend, DockerSandbox, CompositeBackend |
 | **Structured Output** | Type-safe responses with Pydantic models via `output_type` |
 | **Context Management** | Automatic conversation summarization for long sessions |
 | **HITL** | Human-in-the-loop approval workflows |

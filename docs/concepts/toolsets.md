@@ -38,9 +38,9 @@ write_todos(todos=[
     agent = Agent("openai:gpt-4.1", toolsets=[create_todo_toolset(storage)])
     ```
 
-### FilesystemToolset
+### Console Toolset (from pydantic-ai-backend)
 
-File operations using the configured backend.
+File operations using the configured backend. Provided by [pydantic-ai-backend](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console-toolset/).
 
 | Tool | Description |
 |------|-------------|
@@ -50,7 +50,7 @@ File operations using the configured backend.
 | `edit_file` | Replace strings in file |
 | `glob` | Find files by pattern |
 | `grep` | Search file contents |
-| `execute` | Run shell command (sandbox only) |
+| `execute` | Run shell command (when enabled) |
 
 ```python
 # Agent can call:
@@ -60,8 +60,10 @@ write_file(path="/src/new.py", content="print('hello')")
 edit_file(path="/src/app.py", old_string="old", new_string="new")
 glob(pattern="**/*.py", path="/src")
 grep(pattern="def main", path="/src")
-execute(command="python test.py", timeout=30)  # If sandbox backend
+execute(command="python test.py", timeout=30)
 ```
+
+See [Console Toolset docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console-toolset/) for full details.
 
 ### SubAgentToolset
 
@@ -106,7 +108,7 @@ read_skill_resource(skill_name="code-review", resource_name="template.md")
 ```python
 agent = create_deep_agent(
     include_todo=True,        # TodoToolset
-    include_filesystem=True,  # FilesystemToolset
+    include_console=True,     # Console Toolset (file operations)
     include_subagents=True,   # SubAgentToolset
     include_skills=True,      # SkillsToolset
 )

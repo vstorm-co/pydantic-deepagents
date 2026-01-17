@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from pydantic_ai_backends import FilesystemBackend, StateBackend
+from pydantic_ai_backends import LocalBackend, StateBackend
 
 from pydantic_deep.deps import DeepAgentDeps
 
@@ -29,6 +29,6 @@ def temp_dir():
 
 
 @pytest.fixture
-def filesystem_backend(temp_dir):
-    """Create a FilesystemBackend with temporary directory."""
-    return FilesystemBackend(temp_dir)
+def local_backend(temp_dir):
+    """Create a LocalBackend with temporary directory."""
+    return LocalBackend(temp_dir)

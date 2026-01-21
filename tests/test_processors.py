@@ -7,8 +7,8 @@ from pydantic_ai.models.test import TestModel
 
 from pydantic_deep import (
     DeepAgentDeps,
-    StateBackend,
     SlidingWindowProcessor,
+    StateBackend,
     SummarizationProcessor,
     create_deep_agent,
     create_sliding_window_processor,

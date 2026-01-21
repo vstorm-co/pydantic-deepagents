@@ -178,13 +178,15 @@ SubAgentConfig(
     description="...",              # Shown to main agent for delegation
     instructions="...",             # System prompt for the subagent
     model="openai:gpt-4.1",         # Optional: override model
+    toolsets=[my_toolset],          # Optional: custom toolsets
+    agent_kwargs={"builtin_tools": [...]},  # Optional: additional Agent kwargs
 )
 ```
 
 ### How Delegation Works
 
-1. Main agent sees available subagents via `list_subagents` tool
-2. Main agent calls `spawn_subagent(name, task)` to delegate
+1. Main agent knows available subagents from system prompt
+2. Main agent calls `task(description, subagent_type)` to delegate
 3. Subagent runs with its own instructions but shares the backend
 4. Subagent can read/write files that main agent created
 5. Main agent receives subagent's response and synthesizes results

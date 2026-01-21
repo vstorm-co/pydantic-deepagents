@@ -6,6 +6,8 @@
 
 > **Need just the backends?** Check out [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) - file storage and sandbox backends that work with any pydantic-ai agent.
 
+> **Need just subagents?** Check out [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) - task delegation toolset with dual-mode execution (sync/async).
+
 [![PyPI version](https://img.shields.io/pypi/v/pydantic-deep.svg)](https://pypi.org/project/pydantic-deep/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -41,7 +43,8 @@ pydantic-deep is built with modular, reusable components:
 |-----------|---------|-------------|
 | **Backends** | [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage and Docker sandbox |
 | **Todo Toolset** | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning and tracking |
-| **Summarization** | Built-in | Automatic context management* |
+| **Subagents** | [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Task delegation with dual-mode execution |
+| **Summarization** | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Automatic context management* |
 
 *\*Note: Summarization will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). We will migrate to use it once available.*
 
@@ -168,6 +171,8 @@ agent = create_deep_agent(history_processors=[processor])
 - **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** - The foundation: Agent framework by Pydantic
 - **[pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)** - File storage and sandbox backends (extracted from pydantic-deep)
 - **[pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)** - Task planning toolset (extracted from pydantic-deep)
+- **[subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)** - Task delegation toolset (extracted from pydantic-deep)
+- **[summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai)** - Context summarization (extracted from pydantic-deep)
 - **[fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template)** - Full-stack AI app template with pydantic-deep
 
 ## Development

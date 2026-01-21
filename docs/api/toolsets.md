@@ -157,33 +157,55 @@ agent = create_deep_agent(include_filesystem=False)
 
 ## SubAgentToolset
 
-Task delegation tools.
+Task delegation tools. Provided by [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai).
 
 ### Tools
 
 | Tool | Description |
 |------|-------------|
-| `task` | Spawn a subagent for a task |
+| `task` | Spawn a subagent for a task (sync or async mode) |
+| `check_task` | Check status of a background task |
+| `list_active_tasks` | List all running/pending tasks |
+| `soft_cancel_task` | Request graceful task cancellation |
+| `hard_cancel_task` | Force immediate task cancellation |
 
 ### Factory
 
 ```python
+from subagents_pydantic_ai import create_subagent_toolset
+
 def create_subagent_toolset(
     *,
     id: str = "subagents",
     subagents: list[SubAgentConfig] | None = None,
     default_model: str | None = None,
     include_general_purpose: bool = True,
-) -> SubAgentToolset
+    toolsets_factory: ToolsetFactory | None = None,
+) -> FunctionToolset[Any]
 ```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `id` | `str` | `"subagents"` | Unique toolset identifier |
+| `subagents` | `list[SubAgentConfig] \| None` | `None` | Custom subagent configurations |
+| `default_model` | `str \| None` | `None` | Default model for subagents |
+| `include_general_purpose` | `bool` | `True` | Include general-purpose subagent |
+| `toolsets_factory` | `ToolsetFactory \| None` | `None` | Factory to create toolsets for subagents |
 
 ### Tool: task
 
 ```python
 async def task(
-    ctx: RunContext[DeepAgentDeps],
+    ctx: RunContext[SubAgentDepsProtocol],
     description: str,
     subagent_type: str = "general-purpose",
+    mode: ExecutionMode = "sync",
+    priority: TaskPriority = TaskPriority.NORMAL,
+    complexity: Literal["simple", "moderate", "complex"] | None = None,
+    requires_user_context: bool = False,
+    may_need_clarification: bool = False,
 ) -> str
 ```
 
@@ -195,18 +217,29 @@ Spawn a subagent to handle a task.
 |-----------|------|---------|-------------|
 | `description` | `str` | Required | Task description |
 | `subagent_type` | `str` | `"general-purpose"` | Subagent name |
+| `mode` | `ExecutionMode` | `"sync"` | Execution mode: "sync", "async", or "auto" |
+| `priority` | `TaskPriority` | `NORMAL` | Task priority for async tasks |
+| `complexity` | `str \| None` | `None` | Hint for auto-mode: "simple", "moderate", "complex" |
+| `requires_user_context` | `bool` | `False` | Hint for auto-mode |
+| `may_need_clarification` | `bool` | `False` | Hint for auto-mode |
 
-**Returns:** Subagent's output.
+**Returns:** Subagent's output (sync mode) or task handle info (async mode).
 
 ### SubAgentConfig
 
 ```python
-class SubAgentConfig(TypedDict):
-    name: str                    # Unique identifier
-    description: str             # When to use this subagent
-    instructions: str            # System prompt
-    tools: NotRequired[list]     # Additional tools
-    model: NotRequired[str]      # Custom model
+class SubAgentConfig(TypedDict, total=False):
+    name: str                      # Required: Unique identifier
+    description: str               # Required: When to use this subagent
+    instructions: str              # Required: System prompt
+    model: NotRequired[str]        # Custom model
+    can_ask_questions: NotRequired[bool]  # Enable ask_parent tool
+    max_questions: NotRequired[int]       # Limit questions per task
+    preferred_mode: NotRequired[Literal["sync", "async", "auto"]]
+    typical_complexity: NotRequired[Literal["simple", "moderate", "complex"]]
+    typically_needs_context: NotRequired[bool]
+    toolsets: NotRequired[list[Any]]      # Additional toolsets
+    agent_kwargs: NotRequired[dict[str, Any]]  # Additional Agent kwargs (e.g., builtin_tools)
 ```
 
 ---

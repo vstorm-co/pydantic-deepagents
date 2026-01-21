@@ -104,17 +104,28 @@ class Todo(BaseModel):
 
 ## Subagent Types
 
+These types are provided by [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai).
+
 ### SubAgentConfig
 
 Configuration for a subagent.
 
 ```python
-class SubAgentConfig(TypedDict):
+class SubAgentConfig(TypedDict, total=False):
+    # Required fields
     name: str                      # Unique identifier
     description: str               # When to use this subagent
     instructions: str              # System prompt for subagent
-    tools: NotRequired[list]       # Additional tools
+
+    # Optional fields
     model: NotRequired[str]        # Custom model (overrides default)
+    can_ask_questions: NotRequired[bool]  # Enable ask_parent tool
+    max_questions: NotRequired[int]       # Max questions per task
+    preferred_mode: NotRequired[Literal["sync", "async", "auto"]]  # Execution preference
+    typical_complexity: NotRequired[Literal["simple", "moderate", "complex"]]
+    typically_needs_context: NotRequired[bool]
+    toolsets: NotRequired[list[Any]]      # Additional toolsets
+    agent_kwargs: NotRequired[dict[str, Any]]  # Additional Agent kwargs
 ```
 
 ### CompiledSubAgent
@@ -122,10 +133,70 @@ class SubAgentConfig(TypedDict):
 Pre-compiled subagent ready for use.
 
 ```python
-class CompiledSubAgent(TypedDict):
-    name: str
-    description: str
-    agent: NotRequired[object]  # Agent instance
+@dataclass
+class CompiledSubAgent:
+    name: str               # Unique identifier
+    description: str        # Brief description
+    config: SubAgentConfig  # Original configuration
+    agent: object | None    # Agent instance
+```
+
+### ExecutionMode
+
+Execution mode for subagent tasks.
+
+```python
+ExecutionMode = Literal["sync", "async", "auto"]
+```
+
+- **sync**: Execute synchronously, blocking until completion (default)
+- **async**: Execute in background, return immediately with task handle
+- **auto**: Automatically decide based on task characteristics
+
+### TaskStatus
+
+Status of a background task.
+
+```python
+class TaskStatus(str, Enum):
+    PENDING = "pending"           # Task is queued
+    RUNNING = "running"           # Currently executing
+    WAITING_FOR_ANSWER = "waiting_for_answer"  # Blocked on question
+    COMPLETED = "completed"       # Finished successfully
+    FAILED = "failed"             # Failed with error
+    CANCELLED = "cancelled"       # Was cancelled
+```
+
+### TaskPriority
+
+Priority levels for background tasks.
+
+```python
+class TaskPriority(str, Enum):
+    LOW = "low"
+    NORMAL = "normal"
+    HIGH = "high"
+    CRITICAL = "critical"
+```
+
+### TaskHandle
+
+Handle for managing a background task.
+
+```python
+@dataclass
+class TaskHandle:
+    task_id: str                    # Unique identifier
+    subagent_name: str              # Name of executing subagent
+    description: str                # Task description
+    status: TaskStatus              # Current status
+    priority: TaskPriority          # Task priority
+    created_at: datetime            # When created
+    started_at: datetime | None     # When started
+    completed_at: datetime | None   # When finished
+    result: str | None              # Result (if completed)
+    error: str | None               # Error (if failed)
+    pending_question: str | None    # Question waiting for answer
 ```
 
 ---

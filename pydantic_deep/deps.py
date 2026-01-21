@@ -168,21 +168,25 @@ class DeepAgentDeps:
 
         return "\n".join(lines)
 
-    def clone_for_subagent(self) -> DeepAgentDeps:
+    def clone_for_subagent(self, max_depth: int = 0) -> DeepAgentDeps:
         """Create a new deps instance for a subagent.
 
         Subagents get:
         - Same backend (shared)
         - Empty todos (isolated)
-        - Empty subagents (no nested delegation)
+        - Empty subagents (no nested delegation by default)
         - Same files (shared)
         - Same uploads (shared)
+
+        Args:
+            max_depth: Maximum nesting depth for subagent. If > 0, subagents
+                dict is copied to allow nested delegation.
         """
         return DeepAgentDeps(
             backend=self.backend,
             files=self.files,  # Shared reference
             todos=[],  # Fresh todo list
-            subagents={},  # No nested subagents
+            subagents=self.subagents.copy() if max_depth > 0 else {},
             uploads=self.uploads,  # Shared reference
         )
 

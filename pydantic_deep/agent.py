@@ -18,10 +18,10 @@ from pydantic_ai_backends import (
     get_console_system_prompt,
 )
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
+from subagents_pydantic_ai import create_subagent_toolset, get_subagent_system_prompt
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.toolsets.skills import create_skills_toolset, get_skills_system_prompt
-from pydantic_deep.toolsets.subagents import create_subagent_toolset, get_subagent_system_prompt
 from pydantic_deep.types import Skill, SkillDirectory, SubAgentConfig
 
 if TYPE_CHECKING:
@@ -230,11 +230,25 @@ def create_deep_agent(  # noqa: C901
     if include_subagents:
         # For subagents, convert model to string if it's a Model instance
         subagent_model = model if isinstance(model, str) else DEFAULT_MODEL
+
+        # Create toolsets factory for subagents - they get console and todo tools
+        def subagent_toolsets_factory(deps: DeepAgentDeps) -> list[Any]:  # pragma: no cover
+            """Provide console and todo toolsets for subagents."""
+            return [
+                create_console_toolset(
+                    include_execute=True,
+                    require_write_approval=False,
+                    require_execute_approval=False,
+                ),
+                create_todo_toolset(),
+            ]
+
         subagent_toolset = create_subagent_toolset(
             id="deep-subagents",
             subagents=subagents,
             default_model=subagent_model,
             include_general_purpose=include_general_purpose_subagent,
+            toolsets_factory=subagent_toolsets_factory,
         )
         all_toolsets.append(subagent_toolset)
 
@@ -315,9 +329,22 @@ def create_deep_agent(  # noqa: C901
                 parts.append(console_prompt)
 
         if include_subagents:
-            subagent_prompt = get_subagent_system_prompt(ctx.deps, subagents)
-            if subagent_prompt:
-                parts.append(subagent_prompt)
+            # Build configs list for prompt generation
+            prompt_configs: list[SubAgentConfig] = list(subagents or [])
+            if include_general_purpose_subagent:
+                from subagents_pydantic_ai import DEFAULT_GENERAL_PURPOSE_DESCRIPTION
+
+                prompt_configs.append(
+                    SubAgentConfig(
+                        name="general-purpose",
+                        description=DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
+                        instructions="",
+                    )
+                )
+            if prompt_configs:
+                subagent_prompt = get_subagent_system_prompt(prompt_configs)
+                if subagent_prompt:
+                    parts.append(subagent_prompt)
 
         if include_skills and loaded_skills:
             skills_prompt = get_skills_system_prompt(ctx.deps, loaded_skills)

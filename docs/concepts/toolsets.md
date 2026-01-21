@@ -67,17 +67,22 @@ See [Console Toolset docs](https://vstorm-co.github.io/pydantic-ai-backend/conce
 
 ### SubAgentToolset
 
-Delegate tasks to specialized subagents.
+Delegate tasks to specialized subagents. Powered by [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai).
 
 | Tool | Description |
 |------|-------------|
-| `task` | Spawn a subagent to handle a task |
+| `task` | Spawn a subagent for a task (sync or async) |
+| `check_task` | Check status of a background task |
+| `list_active_tasks` | List all running/pending tasks |
+| `soft_cancel_task` | Request graceful task cancellation |
+| `hard_cancel_task` | Force immediate task cancellation |
 
 ```python
 # Agent can call:
 task(
     description="Review the authentication module for security issues",
     subagent_type="code-reviewer",
+    mode="sync",  # or "async" or "auto"
 )
 ```
 
@@ -108,7 +113,7 @@ read_skill_resource(skill_name="code-review", resource_name="template.md")
 ```python
 agent = create_deep_agent(
     include_todo=True,        # TodoToolset
-    include_console=True,     # Console Toolset (file operations)
+    include_filesystem=True,  # Console Toolset (file operations)
     include_subagents=True,   # SubAgentToolset
     include_skills=True,      # SkillsToolset
 )

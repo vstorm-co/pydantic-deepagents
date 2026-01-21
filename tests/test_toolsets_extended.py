@@ -1,14 +1,11 @@
 """Extended tests for toolset implementations to reach 100% coverage."""
 
-from pydantic_ai_backends import StateBackend
 from pydantic_ai_todo import TodoItem
-
-from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.subagents import (
+from subagents_pydantic_ai import (
+    SubAgentConfig,
     create_subagent_toolset,
     get_subagent_system_prompt,
 )
-from pydantic_deep.types import SubAgentConfig
 
 
 class TestTodoToolsetExtended:
@@ -54,15 +51,8 @@ class TestSubagentToolsetExtended:
         )
         assert toolset is not None
 
-    def test_get_subagent_system_prompt_basic(self):
-        """Test basic subagent system prompt."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        prompt = get_subagent_system_prompt(deps)
-        assert "Task Delegation" in prompt
-
     def test_get_subagent_system_prompt_with_configs(self):
         """Test subagent system prompt with configs."""
-        deps = DeepAgentDeps(backend=StateBackend())
         configs = [
             SubAgentConfig(
                 name="researcher",
@@ -70,15 +60,20 @@ class TestSubagentToolsetExtended:
                 instructions="Research thoroughly.",
             ),
         ]
-        prompt = get_subagent_system_prompt(deps, configs)
+        prompt = get_subagent_system_prompt(configs)
         assert "Available Subagents" in prompt
         assert "researcher" in prompt
 
-    def test_get_subagent_system_prompt_with_cached_subagents(self):
-        """Test subagent system prompt with cached subagents."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        deps.subagents = {"researcher": object()}
-
-        prompt = get_subagent_system_prompt(deps)
-        assert "Cached Subagents" in prompt
-        assert "researcher" in prompt
+    def test_get_subagent_system_prompt_without_dual_mode(self):
+        """Test subagent system prompt without dual-mode section."""
+        configs = [
+            SubAgentConfig(
+                name="worker",
+                description="Does work",
+                instructions="Work hard.",
+            ),
+        ]
+        prompt = get_subagent_system_prompt(configs, include_dual_mode=False)
+        assert "Available Subagents" in prompt
+        assert "worker" in prompt
+        assert "Async Mode" not in prompt

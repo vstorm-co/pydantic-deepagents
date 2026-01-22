@@ -27,6 +27,38 @@ class FileInfo(TypedDict):
     size: int | None    # File size in bytes (None for directories)
 ```
 
+### UploadedFile
+
+Metadata for uploaded files (from `deps.upload_file()`).
+
+```python
+class UploadedFile(TypedDict):
+    path: str               # Path where file was stored (e.g., "/uploads/data.csv")
+    original_name: str      # Original filename
+    size: int               # File size in bytes
+    line_count: int | None  # Number of lines (None for binary files)
+    mime_type: str          # Detected MIME type (e.g., "text/csv")
+    encoding: str | None    # Detected encoding (e.g., "utf-8", None for binary)
+```
+
+**Usage:**
+
+```python
+from pydantic_deep import DeepAgentDeps, StateBackend
+
+deps = DeepAgentDeps(backend=StateBackend())
+
+# Upload a file
+deps.upload_file("report.csv", csv_bytes)
+
+# Access upload metadata
+for path, info in deps.uploads.items():
+    print(f"File: {info['original_name']}")
+    print(f"Size: {info['size']} bytes")
+    print(f"Lines: {info['line_count']}")
+    print(f"Type: {info['mime_type']}")
+```
+
 ---
 
 ## Operation Results
@@ -323,6 +355,7 @@ Types are exported from the main module:
 from pydantic_deep import (
     FileData,
     FileInfo,
+    UploadedFile,
     WriteResult,
     EditResult,
     ExecuteResponse,

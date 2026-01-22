@@ -63,6 +63,33 @@ grep(pattern="def main", path="/src")
 execute(command="python test.py", timeout=30)
 ```
 
+**Reading Large Files with Pagination:**
+
+The `read_file` tool supports `offset` and `limit` parameters for handling large files:
+
+```python
+# Read first 100 lines
+read_file(path="/logs/large.log", limit=100)
+
+# Read lines 500-600 (offset is 0-indexed)
+read_file(path="/logs/large.log", offset=500, limit=100)
+
+# Read from line 1000 to end
+read_file(path="/logs/large.log", offset=1000)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | `str` | required | File path to read |
+| `offset` | `int` | `0` | Starting line number (0-indexed) |
+| `limit` | `int` | `None` | Maximum lines to return (None = all remaining) |
+
+!!! tip "Best Practices for Large Files"
+    - Use `grep` first to find relevant sections
+    - Use `glob` to locate files, then paginate through them
+    - Read in chunks of 100-500 lines for context
+    - The agent will see line numbers to track position
+
 See [Console Toolset docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console-toolset/) for full details.
 
 ### SubAgentToolset

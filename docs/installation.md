@@ -19,6 +19,16 @@ pip install pydantic-deep
 
 ## Optional Dependencies
 
+pydantic-deep offers several optional dependency groups:
+
+| Extra | Description | Use Case |
+|-------|-------------|----------|
+| `sandbox` | Docker container support | Isolated code execution |
+| `cli` | CLI tools (typer, rich) | Interactive terminal apps |
+| `web` | Web server (FastAPI, uvicorn) | Web-based agent interfaces |
+| `dev` | Development tools | Testing and documentation |
+| `all` | All optional dependencies | Everything |
+
 ### Docker Sandbox
 
 For isolated code execution in Docker containers:
@@ -31,6 +41,40 @@ pip install pydantic-deep[sandbox]
 
 !!! tip "Standalone Usage"
     Backends are also available separately as [`pydantic-ai-backend`](https://github.com/vstorm-co/pydantic-ai-backend) for use with any pydantic-ai agent.
+
+### CLI Tools
+
+For building interactive terminal applications:
+
+```bash
+uv add pydantic-deep[cli]
+# or
+pip install pydantic-deep[cli]
+```
+
+Includes: typer, rich, prompt-toolkit
+
+### Web Server
+
+For web-based agent interfaces:
+
+```bash
+uv add pydantic-deep[web]
+# or
+pip install pydantic-deep[web]
+```
+
+Includes: FastAPI, uvicorn
+
+### All Dependencies
+
+Install everything:
+
+```bash
+uv add pydantic-deep[all]
+# or
+pip install pydantic-deep[all]
+```
 
 ### Development
 

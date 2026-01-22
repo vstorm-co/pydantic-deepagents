@@ -369,17 +369,69 @@ When using async mode, additional tools are available:
 
 ### Subagent Communication
 
-Subagents can ask questions to the parent agent:
+Subagents can ask questions to the parent agent using the `ask_parent` tool. This enables clarification without returning incomplete results.
 
 ```python
 SubAgentConfig(
     name="researcher",
     description="Research with clarification",
-    instructions="...",
+    instructions="""
+    You are a researcher. If you need clarification:
+    - Use ask_parent() to ask the main agent
+    - Wait for the response before proceeding
+    - You can ask up to 3 questions per task
+    """,
     can_ask_questions=True,   # Enable ask_parent tool
     max_questions=3,          # Limit questions per task
 )
 ```
+
+**How it works:**
+
+1. Subagent encounters ambiguity and calls `ask_parent("Which database should I query?")`
+2. Parent agent receives the question and formulates a response
+3. Response is returned to the subagent
+4. Subagent continues with the clarified information
+
+**Configuration options:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `can_ask_questions` | `bool` | `False` | Enable the `ask_parent` tool |
+| `max_questions` | `int` | `3` | Maximum questions per task execution |
+
+**Example with question handling:**
+
+```python
+subagents = [
+    SubAgentConfig(
+        name="data-analyst",
+        description="Analyzes data with clarification when needed",
+        instructions="""
+        Analyze the requested data. If unclear about:
+        - Which columns to analyze
+        - Time range to consider
+        - Aggregation method to use
+
+        Ask the parent agent for clarification using ask_parent().
+        """,
+        can_ask_questions=True,
+        max_questions=5,
+    ),
+]
+
+agent = create_deep_agent(subagents=subagents)
+
+# When running, the data-analyst can ask:
+# ask_parent("The dataset has 'date' and 'timestamp' columns. Which should I use for the time series?")
+```
+
+**Best practices:**
+
+- Enable questions for complex analytical tasks
+- Keep `max_questions` low (3-5) to prevent loops
+- Include guidance in instructions about when to ask
+- Subagent should ask before making assumptions
 
 ## Next Steps
 

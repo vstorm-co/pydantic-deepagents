@@ -3,7 +3,7 @@
   <img src="assets/baner.png" alt="pydantic-deep">
 </p>
 
-<h1 align="center">pydantic-deep</h1>
+<h1 align="center">Pydantic AI Deep Agents Framework</h1>
 
 <p align="center">
   <b>Build Claude Code-Style AI Agents — In 10 Lines of Python</b>
@@ -231,9 +231,9 @@ agent = create_deep_agent(
                               pydantic-deep
 ┌──────────────────────────────────────────────────────────────────┐
 │                                                                  │
-│      ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│      │ Planning │ │Filesystem│ │ Subagents│ │  Skills  │        │
-│      └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘        │
+│      ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
+│      │ Planning │ │Filesystem│ │ Subagents│ │  Skills  │         │
+│      └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘         │
 │           │            │            │            │               │
 │           └────────────┴─────┬──────┴────────────┘               │
 │                              │                                   │
@@ -245,10 +245,10 @@ agent = create_deep_agent(
 │                             │                                    │
 │           ┌─────────────────┼─────────────────┐                  │
 │           ▼                 ▼                 ▼                  │
-│    ┌────────────┐    ┌────────────┐    ┌────────────┐           │
-│    │   State    │    │   Local    │    │   Docker   │           │
-│    │  Backend   │    │  Backend   │    │  Sandbox   │           │
-│    └────────────┘    └────────────┘    └────────────┘           │
+│    ┌────────────┐    ┌────────────┐    ┌────────────┐            │
+│    │   State    │    │   Local    │    │   Docker   │            │
+│    │  Backend   │    │  Backend   │    │  Sandbox   │            │
+│    └────────────┘    └────────────┘    └────────────┘            │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```

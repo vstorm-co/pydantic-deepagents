@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `subagents-pydantic-ai>=0.0.2` dependency
 - Updated `pydantic-ai-todo>=0.1.4` dependency (new documentation site)
 - Updated `summarization-pydantic-ai>=0.0.2` dependency (new documentation site)
+- Updated `pydantic-ai-backend>=0.1.4` dependency (new documentation site)
 - Re-exported `SummarizationProcessor`, `SlidingWindowProcessor`, `create_summarization_processor`, `create_sliding_window_processor` from summarization-pydantic-ai
 - Re-exported `SubAgentToolset`, `create_subagent_toolset`, `get_subagent_system_prompt` from subagents-pydantic-ai
 - Re-exported `SubAgentConfig`, `CompiledSubAgent` types from subagents-pydantic-ai

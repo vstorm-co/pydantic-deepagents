@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     "pydantic-ai-slim>=0.1.0",
     "pydantic-ai-todo>=0.1.4",
-    "pydantic-ai-backend[console]>=0.1.0",
+    "pydantic-ai-backend[console]>=0.1.4",
     "summarization-pydantic-ai>=0.0.2",
     "subagents-pydantic-ai>=0.0.2",
     "pydantic>=2.0",
@@ -34,7 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.1.0"]
+sandbox = ["pydantic-ai-backend[docker]>=0.1.4"]
 # CLI tools (for interactive chat examples)
 cli = [
     "typer>=0.12.0",

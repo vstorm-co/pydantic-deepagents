@@ -177,7 +177,7 @@ with open("data.csv", "rb") as f:
 ### Context Management
 
 ```python
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import create_summarization_processor
 
 processor = create_summarization_processor(
     trigger=("tokens", 100000),

@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `docs/api/types.md` with new subagent types (TaskHandle, TaskStatus, TaskPriority, ExecutionMode)
 - Updated `docs/examples/subagents.md` with correct tool names and updated SubAgentConfig example
 - Updated `docs/concepts/toolsets.md` with SubAgentToolset tools and correct parameter names
+- Fixed `CLAUDE.md` - corrected `LocalBackend(root=...)` to `LocalBackend(root_dir=...)`
+- Fixed `CLAUDE.md` - corrected `CompositeBackend` API signature (uses `default` and `routes`, not `backends`)
+- Fixed `README.md` - corrected import path `pydantic_deep.processors` to `pydantic_deep`
+- Fixed `docs/api/agent.md` - added missing `include_execute` parameter to signature and parameters table
+- Fixed `pydantic_deep/agent.py` - corrected docstring model default from "Claude Sonnet 4" to "openai:gpt-4.1"
 
 ## [0.2.13] - 2025-01-17
 

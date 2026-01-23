@@ -130,7 +130,7 @@ def create_deep_agent(  # noqa: C901
     - Optional history processing (e.g., summarization)
 
     Args:
-        model: Model to use (default: Claude Sonnet 4).
+        model: Model to use (default: openai:gpt-4.1).
         instructions: Custom instructions for the agent.
         tools: Additional tools to register.
         toolsets: Additional toolsets to register.
@@ -162,8 +162,9 @@ def create_deep_agent(  # noqa: C901
     Example:
         ```python
         from pydantic import BaseModel
-        from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
-        from pydantic_deep.processors import create_summarization_processor
+        from pydantic_deep import (
+            create_deep_agent, DeepAgentDeps, StateBackend, create_summarization_processor
+        )
 
         # Basic usage with string output
         agent = create_deep_agent(

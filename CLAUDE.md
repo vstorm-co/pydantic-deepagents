@@ -73,10 +73,15 @@ from pydantic_ai_backends import StateBackend, LocalBackend, CompositeBackend
 backend = StateBackend()
 
 # Real filesystem
-backend = LocalBackend(root="/path/to/workspace")
+backend = LocalBackend(root_dir="/path/to/workspace")
 
-# Combined backends
-backend = CompositeBackend(backends=[StateBackend(), LocalBackend()])
+# Combined backends with routing
+backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/project/": LocalBackend(root_dir="/home/user/project"),
+    },
+)
 ```
 
 **Toolset Registration**

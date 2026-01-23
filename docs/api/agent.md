@@ -23,6 +23,7 @@ def create_deep_agent(
     include_subagents: bool = True,
     include_skills: bool = True,
     include_general_purpose_subagent: bool = True,
+    include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: OutputSpec[OutputDataT] | None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
@@ -47,6 +48,7 @@ def create_deep_agent(
 | `include_subagents` | `bool` | `True` | Include SubAgentToolset |
 | `include_skills` | `bool` | `True` | Include SkillsToolset |
 | `include_general_purpose_subagent` | `bool` | `True` | Include general-purpose subagent |
+| `include_execute` | `bool \| None` | `None` | Include execute tool. Auto-detected from backend type if None |
 | `interrupt_on` | `dict[str, bool] \| None` | `None` | Tools requiring approval |
 | `output_type` | `OutputSpec \| None` | `None` | Pydantic model for structured output |
 | `history_processors` | `Sequence[HistoryProcessor] \| None` | `None` | History processors (e.g., summarization) |

@@ -26,9 +26,11 @@
 </p>
 
 <p align="center">
-  <b>📦 80% Less Code</b> than alternatives
+  <b>🔄 Unlimited Context</b> via summarization
   &nbsp;•&nbsp;
-  <b>🧪 100% Test Coverage</b>
+  <b>🤖 Subagent Delegation</b> sync & async
+  &nbsp;•&nbsp;
+  <b>🧩 Modular</b> use only what you need
   &nbsp;•&nbsp;
   <b>🎯 Fully Type-Safe</b>
 </p>

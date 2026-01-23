@@ -24,10 +24,10 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai-slim>=0.1.0",
-    "pydantic-ai-todo>=0.1.4",
+    "pydantic-ai-todo>=0.1.5",
     "pydantic-ai-backend[console]>=0.1.4",
     "summarization-pydantic-ai>=0.0.2",
-    "subagents-pydantic-ai>=0.0.2",
+    "subagents-pydantic-ai>=0.0.3",
     "pydantic>=2.0",
     "chardet>=5.0.0",
 ]

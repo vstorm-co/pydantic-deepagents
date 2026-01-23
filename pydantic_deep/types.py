@@ -27,6 +27,8 @@ from pydantic_ai_backends import (
     WriteResult as WriteResult,
 )
 from pydantic_ai_todo import Todo as Todo
+from subagents_pydantic_ai import CompiledSubAgent as CompiledSubAgent
+from subagents_pydantic_ai import SubAgentConfig as SubAgentConfig
 from typing_extensions import NotRequired
 
 # Re-export OutputSpec from pydantic-ai for structured output support
@@ -35,24 +37,6 @@ ResponseFormat = OutputSpec[object]
 
 # Type variable for output types
 OutputT = TypeVar("OutputT")
-
-
-class SubAgentConfig(TypedDict):
-    """Configuration for a subagent."""
-
-    name: str
-    description: str
-    instructions: str
-    tools: NotRequired[list[object]]
-    model: NotRequired[str]
-
-
-class CompiledSubAgent(TypedDict):
-    """A pre-compiled subagent ready for use."""
-
-    name: str
-    description: str
-    agent: NotRequired[object]  # Agent instance - typed as object to avoid circular imports
 
 
 class SkillFrontmatter(TypedDict):

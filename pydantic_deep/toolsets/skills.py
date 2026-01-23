@@ -1,5 +1,9 @@
 """Skills toolset for pydantic-deep agents.
 
+.. note::
+    This implementation will be removed when skills support is added to pydantic-ai.
+    See https://github.com/pydantic/pydantic-ai/pull/3780 for progress.
+
 Skills are modular packages that extend agent capabilities. Each skill is a folder
 containing a SKILL.md file with YAML frontmatter and Markdown instructions, along
 with optional resource files (documents, scripts, etc.).

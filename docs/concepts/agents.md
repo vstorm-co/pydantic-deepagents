@@ -108,6 +108,81 @@ agent = create_deep_agent(history_processors=[processor])
 
 See [History Processors](../advanced/processors.md) for more details.
 
+### Advanced Agent Configuration
+
+The `create_deep_agent()` function accepts `**agent_kwargs` which are passed directly to the underlying [Pydantic AI Agent](https://ai.pydantic.dev/). This allows you to configure advanced options:
+
+```python
+agent = create_deep_agent(
+    model="openai:gpt-4.1",
+    # Advanced pydantic-ai options via **agent_kwargs
+    retries=3,                    # Number of retries on failure
+    result_retries=2,             # Retries for result validation
+    end_strategy="early",         # Stop strategy: "early" or "exhaustive"
+    defer_model_check=True,       # Defer model validation
+    name="my-agent",              # Agent name for logging
+)
+```
+
+Common `**agent_kwargs` options:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `retries` | `int` | Number of retries on LLM errors (default: 1) |
+| `result_retries` | `int` | Retries for result validation failures |
+| `end_strategy` | `str` | `"early"` stops at first valid result, `"exhaustive"` tries all |
+| `defer_model_check` | `bool` | Defer model availability check until first use |
+| `name` | `str` | Agent name for logging and debugging |
+
+See [Pydantic AI documentation](https://ai.pydantic.dev/) for all available options.
+
+### Dynamic System Prompts
+
+Pydantic Deep Agents uses a dynamic system prompt mechanism that automatically composes context from multiple sources. The system prompt is generated at runtime based on current state and enabled features.
+
+**Prompt composition order:**
+
+1. **Uploaded Files Summary** - Files uploaded via `deps.upload_file()` are listed first
+2. **Todo Prompt** - Current task list and progress from the todo toolset
+3. **Console Prompt** - File operation instructions from the filesystem toolset
+4. **Subagent Prompt** - Available subagents and delegation instructions
+5. **Skills Prompt** - Available skills that can be loaded
+
+```python
+# The agent automatically includes relevant prompts based on enabled features
+agent = create_deep_agent(
+    instructions="You are a Python expert.",  # Your base instructions
+    include_todo=True,        # Adds todo prompt
+    include_filesystem=True,  # Adds console prompt
+    include_subagents=True,   # Adds subagent prompt
+    include_skills=True,      # Adds skills prompt
+)
+
+# At runtime, the agent sees:
+# 1. Your instructions: "You are a Python expert."
+# 2. Uploaded files: "## Uploaded Files\n- /uploads/data.csv (1024 bytes, 50 lines)"
+# 3. Todo prompt: "## Current Todos\n- [ ] Analyze data..."
+# 4. Console prompt: "## File Operations\nYou can use ls, read_file, write_file..."
+# 5. Subagent prompt: "## Available Subagents\n- code-reviewer: Reviews code..."
+# 6. Skills prompt: "## Available Skills\n- git: Git operations..."
+```
+
+Each prompt generator can be used standalone:
+
+```python
+from pydantic_deep import (
+    get_console_system_prompt,
+    get_skills_system_prompt,
+)
+from pydantic_ai_todo import get_todo_system_prompt
+from subagents_pydantic_ai import get_subagent_system_prompt
+
+# Generate individual prompts
+console_prompt = get_console_system_prompt()
+todo_prompt = get_todo_system_prompt(deps)
+skills_prompt = get_skills_system_prompt(deps, skills)
+```
+
 ## Dependencies
 
 The `DeepAgentDeps` class holds all runtime state:
@@ -332,11 +407,63 @@ print(f"Total requests: {usage.requests}")
 
 ## Error Handling
 
+### Basic Error Handling
+
 ```python
 try:
     result = await agent.run(prompt, deps=deps)
 except Exception as e:
     print(f"Agent error: {e}")
+```
+
+### Common Exceptions
+
+| Exception | Source | Cause |
+|-----------|--------|-------|
+| `ModelRetry` | pydantic-ai | Model requested retry (validation failed) |
+| `UnexpectedModelBehavior` | pydantic-ai | Model produced unexpected output |
+| `UserError` | pydantic-ai | Invalid user input or configuration |
+| `FileNotFoundError` | Backend | File doesn't exist |
+| `PermissionError` | Backend | Access denied |
+| `TimeoutError` | Execution | Command exceeded timeout |
+| `docker.errors.DockerException` | DockerSandbox | Docker operation failed |
+
+### Handling Tool Errors
+
+Tools should return informative error strings rather than raising exceptions:
+
+```python
+async def my_tool(ctx: RunContext[DeepAgentDeps], path: str) -> str:
+    try:
+        content = ctx.deps.backend.read(path)
+        return content
+    except FileNotFoundError:
+        return f"Error: File '{path}' not found"
+    except PermissionError:
+        return f"Error: Permission denied for '{path}'"
+```
+
+### Retry Configuration
+
+Configure retries for transient failures:
+
+```python
+agent = create_deep_agent(
+    retries=3,          # Retry LLM calls up to 3 times
+    result_retries=2,   # Retry validation failures
+)
+```
+
+### Graceful Degradation
+
+```python
+async def run_with_fallback(agent, prompt, deps):
+    try:
+        return await agent.run(prompt, deps=deps)
+    except Exception as e:
+        # Log error, notify user, or try simpler approach
+        logger.error(f"Agent failed: {e}")
+        return f"I encountered an error: {e}. Please try again."
 ```
 
 ## Next Steps

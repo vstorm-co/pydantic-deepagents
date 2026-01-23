@@ -40,12 +40,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Toolsets (`pydantic_deep/toolsets/`)**
 - `TodoToolset`: Task planning and tracking tools (read_todos, write_todos) - from [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)
 - `create_console_toolset`: File operations (ls, read, write, edit, glob, grep, execute) - from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
-- `SubAgentToolset`: Spawn and delegate to subagents
+- `SubAgentToolset`: Spawn and delegate to subagents - from [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)
 - `SkillsToolset`: Load and use skill definitions from markdown files
 
-**Processors (`pydantic_deep/processors/`)**
-- `SummarizationProcessor`: Automatic conversation summarization for token management
-- `create_summarization_processor()`: Factory function for creating summarization processors
+**Subagents (from [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai))**
+- `create_subagent_toolset()`: Factory function to create subagent toolsets
+- `get_subagent_system_prompt()`: Generate system prompt for subagent tools
+- Dual-mode execution: sync (blocking) or async (background)
+- Task management: check_task, list_active_tasks, soft_cancel_task, hard_cancel_task
+- Types: `SubAgentConfig`, `CompiledSubAgent`, `TaskHandle`, `TaskStatus`, `TaskPriority`
+
+**Processors (from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai))**
+- `SummarizationProcessor`: LLM-based conversation summarization for token management
+- `SlidingWindowProcessor`: Zero-cost message trimming without LLM calls
+- `create_summarization_processor()`: Factory function for summarization processors
+- `create_sliding_window_processor()`: Factory function for sliding window processors
 
 **Types (`pydantic_deep/types.py`)**
 - Pydantic models for all data structures
@@ -64,10 +73,15 @@ from pydantic_ai_backends import StateBackend, LocalBackend, CompositeBackend
 backend = StateBackend()
 
 # Real filesystem
-backend = LocalBackend(root="/path/to/workspace")
+backend = LocalBackend(root_dir="/path/to/workspace")
 
-# Combined backends
-backend = CompositeBackend(backends=[StateBackend(), LocalBackend()])
+# Combined backends with routing
+backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/project/": LocalBackend(root_dir="/home/user/project"),
+    },
+)
 ```
 
 **Toolset Registration**
@@ -107,13 +121,22 @@ agent = create_deep_agent(output_type=TaskResult)
 
 **Context Management / Summarization**
 ```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import (
+    create_deep_agent,
+    create_summarization_processor,
+    create_sliding_window_processor,
+)
 
 # Automatically summarize when reaching token limits
 processor = create_summarization_processor(
     trigger=("tokens", 100000),  # or ("messages", 50) or ("fraction", 0.8)
     keep=("messages", 20),       # Keep last N messages after summarization
+)
+
+# Or use sliding window for zero-cost trimming
+window = create_sliding_window_processor(
+    trigger=("messages", 100),
+    keep=("messages", 50),
 )
 
 agent = create_deep_agent(history_processors=[processor])

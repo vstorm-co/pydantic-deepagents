@@ -6,9 +6,9 @@ from pydantic_ai_backends import (
     get_console_system_prompt,
 )
 from pydantic_ai_todo import create_todo_toolset as TodoToolset
+from subagents_pydantic_ai import SubAgentToolset
 
 from pydantic_deep.toolsets.skills import SkillsToolset
-from pydantic_deep.toolsets.subagents import SubAgentToolset
 
 __all__ = [
     "TodoToolset",

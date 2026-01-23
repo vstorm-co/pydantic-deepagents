@@ -1,19 +1,21 @@
 # History Processors
 
-pydantic-deep supports history processors for managing conversation context. The most common use case is automatic summarization to handle long conversations without exceeding token limits.
+pydantic-deep supports history processors for managing conversation context. These processors are powered by [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) and provide two strategies:
+
+- **SummarizationProcessor** - Intelligent LLM-based summarization
+- **SlidingWindowProcessor** - Zero-cost message trimming
 
 !!! info "Coming to pydantic-ai"
     This feature will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). Once available, we will migrate to use the upstream implementation. The API will remain compatible.
 
 ## Summarization Processor
 
-The `SummarizationProcessor` monitors conversation length and automatically summarizes older messages when thresholds are reached.
+The `SummarizationProcessor` monitors conversation length and automatically summarizes older messages when thresholds are reached. This provides intelligent compression that preserves important context.
 
 ### Basic Usage
 
 ```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import create_deep_agent, create_summarization_processor
 
 # Create a summarization processor
 processor = create_summarization_processor(
@@ -32,6 +34,8 @@ agent = create_deep_agent(
 You can trigger summarization based on different criteria:
 
 ```python
+from pydantic_deep import create_summarization_processor
+
 # Trigger when message count exceeds threshold
 processor = create_summarization_processor(
     trigger=("messages", 50),
@@ -62,6 +66,8 @@ processor = create_summarization_processor(
 Control how much context to keep after summarization:
 
 ```python
+from pydantic_deep import create_summarization_processor
+
 # Keep last N messages
 processor = create_summarization_processor(
     trigger=("tokens", 100000),
@@ -87,7 +93,10 @@ processor = create_summarization_processor(
 By default, the processor uses a simple character-based estimation (~4 characters per token). For more accurate counting, provide a custom token counter:
 
 ```python
-def count_tokens(messages):
+from pydantic_ai.messages import ModelMessage
+from pydantic_deep import create_summarization_processor
+
+def count_tokens(messages: list[ModelMessage]) -> int:
     """Custom token counter using tiktoken or similar."""
     import tiktoken
     enc = tiktoken.get_encoding("cl100k_base")
@@ -110,6 +119,8 @@ processor = create_summarization_processor(
 Customize how the summarization is performed:
 
 ```python
+from pydantic_deep import create_summarization_processor
+
 custom_prompt = """
 Extract the key information from this conversation.
 Focus on:
@@ -129,23 +140,93 @@ processor = create_summarization_processor(
 )
 ```
 
-## Using the Processor Class Directly
+## Sliding Window Processor
 
-For more control, use `SummarizationProcessor` directly:
+The `SlidingWindowProcessor` provides a zero-cost alternative that simply discards old messages without LLM calls. This is useful when you don't need to preserve historical context.
+
+### Basic Usage
 
 ```python
-from pydantic_deep.processors import SummarizationProcessor
+from pydantic_deep import create_deep_agent, create_sliding_window_processor
 
-processor = SummarizationProcessor(
+# Create a sliding window processor
+processor = create_sliding_window_processor(
+    trigger=("messages", 100),  # Trim when reaching 100 messages
+    keep=("messages", 50),      # Keep last 50 messages
+)
+
+# Create agent with the processor
+agent = create_deep_agent(
+    history_processors=[processor],
+)
+```
+
+### When to Use Sliding Window
+
+Choose `SlidingWindowProcessor` when:
+
+- **Cost matters**: No LLM calls for processing
+- **Speed matters**: Instant trimming without API latency
+- **Recent context is sufficient**: Tasks don't need historical information
+- **Conversations are long**: High-volume chat applications
+
+Choose `SummarizationProcessor` when:
+
+- **Context preservation matters**: Need to remember earlier decisions
+- **Tasks span multiple topics**: Important details scattered throughout
+- **Quality over speed**: Willing to trade latency for better context
+
+### Configuration Examples
+
+```python
+from pydantic_deep import create_sliding_window_processor
+
+# Message-based window
+processor = create_sliding_window_processor(
+    trigger=("messages", 100),
+    keep=("messages", 50),
+)
+
+# Token-based window
+processor = create_sliding_window_processor(
+    trigger=("tokens", 100000),
+    keep=("tokens", 50000),
+)
+
+# Fraction-based window
+processor = create_sliding_window_processor(
+    trigger=("fraction", 0.8),
+    keep=("fraction", 0.4),
+    max_input_tokens=200000,
+)
+```
+
+## Using Processor Classes Directly
+
+For more control, use the processor classes directly:
+
+```python
+from pydantic_deep import SummarizationProcessor, SlidingWindowProcessor
+
+# Summarization processor
+summarizer = SummarizationProcessor(
     model="openai:gpt-4.1",
     trigger=("tokens", 100000),
     keep=("messages", 20),
     max_input_tokens=None,
     trim_tokens_to_summarize=4000,  # Limit summary input size
 )
+
+# Sliding window processor
+window = SlidingWindowProcessor(
+    trigger=("tokens", 100000),
+    keep=("messages", 50),
+)
 ```
 
 ## How It Works
+
+### Summarization Processor
 
 1. **Before each model call**, the processor checks if any trigger condition is met
 2. If triggered, it finds a safe cutoff point that doesn't split tool call/response pairs
@@ -153,9 +234,16 @@ processor = SummarizationProcessor(
 4. The summary replaces the old messages, preserving recent context
 5. The agent continues with the compressed history
 
+### Sliding Window Processor
+
+1. **Before each model call**, the processor checks if any trigger condition is met
+2. If triggered, it finds a safe cutoff point that doesn't split tool call/response pairs
+3. Older messages are discarded (no LLM call)
+4. The agent continues with only recent messages
+
 ### Tool Call Safety
 
-The processor ensures tool calls and their responses stay together:
+Both processors ensure tool calls and their responses stay together:
 
 ```
 Messages: [User, AI+ToolCall, ToolResponse, User, AI+ToolCall, ToolResponse, User]
@@ -167,14 +255,17 @@ Messages: [User, AI+ToolCall, ToolResponse, User, AI+ToolCall, ToolResponse, Use
 You can chain multiple history processors:
 
 ```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import (
+    create_deep_agent,
+    create_summarization_processor,
+    create_sliding_window_processor,
+)
 
 # Multiple processors are applied in order
 agent = create_deep_agent(
     history_processors=[
         create_summarization_processor(trigger=("tokens", 100000)),
-        # Add more processors as needed
+        create_sliding_window_processor(trigger=("messages", 200)),
     ],
 )
 ```
@@ -188,6 +279,8 @@ agent = create_deep_agent(
 3. **Monitor summarization quality**: Check that summaries preserve important context for your use case
 
 4. **Use fraction-based triggers for portability**: When switching between models with different context limits
+
+5. **Consider hybrid approaches**: Use summarization for important conversations and sliding window for casual chat
 
 ## Next Steps
 

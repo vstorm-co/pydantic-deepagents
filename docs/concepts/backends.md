@@ -63,17 +63,73 @@ finally:
 
 ### CompositeBackend
 
-Route operations by path prefix:
+Route operations to different backends based on path prefix:
 
 ```python
-from pydantic_deep import CompositeBackend, StateBackend, LocalBackend
+from pydantic_deep import CompositeBackend, StateBackend, LocalBackend, DockerSandbox
 
 backend = CompositeBackend(
     default=StateBackend(),
     routes={
         "/project/": LocalBackend(root_dir="/my/project"),
+        "/sandbox/": DockerSandbox(runtime="python-minimal"),
     },
 )
+```
+
+**Routing Logic:**
+
+1. Paths are matched by prefix (longest match wins)
+2. Operations are forwarded to the matched backend
+3. Unmatched paths go to `default` backend
+
+**Example routing:**
+
+```python
+backend = CompositeBackend(
+    default=StateBackend(),  # For /tmp, /cache, etc.
+    routes={
+        "/src/": LocalBackend(root_dir="./src"),       # Source files
+        "/data/": LocalBackend(root_dir="./data"),     # Data files
+        "/output/": StateBackend(),                     # Temporary output
+    },
+)
+
+# Route: /src/app.py → LocalBackend("./src")
+backend.write("/src/app.py", "print('hello')")
+
+# Route: /data/input.csv → LocalBackend("./data")
+content = backend.read("/data/input.csv")
+
+# Route: /tmp/cache.json → default StateBackend
+backend.write("/tmp/cache.json", "{}")
+
+# Route: /output/result.txt → StateBackend (explicit route)
+backend.write("/output/result.txt", "done")
+```
+
+**Use cases:**
+
+| Use Case | Configuration |
+|----------|---------------|
+| Read-only source + writable output | `routes={"/src/": LocalBackend()}`, `default=StateBackend()` |
+| Multiple project directories | Multiple LocalBackend routes |
+| Safe execution with local files | `routes={"/code/": DockerSandbox()}`, `default=LocalBackend()` |
+| Testing with fixtures | `routes={"/fixtures/": LocalBackend("./test/fixtures")}` |
+
+**Path transformation:**
+
+Routes strip the prefix when forwarding to the target backend:
+
+```python
+backend = CompositeBackend(
+    routes={"/project/": LocalBackend(root_dir="/home/user/myproject")}
+)
+
+# Write to /project/src/main.py
+# → LocalBackend receives path: /src/main.py
+# → Actual file: /home/user/myproject/src/main.py
+backend.write("/project/src/main.py", "code")
 ```
 
 ## Learn More

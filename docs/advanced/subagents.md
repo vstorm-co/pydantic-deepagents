@@ -84,20 +84,25 @@ This:
 Subagents receive isolated context:
 
 ```python
-def clone_for_subagent(self) -> DeepAgentDeps:
-    """Create deps for a subagent."""
+def clone_for_subagent(self, max_depth: int = 0) -> DeepAgentDeps:
+    """Create deps for a subagent.
+
+    Args:
+        max_depth: Allow nested subagents up to this depth (0 = no nesting)
+    """
     return DeepAgentDeps(
         backend=self.backend,      # Shared - can read/write same files
         files=self.files,          # Shared reference
         todos=[],                  # Fresh - subagent plans independently
-        subagents={},              # Empty - no nested delegation
+        subagents=self.subagents.copy() if max_depth > 0 else {},  # Nested delegation if allowed
+        uploads=self.uploads,      # Shared uploads
     )
 ```
 
 This prevents:
 
 - Context bloat from accumulated todos
-- Infinite recursion from nested delegation
+- Infinite recursion from nested delegation (unless explicitly allowed)
 - Confusion from mixed responsibilities
 
 ## General-Purpose Subagent
@@ -149,11 +154,18 @@ subagents = [
 ]
 ```
 
-## Custom Tools per Subagent
+## Custom Toolsets per Subagent
 
-Subagents can have custom tools:
+Subagents can have custom toolsets or agent configuration:
 
 ```python
+from pydantic_ai.toolsets import FunctionToolset
+from pydantic_ai.common_tools import BuitinTools
+
+# Custom toolset
+test_toolset = FunctionToolset[Any](id="test-tools")
+
+@test_toolset.tool
 async def run_tests(ctx, path: str) -> str:
     """Run pytest on the given path."""
     ...
@@ -163,7 +175,13 @@ subagents = [
         name="test-writer",
         description="Writes and runs tests",
         instructions="...",
-        tools=[run_tests],
+        toolsets=[test_toolset],  # Custom toolsets
+    ),
+    SubAgentConfig(
+        name="researcher",
+        description="Researches topics using web search",
+        instructions="...",
+        agent_kwargs={"builtin_tools": [BuitinTools.web_search]},  # Built-in tools
     ),
 ]
 ```
@@ -311,6 +329,109 @@ subagents = [
     # ... 10 more language-specific reviewers
 ]
 ```
+
+## Dual-Mode Execution
+
+Subagents support both synchronous (blocking) and asynchronous (background) execution. This is provided by [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai).
+
+### Execution Modes
+
+- **sync** - Execute synchronously, blocking until completion (default)
+- **async** - Execute in background, return immediately with task handle
+- **auto** - Automatically decide based on task characteristics
+
+```python
+# Sync execution (default) - blocks until done
+task(description="Quick code review", subagent_type="code-reviewer", mode="sync")
+
+# Async execution - returns task handle immediately
+task(description="Complex analysis", subagent_type="analyzer", mode="async")
+
+# Auto mode - decides based on task complexity
+task(
+    description="Process large dataset",
+    subagent_type="data-processor",
+    mode="auto",
+    complexity="complex",  # Hints for auto-mode decision
+)
+```
+
+### Task Management Tools
+
+When using async mode, additional tools are available:
+
+| Tool | Description |
+|------|-------------|
+| `check_task` | Check status and get results of a background task |
+| `list_active_tasks` | List all running/pending tasks |
+| `soft_cancel_task` | Request graceful cancellation |
+| `hard_cancel_task` | Force immediate cancellation |
+
+### Subagent Communication
+
+Subagents can ask questions to the parent agent using the `ask_parent` tool. This enables clarification without returning incomplete results.
+
+```python
+SubAgentConfig(
+    name="researcher",
+    description="Research with clarification",
+    instructions="""
+    You are a researcher. If you need clarification:
+    - Use ask_parent() to ask the main agent
+    - Wait for the response before proceeding
+    - You can ask up to 3 questions per task
+    """,
+    can_ask_questions=True,   # Enable ask_parent tool
+    max_questions=3,          # Limit questions per task
+)
+```
+
+**How it works:**
+
+1. Subagent encounters ambiguity and calls `ask_parent("Which database should I query?")`
+2. Parent agent receives the question and formulates a response
+3. Response is returned to the subagent
+4. Subagent continues with the clarified information
+
+**Configuration options:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `can_ask_questions` | `bool` | `False` | Enable the `ask_parent` tool |
+| `max_questions` | `int` | `3` | Maximum questions per task execution |
+
+**Example with question handling:**
+
+```python
+subagents = [
+    SubAgentConfig(
+        name="data-analyst",
+        description="Analyzes data with clarification when needed",
+        instructions="""
+        Analyze the requested data. If unclear about:
+        - Which columns to analyze
+        - Time range to consider
+        - Aggregation method to use
+
+        Ask the parent agent for clarification using ask_parent().
+        """,
+        can_ask_questions=True,
+        max_questions=5,
+    ),
+]
+
+agent = create_deep_agent(subagents=subagents)
+
+# When running, the data-analyst can ask:
+# ask_parent("The dataset has 'date' and 'timestamp' columns. Which should I use for the time series?")
+```
+
+**Best practices:**
+
+- Enable questions for complex analytical tasks
+- Keep `max_questions` low (3-5) to prevent loops
+- Include guidance in instructions about when to ask
+- Subagent should ask before making assumptions
 
 ## Next Steps
 

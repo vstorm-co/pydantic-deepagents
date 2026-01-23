@@ -1,44 +1,30 @@
-# pydantic-deep
-
-<p style="font-size: 1.3em; color: #888; margin-top: -0.5em;">
-Deep Agent Framework, the Pydantic AI way
+<h1 align="center">Pydantic Deep Agents</h1>
+<p align="center">
+  <em>Deep Agent Framework, the Pydantic AI way</em>
 </p>
-
-[![PyPI version](https://img.shields.io/pypi/v/pydantic-deep.svg)](https://pypi.org/project/pydantic-deep/)
-[![CI](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml/badge.svg)](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/vstorm-co/pydantic-deep)
-[![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
-[![license](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <a href="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml"><img src="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/vstorm-co/pydantic-deepagents"><img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage"></a>
+  <a href="https://pypi.org/project/pydantic-deep/"><img src="https://img.shields.io/pypi/v/pydantic-deep.svg" alt="PyPI"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue" alt="Python"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
+</p>
 
 ---
 
-**pydantic-deep** is a Python deep agent framework built on top of [Pydantic AI](https://ai.pydantic.dev/) designed to help you quickly build production-grade autonomous agents with planning, filesystem operations, subagent delegation, and skills.
+**Pydantic Deep Agents** is a Python framework for building autonomous AI agents with planning, filesystem operations, subagent delegation, and skills. Built on [Pydantic AI](https://ai.pydantic.dev/).
 
-## Why use pydantic-deep?
+Think of it as the building blocks for creating your own [Claude Code](https://claude.ai/code), [Manus](https://manus.im/), or [Devin](https://devin.ai/)-style agents - but open source and self-hosted.
 
-Building autonomous agents that can plan, execute multi-step tasks, and work with files is complex. pydantic-deep provides:
+## Why use Pydantic Deep Agents?
 
-<div class="feature-grid">
-<div class="feature-card">
-<h3>📋 Planning</h3>
-<p>Built-in todo list for task decomposition. Agents break down complex tasks and track progress automatically.</p>
-</div>
+1. **Built on Pydantic AI**: Leverages the same ergonomic design that made FastAPI successful - type hints, async/await, and familiar Python patterns.
 
-<div class="feature-card">
-<h3>📁 Filesystem</h3>
-<p>Virtual and real filesystem operations. Read, write, edit files with grep and glob support.</p>
-</div>
+2. **Production Ready**: 100% test coverage, strict typing with Pyright + MyPy, and battle-tested in real applications.
 
-<div class="feature-card">
-<h3>🤖 Subagents</h3>
-<p>Delegate specialized tasks to isolated subagents. Code review, testing, documentation - each with focused context.</p>
-</div>
+3. **Modular Architecture**: Use the full framework or cherry-pick components. Each capability is an independent package you can use standalone.
 
-<div class="feature-card">
-<h3>🎯 Skills</h3>
-<p>Modular capability packages loaded on-demand. Extend agent abilities without bloating context.</p>
-</div>
-</div>
+4. **Secure Execution**: Docker sandbox for isolated code execution, permission controls, and human-in-the-loop approval workflows.
 
 ## Hello World Example
 
@@ -89,66 +75,47 @@ agent = create_deep_agent(
 )
 ```
 
-## Key Features
+## Core Capabilities
 
-| Feature | Description |
-|---------|-------------|
-| **Planning** | Todo toolset for task decomposition and tracking |
-| **Filesystem** | Read, write, edit, glob, grep operations |
-| **Subagents** | Context-isolated task delegation |
-| **Skills** | Modular capability packages with progressive disclosure |
+| Capability | Description |
+|------------|-------------|
+| **Planning** | Built-in todo list for task decomposition and progress tracking |
+| **Filesystem** | Read, write, edit files with grep and glob support |
+| **Subagents** | Delegate specialized tasks to isolated subagents |
+| **Skills** | Modular capability packages loaded on-demand |
 | **Backends** | StateBackend, LocalBackend, DockerSandbox, CompositeBackend |
-| **Structured Output** | Type-safe responses with Pydantic models via `output_type` |
-| **Context Management** | Automatic conversation summarization for long sessions |
-| **HITL** | Human-in-the-loop approval workflows |
+| **Summarization** | Automatic context management for long conversations |
 
-## Modular Architecture
+## Modular Ecosystem
 
-pydantic-deep is built with modular, reusable components that can be used independently:
+Pydantic Deep Agents is built from standalone packages you can use independently:
 
-| Component | Package | Description |
-|-----------|---------|-------------|
-| **Backends** | [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage and Docker sandbox |
-| **Todo Toolset** | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning and tracking |
-| **Summarization** | Built-in | Automatic context management* |
+| Package | Description |
+|---------|-------------|
+| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage, Docker sandbox, permission controls |
+| [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning with PostgreSQL and event streaming |
+| [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Multi-agent orchestration |
+| [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Context management processors |
 
-*\*Note: Summarization will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). We will migrate to use it once available.*
+## Installation
 
-## Related Projects
+```bash
+pip install pydantic-deep
+```
 
-- **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** - The foundation: Agent framework by Pydantic
-- **[pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)** - File storage and sandbox backends (extracted from pydantic-deep)
-- **[pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)** - Task planning toolset (extracted from pydantic-deep)
-- **[fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template)** - Full-stack AI app template with pydantic-deep
+With Docker sandbox support:
+
+```bash
+pip install pydantic-deep[sandbox]
+```
 
 ## llms.txt
 
-pydantic-deep supports the [llms.txt](https://llmstxt.org/) standard. Access documentation at `/llms.txt` for LLM-optimized content.
+Pydantic Deep Agents supports the [llms.txt](https://llmstxt.org/) standard. Access documentation at `/llms.txt` for LLM-optimized content.
 
 ## Next Steps
 
-<div class="feature-grid">
-<div class="feature-card">
-<h3>📖 Installation</h3>
-<p>Get started with pydantic-deep in minutes.</p>
-<a href="installation/">Installation Guide →</a>
-</div>
-
-<div class="feature-card">
-<h3>🎓 Core Concepts</h3>
-<p>Learn about agents, backends, and toolsets.</p>
-<a href="concepts/">Core Concepts →</a>
-</div>
-
-<div class="feature-card">
-<h3>📝 Examples</h3>
-<p>See pydantic-deep in action with real examples.</p>
-<a href="examples/">Examples →</a>
-</div>
-
-<div class="feature-card">
-<h3>📚 API Reference</h3>
-<p>Complete API documentation.</p>
-<a href="api/">API Reference →</a>
-</div>
-</div>
+- [Installation](installation.md) - Get started in minutes
+- [Core Concepts](concepts/index.md) - Learn about agents, backends, and toolsets
+- [Examples](examples/index.md) - See pydantic-deep in action
+- [API Reference](api/index.md) - Complete API documentation

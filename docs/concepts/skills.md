@@ -1,5 +1,10 @@
 # Skills
 
+!!! note "Future Migration"
+    This implementation will be removed when skills support is added to pydantic-ai core.
+    See [pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780) for progress.
+    We will migrate to use the upstream implementation once available.
+
 Skills are modular packages that extend agent capabilities through filesystem-based configuration. They enable **progressive disclosure** - only loading detailed instructions when needed.
 
 ## What are Skills?
@@ -348,6 +353,84 @@ Update version when making changes:
 version: 1.0.0  # Initial release
 version: 1.1.0  # Added new checklist items
 version: 2.0.0  # Breaking changes to format
+```
+
+## Caching and Performance
+
+### Skill Caching
+
+Skills are cached after first load to avoid repeated file reads:
+
+```python
+# First call reads from disk
+load_skill("code-review")  # Reads SKILL.md
+
+# Subsequent calls use cache
+load_skill("code-review")  # Returns cached content (instant)
+```
+
+The cache persists for the lifetime of the agent instance. Each agent has its own cache.
+
+### Discovery Performance
+
+Skill discovery (`discover_skills()`) scans directories on agent creation:
+
+| Factor | Impact |
+|--------|--------|
+| Number of skill directories | Linear scan time |
+| `recursive: True` | Deeper directory traversal |
+| Number of skills | More frontmatter parsing |
+
+**Optimization tips:**
+
+1. **Limit directories**: Only include directories with actual skills
+2. **Use `recursive: False`** when skills are in known locations
+3. **Pre-load skills**: Pass skills directly to avoid discovery
+
+```python
+# Fast: Pre-loaded skills (no disk scan)
+agent = create_deep_agent(skills=my_skills)
+
+# Moderate: Single directory, non-recursive
+agent = create_deep_agent(
+    skill_directories=[{"path": "./skills", "recursive": False}]
+)
+
+# Slower: Multiple directories, recursive
+agent = create_deep_agent(
+    skill_directories=[
+        {"path": "~/.pydantic-deep/skills", "recursive": True},
+        {"path": "/shared/skills", "recursive": True},
+    ]
+)
+```
+
+### Resource File Security
+
+Resource file access is restricted to the skill's directory:
+
+```python
+# Valid: Within skill directory
+read_skill_resource("code-review", "checklist.md")
+read_skill_resource("code-review", "templates/pytest.py")
+
+# Invalid: Path traversal blocked
+read_skill_resource("code-review", "../other-skill/secret.md")  # Error
+read_skill_resource("code-review", "/etc/passwd")               # Error
+```
+
+### Default Skill Directory
+
+The default skill directory is `~/.pydantic-deep/skills`:
+
+```python
+# Uses default directory
+agent = create_deep_agent(include_skills=True)
+
+# Equivalent to:
+agent = create_deep_agent(
+    skill_directories=[{"path": "~/.pydantic-deep/skills", "recursive": True}]
+)
 ```
 
 ## Next Steps

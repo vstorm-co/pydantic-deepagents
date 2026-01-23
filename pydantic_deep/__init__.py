@@ -14,7 +14,7 @@ Example:
     from pydantic_deep import (
         create_deep_agent, DeepAgentDeps, LocalBackend, create_console_toolset
     )
-    from pydantic_deep.processors import create_summarization_processor
+    from pydantic_ai_summarization import create_summarization_processor
 
     # Create agent with file tools
     agent = create_deep_agent(
@@ -68,13 +68,15 @@ from pydantic_ai_backends import (
     get_console_system_prompt,
     get_runtime,
 )
+from pydantic_ai_summarization import (
+    SlidingWindowProcessor,
+    SummarizationProcessor,
+    create_sliding_window_processor,
+    create_summarization_processor,
+)
 
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.processors import (
-    SummarizationProcessor,
-    create_summarization_processor,
-)
 from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset
 from pydantic_deep.types import (
     CompiledSubAgent,
@@ -121,9 +123,11 @@ __all__ = [
     "ConsoleDeps",
     "SubAgentToolset",
     "SkillsToolset",
-    # Processors
+    # Processors (from summarization-pydantic-ai)
     "SummarizationProcessor",
+    "SlidingWindowProcessor",
     "create_summarization_processor",
+    "create_sliding_window_processor",
     # Types
     "FileData",
     "FileInfo",

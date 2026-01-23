@@ -1,5 +1,9 @@
 # Skills Example
 
+!!! note "Future Migration"
+    This implementation will be removed when skills support is added to pydantic-ai core.
+    See [pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780) for progress.
+
 This example demonstrates the skills system for modular capability extension.
 
 ## Source Code

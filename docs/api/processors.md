@@ -1,12 +1,10 @@
 # Processors API
 
-History processors for managing conversation context.
+History processors for managing conversation context. These are re-exported from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai).
 
 ## create_summarization_processor
 
-::: pydantic_deep.processors.create_summarization_processor
-    options:
-      show_source: false
+Factory function for creating a summarization processor with sensible defaults.
 
 ### Signature
 
@@ -39,8 +37,7 @@ def create_summarization_processor(
 ### Example
 
 ```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import create_deep_agent, create_summarization_processor
 
 processor = create_summarization_processor(
     trigger=("tokens", 100000),
@@ -54,9 +51,7 @@ agent = create_deep_agent(history_processors=[processor])
 
 ## SummarizationProcessor
 
-::: pydantic_deep.processors.SummarizationProcessor
-    options:
-      show_source: false
+Dataclass for LLM-based conversation summarization.
 
 ### Definition
 
@@ -66,7 +61,7 @@ class SummarizationProcessor:
     model: str
     trigger: ContextSize | list[ContextSize] | None = None
     keep: ContextSize = ("messages", 20)
-    token_counter: TokenCounter = _count_tokens_approximately
+    token_counter: TokenCounter = count_tokens_approximately
     summary_prompt: str = DEFAULT_SUMMARY_PROMPT
     max_input_tokens: int | None = None
     trim_tokens_to_summarize: int | None = 4000
@@ -97,7 +92,7 @@ Process messages and summarize if needed. This is called automatically by pydant
 ### Example
 
 ```python
-from pydantic_deep.processors import SummarizationProcessor
+from pydantic_deep import SummarizationProcessor
 
 processor = SummarizationProcessor(
     model="openai:gpt-4.1",
@@ -107,6 +102,96 @@ processor = SummarizationProcessor(
     ],
     keep=("messages", 10),
     trim_tokens_to_summarize=4000,
+)
+```
+
+---
+
+## create_sliding_window_processor
+
+Factory function for creating a sliding window processor with sensible defaults.
+
+### Signature
+
+```python
+def create_sliding_window_processor(
+    trigger: ContextSize | list[ContextSize] | None = ("messages", 100),
+    keep: ContextSize = ("messages", 50),
+    max_input_tokens: int | None = None,
+    token_counter: TokenCounter | None = None,
+) -> SlidingWindowProcessor
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `trigger` | `ContextSize \| list[ContextSize] \| None` | `("messages", 100)` | When to trigger trimming |
+| `keep` | `ContextSize` | `("messages", 50)` | How much context to keep |
+| `max_input_tokens` | `int \| None` | `None` | Max tokens (required for fraction triggers) |
+| `token_counter` | `TokenCounter \| None` | `None` | Custom token counting function |
+
+### Returns
+
+`SlidingWindowProcessor` - Configured processor instance.
+
+### Example
+
+```python
+from pydantic_deep import create_deep_agent, create_sliding_window_processor
+
+processor = create_sliding_window_processor(
+    trigger=("messages", 100),
+    keep=("messages", 50),
+)
+
+agent = create_deep_agent(history_processors=[processor])
+```
+
+---
+
+## SlidingWindowProcessor
+
+Dataclass for zero-cost message trimming without LLM calls.
+
+### Definition
+
+```python
+@dataclass
+class SlidingWindowProcessor:
+    trigger: ContextSize | list[ContextSize] | None = None
+    keep: ContextSize = ("messages", 50)
+    token_counter: TokenCounter = count_tokens_approximately
+    max_input_tokens: int | None = None
+```
+
+### Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `trigger` | `ContextSize \| list[ContextSize] \| None` | Threshold(s) that trigger trimming |
+| `keep` | `ContextSize` | How much context to keep after trimming |
+| `token_counter` | `TokenCounter` | Function to count tokens in messages |
+| `max_input_tokens` | `int \| None` | Maximum input tokens (required for fraction triggers) |
+
+### Methods
+
+#### \_\_call\_\_
+
+```python
+def __call__(self, messages: list[ModelMessage]) -> list[ModelMessage]
+```
+
+Process messages and trim if needed. Note: This is a synchronous method (no LLM calls).
+
+### Example
+
+```python
+from pydantic_deep import SlidingWindowProcessor
+
+processor = SlidingWindowProcessor(
+    trigger=("tokens", 100000),
+    keep=("messages", 50),
 )
 ```
 
@@ -139,12 +224,6 @@ TokenCounter = Callable[[Sequence[ModelMessage]], int]
 Function type for custom token counting.
 
 ---
-
-## Constants
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `DEFAULT_SUMMARY_PROMPT` | (see source) | Default prompt template for summarization |
 
 ## Next Steps
 

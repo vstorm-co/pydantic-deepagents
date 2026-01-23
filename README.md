@@ -1,197 +1,304 @@
-# pydantic-deep
+<p align="center">
+  <!-- TODO: Replace with actual banner image -->
+  <img src="assets/baner.png" alt="pydantic-deep">
+</p>
 
-> **Looking for a full-stack template?** Check out [fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template) - a production-ready project generator for AI/LLM applications with FastAPI, Next.js, and pydantic-deep integration.
+<h1 align="center">Pydantic AI Deep Agents Framework</h1>
 
-> **Need just the todo toolset?** Check out [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) - standalone task planning toolset that works with any pydantic-ai agent.
+<p align="center">
+  <b>Build Claude Code-Style AI Agents — In 10 Lines of Python</b>
+</p>
 
-> **Need just the backends?** Check out [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) - file storage and sandbox backends that work with any pydantic-ai agent.
+<p align="center">
+  <a href="https://vstorm-co.github.io/pydantic-deepagents/">Docs</a> •
+  <a href="https://vstorm-co.github.io/pydantic-deepagents/examples/">Examples</a> •
+  <a href="https://pypi.org/project/pydantic-deep/">PyPI</a> •
+  <a href="https://drive.google.com/file/d/1hqgXkbAgUrsKOWpfWdF48cqaxRht-8od/view?usp=sharing">Demo</a>
+</p>
 
-[![PyPI version](https://img.shields.io/pypi/v/pydantic-deep.svg)](https://pypi.org/project/pydantic-deep/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage Status](https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main)](https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main)
-[![CI](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml/badge.svg)](https://github.com/vstorm-co/pydantic-deep/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://pypi.org/project/pydantic-deep/"><img src="https://img.shields.io/pypi/v/pydantic-deep.svg" alt="PyPI version"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main"><img src="https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main" alt="Coverage Status"></a>
+  <a href="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml"><img src="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
+</p>
 
-Deep agent framework built on [pydantic-ai](https://github.com/pydantic/pydantic-ai) with planning, filesystem, and subagent capabilities.
+<p align="center">
+  <b>🔄 Unlimited Context</b> via summarization
+  &nbsp;•&nbsp;
+  <b>🤖 Subagent Delegation</b> sync & async
+  &nbsp;•&nbsp;
+  <b>🧩 Modular</b> use only what you need
+  &nbsp;•&nbsp;
+  <b>🎯 Fully Type-Safe</b>
+</p>
 
-## Demo
+---
 
-[![Watch Demo](https://img.shields.io/badge/▶_Watch_Demo-Google_Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1hqgXkbAgUrsKOWpfWdF48cqaxRht-8od/view?usp=sharing)
+## See It In Action
 
-![Demo Screenshot](assets/img.png)
+<p align="center">
+  <img src="assets/img.png" alt="pydantic-deep demo" width="700">
+</p>
 
-See the [full demo application](https://github.com/vstorm-co/pydantic-deepagents/tree/main/examples/full_app) - a complete example showing how to build a chat interface with file uploads, skills, and streaming responses.
+<p align="center">
+  <a href="https://drive.google.com/file/d/1hqgXkbAgUrsKOWpfWdF48cqaxRht-8od/view?usp=sharing">
+    <img src="https://img.shields.io/badge/▶_Watch_Full_Demo-Google_Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white" alt="Watch Demo">
+  </a>
+</p>
 
-## Features
+---
 
-- **Multiple Backends**: StateBackend (in-memory), LocalBackend, DockerSandbox, CompositeBackend - via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
-- **Rich Toolsets**: TodoToolset (via [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)), Console Toolset (via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)), SubAgentToolset, SkillsToolset
-- **File Uploads**: Upload files for agent processing with `run_with_files()` or `deps.upload_file()`
-- **Skills System**: Extensible skill definitions with markdown prompts
-- **Structured Output**: Type-safe responses with Pydantic models via `output_type`
-- **Context Management**: Automatic conversation summarization for long sessions
-- **Human-in-the-Loop**: Built-in support for human confirmation workflows
-- **Streaming**: Full streaming support for agent responses
-
-## Modular Architecture
-
-pydantic-deep is built with modular, reusable components:
-
-| Component | Package | Description |
-|-----------|---------|-------------|
-| **Backends** | [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage and Docker sandbox |
-| **Todo Toolset** | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning and tracking |
-| **Summarization** | Built-in | Automatic context management* |
-
-*\*Note: Summarization will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). We will migrate to use it once available.*
-
-## Installation
+## Get Started in 60 Seconds
 
 ```bash
 pip install pydantic-deep
 ```
 
-Or with uv:
-
-```bash
-uv add pydantic-deep
-```
-
-### Optional dependencies
-
-```bash
-# Docker sandbox support
-pip install pydantic-deep[sandbox]
-```
-
-## Quick Start
-
 ```python
-import asyncio
 from pydantic_ai_backends import StateBackend
 from pydantic_deep import create_deep_agent, create_default_deps
 
-async def main():
-    # Create a deep agent with state backend
-    backend = StateBackend()
-    deps = create_default_deps(backend)
-    agent = create_deep_agent()
+agent = create_deep_agent()
+deps = create_default_deps(StateBackend())
 
-    # Run the agent
-    result = await agent.run("Help me organize my tasks", deps=deps)
-    print(result.output)
-
-asyncio.run(main())
+result = await agent.run("Create a todo list for building a REST API", deps=deps)
 ```
 
-## Structured Output
+**That's it.** Your agent can now:
 
-Get type-safe responses with Pydantic models:
+- ✅ **Plan tasks** — break down complex work into steps
+- ✅ **Read & write files** — navigate and modify codebases
+- ✅ **Delegate to subagents** — spawn specialists for specific tasks
+- ✅ **Load skills** — use domain-specific instructions
+- ✅ **Manage context** — handle unlimited conversation length
+
+---
+
+## Same Architecture as the Best
+
+pydantic-deep implements the **deep agent architecture** — the same patterns powering:
+
+| | Product | What They Built |
+|:-:|---------|-----------------|
+| 🤖 | [**Claude Code**](https://claude.ai/code) | Anthropic's AI coding assistant |
+| 🦾 | [**Manus AI**](https://manus.ai) | Autonomous task execution |
+| 👨‍💻 | [**Devin**](https://devin.ai) | AI software engineer |
+
+**Now you can build the same thing.**
+
+> **Inspired by:** This framework is also inspired by [LangChain's Deep Agents](https://github.com/langchain-ai/deepagents) research on autonomous agent architectures.
+
+---
+
+## Features
+
+🧠 **Planning** — [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)
+> Task tracking with `read_todos` / `write_todos`. Subtasks & dependencies with cycle detection. PostgreSQL storage. Event system for webhooks.
+
+📁 **Filesystem** — [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
+> Full access: `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`, `execute`. Docker sandbox for isolation. Permission system (allow/deny/ask). Session manager for multi-user apps.
+
+🤖 **Subagents** — [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)
+> Delegate with `task` in sync or async mode. Background task management. Dynamic agent creation at runtime. Soft/hard cancellation.
+
+💬 **Summarization** — [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai)
+> Two modes: LLM-based intelligent summaries or zero-cost sliding window. Trigger on tokens, messages, or context fraction. Custom prompts.
+
+🎯 **Skills** — Load domain instructions from markdown files with YAML frontmatter.
+
+📊 **Structured Output** — Type-safe responses with Pydantic models via `output_type`.
+
+👤 **Human-in-the-Loop** — Built-in confirmation workflows for sensitive operations.
+
+⚡ **Streaming** — Full streaming support for real-time responses.
+
+---
+
+## Use Cases
+
+| What You Want to Build | Key Components |
+|------------------------|----------------|
+| **AI Coding Assistant** | Planning + Filesystem + Skills |
+| **Data Analysis Agent** | File Uploads + Structured Output |
+| **Document Processor** | Filesystem + Summarization |
+| **Research Agent** | Subagents + Planning |
+| **Project Scaffolder** | Planning + Filesystem |
+| **Test Generator** | Filesystem + Docker Sandbox |
+
+---
+
+## Modular — Use What You Need
+
+Every component works standalone:
+
+| Component | Package | Use It For |
+|-----------|---------|------------|
+| **Backends** | [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage, Docker sandbox |
+| **Planning** | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task tracking |
+| **Subagents** | [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Task delegation |
+| **Summarization** | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Context management |
+
+> **Full-stack template?** [fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template) — Production-ready with FastAPI + Next.js
+
+---
+
+## Go Deeper
+
+### Structured Output
 
 ```python
 from pydantic import BaseModel
-from pydantic_deep import create_deep_agent, create_default_deps
 
-class TaskAnalysis(BaseModel):
+class CodeReview(BaseModel):
     summary: str
-    priority: str
-    estimated_hours: float
+    issues: list[str]
+    score: int
 
-agent = create_deep_agent(output_type=TaskAnalysis)
-deps = create_default_deps()
-
-result = await agent.run("Analyze this task: implement user auth", deps=deps)
-print(result.output.priority)  # Type-safe access
+agent = create_deep_agent(output_type=CodeReview)
+result = await agent.run("Review the auth module", deps=deps)
+print(result.output.score)  # Type-safe!
 ```
 
-## File Uploads
-
-Process user-uploaded files with the agent:
+### File Uploads
 
 ```python
-from pydantic_ai_backends import StateBackend
-from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
+from pydantic_deep import run_with_files
 
-agent = create_deep_agent()
-deps = DeepAgentDeps(backend=StateBackend())
-
-# Upload and process files
-with open("sales.csv", "rb") as f:
+with open("data.csv", "rb") as f:
     result = await run_with_files(
         agent,
-        "Analyze this sales data and find top products",
+        "Analyze this data and find trends",
         deps,
-        files=[("sales.csv", f.read())],
+        files=[("data.csv", f.read())],
     )
 ```
 
-Or upload files directly to deps:
+### Context Management
 
 ```python
-deps.upload_file("config.json", b'{"key": "value"}')
-# File is now at /uploads/config.json and agent sees it in system prompt
-```
-
-## Context Management
-
-Automatically summarize long conversations to manage token limits:
-
-```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import create_summarization_processor
 
 processor = create_summarization_processor(
-    trigger=("tokens", 100000),  # Summarize when reaching 100k tokens
-    keep=("messages", 20),       # Keep last 20 messages
+    trigger=("tokens", 100000),
+    keep=("messages", 20),
 )
-
 agent = create_deep_agent(history_processors=[processor])
 ```
 
-> **Note:** This feature will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). Once available, we will migrate to use the upstream implementation.
+### Custom Subagents
 
-## Documentation
+```python
+agent = create_deep_agent(
+    subagents=[
+        {
+            "name": "code-reviewer",
+            "description": "Reviews code for quality issues",
+            "instructions": "You are a senior code reviewer...",
+            "preferred_mode": "sync",
+        },
+    ],
+)
+```
 
-- **[Full Documentation](https://vstorm-co.github.io/pydantic-deepagents/)** - Complete guides and API reference
-- **[PyPI Package](https://pypi.org/project/pydantic-deep/)** - Package information and releases
-- **[GitHub Repository](https://github.com/vstorm-co/pydantic-deepagents)** - Source code and issues
+### Skills
 
-### Quick Links
+Create `~/.pydantic-deep/skills/review/SKILL.md`:
 
-- [Installation Guide](https://vstorm-co.github.io/pydantic-deepagents/installation/)
-- [Core Concepts](https://vstorm-co.github.io/pydantic-deepagents/concepts/)
-- [Examples](https://vstorm-co.github.io/pydantic-deepagents/examples/)
-- [API Reference](https://vstorm-co.github.io/pydantic-deepagents/api/)
+```markdown
+---
+name: code-review
+description: Review Python code for quality
+---
+
+# Code Review Skill
+
+Check for:
+- [ ] Security issues
+- [ ] Type hints
+- [ ] Error handling
+```
+
+```python
+agent = create_deep_agent(
+    skill_directories=[{"path": "~/.pydantic-deep/skills", "recursive": True}],
+)
+```
+
+---
+
+## Architecture
+
+```
+                              pydantic-deep
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│      ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
+│      │ Planning │ │Filesystem│ │ Subagents│ │  Skills  │         │
+│      └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘         │
+│           │            │            │            │               │
+│           └────────────┴─────┬──────┴────────────┘               │
+│                              │                                   │
+│                              ▼                                   │
+│                    ┌──────────────────┐                          │
+│  Summarization ──► │    Deep Agent    │                          │
+│                    │   (pydantic-ai)  │                          │
+│                    └────────┬─────────┘                          │
+│                             │                                    │
+│           ┌─────────────────┼─────────────────┐                  │
+│           ▼                 ▼                 ▼                  │
+│    ┌────────────┐    ┌────────────┐    ┌────────────┐            │
+│    │   State    │    │   Local    │    │   Docker   │            │
+│    │  Backend   │    │  Backend   │    │  Sandbox   │            │
+│    └────────────┘    └────────────┘    └────────────┘            │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Related Projects
 
 - **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** - The foundation: Agent framework by Pydantic
-- **[pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)** - File storage and sandbox backends (extracted from pydantic-deep)
-- **[pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)** - Task planning toolset (extracted from pydantic-deep)
-- **[fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template)** - Full-stack AI app template with pydantic-deep
-- **[deepagents](https://github.com/langchain-ai/deepagents)** - Deep Agent implementation built on LangChain and LangGraph
+- **[pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)** - File storage and sandbox backends
+- **[pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)** - Task planning toolset
+- **[subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)** - Multi-agent orchestration
+- **[summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai)** - Context management
+- **[fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template)** - Full-stack AI app template
+- **[deepagents](https://github.com/langchain-ai/deepagents)** - Deep Agent implementation by LangChain (inspiration)
 
-## Development
+---
+
+## Contributing
 
 ```bash
-# Clone the repository
 git clone https://github.com/vstorm-co/pydantic-deepagents.git
 cd pydantic-deepagents
-
-# Install dependencies
 make install
-
-# Run tests
-make test
-
-# Run all checks (lint, typecheck, test, coverage)
-make all
+make test  # 100% coverage required
+make all   # lint + typecheck + test
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+
+---
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=vstorm-co/pydantic-deepagents&type=date&legend=top-left)](https://www.star-history.com/#vstorm-co/pydantic-deepagents&type=date&legend=top-left)
+<p align="center">
+  <a href="https://www.star-history.com/#vstorm-co/pydantic-deepagents&type=date">
+    <img src="https://api.star-history.com/svg?repos=vstorm-co/pydantic-deepagents&type=date" alt="Star History" width="600">
+  </a>
+</p>
+
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE)
+
+<p align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/vstorm-co">vstorm-co</a></sub>
+</p>

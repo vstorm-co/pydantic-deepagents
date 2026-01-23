@@ -1,45 +1,77 @@
-site_name: pydantic-deep
-site_description: Deep Agent Framework built on Pydantic AI
-site_url: https://vstorm-co.github.io/pydantic-deep/
-repo_url: https://github.com/vstorm-co/pydantic-deep
-repo_name: vstorm-co/pydantic-deep
+site_name: Pydantic Deep Agents
+site_description: Build Claude Code-Style AI Agents in Python
+site_url: https://vstorm-co.github.io/pydantic-deepagents/
+repo_url: https://github.com/vstorm-co/pydantic-deepagents
+repo_name: vstorm-co/pydantic-deepagents
 
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
-    - scheme: slate
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
       primary: pink
       accent: pink
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-    - scheme: default
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       primary: pink
       accent: pink
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
   font:
-    text: Roboto
-    code: Roboto Mono
+    text: Inter
+    code: JetBrains Mono
   logo: assets/logo.svg
   favicon: assets/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
   features:
-    - navigation.tabs
-    - navigation.sections
-    - navigation.expand
+    # Navigation
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.path
     - navigation.top
     - navigation.footer
+    - navigation.indexes
+    # Search
     - search.suggest
     - search.highlight
+    - search.share
+    # Content
     - content.tabs.link
     - content.code.copy
+    - content.code.select
     - content.code.annotate
+    - content.tooltips
+    # Table of contents
+    - toc.follow
+    # Header
+    - announce.dismiss
 
 plugins:
-  - search
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - social:
-      enabled: false
+      enabled: !ENV [CI, false]
   - mkdocstrings:
       handlers:
         python:
@@ -47,51 +79,97 @@ plugins:
             docstring_style: google
             show_source: true
             show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
             members_order: source
+            signature_crossrefs: true
 
 markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  # PyMdownx
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+      auto_title: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
-  - pymdownx.details
-  - admonition
-  - tables
-  - attr_list
-  - md_in_html
-  - toc:
-      permalink: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
 
 extra:
+  status:
+    new: Recently added
+    deprecated: Deprecated
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/vstorm-co/pydantic-deep
+      link: https://github.com/vstorm-co/pydantic-deepagents
+      name: GitHub
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/pydantic-deep/
+      name: PyPI
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  generator: false
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
 
 nav:
-  - pydantic-deep:
-    - index.md
-    - installation.md
-    - getting-help.md
-  - Documentation:
-    - Core Concepts:
-      - concepts/index.md
-      - concepts/agents.md
-      - concepts/backends.md
-      - concepts/toolsets.md
-      - concepts/skills.md
-    - Advanced Features:
-      - advanced/human-in-the-loop.md
-      - advanced/subagents.md
-      - advanced/streaming.md
-      - advanced/structured-output.md
-      - advanced/processors.md
+  - Pydantic Deep Agents: index.md
+  - Installation: installation.md
+  - Getting Help: getting-help.md
+  - Core Concepts:
+    - concepts/index.md
+    - Agents: concepts/agents.md
+    - Backends: concepts/backends.md
+    - Toolsets: concepts/toolsets.md
+    - Skills: concepts/skills.md
+  - Advanced Features:
+    - advanced/human-in-the-loop.md
+    - advanced/subagents.md
+    - advanced/streaming.md
+    - advanced/structured-output.md
+    - advanced/processors.md
   - Examples:
     - examples/index.md
     - Getting Started:
@@ -113,11 +191,12 @@ nav:
       - examples/full-app.md
   - API Reference:
     - api/index.md
-    - api/agent.md
-    - api/backends.md
-    - api/toolsets.md
-    - api/processors.md
-    - api/types.md
+    - Agent: api/agent.md
+    - Backends: api/backends.md
+    - Toolsets: api/toolsets.md
+    - Processors: api/processors.md
+    - Types: api/types.md
 
-extra_css:
-  - stylesheets/extra.css
+validation:
+  nav:
+    omitted_files: info

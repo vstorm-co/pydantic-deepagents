@@ -125,6 +125,39 @@ This is a test skill.
         )
         assert agent is not None
 
+    def test_create_with_custom_retries(self):
+        """Test creating an agent with custom retries value."""
+        agent = create_deep_agent(model=TEST_MODEL, retries=5)
+        assert agent is not None
+
+    def test_default_retries_is_three(self):
+        """Test that the default retries value is 3."""
+        from pydantic_ai.toolsets.function import FunctionToolset
+
+        agent = create_deep_agent(model=TEST_MODEL)
+
+        # Find the console toolset and verify retries
+        for toolset in agent._user_toolsets:
+            if isinstance(toolset, FunctionToolset) and toolset._id == "deep-console":
+                assert toolset.max_retries == 3
+                for tool in toolset.tools.values():
+                    assert tool.max_retries == 3
+                break
+
+    def test_retries_propagated_to_console_toolset(self):
+        """Test that retries value is propagated to console toolset tools."""
+        from pydantic_ai.toolsets.function import FunctionToolset
+
+        agent = create_deep_agent(model=TEST_MODEL, retries=5)
+
+        # Find the console toolset and verify retries
+        for toolset in agent._user_toolsets:
+            if isinstance(toolset, FunctionToolset) and toolset._id == "deep-console":
+                assert toolset.max_retries == 5
+                # write_file specifically should have the custom retries
+                assert toolset.tools["write_file"].max_retries == 5
+                break
+
 
 class TestDeepAgentDepsExtended:
     """Extended tests for DeepAgentDeps."""

@@ -83,6 +83,33 @@ plugins:
             show_symbol_type_toc: true
             members_order: source
             signature_crossrefs: true
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        Getting Started:
+          - index.md: Project overview and quick start
+          - installation.md: Installation instructions
+          - getting-help.md: How to get help
+        Core Concepts:
+          - concepts/index.md: Core concepts overview
+          - concepts/agents.md: Agent creation and configuration
+          - concepts/backends.md: Backend abstraction for file operations
+          - concepts/toolsets.md: Available toolsets and custom tools
+          - concepts/skills.md: Skills system
+        Advanced Features:
+          - advanced/human-in-the-loop.md: Human-in-the-loop patterns
+          - advanced/subagents.md: Subagent delegation
+          - advanced/streaming.md: Streaming responses
+          - advanced/structured-output.md: Structured output
+          - advanced/processors.md: History processors and summarization
+        Examples:
+          - examples/*.md
+        API Reference:
+          - api/agent.md: Agent factory API
+          - api/backends.md: Backend API
+          - api/toolsets.md: Toolset API
+          - api/processors.md: Processor API
+          - api/types.md: Type definitions
 
 markdown_extensions:
   # Python Markdown

@@ -70,6 +70,7 @@ def create_deep_agent(
     interrupt_on: dict[str, bool] | None = None,
     output_type: None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
+    retries: int = 3,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
 
@@ -94,6 +95,7 @@ def create_deep_agent(
     *,
     output_type: OutputSpec[OutputDataT],
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
+    retries: int = 3,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
 
@@ -116,6 +118,7 @@ def create_deep_agent(  # noqa: C901
     interrupt_on: dict[str, bool] | None = None,
     output_type: OutputSpec[OutputDataT] | None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
+    retries: int = 3,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
@@ -153,6 +156,10 @@ def create_deep_agent(  # noqa: C901
             When specified, the agent will return this type instead of str.
         history_processors: Sequence of history processors to apply to messages
             before sending to the model. Useful for summarization, filtering, etc.
+        retries: Maximum number of retries for tool calls. When the model sends
+            invalid arguments (e.g. missing a required field), the validation error
+            is fed back and the model can retry up to this many times. Applies to
+            all built-in toolsets and the Agent itself. Defaults to 3.
         **agent_kwargs: Additional arguments passed to Agent constructor.
 
     Returns:
@@ -200,6 +207,15 @@ def create_deep_agent(  # noqa: C901
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}
 
+    def _set_toolset_retries(toolset: AbstractToolset[DeepAgentDeps], max_retries: int) -> None:
+        """Set max_retries on a FunctionToolset and all its registered tools."""
+        from pydantic_ai.toolsets.function import FunctionToolset
+
+        if isinstance(toolset, FunctionToolset):  # pragma: no branch
+            toolset.max_retries = max_retries
+            for tool in toolset.tools.values():
+                tool.max_retries = max_retries
+
     # Build toolsets list
     all_toolsets: list[AbstractToolset[DeepAgentDeps]] = []
 
@@ -226,6 +242,7 @@ def create_deep_agent(  # noqa: C901
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
         )
+        _set_toolset_retries(console_toolset, retries)
         all_toolsets.append(console_toolset)
 
     if include_subagents:
@@ -233,16 +250,17 @@ def create_deep_agent(  # noqa: C901
         subagent_model = model if isinstance(model, str) else DEFAULT_MODEL
 
         # Create toolsets factory for subagents - they get console and todo tools
+        _retries = retries  # capture for closure
+
         def subagent_toolsets_factory(deps: DeepAgentDeps) -> list[Any]:  # pragma: no cover
             """Provide console and todo toolsets for subagents."""
-            return [
-                create_console_toolset(
-                    include_execute=True,
-                    require_write_approval=False,
-                    require_execute_approval=False,
-                ),
-                create_todo_toolset(),
-            ]
+            sub_console = create_console_toolset(
+                include_execute=True,
+                require_write_approval=False,
+                require_execute_approval=False,
+            )
+            _set_toolset_retries(sub_console, _retries)
+            return [sub_console, create_todo_toolset()]
 
         subagent_toolset = create_subagent_toolset(
             id="deep-subagents",
@@ -282,6 +300,7 @@ def create_deep_agent(  # noqa: C901
         "deps_type": DeepAgentDeps,
         "toolsets": all_toolsets,
         "instructions": base_instructions,
+        "retries": retries,
     }
 
     # Determine if any tools require approval (interrupt_on has True values)

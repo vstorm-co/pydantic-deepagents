@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.2.14"
+version = "0.2.15"
 description = "Deep Agent framework built on Pydantic-ai with planning, filesystem, and subagent capabilities"
 readme = "README.md"
 license = "MIT"
@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
     "pydantic-ai-slim>=0.1.0",
     "pydantic-ai-todo>=0.1.5",
-    "pydantic-ai-backend[console]>=0.1.4",
+    "pydantic-ai-backend[console]>=0.1.6",
     "summarization-pydantic-ai>=0.0.2",
     "subagents-pydantic-ai>=0.0.3",
     "pydantic>=2.0",
@@ -34,7 +34,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.1.4"]
+sandbox = ["pydantic-ai-backend[docker]>=0.1.6"]
 # CLI tools (for interactive chat examples)
 cli = [
     "typer>=0.12.0",
@@ -86,6 +86,7 @@ docs = [
     "mkdocs-material>=9.5.0",
     "mkdocstrings>=0.26.0",
     "mkdocstrings-python>=1.12.0",
+    "mkdocs-llmstxt>=0.2.0",
 ]
 
 # Ruff configuration

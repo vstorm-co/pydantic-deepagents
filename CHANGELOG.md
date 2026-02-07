@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.15] - 2025-02-07
+
+### Added
+
+- **`retries` parameter for `create_deep_agent()`**: New explicit parameter (default: 3) that controls max retries for tool calls across all built-in toolsets. When the model sends invalid arguments (e.g. missing a required field), the validation error is fed back and the model can self-correct up to `retries` times. Previously, console tools (including `write_file`) were hardcoded to 1 retry via `FunctionToolset` default, making self-correction nearly impossible. ([#25](https://github.com/vstorm-co/pydantic-deepagents/issues/25))
+- **llms.txt support**: Added `mkdocs-llmstxt` plugin to generate `/llms.txt` and `/llms-full.txt` files following the [llmstxt.org](https://llmstxt.org/) standard ([#26](https://github.com/vstorm-co/pydantic-deepagents/issues/26))
+- Added `mkdocs-llmstxt>=0.2.0` to docs dependency group
+
+### Fixed
+
+- **`write_file` tool exceeded max retries count of 1**: The `write_file` (and all other console tools) had `max_retries=1` hardcoded via `FunctionToolset` default. When the model omitted a required argument like `content`, it got only 1 retry attempt before raising `UnexpectedModelBehavior`. The `retries` parameter passed to `create_deep_agent()` was forwarded to the `Agent` constructor but never propagated to toolsets. Now `retries` is applied to the console toolset and all its tools, and the default is raised from 1 to 3. ([#25](https://github.com/vstorm-co/pydantic-deepagents/issues/25))
+- Fixed 404 when accessing `/llms.txt` - the file was referenced in documentation but never generated ([#26](https://github.com/vstorm-co/pydantic-deepagents/issues/26))
+
 ## [0.2.14] - 2025-01-21
 
 ### Changed

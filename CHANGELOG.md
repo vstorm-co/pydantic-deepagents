@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.16] - 2025-02-12
+
+### Changed
+
+- Updated `subagents-pydantic-ai` dependency from `>=0.0.3` to `>=0.0.4` — fixes `AttributeError: 'Agent' object has no attribute '_register_toolset'` compatibility issue with pydantic-ai >= 1.38 ([subagents-pydantic-ai#5](https://github.com/vstorm-co/subagents-pydantic-ai/issues/5))
+- Removed `_register_toolset` mock from test fixtures (`tests/conftest.py`) — no longer needed after subagents fix
+
 ## [0.2.15] - 2025-02-07
 
 ### Added

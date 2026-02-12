@@ -14,7 +14,6 @@ from pydantic_deep.deps import DeepAgentDeps
 def mock_subagent_agent():
     """Mock the Agent class in subagents_pydantic_ai to avoid needing API keys."""
     mock_agent = MagicMock()
-    mock_agent._register_toolset = MagicMock()
     with patch("subagents_pydantic_ai.toolset.Agent", return_value=mock_agent):
         yield mock_agent
 

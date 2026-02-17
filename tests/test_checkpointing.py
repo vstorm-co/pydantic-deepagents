@@ -68,7 +68,7 @@ def _minimal_agent(**kwargs: Any) -> Any:
         "context_manager": False,
     }
     defaults.update(kwargs)
-    return create_deep_agent(**defaults)
+    return create_deep_agent(**defaults)  # type: ignore[call-overload]
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ class TestInMemoryCheckpointStore:
 class TestFileCheckpointStore:
     """Tests for FileCheckpointStore."""
 
-    async def test_save_and_load(self, tmp_path: Any):
+    async def test_save_and_load(self, tmp_path: Any) -> None:
         """Save and load checkpoint with JSON serialization."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp = _make_cp(label="file-test")
@@ -284,12 +284,12 @@ class TestFileCheckpointStore:
         assert result.message_count == cp.message_count
         assert len(result.messages) == len(cp.messages)
 
-    async def test_get_nonexistent(self, tmp_path: Any):
+    async def test_get_nonexistent(self, tmp_path: Any) -> None:
         """Returns None for nonexistent checkpoint."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.get("nonexistent") is None
 
-    async def test_get_by_label(self, tmp_path: Any):
+    async def test_get_by_label(self, tmp_path: Any) -> None:
         """Find checkpoint by label."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp = _make_cp(label="labeled")
@@ -298,7 +298,7 @@ class TestFileCheckpointStore:
         assert result is not None
         assert result.label == "labeled"
 
-    async def test_get_by_label_skips_non_matching(self, tmp_path: Any):
+    async def test_get_by_label_skips_non_matching(self, tmp_path: Any) -> None:
         """get_by_label iterates past non-matching checkpoints."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         await store.save(_make_cp(label="first"))
@@ -307,12 +307,12 @@ class TestFileCheckpointStore:
         assert result is not None
         assert result.label == "second"
 
-    async def test_get_by_label_nonexistent(self, tmp_path: Any):
+    async def test_get_by_label_nonexistent(self, tmp_path: Any) -> None:
         """Returns None for nonexistent label."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.get_by_label("nope") is None
 
-    async def test_list_all(self, tmp_path: Any):
+    async def test_list_all(self, tmp_path: Any) -> None:
         """List all checkpoints ordered by creation time."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp1 = _make_cp(label="first")
@@ -323,12 +323,12 @@ class TestFileCheckpointStore:
         assert len(result) == 2
         assert result[0].created_at <= result[1].created_at
 
-    async def test_list_all_empty(self, tmp_path: Any):
+    async def test_list_all_empty(self, tmp_path: Any) -> None:
         """Empty store returns empty list."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.list_all() == []
 
-    async def test_remove(self, tmp_path: Any):
+    async def test_remove(self, tmp_path: Any) -> None:
         """Remove checkpoint file."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp = _make_cp()
@@ -336,12 +336,12 @@ class TestFileCheckpointStore:
         assert await store.remove(cp.id) is True
         assert await store.get(cp.id) is None
 
-    async def test_remove_nonexistent(self, tmp_path: Any):
+    async def test_remove_nonexistent(self, tmp_path: Any) -> None:
         """Remove nonexistent returns False."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.remove("nope") is False
 
-    async def test_remove_oldest(self, tmp_path: Any):
+    async def test_remove_oldest(self, tmp_path: Any) -> None:
         """Remove oldest checkpoint file."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp1 = _make_cp(label="old")
@@ -351,19 +351,19 @@ class TestFileCheckpointStore:
         assert await store.remove_oldest() is True
         assert await store.count() == 1
 
-    async def test_remove_oldest_empty(self, tmp_path: Any):
+    async def test_remove_oldest_empty(self, tmp_path: Any) -> None:
         """Remove oldest on empty store returns False."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.remove_oldest() is False
 
-    async def test_count(self, tmp_path: Any):
+    async def test_count(self, tmp_path: Any) -> None:
         """Count returns number of checkpoint files."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         assert await store.count() == 0
         await store.save(_make_cp())
         assert await store.count() == 1
 
-    async def test_clear(self, tmp_path: Any):
+    async def test_clear(self, tmp_path: Any) -> None:
         """Clear removes all checkpoint files."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         await store.save(_make_cp(label="a"))
@@ -371,7 +371,7 @@ class TestFileCheckpointStore:
         await store.clear()
         assert await store.count() == 0
 
-    async def test_metadata_roundtrip(self, tmp_path: Any):
+    async def test_metadata_roundtrip(self, tmp_path: Any) -> None:
         """Metadata survives JSON serialization."""
         store = FileCheckpointStore(tmp_path / "checkpoints")
         cp = _make_cp(metadata={"last_tool": "execute", "extra": 42})
@@ -380,7 +380,7 @@ class TestFileCheckpointStore:
         assert result is not None
         assert result.metadata == {"last_tool": "execute", "extra": 42}
 
-    async def test_creates_directory(self, tmp_path: Any):
+    async def test_creates_directory(self, tmp_path: Any) -> None:
         """Creates directory if it doesn't exist."""
         store = FileCheckpointStore(tmp_path / "nested" / "dir")
         cp = _make_cp()
@@ -768,7 +768,7 @@ class TestCreateDeepAgentCheckpoints:
         """Checkpoints work alongside other middleware."""
         from pydantic_ai_middleware import AgentMiddleware
 
-        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):
+        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
             pass
 
         agent = _minimal_agent(

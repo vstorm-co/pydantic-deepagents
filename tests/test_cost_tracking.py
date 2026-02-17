@@ -23,7 +23,7 @@ def _minimal_agent(**kwargs: Any) -> Any:
         "include_skills": False,
     }
     defaults.update(kwargs)
-    return create_deep_agent(**defaults)
+    return create_deep_agent(**defaults)  # type: ignore[call-overload]
 
 
 class TestCostTrackingIntegration:
@@ -101,7 +101,7 @@ class TestCostTrackingIntegration:
         """Cost tracking merges into existing middleware list."""
         from pydantic_ai_middleware import AgentMiddleware
 
-        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):
+        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
             pass
 
         agent = _minimal_agent(middleware=[DummyMiddleware()])

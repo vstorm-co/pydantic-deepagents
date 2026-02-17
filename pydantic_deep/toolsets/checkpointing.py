@@ -338,7 +338,7 @@ async def _save_and_prune(
 from pydantic_ai_middleware import AgentMiddleware  # noqa: E402
 
 
-class CheckpointMiddleware(AgentMiddleware["Any"]):  # type: ignore[type-arg]
+class CheckpointMiddleware(AgentMiddleware["Any"]):  # type: ignore[misc]
     """Middleware that auto-saves conversation checkpoints.
 
     Uses ``before_model_request`` (for ``every_turn`` frequency) and

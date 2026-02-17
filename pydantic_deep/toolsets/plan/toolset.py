@@ -156,7 +156,7 @@ def create_plan_toolset(
             choice = recommended or (options[0] if options else {"label": "N/A"})
             return f"[Auto-selected: {choice['label']}]"
 
-        return await callback(question, options)
+        return str(await callback(question, options))
 
     @toolset.tool
     async def save_plan(  # pragma: no cover

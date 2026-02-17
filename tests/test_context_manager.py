@@ -25,7 +25,7 @@ def _minimal_agent(**kwargs: Any) -> Any:
         "cost_tracking": False,
     }
     defaults.update(kwargs)
-    return create_deep_agent(**defaults)
+    return create_deep_agent(**defaults)  # type: ignore[call-overload]
 
 
 class TestContextManagerIntegration:
@@ -34,26 +34,26 @@ class TestContextManagerIntegration:
     def test_default_has_context_manager(self):
         """Default agent has ContextManagerMiddleware in history_processors."""
         agent = _minimal_agent()
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         assert any(isinstance(p, ContextManagerMiddleware) for p in processors)
 
     def test_context_manager_disabled(self):
         """context_manager=False excludes ContextManagerMiddleware."""
         agent = _minimal_agent(context_manager=False)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         assert all(not isinstance(p, ContextManagerMiddleware) for p in processors)
 
     def test_custom_max_tokens(self):
         """context_manager_max_tokens is passed through to the middleware."""
         agent = _minimal_agent(context_manager_max_tokens=128_000)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         cm = next(p for p in processors if isinstance(p, ContextManagerMiddleware))
         assert cm.max_tokens == 128_000
 
     def test_default_max_tokens(self):
         """Default max_tokens is 200_000."""
         agent = _minimal_agent()
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         cm = next(p for p in processors if isinstance(p, ContextManagerMiddleware))
         assert cm.max_tokens == 200_000
 
@@ -61,21 +61,21 @@ class TestContextManagerIntegration:
         """on_context_update callback is wired to the middleware."""
         callback = MagicMock()
         agent = _minimal_agent(on_context_update=callback)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         cm = next(p for p in processors if isinstance(p, ContextManagerMiddleware))
         assert cm.on_usage_update is callback
 
     def test_no_callback_by_default(self):
         """No usage callback is set by default."""
         agent = _minimal_agent()
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         cm = next(p for p in processors if isinstance(p, ContextManagerMiddleware))
         assert cm.on_usage_update is None
 
     def test_context_manager_with_eviction(self):
         """Context manager and eviction work together."""
         agent = _minimal_agent(eviction_token_limit=20000)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         # Eviction should be first, context manager last
         from pydantic_deep.processors.eviction import EvictionProcessor
 
@@ -89,7 +89,7 @@ class TestContextManagerIntegration:
             return messages
 
         agent = _minimal_agent(history_processors=[custom_processor])
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         # User processor should come before context manager
         cm_idx = next(
             i for i, p in enumerate(processors) if isinstance(p, ContextManagerMiddleware)
@@ -100,7 +100,7 @@ class TestContextManagerIntegration:
     def test_context_manager_with_patch_tool_calls(self):
         """Context manager works with patch_tool_calls."""
         agent = _minimal_agent(patch_tool_calls=True)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         # Patch processor should be first, context manager last
         from pydantic_deep.processors.patch import patch_tool_calls_processor
 
@@ -110,7 +110,7 @@ class TestContextManagerIntegration:
     def test_context_manager_with_middleware_wrapping(self):
         """When MiddlewareAgent wrapping is active, context_mw is in middleware list too."""
 
-        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):
+        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
             pass
 
         agent = _minimal_agent(middleware=[DummyMiddleware()])
@@ -119,7 +119,7 @@ class TestContextManagerIntegration:
     def test_context_manager_disabled_with_middleware(self):
         """context_manager=False doesn't add to middleware list."""
 
-        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):
+        class DummyMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
             pass
 
         agent = _minimal_agent(context_manager=False, middleware=[DummyMiddleware()])
@@ -128,5 +128,5 @@ class TestContextManagerIntegration:
     def test_disabled_has_no_processors(self):
         """Agent with context_manager=False and no other processors has empty list."""
         agent = _minimal_agent(context_manager=False)
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         assert len(processors) == 0

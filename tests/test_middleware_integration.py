@@ -22,7 +22,7 @@ TEST_MODEL = TestModel()
 # --- Helper middleware ---
 
 
-class LoggingMiddleware(AgentMiddleware[DeepAgentDeps]):
+class LoggingMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
     """Simple middleware that records calls."""
 
     def __init__(self) -> None:
@@ -38,7 +38,7 @@ class LoggingMiddleware(AgentMiddleware[DeepAgentDeps]):
         return output
 
 
-class BlockingMiddleware(AgentMiddleware[DeepAgentDeps]):
+class BlockingMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
     """Middleware that blocks specific tools."""
 
     def __init__(self, blocked_tools: set[str]) -> None:

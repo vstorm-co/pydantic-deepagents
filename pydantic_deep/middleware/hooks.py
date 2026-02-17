@@ -240,7 +240,7 @@ from pydantic_ai_middleware import (  # noqa: E402
 )
 
 
-class HooksMiddleware(AgentMiddleware["DeepAgentDeps"]):  # type: ignore[type-arg]
+class HooksMiddleware(AgentMiddleware["DeepAgentDeps"]):  # type: ignore[misc]
     """Middleware that executes hooks on tool lifecycle events.
 
     This middleware maps tool events to shell commands (via execute()) or

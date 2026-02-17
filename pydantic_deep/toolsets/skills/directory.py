@@ -28,7 +28,7 @@ from .local import (
 from .types import Skill, SkillResource, SkillScript
 
 try:
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     _HAS_YAML = True
 except ImportError:

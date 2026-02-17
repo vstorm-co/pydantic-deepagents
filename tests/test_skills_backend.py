@@ -27,13 +27,14 @@ from pydantic_deep.toolsets.skills.exceptions import (
     SkillValidationError,
 )
 from pydantic_deep.toolsets.skills.toolset import SkillsToolset
+from pydantic_deep.toolsets.skills.types import SkillScript
 
 # ==========================================================================
 # Helper: create a mock SandboxProtocol (StateBackend + execute)
 # ==========================================================================
 
 
-class MockSandboxBackend(StateBackend):
+class MockSandboxBackend(StateBackend):  # type: ignore[misc]
     """StateBackend with execute() support for testing."""
 
     def __init__(self, execute_result: ExecuteResponse | None = None) -> None:
@@ -103,7 +104,7 @@ class TestBackendSkillResource:
         backend.write("/skills/test/plain.txt", "plain text content")
         return backend
 
-    async def test_load_text_resource(self, backend: StateBackend):
+    async def test_load_text_resource(self, backend: StateBackend) -> None:
         resource = BackendSkillResource(
             name="readme.md",
             uri="/skills/test/readme.md",
@@ -112,7 +113,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == "# Hello World"
 
-    async def test_load_json_resource_auto_parse(self, backend: StateBackend):
+    async def test_load_json_resource_auto_parse(self, backend: StateBackend) -> None:
         resource = BackendSkillResource(
             name="data.json",
             uri="/skills/test/data.json",
@@ -121,7 +122,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == {"key": "value"}
 
-    async def test_load_yaml_resource_auto_parse(self, backend: StateBackend):
+    async def test_load_yaml_resource_auto_parse(self, backend: StateBackend) -> None:
         resource = BackendSkillResource(
             name="config.yaml",
             uri="/skills/test/config.yaml",
@@ -130,7 +131,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == {"name": "test", "version": 1}
 
-    async def test_load_yml_extension(self, backend: StateBackend):
+    async def test_load_yml_extension(self, backend: StateBackend) -> None:
         backend.write("/skills/test/config.yml", "items:\n  - one\n  - two")
         resource = BackendSkillResource(
             name="config.yml",
@@ -140,7 +141,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == {"items": ["one", "two"]}
 
-    async def test_load_plain_text(self, backend: StateBackend):
+    async def test_load_plain_text(self, backend: StateBackend) -> None:
         resource = BackendSkillResource(
             name="plain.txt",
             uri="/skills/test/plain.txt",
@@ -149,7 +150,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == "plain text content"
 
-    async def test_load_invalid_json_returns_text(self, backend: StateBackend):
+    async def test_load_invalid_json_returns_text(self, backend: StateBackend) -> None:
         backend.write("/skills/test/bad.json", "not json {")
         resource = BackendSkillResource(
             name="bad.json",
@@ -159,7 +160,7 @@ class TestBackendSkillResource:
         result = await resource.load(ctx=None)
         assert result == "not json {"
 
-    async def test_load_invalid_yaml_returns_text(self, backend: StateBackend):
+    async def test_load_invalid_yaml_returns_text(self, backend: StateBackend) -> None:
         backend.write("/skills/test/bad.yaml", "invalid: yaml: [")
         resource = BackendSkillResource(
             name="bad.yaml",
@@ -184,7 +185,7 @@ class TestBackendSkillResource:
         resource = BackendSkillResource(
             name="test",
             uri="/skills/test/file.txt",
-            backend=None,  # type: ignore[arg-type]
+            backend=None,
         )
         with pytest.raises(SkillResourceLoadError, match="has no backend"):
             await resource.load(ctx=None)
@@ -202,7 +203,7 @@ class TestBackendSkillResource:
         with pytest.raises(SkillResourceLoadError, match="Failed to read resource"):
             await resource.load(ctx=None)
 
-    async def test_load_no_extension(self, backend: StateBackend):
+    async def test_load_no_extension(self, backend: StateBackend) -> None:
         backend.write("/skills/test/Makefile", "all: build")
         resource = BackendSkillResource(
             name="Makefile",
@@ -221,7 +222,7 @@ class TestBackendSkillResource:
 class TestBackendSkillScriptExecutor:
     """Tests for BackendSkillScriptExecutor."""
 
-    def _make_script(self, name: str = "test.py", uri: str = "/skills/test/test.py"):
+    def _make_script(self, name: str = "test.py", uri: str = "/skills/test/test.py") -> SkillScript:
         from pydantic_deep.toolsets.skills.types import SkillScript
 
         return SkillScript(
@@ -304,7 +305,7 @@ class TestBackendSkillScriptExecutor:
     async def test_run_no_uri_raises(self):
         backend = MockSandboxBackend()
         executor = BackendSkillScriptExecutor(backend=backend)
-        script = self._make_script(uri=None)  # type: ignore[arg-type]
+        script = self._make_script(uri=None)
         script.uri = None
 
         with pytest.raises(SkillScriptExecutionError, match="has no URI"):
@@ -312,7 +313,7 @@ class TestBackendSkillScriptExecutor:
 
     async def test_run_backend_exception_raises(self):
         backend = MockSandboxBackend()
-        backend.execute = MagicMock(side_effect=RuntimeError("connection lost"))  # type: ignore[assignment]
+        backend.execute = MagicMock(side_effect=RuntimeError("connection lost"))  # type: ignore[method-assign]
         executor = BackendSkillScriptExecutor(backend=backend)
         script = self._make_script()
 
@@ -356,7 +357,7 @@ class TestBackendSkillScript:
         script = BackendSkillScript(
             name="run.py",
             uri="/skills/test/run.py",
-            executor=None,  # type: ignore[arg-type]
+            executor=None,
         )
         with pytest.raises(SkillScriptExecutionError, match="has no backend executor"):
             await script.run(ctx=None)
@@ -493,7 +494,7 @@ class TestBackendSkillsDirectory:
         name: str,
         description: str = "A test skill",
         content: str = "Skill instructions here",
-    ):
+    ) -> None:
         """Helper to write a SKILL.md to the backend."""
         skill_md = f"---\nname: {name}\ndescription: {description}\n---\n{content}"
         backend.write(f"{path}/SKILL.md", skill_md)
@@ -657,9 +658,9 @@ class TestBackendSkillsDirectory:
         def failing_read(path: str) -> bytes:
             if "SKILL.md" in path:
                 raise OSError("disk error")
-            return original_read(path)
+            return original_read(path)  # type: ignore[no-any-return]
 
-        backend._read_bytes = failing_read  # type: ignore[assignment]
+        backend._read_bytes = failing_read
 
         with pytest.raises(SkillValidationError, match="Failed to load skill"):
             BackendSkillsDirectory(backend=backend, path="/skills")
@@ -675,7 +676,7 @@ class TestBackendSkillsDirectory:
         if skill.scripts:
             script = skill.scripts[0]
             assert isinstance(script, BackendSkillScript)
-            assert script.executor.timeout == 60  # type: ignore[union-attr]
+            assert script.executor.timeout == 60
 
     def test_no_frontmatter_returns_full_content(self):
         backend = StateBackend()
@@ -748,7 +749,7 @@ class TestAgentIntegration:
 
         agent = create_deep_agent(
             model="test",
-            skill_directories=[backend_dir],  # type: ignore[list-item]
+            skill_directories=[backend_dir],
             include_subagents=False,
         )
         assert agent is not None
@@ -762,7 +763,7 @@ class TestAgentIntegration:
 class TestCoverageEdgeCases:
     """Tests to hit remaining uncovered lines."""
 
-    async def test_yaml_without_pyyaml(self, monkeypatch: pytest.MonkeyPatch):
+    async def test_yaml_without_pyyaml(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test YAML resource loading when pyyaml is not available."""
         import pydantic_deep.toolsets.skills.backend as backend_mod
 
@@ -809,9 +810,9 @@ class TestCoverageEdgeCases:
 
         def glob_with_dupes(pattern: str, path: str = "/") -> list[FileInfo]:
             results = original_glob(pattern, path)
-            return results + results  # duplicate each result
+            return results + results  # type: ignore[no-any-return]
 
-        backend.glob_info = glob_with_dupes  # type: ignore[assignment]
+        backend.glob_info = glob_with_dupes
 
         directory = BackendSkillsDirectory.__new__(BackendSkillsDirectory)
         directory._backend = backend

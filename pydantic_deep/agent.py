@@ -569,12 +569,12 @@ def create_deep_agent(  # noqa: C901
                 else:
                     converted_skills.append(s)
 
-        skills_toolset: SkillsToolset = SkillsToolset(
+        skills_toolset = SkillsToolset(
             id="deep-skills",
             skills=converted_skills or None,
-            directories=directories,  # pyright: ignore[reportArgumentType]
+            directories=directories,  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         )
-        all_toolsets.append(skills_toolset)  # pyright: ignore[reportArgumentType]
+        all_toolsets.append(skills_toolset)  # type: ignore[arg-type]
 
     # Context toolset
     if context_files or context_discovery:
@@ -779,7 +779,7 @@ def create_deep_agent(  # noqa: C901
         if cost_mw is not None:
             all_middleware.append(cost_mw)
 
-        return MiddlewareAgent(  # type: ignore[return-value]
+        return MiddlewareAgent(  # type: ignore[no-any-return]
             agent=agent,
             middleware=all_middleware or None,
             context=middleware_context,

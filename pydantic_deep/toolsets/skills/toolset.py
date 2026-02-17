@@ -406,7 +406,7 @@ class SkillsToolset(FunctionToolset):
                     f"Available: {available}"
                 )
 
-            return await resource.load(ctx=ctx, args=args)
+            return str(await resource.load(ctx=ctx, args=args))
 
     def _register_run_skill_script(self) -> None:
         """Register the run_skill_script tool."""
@@ -444,7 +444,7 @@ class SkillsToolset(FunctionToolset):
                     f"Available: {available}"
                 )
 
-            return await script.run(ctx=ctx, args=args)
+            return str(await script.run(ctx=ctx, args=args))
 
     async def get_instructions(self, ctx: RunContext[Any]) -> str | None:
         """Return instructions to inject into the agent's system prompt.

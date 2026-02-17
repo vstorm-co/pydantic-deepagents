@@ -25,7 +25,7 @@ from .exceptions import SkillResourceLoadError, SkillScriptExecutionError
 from .types import SkillResource, SkillScript
 
 try:
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     _HAS_YAML = True
 except ImportError:
@@ -142,7 +142,7 @@ class LocalSkillScriptExecutor:
                     if value:
                         cmd.append(f"--{key}")
                 elif isinstance(value, list):
-                    for item in cast(list[Any], value):
+                    for item in value:
                         cmd.append(f"--{key}")
                         cmd.append(str(item))
                 elif value is not None:

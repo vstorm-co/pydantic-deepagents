@@ -58,9 +58,9 @@ def _find_orphaned_calls(messages: list[ModelMessage]) -> dict[int, list[ToolRet
         answered_ids: set[str] = set()
 
         if isinstance(next_msg, ModelRequest):
-            for part in next_msg.parts:
-                if isinstance(part, ToolReturnPart) and part.tool_call_id in tool_calls:
-                    answered_ids.add(part.tool_call_id)
+            for req_part in next_msg.parts:
+                if isinstance(req_part, ToolReturnPart) and req_part.tool_call_id in tool_calls:
+                    answered_ids.add(req_part.tool_call_id)
 
         # Find orphaned tool calls
         orphaned_ids = set(tool_calls.keys()) - answered_ids
@@ -103,9 +103,9 @@ def _find_orphaned_results(messages: list[ModelMessage]) -> set[tuple[int, str]]
         called_ids: set[str] = set()
 
         if isinstance(prev_msg, ModelResponse):
-            for part in prev_msg.parts:
-                if isinstance(part, ToolCallPart):
-                    called_ids.add(part.tool_call_id)
+            for resp_part in prev_msg.parts:
+                if isinstance(resp_part, ToolCallPart):
+                    called_ids.add(resp_part.tool_call_id)
 
         # Find orphaned tool results
         for call_id in return_ids:

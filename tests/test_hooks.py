@@ -464,7 +464,7 @@ class TestRunHook:
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
         # StateBackend is not a SandboxProtocol
         with pytest.raises(RuntimeError, match="SandboxProtocol"):
-            await _run_hook(hook, hook_input, StateBackend())  # type: ignore[arg-type]
+            await _run_hook(hook, hook_input, StateBackend())
 
 
 # --- Tests: _run_background_hook ---
@@ -506,7 +506,7 @@ class TestGetSandboxBackend:
 
     def test_sandbox_backend(self):
         backend = FakeSandboxBackend()
-        deps = DeepAgentDeps(backend=backend)  # type: ignore[arg-type]
+        deps = DeepAgentDeps(backend=backend)
         assert _get_sandbox_backend(deps) is backend
 
 
@@ -593,7 +593,7 @@ class TestHooksMiddleware:
 
     async def test_before_tool_call_command_hook(self):
         backend = FakeSandboxBackend({"checker": ExecuteResponse(output="", exit_code=0)})
-        deps = DeepAgentDeps(backend=backend)  # type: ignore[arg-type]
+        deps = DeepAgentDeps(backend=backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="checker")
         mw = HooksMiddleware([hook])
         result = await mw.before_tool_call("execute", {"cmd": "ls"}, deps)
@@ -601,7 +601,7 @@ class TestHooksMiddleware:
 
     async def test_before_tool_call_command_deny(self):
         backend = FakeSandboxBackend({"blocker": ExecuteResponse(output="Nope", exit_code=2)})
-        deps = DeepAgentDeps(backend=backend)  # type: ignore[arg-type]
+        deps = DeepAgentDeps(backend=backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="blocker")
         mw = HooksMiddleware([hook])
         result = await mw.before_tool_call("execute", {}, deps)
@@ -652,7 +652,7 @@ class TestHooksMiddleware:
         backend = FakeSandboxBackend(
             {"logger": ExecuteResponse(output='{"modified_result": "logged"}', exit_code=0)}
         )
-        deps = DeepAgentDeps(backend=backend)  # type: ignore[arg-type]
+        deps = DeepAgentDeps(backend=backend)
         hook = Hook(event=HookEvent.POST_TOOL_USE, command="logger")
         mw = HooksMiddleware([hook])
         result = await mw.after_tool_call("t", {}, "original", deps)
@@ -696,7 +696,7 @@ class TestHooksMiddleware:
 
     async def test_on_tool_error_command(self):
         backend = FakeSandboxBackend({"error-handler": ExecuteResponse(output="", exit_code=0)})
-        deps = DeepAgentDeps(backend=backend)  # type: ignore[arg-type]
+        deps = DeepAgentDeps(backend=backend)
         hook = Hook(event=HookEvent.POST_TOOL_USE_FAILURE, command="error-handler")
         mw = HooksMiddleware([hook])
         await mw.on_tool_error("execute", {"cmd": "bad"}, RuntimeError("fail"), deps)
@@ -770,7 +770,7 @@ class TestCreateDeepAgentWithHooks:
         # Define a simple middleware
         from pydantic_deep import AgentMiddleware
 
-        class MyMiddleware(AgentMiddleware[DeepAgentDeps]):
+        class MyMiddleware(AgentMiddleware[DeepAgentDeps]):  # type: ignore[misc]
             async def before_run(self, prompt, deps, ctx):
                 return prompt
 

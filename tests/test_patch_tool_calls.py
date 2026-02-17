@@ -335,7 +335,7 @@ class TestCreateDeepAgentPatchToolCalls:
         # Access the processors from the agent's graph
         assert any(
             p is ptp
-            for p in agent.history_processors  # type: ignore[union-attr]
+            for p in agent.history_processors
         )
 
     def test_patch_tool_calls_false(self):
@@ -343,7 +343,7 @@ class TestCreateDeepAgentPatchToolCalls:
         agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)
         from pydantic_deep.processors.patch import patch_tool_calls_processor as ptp
 
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         assert all(p is not ptp for p in processors)
 
     def test_patch_tool_calls_with_other_processors(self):
@@ -362,7 +362,7 @@ class TestCreateDeepAgentPatchToolCalls:
         )
         from pydantic_deep.processors.patch import patch_tool_calls_processor as ptp
 
-        processors = agent.history_processors  # type: ignore[union-attr]
+        processors = agent.history_processors
         # patch_tool_calls_processor should be first
         assert processors[0] is ptp
 

@@ -217,13 +217,13 @@ class EvictionProcessor:
 
                 # Skip already-evicted tool outputs
                 if part.tool_call_id in self._evicted_ids:
-                    new_parts.append(part)
+                    new_parts.append(part)  # type: ignore[arg-type]
                     continue
 
                 content_str = _content_to_str(part.content)
 
                 if len(content_str) <= char_limit:
-                    new_parts.append(part)
+                    new_parts.append(part)  # type: ignore[arg-type]
                     continue
 
                 # Evict: save to backend, replace with preview
@@ -233,7 +233,7 @@ class EvictionProcessor:
 
                 if write_result.error:
                     # Keep original on write failure
-                    new_parts.append(part)
+                    new_parts.append(part)  # type: ignore[arg-type]
                     continue
 
                 preview = create_content_preview(
@@ -253,7 +253,7 @@ class EvictionProcessor:
                     metadata=part.metadata,
                     timestamp=part.timestamp,
                 )
-                new_parts.append(evicted_part)
+                new_parts.append(evicted_part)  # type: ignore[arg-type]
                 self._evicted_ids.add(part.tool_call_id)
                 modified = True
 

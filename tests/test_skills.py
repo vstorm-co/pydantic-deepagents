@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -195,7 +196,7 @@ class TestSkill:
     def test_resource_decorator_with_args(self):
         s = Skill(name="test", description="desc", content="instr")
 
-        @s.resource(name="custom-name", description="Custom desc")
+        @s.resource(name="custom-name", description="Custom desc")  # type: ignore[untyped-decorator]
         def get_data() -> str:
             return "data"
 
@@ -233,8 +234,8 @@ class TestSkill:
 class TestSkillWrapper:
     """Tests for SkillWrapper class."""
 
-    def test_basic_wrapper(self):
-        wrapper = SkillWrapper(
+    def test_basic_wrapper(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test-skill",
             description="desc",
@@ -247,8 +248,8 @@ class TestSkillWrapper:
         assert wrapper.name == "test-skill"
         assert wrapper.description == "desc"
 
-    def test_to_skill(self):
-        wrapper = SkillWrapper(
+    def test_to_skill(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content here",
             name="test-skill",
             description="desc",
@@ -265,8 +266,8 @@ class TestSkillWrapper:
         assert skill.license == "MIT"
         assert skill.metadata == {"version": "1.0"}
 
-    def test_resource_decorator(self):
-        wrapper = SkillWrapper(
+    def test_resource_decorator(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test",
             description="desc",
@@ -285,8 +286,8 @@ class TestSkillWrapper:
         assert len(wrapper.resources) == 1
         assert wrapper.resources[0].name == "get_data"
 
-    def test_resource_decorator_with_args(self):
-        wrapper = SkillWrapper(
+    def test_resource_decorator_with_args(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test",
             description="desc",
@@ -297,14 +298,14 @@ class TestSkillWrapper:
             scripts=[],
         )
 
-        @wrapper.resource(name="custom")
+        @wrapper.resource(name="custom")  # type: ignore[untyped-decorator]
         def get_data() -> str:
             return "data"
 
         assert wrapper.resources[0].name == "custom"
 
-    def test_script_decorator(self):
-        wrapper = SkillWrapper(
+    def test_script_decorator(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test",
             description="desc",
@@ -323,8 +324,8 @@ class TestSkillWrapper:
         assert len(wrapper.scripts) == 1
         assert wrapper.scripts[0].name == "do_thing"
 
-    def test_script_decorator_with_args(self):
-        wrapper = SkillWrapper(
+    def test_script_decorator_with_args(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test",
             description="desc",
@@ -335,14 +336,14 @@ class TestSkillWrapper:
             scripts=[],
         )
 
-        @wrapper.script(name="custom-script")
+        @wrapper.script(name="custom-script")  # type: ignore[untyped-decorator]
         def do_thing() -> str:
             return "done"
 
         assert wrapper.scripts[0].name == "custom-script"
 
-    def test_to_skill_with_no_description(self):
-        wrapper = SkillWrapper(
+    def test_to_skill_with_no_description(self) -> None:
+        wrapper: SkillWrapper[Any] = SkillWrapper(
             function=lambda: "content",
             name="test",
             description=None,
@@ -364,28 +365,28 @@ class TestSkillWrapper:
 class TestFileBasedSkillResource:
     """Tests for FileBasedSkillResource."""
 
-    async def test_load_text_file(self, tmp_path: Path):
+    async def test_load_text_file(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.md"
         f.write_text("# Hello")
         res = create_file_based_resource(name="doc.md", uri=str(f))
         result = await res.load(ctx=None)
         assert result == "# Hello"
 
-    async def test_load_json_file(self, tmp_path: Path):
+    async def test_load_json_file(self, tmp_path: Path) -> None:
         f = tmp_path / "data.json"
         f.write_text(json.dumps({"key": "value"}))
         res = create_file_based_resource(name="data.json", uri=str(f))
         result = await res.load(ctx=None)
         assert result == {"key": "value"}
 
-    async def test_load_json_invalid_fallback(self, tmp_path: Path):
+    async def test_load_json_invalid_fallback(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.json"
         f.write_text("not json {{{")
         res = create_file_based_resource(name="bad.json", uri=str(f))
         result = await res.load(ctx=None)
         assert result == "not json {{{"
 
-    async def test_load_yaml_file(self, tmp_path: Path):
+    async def test_load_yaml_file(self, tmp_path: Path) -> None:
         pytest.importorskip("yaml")
         f = tmp_path / "config.yaml"
         f.write_text("key: value\nlist:\n  - a\n  - b")
@@ -407,14 +408,14 @@ class TestFileBasedSkillResource:
         with pytest.raises(SkillResourceLoadError, match="Failed to read"):
             await res.load(ctx=None)
 
-    async def test_load_csv_file(self, tmp_path: Path):
+    async def test_load_csv_file(self, tmp_path: Path) -> None:
         f = tmp_path / "data.csv"
         f.write_text("a,b,c\n1,2,3")
         res = create_file_based_resource(name="data.csv", uri=str(f))
         result = await res.load(ctx=None)
         assert "a,b,c" in result
 
-    async def test_load_yml_extension(self, tmp_path: Path):
+    async def test_load_yml_extension(self, tmp_path: Path) -> None:
         pytest.importorskip("yaml")
         f = tmp_path / "config.yml"
         f.write_text("x: 1")
@@ -435,7 +436,7 @@ class TestFileBasedSkillResource:
 class TestLocalSkillScriptExecutor:
     """Tests for LocalSkillScriptExecutor."""
 
-    async def test_run_basic_script(self, tmp_path: Path):
+    async def test_run_basic_script(self, tmp_path: Path) -> None:
         script_file = tmp_path / "hello.py"
         script_file.write_text('print("hello world")')
 
@@ -444,7 +445,7 @@ class TestLocalSkillScriptExecutor:
         result = await executor.run(script)
         assert "hello world" in result
 
-    async def test_run_script_with_args(self, tmp_path: Path):
+    async def test_run_script_with_args(self, tmp_path: Path) -> None:
         script_file = tmp_path / "greet.py"
         script_file.write_text(
             "import argparse\np = argparse.ArgumentParser()\n"
@@ -457,7 +458,7 @@ class TestLocalSkillScriptExecutor:
         result = await executor.run(script, args={"name": "Alice"})
         assert "Hi Alice" in result
 
-    async def test_run_script_with_bool_arg(self, tmp_path: Path):
+    async def test_run_script_with_bool_arg(self, tmp_path: Path) -> None:
         script_file = tmp_path / "flags.py"
         script_file.write_text('import sys\nprint(" ".join(sys.argv[1:]))')
 
@@ -467,7 +468,7 @@ class TestLocalSkillScriptExecutor:
         assert "--verbose" in result
         assert "--quiet" not in result
 
-    async def test_run_script_with_list_arg(self, tmp_path: Path):
+    async def test_run_script_with_list_arg(self, tmp_path: Path) -> None:
         script_file = tmp_path / "multi.py"
         script_file.write_text('import sys\nprint(" ".join(sys.argv[1:]))')
 
@@ -476,7 +477,7 @@ class TestLocalSkillScriptExecutor:
         result = await executor.run(script, args={"item": ["a", "b"]})
         assert "--item a --item b" in result
 
-    async def test_run_script_with_none_arg(self, tmp_path: Path):
+    async def test_run_script_with_none_arg(self, tmp_path: Path) -> None:
         script_file = tmp_path / "none.py"
         script_file.write_text('import sys\nprint(" ".join(sys.argv[1:]))')
 
@@ -500,7 +501,7 @@ class TestLocalSkillScriptExecutor:
         with pytest.raises(SkillScriptExecutionError, match="Failed to execute"):
             await executor.run(script)
 
-    async def test_run_script_with_stderr(self, tmp_path: Path):
+    async def test_run_script_with_stderr(self, tmp_path: Path) -> None:
         script_file = tmp_path / "warn.py"
         script_file.write_text('import sys\nsys.stderr.write("warning\\n")\nprint("ok")')
 
@@ -510,7 +511,7 @@ class TestLocalSkillScriptExecutor:
         assert "ok" in result
         assert "warning" in result
 
-    async def test_run_script_nonzero_exit(self, tmp_path: Path):
+    async def test_run_script_nonzero_exit(self, tmp_path: Path) -> None:
         script_file = tmp_path / "fail.py"
         script_file.write_text("import sys\nsys.exit(1)")
 
@@ -519,7 +520,7 @@ class TestLocalSkillScriptExecutor:
         result = await executor.run(script)
         assert "exited with code 1" in result
 
-    async def test_run_script_no_output(self, tmp_path: Path):
+    async def test_run_script_no_output(self, tmp_path: Path) -> None:
         script_file = tmp_path / "silent.py"
         script_file.write_text("pass")
 
@@ -528,7 +529,7 @@ class TestLocalSkillScriptExecutor:
         result = await executor.run(script)
         assert result == "(no output)"
 
-    async def test_timeout(self, tmp_path: Path):
+    async def test_timeout(self, tmp_path: Path) -> None:
         script_file = tmp_path / "slow.py"
         script_file.write_text("import time\ntime.sleep(10)")
 
@@ -551,7 +552,7 @@ class TestCallableSkillScriptExecutor:
     """Tests for CallableSkillScriptExecutor."""
 
     async def test_sync_callable(self):
-        def my_executor(script: SkillScript, args: dict | None = None) -> str:
+        def my_executor(script: SkillScript, args: dict[str, Any] | None = None) -> str:
             return f"Executed {script.name}"
 
         executor = CallableSkillScriptExecutor(func=my_executor)
@@ -560,7 +561,7 @@ class TestCallableSkillScriptExecutor:
         assert result == "Executed test.py"
 
     async def test_async_callable(self):
-        async def my_executor(script: SkillScript, args: dict | None = None) -> str:
+        async def my_executor(script: SkillScript, args: dict[str, Any] | None = None) -> str:
             return f"Async {script.name}"
 
         executor = CallableSkillScriptExecutor(func=my_executor)
@@ -577,7 +578,7 @@ class TestCallableSkillScriptExecutor:
 class TestFileBasedSkillScript:
     """Tests for FileBasedSkillScript."""
 
-    async def test_run_delegates_to_executor(self, tmp_path: Path):
+    async def test_run_delegates_to_executor(self, tmp_path: Path) -> None:
         script_file = tmp_path / "hello.py"
         script_file.write_text('print("hi")')
 
@@ -598,7 +599,7 @@ class TestFileBasedSkillScript:
         with pytest.raises(SkillScriptExecutionError, match="has no URI"):
             await script.run(ctx=None)
 
-    def test_create_file_based_script(self, tmp_path: Path):
+    def test_create_file_based_script(self, tmp_path: Path) -> None:
         executor = LocalSkillScriptExecutor(timeout=10)
         script = create_file_based_script(
             name="run.py",
@@ -689,7 +690,7 @@ class TestCallableScriptRun:
 class TestFileBasedSkillResourceYamlError:
     """Tests for YAML parsing error fallback in FileBasedSkillResource."""
 
-    async def test_load_yaml_parse_error_returns_raw(self, tmp_path: Path):
+    async def test_load_yaml_parse_error_returns_raw(self, tmp_path: Path) -> None:
         """Invalid YAML falls back to raw content."""
         yaml_file = tmp_path / "bad.yaml"
         yaml_file.write_text("invalid: yaml: [unterminated")
@@ -701,7 +702,7 @@ class TestFileBasedSkillResourceYamlError:
         result = await resource.load(ctx=None)
         assert result == "invalid: yaml: [unterminated"
 
-    async def test_load_yaml_without_pyyaml(self, tmp_path: Path):
+    async def test_load_yaml_without_pyyaml(self, tmp_path: Path) -> None:
         """YAML file loaded without pyyaml returns raw content."""
         import pydantic_deep.toolsets.skills.local as local_mod
 

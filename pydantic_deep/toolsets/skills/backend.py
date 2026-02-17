@@ -29,7 +29,7 @@ from .exceptions import (
 from .types import Skill, SkillResource, SkillScript
 
 try:
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     _HAS_YAML = True
 except ImportError:
@@ -53,7 +53,7 @@ class BackendSkillResource(SkillResource):
         backend: Backend instance used for reading the resource.
     """
 
-    backend: BackendProtocol = field(default=None, repr=False)  # type: ignore[assignment]
+    backend: BackendProtocol = field(default=None, repr=False)  # pyright: ignore[reportAssignmentType]
 
     async def load(self, ctx: Any, args: dict[str, Any] | None = None) -> Any:
         """Load resource content from the backend.

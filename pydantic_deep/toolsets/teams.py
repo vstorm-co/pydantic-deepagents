@@ -363,12 +363,13 @@ def create_team_toolset(  # noqa: C901
         ]
 
         backend = getattr(ctx.deps, "backend", None) or StateBackend()
-        _team[0] = AgentTeam(
+        team = AgentTeam(
             name=team_name,
             members=team_members,
             shared_backend=backend,
         )
-        handles = await _team[0].spawn()
+        _team[0] = team
+        handles = await team.spawn()
 
         lines = [f"Team '{team_name}' created with {len(handles)} members:"]
         for name in handles:

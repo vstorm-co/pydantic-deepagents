@@ -52,7 +52,7 @@ def _minimal_agent(**kwargs: Any) -> Any:
         "context_manager": False,
     }
     defaults.update(kwargs)
-    return create_deep_agent(**defaults)
+    return create_deep_agent(**defaults)  # type: ignore[call-overload]
 
 
 # --- Unit Tests: SharedTodoItem ---
@@ -437,7 +437,7 @@ class TestTeamMessageBus:
         bus.register("alice")
         bus.register("bob")
 
-        async def send_delayed():
+        async def send_delayed() -> None:
             await asyncio.sleep(0.01)
             await bus.send("bob", "alice", "Delayed msg")
 
@@ -586,7 +586,7 @@ class TestAgentTeam:
         team = self._make_team(1)
         await team.spawn()
 
-        async def worker():
+        async def worker() -> None:
             await asyncio.sleep(0.01)
             team._handles["agent-0"].result = "task done"
 
@@ -600,7 +600,7 @@ class TestAgentTeam:
         team = self._make_team(1)
         await team.spawn()
 
-        async def failing_worker():
+        async def failing_worker() -> None:
             raise ValueError("boom")
 
         task = asyncio.create_task(failing_worker())
@@ -623,7 +623,7 @@ class TestAgentTeam:
         team = self._make_team(1)
         await team.spawn()
 
-        async def long_task():
+        async def long_task() -> None:
             await asyncio.sleep(100)
 
         task = asyncio.create_task(long_task())

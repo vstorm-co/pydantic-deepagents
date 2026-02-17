@@ -784,7 +784,7 @@ class TestCreateDeepAgentWithHooks:
             middleware=[MyMiddleware()],
         )
         assert isinstance(agent, MiddlewareAgent)
-        # Should have 4 middleware: MyMiddleware + HooksMiddleware + ContextManagerMiddleware + CostTrackingMiddleware
+        # MyMiddleware + Hooks + ContextManager + CostTracking
         assert len(agent.middleware) == 4
 
     def test_no_hooks_returns_plain_agent(self):

@@ -18,27 +18,35 @@ Features:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
 import re
 import shutil
-from datetime import datetime, timezone
-
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic_ai import (
+from fastapi import (  # noqa: E402
+    FastAPI,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import HTMLResponse, JSONResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from pydantic_ai import (  # noqa: E402
     BinaryContent,
     FinalResultEvent,
     PartDeltaEvent,
@@ -47,9 +55,9 @@ from pydantic_ai import (
     ThinkingPartDelta,
     ToolCallPartDelta,
 )
-from pydantic_ai._agent_graph import End, UserPromptNode
-from pydantic_ai.agent import Agent
-from pydantic_ai.messages import (
+from pydantic_ai._agent_graph import End, UserPromptNode  # noqa: E402
+from pydantic_ai.agent import Agent  # noqa: E402
+from pydantic_ai.messages import (  # noqa: E402
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     ModelMessage,
@@ -60,15 +68,15 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.tools import (
+from pydantic_ai.tools import (  # noqa: E402
     DeferredToolRequests,
     DeferredToolResults,
     ToolApproved,
     ToolDenied,
 )
-from pydantic_ai.toolsets import AbstractToolset
+from pydantic_ai.toolsets import AbstractToolset  # noqa: E402
 
-from pydantic_deep import (
+from pydantic_deep import (  # noqa: E402
     DeepAgentDeps,
     InMemoryCheckpointStore,
     RewindRequested,
@@ -76,8 +84,8 @@ from pydantic_deep import (
     fork_from_checkpoint,
 )
 
-from .agent import create_research_agent
-from .config import (
+from .agent import create_research_agent  # noqa: E402
+from .config import (  # noqa: E402
     APP_DIR,
     EXCALIDRAW_CANVAS_URL,
     SKILLS_DIR,
@@ -86,7 +94,7 @@ from .config import (
     WORKSPACES_DIR,
     create_mcp_servers,
 )
-from .middleware import AuditMiddleware, PermissionMiddleware
+from .middleware import AuditMiddleware, PermissionMiddleware  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -218,7 +226,11 @@ def _build_file_summary(name: str, path: str, data: bytes, media_type: str) -> s
 
         summary += f"\n  ```\n{preview}\n  ```"
         if truncated:
-            summary += f'\n  *(preview — {line_count - _PREVIEW_LINES} more lines, use `read_file("{path}")` for full content)*'
+            remaining = line_count - _PREVIEW_LINES
+            summary += (
+                f"\n  *(preview — {remaining} more lines,"
+                f' use `read_file("{path}")` for full content)*'
+            )
     else:
         summary += f" — binary ({media_type}), use `read_file` to inspect"
 
@@ -659,7 +671,7 @@ async def lifespan(app: FastAPI):
     try:
         async with agent:
             yield
-    except (ExceptionGroup, Exception) as exc:
+    except Exception as exc:
         failed = _get_failed_server_names(exc, mcp_servers)
         logger.warning(
             "MCP server startup failed (%s) — retrying without them",
@@ -705,7 +717,7 @@ async def root():
 
 
 @app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
+async def websocket_chat(websocket: WebSocket):  # noqa: C901
     """WebSocket endpoint for streaming chat with the research agent."""
     global agent
 
@@ -747,9 +759,14 @@ async def websocket_chat(websocket: WebSocket):
                 # Monkey-patch send_json to also log events to JSONL
                 _original_send = websocket.send_json
 
-                async def _logging_send(data: Any, **kwargs: Any) -> None:
-                    await _original_send(data, **kwargs)
-                    _log_event(session, data)
+                async def _logging_send(
+                    data: Any,
+                    _send: Any = _original_send,
+                    _sess: Any = session,
+                    **kwargs: Any,
+                ) -> None:
+                    await _send(data, **kwargs)
+                    _log_event(_sess, data)
 
                 websocket.send_json = _logging_send  # type: ignore[assignment]
 
@@ -788,15 +805,13 @@ async def websocket_chat(websocket: WebSocket):
                     logger.info(f"Cancelling agent run for session {session.session_id}")
                     session.cancel_event.set()
                     # Cancel any pending ask_user futures so the agent unblocks
-                    for qid, fut in list(session.pending_questions.items()):
+                    for _qid, fut in list(session.pending_questions.items()):
                         if not fut.done():
                             fut.cancel()
                     session.pending_questions.clear()
                     session.running_task.cancel()
-                    try:
+                    with contextlib.suppress(asyncio.CancelledError, Exception):
                         await session.running_task
-                    except (asyncio.CancelledError, Exception):
-                        pass
                     session.running_task = None
                     await websocket.send_json({"type": "cancelled"})
                     await websocket.send_json({"type": "done"})
@@ -876,10 +891,8 @@ async def websocket_chat(websocket: WebSocket):
             if session.running_task and not session.running_task.done():
                 session.cancel_event.set()
                 session.running_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError, Exception):
                     await session.running_task
-                except (asyncio.CancelledError, Exception):
-                    pass
 
             session.cancel_event.clear()
             session.running_task = asyncio.create_task(
@@ -1198,7 +1211,7 @@ async def _emit_todos_update(websocket: WebSocket, session: UserSession) -> None
             pass
 
 
-async def _stream_tool_calls(
+async def _stream_tool_calls(  # noqa: C901
     websocket: WebSocket, node: Any, run: Any, session: UserSession
 ) -> None:
     """Stream tool call events from a CallToolsNode."""
@@ -1667,7 +1680,10 @@ async def get_config():
                     "enabled": True,
                     "frequency": "every_turn",
                     "max_checkpoints": 50,
-                    "description": "Auto-saves after every model turn, rewind/fork via Timeline tab",
+                    "description": (
+                        "Auto-saves after every model turn,"
+                        " rewind/fork via Timeline tab"
+                    ),
                 },
                 "context_files": ["/workspace/DEEP.md", "/workspace/MEMORY.md"],
                 "image_support": True,
@@ -1841,11 +1857,14 @@ async def export_report(
                 media_type="text/html",
                 headers={"Content-Disposition": "attachment; filename=report.html"},
             )
-        except ImportError:
+        except ImportError as exc:
             raise HTTPException(
                 status_code=501,
-                detail="HTML export requires 'markdown' package. Install: pip install markdown",
-            )
+                detail=(
+                    "HTML export requires 'markdown' package."
+                    " Install: pip install markdown"
+                ),
+            ) from exc
 
     if fmt == "pdf":
         try:
@@ -1857,11 +1876,14 @@ async def export_report(
                 media_type="application/pdf",
                 headers={"Content-Disposition": "attachment; filename=report.pdf"},
             )
-        except ImportError:
+        except ImportError as exc:
             raise HTTPException(
                 status_code=501,
-                detail="PDF export requires 'weasyprint' and 'markdown'. Install: pip install pydantic-deep[export]",
-            )
+                detail=(
+                    "PDF export requires 'weasyprint' and 'markdown'."
+                    " Install: pip install pydantic-deep[export]"
+                ),
+            ) from exc
 
     raise HTTPException(status_code=400, detail=f"Unsupported format: {fmt}. Use: md, html, pdf")
 

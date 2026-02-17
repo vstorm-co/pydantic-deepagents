@@ -12,7 +12,7 @@ Toolsets:
 - Console toolset (ls, read_file, write_file, edit_file, glob, grep, execute)
 - Todo toolset (task planning and tracking)
 - Subagent toolset (joke-generator, code-reviewer, general-purpose)
-- Skills toolset (data-analysis, code-review, test-generator from files + quick-reference programmatic)
+- Skills toolset (data-analysis, code-review, test-generator, quick-reference)
 - Context toolset (DEEP.md auto-injection)
 
 Processors:
@@ -41,6 +41,7 @@ Run with:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import re
@@ -230,7 +231,11 @@ def _build_file_summary(name: str, path: str, data: bytes, media_type: str) -> s
 
         summary += f"\n  ```\n{preview}\n  ```"
         if truncated:
-            summary += f'\n  *(preview — {line_count - _PREVIEW_LINES} more lines, use `read_file("{path}")` for full content)*'
+            remaining = line_count - _PREVIEW_LINES
+            summary += (
+                f"\n  *(preview — {remaining} more lines,"
+                f' use `read_file("{path}")` for full content)*'
+            )
     else:
         # Binary non-image (e.g. zip, docx, xlsx)
         summary += f" — binary ({media_type}), use `read_file` to inspect"
@@ -769,7 +774,7 @@ async def root():
 
 
 @app.websocket("/ws/chat")
-async def websocket_chat(websocket: WebSocket):
+async def websocket_chat(websocket: WebSocket):  # noqa: C901
     """WebSocket endpoint for streaming chat with the agent.
 
     Session ID is sent in the first message. Each session_id gets its own
@@ -855,10 +860,8 @@ async def websocket_chat(websocket: WebSocket):
                     logger.info(f"Cancelling agent run for session {session.session_id}")
                     session.cancel_event.set()
                     session.running_task.cancel()
-                    try:
+                    with contextlib.suppress(asyncio.CancelledError, Exception):
                         await session.running_task
-                    except (asyncio.CancelledError, Exception):
-                        pass
                     session.running_task = None
                     await websocket.send_json({"type": "cancelled"})
                     await websocket.send_json({"type": "done"})
@@ -925,10 +928,8 @@ async def websocket_chat(websocket: WebSocket):
             if session.running_task and not session.running_task.done():
                 session.cancel_event.set()
                 session.running_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError, Exception):
                     await session.running_task
-                except (asyncio.CancelledError, Exception):
-                    pass
 
             session.cancel_event.clear()
             session.running_task = asyncio.create_task(

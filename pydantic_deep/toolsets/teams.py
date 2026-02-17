@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -290,10 +291,8 @@ class AgentTeam:
         results: dict[str, str] = {}
         for name, handle in self._handles.items():
             if handle.task is not None and not handle.task.done():
-                try:
+                with contextlib.suppress(Exception):
                     await handle.task
-                except Exception:
-                    pass  # Errors captured in handle
             results[name] = handle.result or handle.error or "no result"
         return results
 
@@ -312,7 +311,7 @@ class AgentTeam:
 # ---------------------------------------------------------------------------
 
 
-def create_team_toolset(
+def create_team_toolset(  # noqa: C901
     *,
     id: str | None = None,
 ) -> FunctionToolset[Any]:

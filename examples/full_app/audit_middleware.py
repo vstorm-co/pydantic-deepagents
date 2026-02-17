@@ -16,9 +16,9 @@ from typing import Any
 
 from pydantic_ai_middleware import AgentMiddleware, ToolDecision, ToolPermissionResult
 
-logger = logging.getLogger(__name__)
-
 from pydantic_deep.deps import DeepAgentDeps
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -233,7 +233,11 @@ def _get_sandbox_backend(deps: DeepAgentDeps | None) -> SandboxProtocol | None:
     return None
 
 
-from pydantic_ai_middleware import AgentMiddleware, ToolDecision, ToolPermissionResult
+from pydantic_ai_middleware import (  # noqa: E402
+    AgentMiddleware,
+    ToolDecision,
+    ToolPermissionResult,
+)
 
 
 class HooksMiddleware(AgentMiddleware["DeepAgentDeps"]):  # type: ignore[type-arg]

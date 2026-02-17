@@ -335,7 +335,7 @@ async def _save_and_prune(
 # CheckpointMiddleware
 # ---------------------------------------------------------------------------
 
-from pydantic_ai_middleware import AgentMiddleware
+from pydantic_ai_middleware import AgentMiddleware  # noqa: E402
 
 
 class CheckpointMiddleware(AgentMiddleware["Any"]):  # type: ignore[type-arg]
@@ -476,7 +476,11 @@ class CheckpointToolset(FunctionToolset[Any]):
                 metadata=latest.metadata,
             )
             await s.save(labeled)
-            return f"Checkpoint saved: '{label}' (turn {labeled.turn}, {labeled.message_count} messages)"
+            return (
+                f"Checkpoint saved: '{label}'"
+                f" (turn {labeled.turn},"
+                f" {labeled.message_count} messages)"
+            )
 
         @self.tool
         async def list_checkpoints(ctx: RunContext[Any]) -> str:
@@ -524,7 +528,10 @@ class CheckpointToolset(FunctionToolset[Any]):
 
             checkpoint = await s.get(checkpoint_id)
             if checkpoint is None:
-                return f"Checkpoint '{checkpoint_id}' not found. Use list_checkpoints to see available checkpoints."
+                return (
+                    f"Checkpoint '{checkpoint_id}' not found."
+                    " Use list_checkpoints to see available."
+                )
 
             raise RewindRequested(
                 checkpoint_id=checkpoint.id,

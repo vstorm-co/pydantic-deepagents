@@ -111,6 +111,12 @@ select = [
     "C90",    # mccabe complexity
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Prompt strings contain long lines that shouldn't be wrapped
+"deepresearch/src/deepresearch/prompts.py" = ["E501"]
+"deepresearch/src/deepresearch/agent.py" = ["E501"]
+"examples/full_app/app.py" = ["E501"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 15
 

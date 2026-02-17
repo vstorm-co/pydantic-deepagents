@@ -50,12 +50,179 @@ agent = create_deep_agent(
 
 ```python
 agent = create_deep_agent(
-    include_todo=True,        # Planning tools (default: True)
-    include_filesystem=True,  # File operations (default: True)
-    include_subagents=True,   # Task delegation (default: True)
-    include_skills=True,      # Skill packages (default: True)
+    # Core features (all default: True)
+    include_todo=True,           # Planning tools
+    include_filesystem=True,     # File operations
+    include_subagents=True,      # Task delegation
+    include_skills=True,         # Skill packages
+    include_plan=True,           # Plan mode subagent
+    include_general_purpose_subagent=True,  # General-purpose subagent
+
+    # Optional features (all default: False unless noted)
+    include_memory=False,        # Persistent agent memory (MEMORY.md)
+    include_checkpoints=False,   # Conversation checkpointing & rewind
+    include_teams=False,         # Agent teams with shared todos
+    patch_tool_calls=False,      # Fix orphaned tool calls on resume
+    image_support=False,         # Image file handling in read_file
+
+    # Enabled by default
+    cost_tracking=True,          # Token/USD cost tracking
+    context_manager=True,        # Token tracking + auto-compression
 )
 ```
+
+### Output Styles
+
+Control agent tone and response format:
+
+```python
+# Built-in styles: concise, explanatory, formal, conversational
+agent = create_deep_agent(output_style="concise")
+
+# Custom style
+from pydantic_deep.styles import OutputStyle
+agent = create_deep_agent(
+    output_style=OutputStyle(
+        name="technical",
+        description="Deep technical detail",
+        content="Always include implementation details...",
+    ),
+)
+
+# Load from directory
+agent = create_deep_agent(output_style="my-style", styles_dir="/path/to/styles")
+```
+
+See [Output Styles](../advanced/output-styles.md) for more details.
+
+### Context Files
+
+Inject project context into the system prompt:
+
+```python
+# Explicit paths
+agent = create_deep_agent(
+    context_files=["/project/DEEP.md", "/project/AGENTS.md"],
+)
+
+# Auto-discover DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md
+agent = create_deep_agent(context_discovery=True)
+```
+
+See [Context Files](../advanced/context-files.md) for more details.
+
+### Persistent Memory
+
+Give agents memory that persists across sessions:
+
+```python
+agent = create_deep_agent(
+    include_memory=True,
+    memory_dir="/.deep/memory",  # Default
+)
+```
+
+See [Memory](../advanced/memory.md) for more details.
+
+### Checkpointing
+
+Save conversation state and rewind:
+
+```python
+from pydantic_deep import InMemoryCheckpointStore
+
+agent = create_deep_agent(
+    include_checkpoints=True,
+    checkpoint_frequency="every_tool",   # every_tool | every_turn | manual_only
+    max_checkpoints=20,
+    checkpoint_store=InMemoryCheckpointStore(),
+)
+```
+
+See [Checkpointing](../advanced/checkpointing.md) for more details.
+
+### Agent Teams
+
+Enable multi-agent collaboration:
+
+```python
+agent = create_deep_agent(include_teams=True)
+```
+
+See [Teams](../advanced/teams.md) for more details.
+
+### Hooks
+
+Claude Code-style lifecycle hooks:
+
+```python
+from pydantic_deep import Hook, HookEvent
+
+agent = create_deep_agent(
+    hooks=[
+        Hook(
+            event=HookEvent.PRE_TOOL_USE,
+            command="python scripts/security_check.py",
+            matcher="execute|write_file",
+        ),
+    ],
+)
+```
+
+See [Hooks](../advanced/hooks.md) for more details.
+
+### Cost Tracking & Budgets
+
+```python
+agent = create_deep_agent(
+    cost_tracking=True,       # Default: True
+    cost_budget_usd=5.00,     # Optional budget limit
+    on_cost_update=lambda info: print(f"${info.cumulative_cost_usd:.4f}"),
+)
+```
+
+See [Cost Tracking](../advanced/cost-tracking.md) for more details.
+
+### Middleware & Permissions
+
+```python
+from pydantic_ai_middleware import AgentMiddleware
+
+class MyMiddleware(AgentMiddleware):
+    async def before_tool_call(self, tool_name, tool_args, deps, ctx=None):
+        return tool_args
+
+agent = create_deep_agent(
+    middleware=[MyMiddleware()],
+    permission_handler=my_handler,
+)
+```
+
+See [Middleware](../advanced/middleware.md) for more details.
+
+### Eviction Processor
+
+Automatically save large tool outputs to files:
+
+```python
+agent = create_deep_agent(eviction_token_limit=20000)
+```
+
+See [Eviction](../advanced/eviction.md) for more details.
+
+### Context Manager
+
+Automatic token tracking and compression (enabled by default):
+
+```python
+agent = create_deep_agent(
+    context_manager=True,               # Default
+    context_manager_max_tokens=200_000,  # Token budget
+    on_context_update=lambda pct, cur, mx: print(f"{pct:.0%} used"),
+)
+```
+
+See [History Processors](../advanced/processors.md) for more details.
 
 ### Human-in-the-Loop
 
@@ -182,6 +349,10 @@ console_prompt = get_console_system_prompt()
 todo_prompt = get_todo_system_prompt(deps)
 skills_prompt = get_skills_system_prompt(deps, skills)
 ```
+
+## Multi-User Considerations
+
+All stateful features (memory, checkpoints, plans, evicted files) write to `ctx.deps.backend`. In multi-user web apps, create a **separate backend and checkpoint store per user** to prevent state sharing. See the [Multi-User Guide](../advanced/multi-user.md) for isolation patterns.
 
 ## Dependencies
 

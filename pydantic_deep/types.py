@@ -29,7 +29,10 @@ from pydantic_ai_backends import (
 from pydantic_ai_todo import Todo as Todo
 from subagents_pydantic_ai import CompiledSubAgent as CompiledSubAgent
 from subagents_pydantic_ai import SubAgentConfig as SubAgentConfig
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, deprecated
+
+# Re-export new Skill dataclass from skills package
+from pydantic_deep.toolsets.skills.types import Skill as Skill
 
 # Re-export OutputSpec from pydantic-ai for structured output support
 # This allows users to specify the response format for agents
@@ -39,6 +42,26 @@ ResponseFormat = OutputSpec[object]
 OutputT = TypeVar("OutputT")
 
 
+@deprecated("Use `pydantic_deep.toolsets.skills.types.Skill` dataclass instead.")
+class _LegacySkill(TypedDict):
+    """A loaded skill with its metadata and content (legacy TypedDict format)."""
+
+    name: str
+    description: str
+    path: str
+    tags: list[str]
+    version: str
+    author: str
+    frontmatter_loaded: bool
+    instructions: NotRequired[str]
+    resources: NotRequired[list[str]]
+
+
+# Keep for backward compat — still used internally in some test fixtures
+LegacySkill = _LegacySkill
+
+
+@deprecated("Use `pydantic_deep.toolsets.skills.types.Skill` dataclass instead.")
 class SkillFrontmatter(TypedDict):
     """YAML frontmatter from a SKILL.md file."""
 
@@ -49,22 +72,12 @@ class SkillFrontmatter(TypedDict):
     author: NotRequired[str]
 
 
-class Skill(TypedDict):
-    """A loaded skill with its metadata and content."""
-
-    name: str
-    description: str
-    path: str  # Path to the skill directory
-    tags: list[str]
-    version: str
-    author: str
-    frontmatter_loaded: bool  # Whether only frontmatter is loaded
-    instructions: NotRequired[str]  # Full instructions (loaded on demand)
-    resources: NotRequired[list[str]]  # List of additional files in the skill directory
-
-
 class SkillDirectory(TypedDict):
-    """Configuration for a skill directory."""
+    """Configuration for a skill directory (legacy format).
+
+    For new code, use ``SkillsDirectory`` class from
+    ``pydantic_deep.toolsets.skills`` instead.
+    """
 
     path: str  # Path to the skills directory
     recursive: NotRequired[bool]  # Whether to search recursively

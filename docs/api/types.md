@@ -332,6 +332,150 @@ dirs: list[SkillDirectory] = [
 
 ---
 
+## Team Types
+
+### SharedTodoItem
+
+Task item for team-shared task management.
+
+```python
+@dataclass
+class SharedTodoItem:
+    id: str                          # Auto-generated (uuid4 hex[:8])
+    content: str = ""
+    status: str = "pending"          # pending | in_progress | completed
+    assigned_to: str | None = None
+    blocked_by: list[str] = []
+    created_by: str | None = None
+```
+
+### TeamMessage
+
+Message between team members.
+
+```python
+@dataclass
+class TeamMessage:
+    id: str                          # Auto-generated (uuid4 hex[:8])
+    sender: str = ""
+    receiver: str = ""               # Empty = broadcast
+    content: str = ""
+    timestamp: datetime
+```
+
+### TeamMember
+
+Member of an agent team.
+
+```python
+@dataclass
+class TeamMember:
+    name: str
+    role: str
+    description: str
+    instructions: str
+    model: str = "openai:gpt-4.1"
+    toolsets: list[Any] = []
+```
+
+---
+
+## Checkpoint Types
+
+### Checkpoint
+
+Immutable snapshot of conversation state.
+
+```python
+@dataclass
+class Checkpoint:
+    id: str                          # UUID4
+    label: str                       # Human-readable label
+    turn: int                        # Model-request counter
+    messages: list[ModelMessage]     # Conversation snapshot
+    message_count: int
+    created_at: datetime
+    metadata: dict[str, Any] = {}
+```
+
+---
+
+## Hook Types
+
+### Hook
+
+Hook definition for tool lifecycle events.
+
+```python
+@dataclass
+class Hook:
+    event: HookEvent                 # PRE_TOOL_USE | POST_TOOL_USE | POST_TOOL_USE_FAILURE
+    command: str | None = None       # Shell command
+    handler: Callable | None = None  # Async Python function
+    matcher: str | None = None       # Regex pattern for tool_name
+    timeout: int = 30
+    background: bool = False
+```
+
+### HookEvent
+
+```python
+class HookEvent(str, Enum):
+    PRE_TOOL_USE = "pre_tool_use"
+    POST_TOOL_USE = "post_tool_use"
+    POST_TOOL_USE_FAILURE = "post_tool_use_failure"
+```
+
+---
+
+## Style Types
+
+### OutputStyle
+
+Output style definition.
+
+```python
+@dataclass
+class OutputStyle:
+    name: str                        # Style identifier
+    description: str                 # Brief description
+    content: str                     # Instructions for system prompt
+```
+
+---
+
+## Memory Types
+
+### MemoryFile
+
+Loaded agent memory file.
+
+```python
+@dataclass
+class MemoryFile:
+    agent_name: str                  # "main", "code-reviewer", etc.
+    path: str                        # Full path in backend
+    content: str                     # Memory file content
+```
+
+---
+
+## Context Types
+
+### ContextFile
+
+Loaded project context file.
+
+```python
+@dataclass
+class ContextFile:
+    name: str                        # Filename: "DEEP.md"
+    path: str                        # Full path: "/project/DEEP.md"
+    content: str                     # File content
+```
+
+---
+
 ## Type Checking
 
 All types support runtime checking:

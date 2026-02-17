@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.17] - 2026-02-17
+
+### Added
+
+- **Checkpointing & Rewind**: Save conversation state at intervals, rewind to any checkpoint, or fork into a new session. `Checkpoint`, `CheckpointStore` protocol, `InMemoryCheckpointStore`, `FileCheckpointStore`, `CheckpointMiddleware` (auto-save every tool/turn/manual), `CheckpointToolset` (save_checkpoint, list_checkpoints, rewind_to tools), `RewindRequested` exception for app-level rewind, `fork_from_checkpoint()` utility for session forking. Enable via `include_checkpoints=True`.
+- **Agent Teams**: Shared TODO lists with asyncio-safe claiming and dependency blocking (`SharedTodoList`), peer-to-peer message bus (`TeamMessageBus`), team coordinator (`AgentTeam`) with spawn, assign, broadcast, wait_all, dissolve operations, `create_team_toolset()` factory. Enable via `include_teams=True`.
+- **Claude Code-Style Hooks**: `Hook`, `HookEvent` enum (PRE_TOOL_USE, POST_TOOL_USE, POST_TOOL_USE_FAILURE), `HookInput`, `HookResult`, `HooksMiddleware`. Execute shell commands or Python handlers on tool lifecycle events. Exit code conventions (0=allow, 2=deny), regex matchers, timeout, and background execution support.
+- **Persistent Memory**: `AgentMemoryToolset` with read_memory, write_memory, update_memory tools. Per-agent MEMORY.md files auto-injected into system prompt (first 200 lines). Per-subagent memory with opt-out via `extra={"memory": False}`. Enable via `include_memory=True`.
+- **Context Files**: `ContextToolset` for auto-discovering and injecting DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md into system prompt. Subagent filtering (only DEEP.md + AGENTS.md forwarded). Per-subagent context_files via SubAgentConfig. Truncation support. Enable via `context_files=[...]` or `context_discovery=True`.
+- **Eviction Processor**: `EvictionProcessor` saves large tool outputs (>20k tokens by default) to files and replaces with head/tail preview + file reference. Keeps conversation lean while preserving data access. Enable via `eviction_token_limit=20000`.
+- **Output Styles**: 4 built-in styles (concise, explanatory, formal, conversational), custom `OutputStyle` instances, file-based styles with YAML frontmatter, directory discovery via `styles_dir`. Apply via `output_style="concise"`.
+- **Plan Mode**: Built-in 'planner' subagent with `ask_user` (interactive options with headless mode) and `save_plan` tools. Plans saved as markdown files to configurable `plans_dir`. Enable via `include_plan=True` (default).
+- **Patch Tool Calls Processor**: Fixes orphaned tool calls when resuming interrupted conversations by injecting synthetic "Tool call was cancelled." responses. Enable via `patch_tool_calls=True`.
+- **`BASE_PROMPT`**: Exported default system prompt for inspection and customization.
+- **`share_todos` on `DeepAgentDeps`**: When True, subagents share the same todo list reference as the parent agent. Default False (isolated).
+- **`subagent_extra_toolsets` parameter**: Pass additional toolsets (e.g., MCP servers) to all subagents via `create_deep_agent()`.
+- **`subagent_registry` parameter**: Optional `DynamicAgentRegistry` for runtime agent creation via `create_agent_factory_toolset`.
+
+### Changed
+
+- **Skills system rewrite**: Complete refactor from single-file `skills.py` to protocol-based `skills/` package. New abstractions: `Skill` dataclass, `SkillResource` / `SkillScript` / `SkillsDirectory` protocols, `SkillWrapper`. Two implementations: file-based (`FileBasedSkillResource`, `LocalSkillScriptExecutor`) and backend-based (`BackendSkillResource`, `BackendSkillScriptExecutor`, `BackendSkillsDirectory`). Skill scripts for executable actions. Comprehensive exception hierarchy (`SkillException`, `SkillNotFoundError`, `SkillValidationError`, `SkillResourceNotFoundError`, `SkillResourceLoadError`, `SkillScriptExecutionError`).
+- **Cost tracking enabled by default**: `cost_tracking=True` via `CostTrackingMiddleware` from pydantic-ai-middleware. New params: `cost_budget_usd` (raises `BudgetExceededError`), `on_cost_update` callback.
+- **Context manager enabled by default**: `context_manager=True` enables `ContextManagerMiddleware` for automatic token tracking and auto-compression when approaching token budget. New params: `context_manager_max_tokens` (default 200,000), `on_context_update` callback.
+- **Middleware integration**: New `middleware`, `permission_handler`, `middleware_context` params for composable `AgentMiddleware` chains via pydantic-ai-middleware. Agent automatically wrapped in `MiddlewareAgent` when any middleware is active.
+- Updated `pydantic-ai-todo` dependency to `>=0.1.8` (todo IDs in system prompt, improved active_form descriptions)
+- Updated `subagents-pydantic-ai` dependency to `>=0.0.5`
+- Updated `pydantic-ai-middleware` dependency to `>=0.2.1`
+- Updated `summarization-pydantic-ai` dependency to `>=0.0.3`
+- Updated `pydantic-ai-backend` dependency to `>=0.1.7`
+
+### Documentation
+
+- Added 11 new advanced feature guides: checkpointing, teams, hooks, memory, context-files, eviction, cost-tracking, middleware, output-styles, plan-mode, multi-user
+- Updated agents, toolsets, and skills concept pages for all new features
+- Updated API reference (agent, toolsets, types) with all new parameters and types
+- Comprehensive CLAUDE.md with full architecture documentation
+
 ## [0.2.16] - 2025-02-12
 
 ### Changed

@@ -225,6 +225,73 @@ Function type for custom token counting.
 
 ---
 
+---
+
+## EvictionProcessor
+
+History processor that evicts large tool outputs to files. See [Eviction](../advanced/eviction.md).
+
+### Definition
+
+```python
+@dataclass
+class EvictionProcessor:
+    backend: BackendProtocol
+    token_limit: int = 20_000
+    eviction_path: str = "/large_tool_results"
+    head_lines: int = 5
+    tail_lines: int = 5
+```
+
+### Factory
+
+```python
+from pydantic_deep import create_eviction_processor
+
+processor = create_eviction_processor(
+    backend=StateBackend(),
+    token_limit=20000,
+)
+```
+
+---
+
+## patch_tool_calls_processor
+
+History processor that fixes orphaned tool calls in message history.
+
+```python
+from pydantic_deep.processors.patch import patch_tool_calls_processor
+
+# Use as history processor
+agent = Agent("openai:gpt-4.1", history_processors=[patch_tool_calls_processor])
+
+# Or via create_deep_agent
+agent = create_deep_agent(patch_tool_calls=True)
+```
+
+---
+
+## ContextManagerMiddleware
+
+Dual-protocol component from summarization-pydantic-ai. Acts as both history processor and AgentMiddleware.
+
+### Factory
+
+```python
+from pydantic_ai_summarization import create_context_manager_middleware
+
+middleware = create_context_manager_middleware(
+    max_tokens=200_000,
+    compress_threshold=0.9,
+    on_usage_update=lambda pct, cur, mx: print(f"{pct:.0%}"),
+)
+```
+
+See [History Processors](../advanced/processors.md#context-manager-middleware) for details.
+
+---
+
 ## Next Steps
 
 - [Agent API](agent.md) - Agent factory and configuration

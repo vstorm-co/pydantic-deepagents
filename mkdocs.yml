@@ -102,6 +102,17 @@ plugins:
           - advanced/streaming.md: Streaming responses
           - advanced/structured-output.md: Structured output
           - advanced/processors.md: History processors and summarization
+          - advanced/checkpointing.md: Conversation checkpointing and rewind
+          - advanced/teams.md: Agent teams with shared todos
+          - advanced/output-styles.md: Output style customization
+          - advanced/hooks.md: Claude Code-style lifecycle hooks
+          - advanced/memory.md: Persistent agent memory
+          - advanced/context-files.md: Project context file injection
+          - advanced/eviction.md: Large output eviction
+          - advanced/cost-tracking.md: Token and cost tracking
+          - advanced/middleware.md: Middleware system
+          - advanced/plan-mode.md: Plan mode subagent
+          - advanced/multi-user.md: Multi-user isolation patterns
         Examples:
           - examples/*.md
         API Reference:
@@ -197,6 +208,17 @@ nav:
     - advanced/streaming.md
     - advanced/structured-output.md
     - advanced/processors.md
+    - advanced/checkpointing.md
+    - advanced/teams.md
+    - advanced/output-styles.md
+    - advanced/hooks.md
+    - advanced/memory.md
+    - advanced/context-files.md
+    - advanced/eviction.md
+    - advanced/cost-tracking.md
+    - advanced/middleware.md
+    - advanced/plan-mode.md
+    - advanced/multi-user.md
   - Examples:
     - examples/index.md
     - Getting Started:

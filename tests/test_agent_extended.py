@@ -134,7 +134,7 @@ This is a test skill.
         """Test that the default retries value is 3."""
         from pydantic_ai.toolsets.function import FunctionToolset
 
-        agent = create_deep_agent(model=TEST_MODEL)
+        agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)
 
         # Find the console toolset and verify retries
         for toolset in agent._user_toolsets:
@@ -148,7 +148,7 @@ This is a test skill.
         """Test that retries value is propagated to console toolset tools."""
         from pydantic_ai.toolsets.function import FunctionToolset
 
-        agent = create_deep_agent(model=TEST_MODEL, retries=5)
+        agent = create_deep_agent(model=TEST_MODEL, retries=5, cost_tracking=False)
 
         # Find the console toolset and verify retries
         for toolset in agent._user_toolsets:

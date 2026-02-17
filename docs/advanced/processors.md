@@ -270,6 +270,76 @@ agent = create_deep_agent(
 )
 ```
 
+## Context Manager Middleware
+
+The `ContextManagerMiddleware` from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) is a **dual-protocol** component that acts as both a history processor and an `AgentMiddleware`. It provides token tracking and automatic compression.
+
+!!! tip "Enabled by default"
+    Context manager is **enabled by default** in `create_deep_agent()` via `context_manager=True`.
+
+### Basic Usage
+
+```python
+from pydantic_deep import create_deep_agent
+
+# Default: enabled with 200K token budget
+agent = create_deep_agent()
+
+# Custom configuration
+agent = create_deep_agent(
+    context_manager=True,
+    context_manager_max_tokens=128_000,
+    on_context_update=lambda pct, cur, mx: print(f"Context: {pct:.0%}"),
+)
+
+# Disable
+agent = create_deep_agent(context_manager=False)
+```
+
+### How It Works
+
+1. **Before each model call**, the middleware counts tokens in the message history
+2. **Calls `on_context_update`** with `(percentage, current_tokens, max_tokens)`
+3. **If usage exceeds `compress_threshold`** (default 0.9 = 90%), triggers LLM-based summarization
+4. **As middleware**, can also truncate overly large tool outputs
+
+### Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `context_manager` | `bool` | `True` | Enable/disable |
+| `context_manager_max_tokens` | `int` | `200,000` | Token budget |
+| `on_context_update` | `Callable` | `None` | Callback: `(float, int, int) -> Any` |
+
+### Standalone Usage
+
+```python
+from pydantic_ai_summarization import create_context_manager_middleware
+
+middleware = create_context_manager_middleware(
+    max_tokens=200_000,
+    compress_threshold=0.9,
+    keep=("messages", 20),
+    on_usage_update=lambda pct, cur, mx: print(f"{pct:.0%}"),
+)
+```
+
+## Eviction Processor
+
+The `EvictionProcessor` saves large tool outputs to files, replacing them with a preview and file reference. See [Eviction](eviction.md) for full details.
+
+```python
+agent = create_deep_agent(eviction_token_limit=20000)
+```
+
+## Patch Tool Calls Processor
+
+The `patch_tool_calls_processor` fixes orphaned tool calls in message history — useful when resuming interrupted conversations.
+
+```python
+agent = create_deep_agent(patch_tool_calls=True)
+```
+
 ## Best Practices
 
 1. **Choose appropriate thresholds**: Set trigger thresholds below your model's context limit to leave room for the response

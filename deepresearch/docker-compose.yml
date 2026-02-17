@@ -1,0 +1,28 @@
+services:
+  # ---- Excalidraw canvas (diagram side panel) ----
+  excalidraw-canvas:
+    image: ghcr.io/yctimlin/mcp_excalidraw-canvas:latest
+    ports:
+      - "3000:3000"
+
+  # ---- DeepResearch app ----
+  # Option A: local dev — run natively with `uv run deepresearch`, use only excalidraw-canvas
+  # Option B: Docker — uncomment below (requires packages published on PyPI)
+  #
+  # deepresearch:
+  #   build: .
+  #   ports:
+  #     - "8080:8080"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - EXCALIDRAW_SERVER_URL=http://excalidraw-canvas:3000
+  #     - EXCALIDRAW_CANVAS_URL=http://localhost:3000
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - deepresearch-workspaces:/app/workspaces
+  #   depends_on:
+  #     - excalidraw-canvas
+
+# volumes:
+#   deepresearch-workspaces:

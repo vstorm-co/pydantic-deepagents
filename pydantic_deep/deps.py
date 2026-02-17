@@ -34,6 +34,9 @@ class DeepAgentDeps:
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
+    ask_user: Any = field(default=None, repr=False)  # Callback for interactive questions
+    checkpoint_store: Any = field(default=None, repr=False)  # CheckpointStore | None
+    share_todos: bool = False  # When True, subagents share parent's todo list
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
@@ -173,7 +176,7 @@ class DeepAgentDeps:
 
         Subagents get:
         - Same backend (shared)
-        - Empty todos (isolated)
+        - Empty todos (isolated) — or same todos if share_todos=True
         - Empty subagents (no nested delegation by default)
         - Same files (shared)
         - Same uploads (shared)
@@ -185,9 +188,11 @@ class DeepAgentDeps:
         return DeepAgentDeps(
             backend=self.backend,
             files=self.files,  # Shared reference
-            todos=[],  # Fresh todo list
+            todos=self.todos if self.share_todos else [],  # Shared or fresh
             subagents=self.subagents.copy() if max_depth > 0 else {},
             uploads=self.uploads,  # Shared reference
+            ask_user=self.ask_user,  # Propagate to subagents
+            share_todos=self.share_todos,  # Propagate to subagents
         )
 
 

@@ -348,6 +348,120 @@ class SkillFrontmatter(TypedDict):
 
 ---
 
+## CheckpointToolset
+
+Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `save_checkpoint` | Label the most recent auto-checkpoint |
+| `list_checkpoints` | Show all saved checkpoints |
+| `rewind_to` | Rewind to a checkpoint (raises `RewindRequested`) |
+
+### Factory
+
+Enabled via `create_deep_agent(include_checkpoints=True)`.
+
+---
+
+## TeamToolset
+
+Multi-agent team management. See [Teams](../advanced/teams.md).
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `spawn_team` | Create a team and register members |
+| `assign_task` | Assign a task to a team member |
+| `check_teammates` | Show team status and shared tasks |
+| `message_teammate` | Send a message to a team member |
+| `dissolve_team` | Shut down the team |
+
+### Factory
+
+```python
+from pydantic_deep.toolsets.teams import create_team_toolset
+
+toolset = create_team_toolset(id="deep-team")
+```
+
+Or via `create_deep_agent(include_teams=True)`.
+
+---
+
+## MemoryToolset
+
+Persistent agent memory. See [Memory](../advanced/memory.md).
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `read_memory` | Read full memory content |
+| `write_memory` | Append new content to memory |
+| `update_memory` | Find and replace text in memory |
+
+### Constructor
+
+```python
+from pydantic_deep.toolsets.memory import AgentMemoryToolset
+
+toolset = AgentMemoryToolset(
+    agent_name="main",
+    memory_dir="/.deep/memory",
+    max_lines=200,
+)
+```
+
+Or via `create_deep_agent(include_memory=True)`.
+
+---
+
+## PlanToolset
+
+Interactive planning with ask_user and save_plan. See [Plan Mode](../advanced/plan-mode.md).
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `ask_user` | Ask user a question with options |
+| `save_plan` | Save implementation plan to markdown file |
+
+### Factory
+
+```python
+from pydantic_deep.toolsets.plan import create_plan_toolset
+
+toolset = create_plan_toolset(plans_dir="/plans")
+```
+
+Or via `create_deep_agent(include_plan=True)` (default).
+
+---
+
+## ContextToolset
+
+Injects project context files into system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions via `get_instructions()`.
+
+### Constructor
+
+```python
+from pydantic_deep.toolsets.context import ContextToolset
+
+toolset = ContextToolset(
+    context_files=["/DEEP.md", "/AGENTS.md"],
+    context_discovery=False,
+    is_subagent=False,
+    max_chars=20_000,
+)
+```
+
+---
+
 ## Helper Functions
 
 ### discover_skills

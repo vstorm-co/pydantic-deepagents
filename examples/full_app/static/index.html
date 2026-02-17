@@ -35,8 +35,12 @@
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="uploads">Uploads</button>
                     <button class="tab-btn" data-tab="workspace">Workspace</button>
+                    <button class="tab-btn" data-tab="timeline">Timeline</button>
+                    <button class="tab-btn" data-tab="config">Config</button>
                 </div>
                 <div id="files-list" class="file-tree"></div>
+                <div id="timeline-panel" class="timeline-panel" style="display: none;"></div>
+                <div id="config-panel" class="config-panel" style="display: none;"></div>
             </div>
 
             <div class="sidebar-footer">
@@ -60,20 +64,54 @@
                                     <span><i class="ri-file-text-line"></i> File Ops</span> •
                                     <span><i class="ri-github-fill"></i> GitHub</span> •
                                     <span><i class="ri-terminal-box-line"></i> Python Sandbox</span> •
-                                    <span><i class="ri-bar-chart-box-line"></i> Data Analysis</span>
+                                    <span><i class="ri-bar-chart-box-line"></i> Data Analysis</span> •
+                                    <span><i class="ri-image-line"></i> Images</span> •
+                                    <span><i class="ri-shield-check-line"></i> Hooks</span> •
+                                    <span><i class="ri-group-line"></i> Subagents</span> •
+                                    <span><i class="ri-stack-line"></i> Middleware</span> •
+                                    <span><i class="ri-draft-line"></i> Plan Mode</span> •
+                                    <span><i class="ri-time-line"></i> Checkpoints</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Sticky Task Panel (above input) -->
+                <div id="tasks-panel" class="tasks-panel" style="display:none;">
+                    <button class="tasks-header" onclick="toggleTasksPanel()">
+                        <i class="ri-list-check-2"></i>
+                        <span id="tasks-label">Task Progress</span>
+                        <div class="tasks-header-right">
+                            <span id="tasks-elapsed" class="tasks-elapsed" style="display:none;">
+                                <i class="ri-time-line"></i> <span id="tasks-elapsed-text">0s</span>
+                            </span>
+                            <span id="tasks-badge" class="tasks-badge">0/0</span>
+                            <i id="tasks-chevron" class="ri-arrow-down-s-line tasks-chevron"></i>
+                        </div>
+                    </button>
+                    <div id="tasks-progress-bar" class="tasks-progress-bar">
+                        <div id="tasks-progress-fill" class="tasks-progress-fill"></div>
+                    </div>
+                    <div id="tasks-preview" class="tasks-preview" style="display:none;"></div>
+                    <div id="tasks-list" class="tasks-list" style="display:none;"></div>
+                </div>
+
                 <div class="input-container">
+                    <div id="attached-files" class="attached-files"></div>
                     <div class="input-wrapper">
+                        <button id="attach-btn" class="input-icon-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach file">
+                            <i class="ri-attachment-2"></i>
+                        </button>
+                        <input type="file" id="chat-file-input" hidden multiple>
                         <textarea
                             id="message-input"
                             placeholder="Type a command or request..."
                             rows="1"
                         ></textarea>
+                        <button id="stop-btn" class="input-icon-btn stop-btn" onclick="stopAgent()" title="Stop generating" style="display:none;">
+                            <i class="ri-stop-fill"></i>
+                        </button>
                         <button id="send-btn" onclick="sendMessage()">
                             <span><i class="ri-send-plane-fill"></i></span>
                         </button>
@@ -82,6 +120,10 @@
                         <button onclick="sendQuickMessage('List my GitHub repositories')"><i class="ri-github-line"></i> Query GitHub</button>
                         <button onclick="sendQuickMessage('Load the data-analysis skill')"><i class="ri-database-2-line"></i> Load Data Skill</button>
                         <button onclick="sendQuickMessage('Analyze the uploaded CSV file')"><i class="ri-file-chart-line"></i> Analyze CSV</button>
+                        <button onclick="sendQuickMessage('Review the code in /workspace/')"><i class="ri-code-s-slash-line"></i> Code Review</button>
+                        <button onclick="sendQuickMessage('List available skills')"><i class="ri-lightbulb-line"></i> List Skills</button>
+                        <button onclick="sendQuickMessage('Tell me a joke about Python')"><i class="ri-emotion-laugh-line"></i> Joke</button>
+                        <button onclick="sendQuickMessage('Use plan mode to plan a REST API for a todo app')"><i class="ri-draft-line"></i> Plan Mode</button>
                     </div>
                 </div>
             </div>

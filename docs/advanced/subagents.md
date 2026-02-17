@@ -330,6 +330,36 @@ subagents = [
 ]
 ```
 
+## Nested Subagents
+
+By default, subagents cannot spawn their own subagents (`max_nesting_depth=0`). Enable nesting for complex multi-level delegation:
+
+```python
+agent = create_deep_agent(
+    subagents=subagents,
+    max_nesting_depth=1,  # Subagents can spawn one level of sub-subagents
+)
+```
+
+!!! warning "Use with caution"
+    Deep nesting increases cost and complexity. Most use cases work with depth 0 or 1.
+
+## Dynamic Agent Registry
+
+For advanced use cases, agents can be created dynamically at runtime using `DynamicAgentRegistry`:
+
+```python
+from subagents_pydantic_ai import DynamicAgentRegistry
+
+registry = DynamicAgentRegistry()
+
+agent = create_deep_agent(
+    subagent_registry=registry,
+)
+```
+
+When a registry is provided, the `task` tool looks up both statically configured subagents and dynamically registered ones. Dynamic agents are typically created via `create_agent_factory_toolset()` from subagents-pydantic-ai.
+
 ## Dual-Mode Execution
 
 Subagents support both synchronous (blocking) and asynchronous (background) execution. This is provided by [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai).

@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+.venv
+.env
+workspaces/
+*.egg-info
+.git
+uv.lock

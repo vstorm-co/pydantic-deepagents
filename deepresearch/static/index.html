@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepResearch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <span class="brand-icon"><i class="ri-search-eye-line"></i></span> DeepResearch
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+<div class="tabs">
+                    <button class="tab-btn active" data-tab="sessions"><i class="ri-chat-history-line"></i></button>
+                    <button class="tab-btn" data-tab="files">Files</button>
+                    <button class="tab-btn" data-tab="config">Config</button>
+                </div>
+                <div id="sessions-panel" class="sessions-panel">
+                    <button class="new-session-btn" onclick="createNewSession()">
+                        <i class="ri-add-line"></i> New Session
+                    </button>
+                    <div id="sessions-list" class="sessions-list"></div>
+                </div>
+                <div id="files-list" class="file-tree" style="display: none;"></div>
+                <div id="config-panel" class="config-panel" style="display: none;"></div>
+            </div>
+
+        </aside>
+
+        <div class="resizer" id="drag-handle"></div>
+
+        <main class="main-area" id="main-area">
+            <div class="chat-panel">
+                <div id="messages" class="chat-stream">
+                    <div class="message system">
+                        <div class="message-content">
+                            <div class="welcome-banner">
+                                <h3><i class="ri-search-eye-line"></i> DeepResearch</h3>
+                                <p>Full-featured autonomous research agent with web search, code execution, subagents, plan mode, and Excalidraw diagrams.</p>
+                                <div class="capabilities">
+                                    <span><i class="ri-search-line"></i> Web Search</span> •
+                                    <span><i class="ri-links-line"></i> URL Reader</span> •
+                                    <span><i class="ri-file-text-line"></i> File Ops</span> •
+                                    <span><i class="ri-terminal-box-line"></i> Shell Execution</span> •
+                                    <span><i class="ri-group-line"></i> Subagents</span> •
+                                    <span><i class="ri-draft-line"></i> Plan Mode</span> •
+                                    <span><i class="ri-artboard-line"></i> Excalidraw</span> •
+                                    <span><i class="ri-image-line"></i> Images</span> •
+                                    <span><i class="ri-time-line"></i> Checkpoints</span>
+                                </div>
+                                <div id="welcome-sessions" class="welcome-sessions"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticky Task Panel (above input) -->
+                <div id="tasks-panel" class="tasks-panel" style="display:none;">
+                    <button class="tasks-header" onclick="toggleTasksPanel()">
+                        <i class="ri-list-check-2"></i>
+                        <span id="tasks-label">Task Progress</span>
+                        <div class="tasks-header-right">
+                            <span id="tasks-elapsed" class="tasks-elapsed" style="display:none;">
+                                <i class="ri-time-line"></i> <span id="tasks-elapsed-text">0s</span>
+                            </span>
+                            <span id="tasks-badge" class="tasks-badge">0/0</span>
+                            <i id="tasks-chevron" class="ri-arrow-down-s-line tasks-chevron"></i>
+                        </div>
+                    </button>
+                    <div id="tasks-progress-bar" class="tasks-progress-bar">
+                        <div id="tasks-progress-fill" class="tasks-progress-fill"></div>
+                    </div>
+                    <div id="tasks-preview" class="tasks-preview" style="display:none;"></div>
+                    <div id="tasks-list" class="tasks-list" style="display:none;"></div>
+                </div>
+
+                <div class="input-container">
+                    <div id="attached-files" class="attached-files"></div>
+                    <div class="input-wrapper">
+                        <button id="attach-btn" class="input-icon-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach file">
+                            <i class="ri-attachment-2"></i>
+                        </button>
+                        <input type="file" id="chat-file-input" hidden multiple>
+                        <textarea
+                            id="message-input"
+                            placeholder="Ask a research question..."
+                            rows="1"
+                        ></textarea>
+                        <button id="stop-btn" class="input-icon-btn stop-btn" onclick="stopAgent()" title="Stop generating" style="display:none;">
+                            <i class="ri-stop-fill"></i>
+                        </button>
+                        <button id="send-btn" onclick="sendMessage()">
+                            <span><i class="ri-send-plane-fill"></i></span>
+                        </button>
+                    </div>
+                    <div class="input-hints">
+<button onclick="sendQuickMessage('Research the latest advances in protein folding since AlphaFold 3')"><i class="ri-flask-line"></i> Protein Folding</button>
+                        <button onclick="sendQuickMessage('Compare React, Vue, and Svelte for building modern web apps in 2025')"><i class="ri-code-s-slash-line"></i> Framework Compare</button>
+                        <button onclick="sendQuickMessage('What are the current best practices for LLM fine-tuning?')"><i class="ri-robot-2-line"></i> LLM Fine-tuning</button>
+                        <button onclick="sendQuickMessage('Literature review: impact of remote work on productivity')"><i class="ri-article-line"></i> Literature Review</button>
+                        <button onclick="sendQuickMessage('List available skills')"><i class="ri-lightbulb-line"></i> List Skills</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="outline-float-btn" id="outline-float-btn" onclick="toggleOutlinePanel()" title="Show side panel">
+                <i class="ri-side-bar-line"></i>
+            </button>
+            <div class="outline-panel" id="outline-panel">
+                <div class="outline-header">
+                    <div class="outline-tabs">
+                        <button class="outline-tab active" data-outline-tab="messages" onclick="switchOutlineTab('messages')"><i class="ri-list-unordered"></i> Messages</button>
+                        <button class="outline-tab" data-outline-tab="timeline" onclick="switchOutlineTab('timeline')"><i class="ri-time-line"></i> Timeline</button>
+                    </div>
+                    <button class="outline-toggle-btn" onclick="toggleOutlinePanel()" title="Toggle panel">
+                        <i class="ri-side-bar-line"></i>
+                    </button>
+                </div>
+                <div class="outline-list" id="outline-list"></div>
+                <div class="timeline-panel" id="timeline-panel" style="display: none;"></div>
+            </div>
+
+            <div id="file-preview-panel" class="file-preview-panel hidden">
+                <div class="preview-header">
+                    <div class="preview-title">
+                        <span class="preview-icon" id="preview-icon"><i class="ri-file-text-line"></i></span>
+                        <span id="preview-filename">file.py</span>
+                    </div>
+                    <div class="preview-actions">
+                        <div class="preview-mode-toggle" id="preview-mode-toggle">
+                            <button class="mode-btn active" data-mode="code" onclick="setPreviewMode('code')" title="View code">
+                                <i class="ri-code-s-slash-line"></i>
+                            </button>
+                            <button class="mode-btn" data-mode="preview" onclick="setPreviewMode('preview')" title="Live preview">
+                                <i class="ri-eye-line"></i>
+                            </button>
+                        </div>
+                        <button class="preview-btn" onclick="copyFileContent()" title="Copy content">
+                            <i class="ri-file-copy-line"></i>
+                        </button>
+                        <button class="preview-btn" onclick="downloadPreviewFile()" title="Download">
+                            <i class="ri-download-line"></i>
+                        </button>
+                        <button class="preview-btn close-btn" onclick="closeFilePreview()" title="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-content" id="preview-container">
+                    </div>
+            </div>
+        </main>
+    </div>
+
+<div id="toast-container" class="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

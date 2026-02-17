@@ -87,6 +87,68 @@ class TestCreateDeepAgent:
         assert agent is not None
 
 
+class TestBasePrompt:
+    """Tests for BASE_PROMPT and default instructions."""
+
+    def test_base_prompt_is_default(self):
+        """Default agent uses BASE_PROMPT as instructions."""
+        from pydantic_deep.prompts import BASE_PROMPT
+
+        agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)
+        # pydantic-ai stores instructions as a normalized list
+        assert any(BASE_PROMPT in str(i) for i in agent._instructions)
+
+    def test_custom_instructions_override_base_prompt(self):
+        """Custom instructions replace BASE_PROMPT entirely."""
+        from pydantic_deep.prompts import BASE_PROMPT
+
+        custom = "You are a custom agent."
+        agent = create_deep_agent(model=TEST_MODEL, instructions=custom, cost_tracking=False)
+        assert any(custom in str(i) for i in agent._instructions)
+        assert not any(str(i) == BASE_PROMPT for i in agent._instructions)
+
+    def test_base_prompt_importable(self):
+        """BASE_PROMPT is importable from pydantic_deep."""
+        from pydantic_deep import BASE_PROMPT
+
+        assert isinstance(BASE_PROMPT, str)
+        assert len(BASE_PROMPT) > 100
+        assert "Core Behavior" in BASE_PROMPT
+
+    def test_base_prompt_content(self):
+        """BASE_PROMPT contains key sections."""
+        from pydantic_deep.prompts import BASE_PROMPT
+
+        assert "Tool Usage" in BASE_PROMPT
+        assert "Workflow" in BASE_PROMPT
+        assert "Error Handling" in BASE_PROMPT
+        assert "Subagent Delegation" in BASE_PROMPT
+
+
+class TestImageSupport:
+    """Tests for image_support parameter in create_deep_agent."""
+
+    def test_create_agent_with_image_support(self):
+        """Test creating an agent with image_support=True."""
+        agent = create_deep_agent(model=TEST_MODEL, image_support=True)
+        assert agent is not None
+
+    def test_create_agent_without_image_support(self):
+        """Test that image_support defaults to False."""
+        agent = create_deep_agent(model=TEST_MODEL)
+        assert agent is not None
+
+    def test_create_agent_image_support_with_output_type(self):
+        """Test image_support works with structured output."""
+        from pydantic import BaseModel
+
+        class Result(BaseModel):
+            summary: str
+
+        agent = create_deep_agent(model=TEST_MODEL, image_support=True, output_type=Result)
+        assert agent is not None
+
+
 class TestCreateDefaultDeps:
     """Tests for create_default_deps."""
 

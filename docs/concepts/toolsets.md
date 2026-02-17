@@ -135,14 +135,86 @@ load_skill(skill_name="code-review")
 read_skill_resource(skill_name="code-review", resource_name="template.md")
 ```
 
+### CheckpointToolset
+
+Manual checkpoint controls for conversation state. See [Checkpointing](../advanced/checkpointing.md).
+
+| Tool | Description |
+|------|-------------|
+| `save_checkpoint` | Label the most recent auto-checkpoint |
+| `list_checkpoints` | Show all saved checkpoints |
+| `rewind_to` | Rewind conversation to a checkpoint |
+
+```python
+agent = create_deep_agent(include_checkpoints=True)
+```
+
+### TeamToolset
+
+Multi-agent collaboration with shared todos and messaging. See [Teams](../advanced/teams.md).
+
+| Tool | Description |
+|------|-------------|
+| `spawn_team` | Create a team and register members |
+| `assign_task` | Assign a task to a team member |
+| `check_teammates` | Show team status and shared tasks |
+| `message_teammate` | Send a direct message to a member |
+| `dissolve_team` | Shut down the team |
+
+```python
+agent = create_deep_agent(include_teams=True)
+```
+
+### MemoryToolset
+
+Persistent agent memory across sessions. See [Memory](../advanced/memory.md).
+
+| Tool | Description |
+|------|-------------|
+| `read_memory` | Read full memory content |
+| `write_memory` | Append new content to memory |
+| `update_memory` | Find and replace text in memory |
+
+```python
+agent = create_deep_agent(include_memory=True)
+```
+
+### PlanToolset
+
+Claude Code-style interactive planning. See [Plan Mode](../advanced/plan-mode.md).
+
+| Tool | Description |
+|------|-------------|
+| `ask_user` | Ask the user a question with options |
+| `save_plan` | Save implementation plan to file |
+
+```python
+agent = create_deep_agent(include_plan=True)  # Default: True
+```
+
+### ContextToolset
+
+Injects project context files (DEEP.md, AGENTS.md, etc.) into the system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions.
+
+```python
+agent = create_deep_agent(context_files=["/DEEP.md"], context_discovery=True)
+```
+
 ## Enabling/Disabling Toolsets
 
 ```python
 agent = create_deep_agent(
-    include_todo=True,        # TodoToolset
-    include_filesystem=True,  # Console Toolset (file operations)
-    include_subagents=True,   # SubAgentToolset
-    include_skills=True,      # SkillsToolset
+    # Core toolsets
+    include_todo=True,           # TodoToolset
+    include_filesystem=True,     # Console Toolset (file operations)
+    include_subagents=True,      # SubAgentToolset
+    include_skills=True,         # SkillsToolset
+
+    # Additional toolsets
+    include_plan=True,           # PlanToolset (default: True)
+    include_checkpoints=False,   # CheckpointToolset
+    include_teams=False,         # TeamToolset
+    include_memory=False,        # MemoryToolset
 )
 ```
 

@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.2.16"
+version = "0.2.17"
 description = "Deep Agent framework built on Pydantic-ai with planning, filesystem, and subagent capabilities"
 readme = "README.md"
 license = "MIT"
@@ -24,10 +24,11 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai-slim>=0.1.0",
-    "pydantic-ai-todo>=0.1.5",
-    "pydantic-ai-backend[console]>=0.1.6",
-    "summarization-pydantic-ai>=0.0.2",
-    "subagents-pydantic-ai>=0.0.4",
+    "pydantic-ai-todo>=0.1.8",
+    "pydantic-ai-backend[console]>=0.1.7",
+    "summarization-pydantic-ai[hybrid]>=0.0.3",
+    "subagents-pydantic-ai>=0.0.5",
+    "pydantic-ai-middleware>=0.2.1",
     "pydantic>=2.0",
     "chardet>=5.0.0",
 ]
@@ -35,6 +36,8 @@ dependencies = [
 [project.optional-dependencies]
 # Docker sandbox support
 sandbox = ["pydantic-ai-backend[docker]>=0.1.6"]
+# YAML support for skills (pyyaml-based frontmatter parsing)
+yaml = ["pyyaml>=6.0"]
 # CLI tools (for interactive chat examples)
 cli = [
     "typer>=0.12.0",
@@ -49,7 +52,7 @@ web = [
 ]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web]",
+    "pydantic-deep[sandbox,cli,web,yaml]",
 ]
 
 [project.urls]

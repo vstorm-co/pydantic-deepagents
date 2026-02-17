@@ -1681,8 +1681,7 @@ async def get_config():
                     "frequency": "every_turn",
                     "max_checkpoints": 50,
                     "description": (
-                        "Auto-saves after every model turn,"
-                        " rewind/fork via Timeline tab"
+                        "Auto-saves after every model turn, rewind/fork via Timeline tab"
                     ),
                 },
                 "context_files": ["/workspace/DEEP.md", "/workspace/MEMORY.md"],
@@ -1860,10 +1859,7 @@ async def export_report(
         except ImportError as exc:
             raise HTTPException(
                 status_code=501,
-                detail=(
-                    "HTML export requires 'markdown' package."
-                    " Install: pip install markdown"
-                ),
+                detail=("HTML export requires 'markdown' package. Install: pip install markdown"),
             ) from exc
 
     if fmt == "pdf":

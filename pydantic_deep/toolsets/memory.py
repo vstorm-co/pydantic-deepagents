@@ -169,11 +169,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             """
             backend: BackendProtocol = ctx.deps.backend
             existing = load_memory(backend, self._path, self._agent_name)
-            new_content = (
-                existing.content.rstrip("\n") + "\n\n" + content
-                if existing
-                else content
-            )
+            new_content = existing.content.rstrip("\n") + "\n\n" + content if existing else content
             backend.write(self._path, new_content.encode("utf-8"))
             line_count = len(new_content.splitlines())
             return f"Memory updated ({line_count} lines total)."

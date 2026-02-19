@@ -1,0 +1,28 @@
+{
+    "id": "97f73e5f-e7ee-4a1a-add5-e096fd59e2ed",
+    "started_at": "2026-02-19T17:55:34.634425",
+    "finished_at": "2026-02-19T17:55:35.589042",
+    "n_total_trials": 2,
+    "stats": {
+        "n_trials": 2,
+        "n_errors": 2,
+        "evals": {
+            "pydantic-deep__gpt-4.1__terminal-bench": {
+                "n_trials": 0,
+                "n_errors": 2,
+                "metrics": [
+                    {
+                        "mean": 0.0
+                    }
+                ],
+                "reward_stats": {},
+                "exception_stats": {
+                    "RuntimeError": [
+                        "gpt2-codegolf__VvFqoHj",
+                        "llm-inference-batching-scheduler__vHNXQmM"
+                    ]
+                }
+            }
+        }
+    }
+}

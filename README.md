@@ -68,7 +68,22 @@ deps = create_default_deps(StateBackend())
 result = await agent.run("Create a todo list for building a REST API", deps=deps)
 ```
 
-**That's it.** Your agent can now:
+**That's it.** Or use the **CLI** directly from your terminal:
+
+```bash
+pip install pydantic-deep[cli]
+
+# Run a task
+pydantic-deep run "Create a REST API with FastAPI"
+
+# Interactive chat
+pydantic-deep chat
+
+# Run in Docker sandbox
+pydantic-deep run "Build a web scraper" --sandbox --runtime python-web
+```
+
+Your agent can now:
 
 - ✅ **Plan tasks** — break down complex work into steps
 - ✅ **Read & write files** — navigate and modify codebases
@@ -189,6 +204,93 @@ pydantic-deep implements the **deep agent architecture** — the same patterns p
 | **Audited Enterprise Agent** | Hooks + Middleware + Cost Tracking |
 
 > **Reference app:** [**DeepResearch**](deepresearch/) is a full-featured research agent built with pydantic-deep. It includes a web UI, MCP-powered web search, Excalidraw diagrams, code execution in Docker, and more. See [deepresearch/README.md](deepresearch/README.md) for setup instructions.
+
+---
+
+## CLI — Your Terminal AI Assistant
+
+The pydantic-deep CLI gives you a Claude Code-style experience powered by the full framework.
+
+```bash
+pip install pydantic-deep[cli]
+```
+
+### Commands
+
+```bash
+# Non-interactive (benchmark mode) — stdout is clean, diagnostics go to stderr
+pydantic-deep run "Fix the failing tests in src/" --model openai:gpt-4.1
+
+# Interactive chat with streaming and tool visibility
+pydantic-deep chat
+
+# Docker sandbox for isolated execution
+pydantic-deep run "Set up a Django project" --sandbox --runtime python-web
+
+# Manage skills
+pydantic-deep skills list                     # List built-in + user skills
+pydantic-deep skills info code-review         # Show skill details
+pydantic-deep skills create my-skill          # Scaffold a new skill
+
+# Manage conversation threads
+pydantic-deep threads list                    # List saved sessions
+pydantic-deep threads delete abc12345         # Delete a session
+
+# Configuration
+pydantic-deep config show                     # Show current config
+pydantic-deep config set model anthropic:claude-sonnet-4-20250514
+```
+
+### Configuration
+
+Config file: `~/.pydantic-deep/config.toml`
+
+```toml
+model = "openai:gpt-4.1"
+include_skills = true
+include_plan = true
+include_memory = true
+shell_allow_list = ["python", "pip", "npm", "make"]
+```
+
+CLI arguments override config file values.
+
+### Built-in Skills
+
+| Skill | Description |
+|-------|-------------|
+| `skill-creator` | Create new reusable skills from conversation context |
+| `code-review` | Systematic code review for bugs, security, style, and performance |
+| `test-writer` | Generate comprehensive test suites for existing code |
+| `refactor` | Refactor code to improve structure and maintainability |
+| `git-workflow` | Git operations: commits, branches, PRs, and conflict resolution |
+
+Skills are SKILL.md files — create your own with `pydantic-deep skills create my-skill`.
+
+### Sandbox Runtimes
+
+| Runtime | Description |
+|---------|-------------|
+| `python-minimal` | Python 3.12 (default) |
+| `python-datascience` | Python + numpy, pandas, matplotlib |
+| `python-web` | Python + FastAPI, Django, Flask |
+| `node-minimal` | Node.js 20 |
+| `node-react` | Node.js + React, Next.js |
+
+```bash
+pydantic-deep run "Analyze this CSV" --sandbox --runtime python-datascience
+```
+
+### What's Included
+
+The CLI wraps the full pydantic-deep framework with all features enabled by default:
+
+- Planning (TodoToolset) + delegation (SubAgentToolset)
+- Filesystem access (ConsoleToolset) + shell execution
+- Skills, memory, checkpoints, context files
+- Loop detection middleware + context management
+- Git/directory context injection into system prompt
+- Cost tracking with real-time display
 
 ---
 

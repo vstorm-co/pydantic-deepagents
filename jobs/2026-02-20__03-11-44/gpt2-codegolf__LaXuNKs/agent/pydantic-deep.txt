@@ -1,0 +1,13 @@
+Running task non-interactively...
+Model: openrouter:openai/gpt-5.2-codex
+
+  ⏺ ls(.)
+    → Contents of /app:   gpt2-124M.ckpt (497759232 bytes)   voca…
+  ⏺ write_file(, 1 lines)
+    → done
+  ⏺ execute()
+╭─────────────────────────────────── Error ────────────────────────────────────╮
+│ UserError: A deferred tool call was present, but `DeferredToolRequests` is   │
+│ not among output types. To resolve this, add `DeferredToolRequests` to the   │
+│ list of output types for this agent.                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯

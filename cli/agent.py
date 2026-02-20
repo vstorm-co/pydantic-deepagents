@@ -155,11 +155,15 @@ def create_cli_agent(
         if builtin_skills_dir.is_dir():
             skill_dirs.append(str(builtin_skills_dir))
 
+    # In non-interactive mode, no tool calls require approval
+    interrupt_on = {"execute": False} if non_interactive else None
+
     agent = create_deep_agent(
         model=effective_model,
         instructions=instructions,
         backend=effective_backend,
         skill_directories=skill_dirs or None,
+        interrupt_on=interrupt_on,
         # Filesystem & execution
         include_execute=True,
         include_filesystem=True,

@@ -1,0 +1,80 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 5,
+            "passed": 0,
+            "failed": 5,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771552717.6350071,
+            "stop": 1771552718.19192
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_git_repo_init",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.004878791998635279,
+                "start": 1771552717.8464463,
+                "stop": 1771552717.8772447,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_git_repo_init():\n        \"\"\"Test that git bundles were pulled and merged\"\"\"\n        git_path = Path(\"/app/repo/.git\")\n>       assert git_path.exists(), \"Git repository does not exist in /app/repo\"\nE       AssertionError: Git repository does not exist in /app/repo\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/repo/.git').exists\n\n/tests/test_outputs.py:13: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_both_bundles_fetched",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.025593416001356672,
+                "start": 1771552717.8781781,
+                "stop": 1771552718.1044974,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_both_bundles_fetched():\n        \"\"\"Test that both bundles were actually fetched and merged\"\"\"\n        import subprocess\n    \n        # Check if branches from both bundles exist in the repository\n>       result = subprocess.run(\n            [\"git\", \"branch\", \"-a\"], cwd=\"/app/repo\", capture_output=True, text=True\n        )\n\n/tests/test_outputs.py:21: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/subprocess.py:554: in run\n    with Popen(*popenargs, **kwargs) as process:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/subprocess.py:1039: in __init__\n    self._execute_child(args, executable, preexec_fn, close_fds,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <Popen: returncode: 255 args: ['git', 'branch', '-a']>\nargs = ['git', 'branch', '-a'], executable = b'git', preexec_fn = None\nclose_fds = True, pass_fds = (), cwd = '/app/repo', env = None\nstartupinfo = None, creationflags = 0, shell = False, p2cread = -1\np2cwrite = -1, c2pread = 31, c2pwrite = 32, errread = 33, errwrite = 34\nrestore_signals = True, gid = None, gids = None, uid = None, umask = -1\nstart_new_session = False, process_group = -1\n\n    def _execute_child(self, args, executable, preexec_fn, close_fds,\n                       pass_fds, cwd, env,\n                       startupinfo, creationflags, shell,\n                       p2cread, p2cwrite,\n                       c2pread, c2pwrite,\n                       errread, errwrite,\n                       restore_signals,\n                       gid, gids, uid, umask,\n                       start_new_session, process_group):\n        \"\"\"Execute program (POSIX version)\"\"\"\n    \n        if isinstance(args, (str, bytes)):\n            args = [args]\n        elif isinstance(args, os.PathLike):\n            if shell:\n                raise TypeError('path-like args is not allowed when '\n                                'shell is true')\n            args = [args]\n        else:\n            args = list(args)\n    \n        if shell:\n            # On Android the default shell is at '/system/bin/sh'.\n            unix_shell = ('/system/bin/sh' if\n                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')\n            args = [unix_shell, \"-c\"] + args\n            if executable:\n                args[0] = executable\n    \n        if executable is None:\n            executable = args[0]\n    \n        sys.audit(\"subprocess.Popen\", executable, args, cwd, env)\n    \n        if (_USE_POSIX_SPAWN\n                and os.path.dirname(executable)\n                and preexec_fn is None\n                and (not close_fds or _HAVE_POSIX_SPAWN_CLOSEFROM)\n                and not pass_fds\n                and cwd is None\n                and (p2cread == -1 or p2cread > 2)\n                and (c2pwrite == -1 or c2pwrite > 2)\n                and (errwrite == -1 or errwrite > 2)\n                and not start_new_session\n                and process_group == -1\n                and gid is None\n                and gids is None\n                and uid is None\n                and umask < 0):\n            self._posix_spawn(args, executable, env, restore_signals, close_fds,\n                              p2cread, p2cwrite,\n                              c2pread, c2pwrite,\n                              errread, errwrite)\n            return\n    \n        orig_executable = executable\n    \n        # For transferring possible exec failure from child to parent.\n        # Data format: \"exception name:hex errno:description\"\n        # Pickle is not used; it is complex and involves memory allocation.\n        errpipe_read, errpipe_write = os.pipe()\n        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.\n        low_fds_to_close = []\n        while errpipe_write < 3:\n            low_fds_to_close.append(errpipe_write)\n            errpipe_write = os.dup(errpipe_write)\n        for low_fd in low_fds_to_close:\n            os.close(low_fd)\n        try:\n            try:\n                # We must avoid complex work that could involve\n                # malloc or free in the child process to avoid\n                # potential deadlocks, thus we do all this here.\n                # and pass it to fork_exec()\n    \n                if env is not None:\n                    env_list = []\n                    for k, v in env.items():\n                        k = os.fsencode(k)\n                        if b'=' in k:\n                            raise ValueError(\"illegal environment variable name\")\n                        env_list.append(k + b'=' + os.fsencode(v))\n                else:\n                    env_list = None  # Use execv instead of execve.\n                executable = os.fsencode(executable)\n                if os.path.dirname(executable):\n                    executable_list = (executable,)\n                else:\n                    # This matches the behavior of os._execvpe().\n                    executable_list = tuple(\n                        os.path.join(os.fsencode(dir), executable)\n                        for dir in os.get_exec_path(env))\n                fds_to_keep = set(pass_fds)\n                fds_to_keep.add(errpipe_write)\n                self.pid = _fork_exec(\n                        args, executable_list,\n                        close_fds, tuple(sorted(map(int, fds_to_keep))),\n                        cwd, env_list,\n                        p2cread, p2cwrite, c2pread, c2pwrite,\n                        errread, errwrite,\n                        errpipe_read, errpipe_write,\n                        restore_signals, start_new_session,\n                        process_group, gid, gids, uid, umask,\n                        preexec_fn, _USE_VFORK)\n                self._child_created = True\n            finally:\n                # be sure the FD is closed no matter what\n                os.close(errpipe_write)\n    \n            self._close_pipe_fds(p2cread, p2cwrite,\n                                 c2pread, c2pwrite,\n                                 errread, errwrite)\n    \n            # Wait for exec to fail or succeed; possibly raising an\n            # exception (limited in size)\n            errpipe_data = bytearray()\n            while True:\n                part = os.read(errpipe_read, 50000)\n                errpipe_data += part\n                if not part or len(errpipe_data) > 50000:\n                    break\n        finally:\n            # be sure the FD is closed no matter what\n            os.close(errpipe_read)\n    \n        if errpipe_data:\n            try:\n                pid, sts = os.waitpid(self.pid, 0)\n                if pid == self.pid:\n                    self._handle_exitstatus(sts)\n                else:\n                    self.returncode = sys.maxsize\n            except ChildProcessError:\n                pass\n    \n            try:\n                exception_name, hex_errno, err_msg = (\n                        errpipe_data.split(b':', 2))\n                # The encoding here should match the encoding\n                # written in by the subprocess implementations\n                # like _posixsubprocess\n                err_msg = err_msg.decode()\n            except ValueError:\n                exception_name = b'SubprocessError'\n                hex_errno = b'0'\n                err_msg = 'Bad exception data from child: {!r}'.format(\n                              bytes(errpipe_data))\n            child_exception_type = getattr(\n                    builtins, exception_name.decode('ascii'),\n                    SubprocessError)\n            if issubclass(child_exception_type, OSError) and hex_errno:\n                errno_num = int(hex_errno, 16)\n                if err_msg == \"noexec:chdir\":\n                    err_msg = \"\"\n                    # The error must be from chdir(cwd).\n                    err_filename = cwd\n                elif err_msg == \"noexec\":\n                    err_msg = \"\"\n                    err_filename = None\n                else:\n                    err_filename = orig_executable\n                if errno_num != 0:\n                    err_msg = os.strerror(errno_num)\n                if err_filename is not None:\n>                   raise child_exception_type(errno_num, err_msg, err_filename)\nE                   FileNotFoundError: [Errno 2] No such file or directory: '/app/repo'\n\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/subprocess.py:1972: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_algo_py_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0071793339993746486,
+                "start": 1771552718.1088405,
+                "stop": 1771552718.1275141,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_algo_py_exists():\n        \"\"\"Test that algo.py file exists in /app\"\"\"\n        algo_path = Path(\"/app/repo/algo.py\")\n>       assert algo_path.exists(), \"algo.py file does not exist in /app/repo\"\nE       AssertionError: algo.py file does not exist in /app/repo\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/repo/algo.py').exists\n\n/tests/test_outputs.py:37: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_algo_py_has_map_function",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.00670995900145499,
+                "start": 1771552718.1306155,
+                "stop": 1771552718.1698222,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_algo_py_has_map_function():\n        \"\"\"Test that algo.py contains a map function\"\"\"\n        algo_path = Path(\"/app/repo/algo.py\")\n        spec = importlib.util.spec_from_file_location(\"algo\", algo_path)\n        algo_module = importlib.util.module_from_spec(spec)\n        sys.modules[\"algo\"] = algo_module\n>       spec.loader.exec_module(algo_module)\n\n/tests/test_outputs.py:46: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n<frozen importlib._bootstrap_external>:1023: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1160: in get_code\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <_frozen_importlib_external.SourceFileLoader object at 0x7ffffddd3290>\npath = '/app/repo/algo.py'\n\n>   ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/app/repo/algo.py'\n\n<frozen importlib._bootstrap_external>:1218: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            },
+            {
+                "name": "test_outputs.py::test_algo_map_function_with_test_input",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0013626659965666477,
+                "start": 1771552718.17068,
+                "stop": 1771552718.1849961,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_algo_map_function_with_test_input():\n        \"\"\"Test that the map function works correctly with examples.json\"\"\"\n        algo_path = Path(\"/app/repo/algo.py\")\n        test_path = Path(\"/tests/test.json\")\n    \n        # Import algo module\n        spec = importlib.util.spec_from_file_location(\"algo\", algo_path)\n        algo_module = importlib.util.module_from_spec(spec)\n        sys.modules[\"algo\"] = algo_module\n>       spec.loader.exec_module(algo_module)\n\n/tests/test_outputs.py:61: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n<frozen importlib._bootstrap_external>:1023: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:1160: in get_code\n    ???\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <_frozen_importlib_external.SourceFileLoader object at 0x7ffffda31f10>\npath = '/app/repo/algo.py'\n\n>   ???\nE   FileNotFoundError: [Errno 2] No such file or directory: '/app/repo/algo.py'\n\n<frozen importlib._bootstrap_external>:1218: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            }
+        ]
+    }
+}

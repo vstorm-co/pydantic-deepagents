@@ -143,18 +143,18 @@ class PydanticDeep(BaseInstalledAgent):
     def _convert_model_name(harbor_name: str) -> str:
         """Convert Harbor ``provider/model`` to pydantic-ai ``provider:model``.
 
-        The first path segment becomes the provider prefix. Subsequent
-        segments stay as the model name (important for OpenRouter where
-        the model ID itself contains a slash).
+        If the input already contains a colon it's assumed to be in
+        pydantic-ai format and is returned as-is.
 
         Examples::
 
-            openai/gpt-4.1                 → openai:gpt-4.1
-            anthropic/claude-sonnet-4       → anthropic:claude-sonnet-4
-            openrouter/openai/gpt-5.2-codex → openrouter:openai/gpt-5.2-codex
-            groq/llama-3.3-70b              → groq:llama-3.3-70b
-            gpt-4.1                         → gpt-4.1  (no provider prefix)
+            openai/gpt-4.1                     → openai:gpt-4.1
+            openrouter/openai/gpt-5.2-codex    → openrouter:openai/gpt-5.2-codex
+            openrouter:openai/gpt-5.2-codex    → openrouter:openai/gpt-5.2-codex  (unchanged)
+            gpt-4.1                            → gpt-4.1  (no provider prefix)
         """
+        if ":" in harbor_name:
+            return harbor_name
         if "/" in harbor_name:
             provider, model = harbor_name.split("/", 1)
             return f"{provider}:{model}"

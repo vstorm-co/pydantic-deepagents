@@ -1,0 +1,6 @@
+Running task non-interactively...
+Model: openrouter:openai:gpt-5.2-codex
+
+╭─────────────────────────────────── Error ────────────────────────────────────╮
+│ ValueError: not enough values to unpack (expected 2, got 1)                  │
+╰──────────────────────────────────────────────────────────────────────────────╯

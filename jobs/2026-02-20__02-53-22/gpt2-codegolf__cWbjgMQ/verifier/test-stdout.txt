@@ -1,0 +1,49 @@
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (8.5.0-2ubuntu10.6).
+0 upgraded, 0 newly installed, 0 to remove and 57 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading cpython-3.13.9-linux-x86_64-gnu (download) (32.0MiB)
+ Downloading cpython-3.13.9-linux-x86_64-gnu (download)
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 65ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.9, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_outputs.py F                                               [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_gpt2_implementation ___________________________
+
+    def test_gpt2_implementation():
+        """
+        Test that the gpt2.c file exists and is under 5000 bytes.
+        Also, test that the program can be compiled and run.
+        """
+        # Check if gpt2.c file exists and is under 5000 bytes
+        gpt2_path = Path("/app/gpt2.c")
+>       assert gpt2_path.exists(), f"File {gpt2_path} does not exist"
+E       AssertionError: File /app/gpt2.c does not exist
+E       assert False
+E        +  where False = exists()
+E        +    where exists = PosixPath('/app/gpt2.c').exists
+
+/tests/test_outputs.py:14: AssertionError
+=========================== short test summary info ============================
+FAILED ../tests/test_outputs.py::test_gpt2_implementation - AssertionError: F...
+============================== 1 failed in 0.10s ===============================

@@ -1,0 +1,44 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 2,
+            "passed": 0,
+            "failed": 2,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771552788.23563,
+            "stop": 1771552788.4836776
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_summary_file_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.007171999001002405,
+                "start": 1771552788.3465884,
+                "stop": 1771552788.3980024,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_summary_file_exists():\n        \"\"\"Check if summary.csv exists.\"\"\"\n>       assert OUTPUT_FILE.exists(), f\"File {OUTPUT_FILE} does not exist\"\nE       AssertionError: File /app/summary.csv does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/summary.csv').exists\n\n/tests/test_outputs.py:29: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_summary_structure_and_counts",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.001995875994907692,
+                "start": 1771552788.399834,
+                "stop": 1771552788.4831083,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_summary_structure_and_counts():\n        \"\"\"Validate CSV structure and check if counts match expected hard-coded values.\"\"\"\n>       with OUTPUT_FILE.open(\"r\", newline=\"\") as f:\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n/tests/test_outputs.py:34: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = PosixPath('/app/summary.csv'), mode = 'r', buffering = -1\nencoding = 'utf-8', errors = None, newline = ''\n\n    def open(self, mode='r', buffering=-1, encoding=None,\n             errors=None, newline=None):\n        \"\"\"\n        Open the file pointed to by this path and return a file object, as\n        the built-in open() function does.\n        \"\"\"\n        if \"b\" not in mode:\n            encoding = io.text_encoding(encoding)\n>       return io.open(self, mode, buffering, encoding, errors, newline)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/summary.csv'\n\n/usr/local/lib/python3.13/pathlib/_local.py:537: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            }
+        ]
+    }
+}

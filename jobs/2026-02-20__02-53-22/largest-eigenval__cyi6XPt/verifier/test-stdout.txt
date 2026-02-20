@@ -1,0 +1,241 @@
+Collecting pytest==8.4.1
+  Downloading pytest-8.4.1-py3-none-any.whl.metadata (7.7 kB)
+Collecting pytest-json-ctrf==0.3.5
+  Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl.metadata (3.3 kB)
+Collecting iniconfig>=1 (from pytest==8.4.1)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting packaging>=20 (from pytest==8.4.1)
+  Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting pluggy<2,>=1.5 (from pytest==8.4.1)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting pygments>=2.7.2 (from pytest==8.4.1)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Downloading pytest-8.4.1-py3-none-any.whl (365 kB)
+Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl (6.8 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading packaging-26.0-py3-none-any.whl (74 kB)
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 17.9 MB/s  0:00:00
+Installing collected packages: pygments, pluggy, packaging, iniconfig, pytest, pytest-json-ctrf
+
+Successfully installed iniconfig-2.3.0 packaging-26.0 pluggy-1.6.0 pygments-2.19.2 pytest-8.4.1 pytest-json-ctrf-0.3.5
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 27 items
+
+../tests/test_outputs.py ..................F.F...F.F                     [100%]
+
+=================================== FAILURES ===================================
+_______________________________ test_speedup[2] ________________________________
+
+size = 2
+
+    @pytest.mark.parametrize("size", MAT_SIZES)
+    def test_speedup(size):
+        """Make sure new implementation is faster than reference."""
+        _np_random_seed(0)
+        matrices = [
+            _np_random_normal(size=(size, size)).astype(np.float64) for _ in range(N)
+        ]
+    
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            ref_future = executor.submit(
+                _time_function_isolated,
+                ref_solution,
+                matrices,
+            )
+            ref_dts = ref_future.result(timeout=30)
+            ref_dt = np.median(ref_dts).item() if ref_dts else float("inf")
+            print(f"Median time for {size}x{size} (ref): {ref_dt:.6f} seconds")
+    
+            candidate_future = executor.submit(
+                _time_function_isolated,
+                find_dominant_eigenvalue_and_eigenvector,
+                matrices,
+            )
+            dts = candidate_future.result(timeout=30)
+            dt = np.median(dts).item() if dts else float("inf")
+            print(f"Median time for {size}x{size}: {dt:.6f} seconds")
+    
+>       assert dt < ref_dt, f"{dt:.6f} seconds/call > {ref_dt:.6f} seconds/call"
+E       AssertionError: 0.000018 seconds/call > 0.000017 seconds/call
+E       assert 1.7957998352358118e-05 < 1.704150236037094e-05
+
+/tests/test_outputs.py:111: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Median time for 2x2 (ref): 0.000017 seconds
+Median time for 2x2: 0.000018 seconds
+_______________________________ test_speedup[4] ________________________________
+
+size = 4
+
+    @pytest.mark.parametrize("size", MAT_SIZES)
+    def test_speedup(size):
+        """Make sure new implementation is faster than reference."""
+        _np_random_seed(0)
+        matrices = [
+            _np_random_normal(size=(size, size)).astype(np.float64) for _ in range(N)
+        ]
+    
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            ref_future = executor.submit(
+                _time_function_isolated,
+                ref_solution,
+                matrices,
+            )
+            ref_dts = ref_future.result(timeout=30)
+            ref_dt = np.median(ref_dts).item() if ref_dts else float("inf")
+            print(f"Median time for {size}x{size} (ref): {ref_dt:.6f} seconds")
+    
+            candidate_future = executor.submit(
+                _time_function_isolated,
+                find_dominant_eigenvalue_and_eigenvector,
+                matrices,
+            )
+            dts = candidate_future.result(timeout=30)
+            dt = np.median(dts).item() if dts else float("inf")
+            print(f"Median time for {size}x{size}: {dt:.6f} seconds")
+    
+>       assert dt < ref_dt, f"{dt:.6f} seconds/call > {ref_dt:.6f} seconds/call"
+E       AssertionError: 0.000031 seconds/call > 0.000031 seconds/call
+E       assert 3.1104000299819745e-05 < 3.054199987673201e-05
+
+/tests/test_outputs.py:111: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Median time for 4x4 (ref): 0.000031 seconds
+Median time for 4x4: 0.000031 seconds
+_______________________________ test_speedup[8] ________________________________
+
+size = 8
+
+    @pytest.mark.parametrize("size", MAT_SIZES)
+    def test_speedup(size):
+        """Make sure new implementation is faster than reference."""
+        _np_random_seed(0)
+        matrices = [
+            _np_random_normal(size=(size, size)).astype(np.float64) for _ in range(N)
+        ]
+    
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            ref_future = executor.submit(
+                _time_function_isolated,
+                ref_solution,
+                matrices,
+            )
+            ref_dts = ref_future.result(timeout=30)
+            ref_dt = np.median(ref_dts).item() if ref_dts else float("inf")
+            print(f"Median time for {size}x{size} (ref): {ref_dt:.6f} seconds")
+    
+            candidate_future = executor.submit(
+                _time_function_isolated,
+                find_dominant_eigenvalue_and_eigenvector,
+                matrices,
+            )
+            dts = candidate_future.result(timeout=30)
+            dt = np.median(dts).item() if dts else float("inf")
+            print(f"Median time for {size}x{size}: {dt:.6f} seconds")
+    
+>       assert dt < ref_dt, f"{dt:.6f} seconds/call > {ref_dt:.6f} seconds/call"
+E       AssertionError: 0.000071 seconds/call > 0.000071 seconds/call
+E       assert 7.120800000848249e-05 < 7.068800005072262e-05
+
+/tests/test_outputs.py:111: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Median time for 8x8 (ref): 0.000071 seconds
+Median time for 8x8: 0.000071 seconds
+_______________________________ test_speedup[10] _______________________________
+
+size = 10
+
+    @pytest.mark.parametrize("size", MAT_SIZES)
+    def test_speedup(size):
+        """Make sure new implementation is faster than reference."""
+        _np_random_seed(0)
+        matrices = [
+            _np_random_normal(size=(size, size)).astype(np.float64) for _ in range(N)
+        ]
+    
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            ref_future = executor.submit(
+                _time_function_isolated,
+                ref_solution,
+                matrices,
+            )
+            ref_dts = ref_future.result(timeout=30)
+            ref_dt = np.median(ref_dts).item() if ref_dts else float("inf")
+            print(f"Median time for {size}x{size} (ref): {ref_dt:.6f} seconds")
+    
+            candidate_future = executor.submit(
+                _time_function_isolated,
+                find_dominant_eigenvalue_and_eigenvector,
+                matrices,
+            )
+            dts = candidate_future.result(timeout=30)
+            dt = np.median(dts).item() if dts else float("inf")
+            print(f"Median time for {size}x{size}: {dt:.6f} seconds")
+    
+>       assert dt < ref_dt, f"{dt:.6f} seconds/call > {ref_dt:.6f} seconds/call"
+E       AssertionError: 0.000107 seconds/call > 0.000102 seconds/call
+E       assert 0.00010710450078477152 < 0.00010195799950452056
+
+/tests/test_outputs.py:111: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Median time for 10x10 (ref): 0.000102 seconds
+Median time for 10x10: 0.000107 seconds
+==================================== PASSES ====================================
+_______________________________ test_speedup[3] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 3x3 (ref): 0.000023 seconds
+Median time for 3x3: 0.000023 seconds
+_______________________________ test_speedup[5] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 5x5 (ref): 0.000039 seconds
+Median time for 5x5: 0.000038 seconds
+_______________________________ test_speedup[6] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 6x6 (ref): 0.000051 seconds
+Median time for 6x6: 0.000047 seconds
+_______________________________ test_speedup[7] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 7x7 (ref): 0.000063 seconds
+Median time for 7x7: 0.000057 seconds
+_______________________________ test_speedup[9] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 9x9 (ref): 0.000088 seconds
+Median time for 9x9: 0.000084 seconds
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_eigen_pair[2]
+PASSED ../tests/test_outputs.py::test_eigen_pair[3]
+PASSED ../tests/test_outputs.py::test_eigen_pair[4]
+PASSED ../tests/test_outputs.py::test_eigen_pair[5]
+PASSED ../tests/test_outputs.py::test_eigen_pair[6]
+PASSED ../tests/test_outputs.py::test_eigen_pair[7]
+PASSED ../tests/test_outputs.py::test_eigen_pair[8]
+PASSED ../tests/test_outputs.py::test_eigen_pair[9]
+PASSED ../tests/test_outputs.py::test_eigen_pair[10]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[2]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[3]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[4]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[5]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[6]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[7]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[8]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[9]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[10]
+PASSED ../tests/test_outputs.py::test_speedup[3]
+PASSED ../tests/test_outputs.py::test_speedup[5]
+PASSED ../tests/test_outputs.py::test_speedup[6]
+PASSED ../tests/test_outputs.py::test_speedup[7]
+PASSED ../tests/test_outputs.py::test_speedup[9]
+FAILED ../tests/test_outputs.py::test_speedup[2] - AssertionError: 0.000018 s...
+FAILED ../tests/test_outputs.py::test_speedup[4] - AssertionError: 0.000031 s...
+FAILED ../tests/test_outputs.py::test_speedup[8] - AssertionError: 0.000071 s...
+FAILED ../tests/test_outputs.py::test_speedup[10] - AssertionError: 0.000107 ...
+========================= 4 failed, 23 passed in 1.01s =========================

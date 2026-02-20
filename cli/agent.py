@@ -155,30 +155,38 @@ def create_cli_agent(
         if builtin_skills_dir.is_dir():
             skill_dirs.append(str(builtin_skills_dir))
 
-    # In non-interactive mode, no tool calls require approval
+    # In non-interactive mode: no approval needed, disable features that add
+    # noise (memory, checkpoints, skills, plan, subagents) — single-shot tasks
+    # don't benefit from them and they waste context/tool slots.
     interrupt_on = {"execute": False} if non_interactive else None
+
+    effective_memory = include_memory and not non_interactive
+    effective_checkpoints = include_checkpoints and not non_interactive
+    effective_skills = include_skills and not non_interactive
+    effective_plan = include_plan and not non_interactive
+    effective_subagents = include_subagents and not non_interactive
 
     agent = create_deep_agent(
         model=effective_model,
         instructions=instructions,
         backend=effective_backend,
-        skill_directories=skill_dirs or None,
+        skill_directories=skill_dirs if effective_skills else None,
         interrupt_on=interrupt_on,
         # Filesystem & execution
         include_execute=True,
         include_filesystem=True,
         # Planning & task management
         include_todo=include_todo,
-        include_plan=include_plan,
+        include_plan=effective_plan,
         # Delegation
-        include_subagents=include_subagents,
-        include_general_purpose_subagent=True,
+        include_subagents=effective_subagents,
+        include_general_purpose_subagent=effective_subagents,
         # Skills
-        include_skills=include_skills,
+        include_skills=effective_skills,
         # Memory
-        include_memory=include_memory,
+        include_memory=effective_memory,
         # Checkpointing
-        include_checkpoints=include_checkpoints,
+        include_checkpoints=effective_checkpoints,
         # Context files (auto-discover DEEP.md, CLAUDE.md, AGENTS.md, SOUL.md)
         context_discovery=context_discovery,
         # Teams (not needed for CLI single-agent use)

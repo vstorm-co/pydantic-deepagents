@@ -1,0 +1,50 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 3,
+            "passed": 2,
+            "failed": 1,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771597335.7960253,
+            "stop": 1771597342.6769621
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_compressed_file_exists",
+                "status": "passed",
+                "duration": 2.1218531249905936,
+                "start": 1771597335.9652002,
+                "stop": 1771597338.0975368,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_decompression_produces_original",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 2.330584750001435,
+                "start": 1771597338.1098528,
+                "stop": 1771597340.5758636,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_decompression_produces_original():\n        \"\"\"Test that decompressing the compressed file produces the file content.\"\"\"\n        setup()\n        # Paths\n        compressed_path = Path(\"/app/data.comp\")\n        decompressor_path = Path(\"/app/decomp2\")\n        original_path = Path(\"/app/data.txt\")\n    \n        # Check that all required files exist\n        assert compressed_path.exists(), f\"Compressed file {compressed_path} does not exist\"\n        assert decompressor_path.exists(), (\n            f\"Decompressor {decompressor_path} does not exist\"\n        )\n        assert original_path.exists(), f\"Original file {original_path} does not exist\"\n    \n        # Get original content\n        original_content = original_path.read_text()\n    \n        # Run decompression and capture output\n        result = subprocess.run(\n            f\"cat {compressed_path} | {decompressor_path}\",\n            shell=True,\n            capture_output=True,\n            text=True,\n        )\n    \n        # Check if decompression was successful\n>       assert result.returncode == 0, f\"Decompression failed with error: {result.stderr}\"\nE       AssertionError: Decompression failed with error: Segmentation fault\nE         \nE       assert 139 == 0\nE        +  where 139 = CompletedProcess(args='cat /app/data.comp | /app/decomp2', returncode=139, stdout='', stderr='Segmentation fault\\n').returncode\n\n/tests/test_outputs.py:52: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_compression_size",
+                "status": "passed",
+                "duration": 2.0880772509990493,
+                "start": 1771597340.5767038,
+                "stop": 1771597342.667583,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            }
+        ]
+    }
+}

@@ -1,0 +1,2 @@
+export PATH="/opt/pydantic-deep-venv/bin:$HOME/.local/bin:$PATH"; pydantic-deep run 'I just made some changes to my personal site and checked out master, but now I can'"'"'t find those changes. Please help me find them and merge them into master.
+' --model openrouter:openai/gpt-5.2-codex --temperature 0 --logfire 2>&1 | tee /logs/agent/pydantic-deep.txt

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from dataclasses import fields
 from pathlib import Path
 from typing import Annotated, Any
@@ -42,7 +43,10 @@ def _setup_logfire() -> None:
     try:
         import logfire
 
-        logfire.configure()
+        logfire.configure(
+            token=os.environ.get("LOGFIRE_TOKEN"),
+            send_to_logfire="if-token-present",
+        )
         logfire.instrument_pydantic_ai()
     except ImportError:
         import sys

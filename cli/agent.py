@@ -100,6 +100,17 @@ def create_cli_agent(
     effective_working_dir = working_dir or config.working_dir
     effective_allow_list = shell_allow_list or config.shell_allow_list or None
 
+    # Validate provider configuration
+    from cli.providers import format_provider_error
+
+    provider_error = format_provider_error(effective_model)
+    if provider_error:
+        import sys
+
+        print(f"Error: {provider_error}", file=sys.stderr)
+        print("Run 'pydantic-deep providers list' to see all providers.", file=sys.stderr)
+        raise SystemExit(2)
+
     root = Path(effective_working_dir) if effective_working_dir else Path.cwd()
     effective_backend = backend or LocalBackend(root_dir=root)
 

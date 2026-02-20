@@ -338,6 +338,61 @@ Instructions for this skill go here.
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
+providers_app = typer.Typer(name="providers", help="Model provider information.", no_args_is_help=True)
+app.add_typer(providers_app)
+
+
+@providers_app.command("list")
+def providers_list() -> None:
+    """List all supported model providers."""
+    from cli.providers import PROVIDERS, validate_provider_env
+
+    console = Console()
+    table = Table(show_header=True, header_style="bold", show_lines=False)
+    table.add_column("Provider", style="cyan")
+    table.add_column("Name")
+    table.add_column("Description")
+    table.add_column("Env Var(s)")
+    table.add_column("Status")
+
+    for prefix, info in sorted(PROVIDERS.items()):
+        missing = validate_provider_env(prefix)
+        if not info.env_vars:
+            status = Text("ready", style="green")
+        elif missing:
+            status = Text("missing key", style="red")
+        else:
+            status = Text("ready", style="green")
+
+        env_str = ", ".join(info.env_vars) if info.env_vars else "-"
+        table.add_row(prefix, info.name, info.description, env_str, status)
+
+    console.print(table)
+    console.print(
+        "\n[dim]Usage: pydantic-deep run \"task\" --model provider:model-name[/dim]",
+    )
+    console.print(
+        "[dim]Example: pydantic-deep chat --model openrouter:openai/gpt-5.2-codex[/dim]",
+    )
+
+
+@providers_app.command("check")
+def providers_check(
+    model: Annotated[str, typer.Argument(help="Model string to check (e.g. openrouter:openai/gpt-5)")],
+) -> None:
+    """Check if a model provider is properly configured."""
+    from cli.providers import format_provider_error, parse_model_string
+
+    error = format_provider_error(model)
+    console = Console()
+    if error:
+        console.print(f"[red]{error}[/red]")
+        raise typer.Exit(1)
+
+    provider, model_name = parse_model_string(model)
+    console.print(f"[green]Provider '{provider}' is ready.[/green] Model: {model_name}")
+
+
 threads_app = typer.Typer(name="threads", help="Manage conversation threads.", no_args_is_help=True)
 app.add_typer(threads_app)
 

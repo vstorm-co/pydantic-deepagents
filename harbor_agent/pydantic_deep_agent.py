@@ -6,6 +6,16 @@ Terminal-Bench via Harbor:
     harbor run -d terminal-bench@2.0 \\
         --agent-import-path harbor_agent.pydantic_deep_agent:PydanticDeep \\
         -m openai/gpt-4.1
+
+Supported model formats (maps to pydantic-ai provider:model):
+
+    -m openai/gpt-4.1                → openai:gpt-4.1
+    -m anthropic/claude-sonnet-4      → anthropic:claude-sonnet-4
+    -m openrouter/openai/gpt-5.2     → openrouter:openai/gpt-5.2
+    -m groq/llama-3.3-70b            → groq:llama-3.3-70b
+    -m google-gla/gemini-2.0-flash   → google-gla:gemini-2.0-flash
+    -m bedrock/anthropic.claude-v2    → bedrock:anthropic.claude-v2
+    -m ollama/llama3                  → ollama:llama3
 """
 
 from __future__ import annotations
@@ -34,10 +44,6 @@ class PydanticDeep(BaseInstalledAgent):
         super().__init__(*args, **kwargs)
         self._max_turns = max_turns
 
-    # ------------------------------------------------------------------
-    # Required interface
-    # ------------------------------------------------------------------
-
     @staticmethod
     def name() -> str:
         return "pydantic-deep"
@@ -52,12 +58,10 @@ class PydanticDeep(BaseInstalledAgent):
     def create_run_agent_commands(self, instruction: str) -> list[ExecInput]:
         escaped_instruction = shlex.quote(instruction)
 
-        env = self._build_env()
-
-        model_flag = ""
-        if self.model_name:
-            pai_model = self._convert_model_name(self.model_name, env)
-            model_flag = f"--model {pai_model}"
+        pai_model = self._convert_model_name(self.model_name) if self.model_name else None
+        provider = pai_model.split(":")[0] if pai_model else "openai"
+        env = self._build_env(provider)
+        model_flag = f"--model {pai_model}" if pai_model else ""
 
         return [
             ExecInput(
@@ -83,44 +87,74 @@ class PydanticDeep(BaseInstalledAgent):
         if cost is not None:
             context.cost_usd = cost
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _build_env(provider: str) -> dict[str, str]:
+        """Collect env vars needed for the given provider.
 
-    def _build_env(self) -> dict[str, str]:
-        """Collect API keys and configuration from environment."""
+        Uses the provider registry from cli/providers.py at runtime (inside
+        the Docker container). Falls back to a minimal set when the CLI
+        package isn't importable (e.g. in the Harbor host process).
+        """
+        try:
+            from cli.providers import PROVIDERS
+
+            info = PROVIDERS.get(provider)
+            var_names: list[str] = []
+            if info:
+                var_names.extend(info.env_vars)
+                if info.optional_env_vars:
+                    var_names.extend(info.optional_env_vars)
+        except ImportError:
+            var_names = [
+                "OPENAI_API_KEY",
+                "OPENAI_BASE_URL",
+                "OPENROUTER_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "GOOGLE_API_KEY",
+                "GEMINI_API_KEY",
+                "GROQ_API_KEY",
+                "MISTRAL_API_KEY",
+                "DEEPSEEK_API_KEY",
+                "XAI_API_KEY",
+                "CO_API_KEY",
+                "CEREBRAS_API_KEY",
+                "TOGETHER_API_KEY",
+                "FIREWORKS_API_KEY",
+                "HF_TOKEN",
+                "SAMBANOVA_API_KEY",
+                "GITHUB_API_KEY",
+                "AWS_ACCESS_KEY_ID",
+                "AWS_SECRET_ACCESS_KEY",
+                "AWS_SESSION_TOKEN",
+                "AWS_DEFAULT_REGION",
+                "AZURE_OPENAI_API_KEY",
+                "AZURE_OPENAI_ENDPOINT",
+                "OPENAI_API_VERSION",
+            ]
+
         env: dict[str, str] = {}
-
-        for var in (
-            "OPENAI_API_KEY",
-            "OPENAI_BASE_URL",
-            "OPENROUTER_API_KEY",
-            "ANTHROPIC_API_KEY",
-            "GOOGLE_API_KEY",
-            "GROQ_API_KEY",
-            "MISTRAL_API_KEY",
-            "AZURE_OPENAI_API_KEY",
-            "AZURE_OPENAI_ENDPOINT",
-        ):
+        for var in var_names:
             val = os.environ.get(var, "")
             if val:
                 env[var] = val
-
         return env
 
     @staticmethod
-    def _convert_model_name(harbor_name: str, env: dict[str, str] | None = None) -> str:
-        """Convert Harbor model name to pydantic-ai format.
+    def _convert_model_name(harbor_name: str) -> str:
+        """Convert Harbor ``provider/model`` to pydantic-ai ``provider:model``.
 
-        Harbor:      ``openai/gpt-4.1``  or ``anthropic/claude-sonnet-4-20250514``
-        pydantic-ai: ``openai:gpt-4.1``  or ``anthropic:claude-sonnet-4-20250514``
+        The first path segment becomes the provider prefix. Subsequent
+        segments stay as the model name (important for OpenRouter where
+        the model ID itself contains a slash).
 
-        When OPENROUTER_API_KEY is set, uses ``openrouter:`` prefix with the
-        full model name (e.g. ``openrouter:openai/gpt-5.2-codex``).
+        Examples::
+
+            openai/gpt-4.1                 → openai:gpt-4.1
+            anthropic/claude-sonnet-4       → anthropic:claude-sonnet-4
+            openrouter/openai/gpt-5.2-codex → openrouter:openai/gpt-5.2-codex
+            groq/llama-3.3-70b              → groq:llama-3.3-70b
+            gpt-4.1                         → gpt-4.1  (no provider prefix)
         """
-        env = env or {}
-        if env.get("OPENROUTER_API_KEY"):
-            return f"openrouter:{harbor_name}"
         if "/" in harbor_name:
             provider, model = harbor_name.split("/", 1)
             return f"{provider}:{model}"
@@ -129,7 +163,6 @@ class PydanticDeep(BaseInstalledAgent):
 
 def _parse_cost(text: str) -> float | None:
     """Try to extract USD cost from agent output."""
-    # pydantic-deep prints "Cost: $0.1234" to stderr (captured in tee)
     match = re.search(r"Cost:\s*\$([0-9]+\.?[0-9]*)", text)
     if match:
         try:

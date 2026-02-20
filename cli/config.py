@@ -7,6 +7,7 @@ Precedence: CLI arguments > config file > hardcoded defaults.
 
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -33,8 +34,12 @@ _BOOL_FIELDS = frozenset(
         "include_subagents",
         "include_todo",
         "context_discovery",
+        "show_cost",
+        "show_tokens",
     }
 )
+
+_INT_FIELDS = frozenset({"max_history"})
 
 
 @dataclass
@@ -44,6 +49,12 @@ class CliConfig:
     model: str = "openai:gpt-4.1"
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
+    theme: str = "default"
+    charset: str = "auto"
+    show_cost: bool = True
+    show_tokens: bool = True
+    history_file: str = str(Path.home() / ".pydantic-deep" / "history.txt")
+    max_history: int = 1000
     include_skills: bool = True
     include_plan: bool = True
     include_memory: bool = True
@@ -54,18 +65,64 @@ class CliConfig:
 
 
 def load_config(path: Path | None = None) -> CliConfig:
-    """Load config from TOML file.
+    """Load config from TOML file with environment variable overrides.
 
-    Returns defaults if file doesn't exist.
+    Precedence: environment variables > config file > defaults.
     """
     config_path = path or DEFAULT_CONFIG_PATH
     if not config_path.exists():
-        return CliConfig()
+        config = CliConfig()
+    else:
+        with open(config_path, "rb") as f:
+            data = tomllib.load(f)
+        config = _parse_config(data)
 
-    with open(config_path, "rb") as f:
-        data = tomllib.load(f)
+    _apply_env_overrides(config)
+    return config
 
-    return _parse_config(data)
+
+def _apply_env_overrides(config: CliConfig) -> None:
+    """Apply PYDANTIC_DEEP_* environment variable overrides."""
+    env_model = os.environ.get("PYDANTIC_DEEP_MODEL")
+    if env_model:
+        config.model = env_model
+
+    env_working_dir = os.environ.get("PYDANTIC_DEEP_WORKING_DIR")
+    if env_working_dir:
+        config.working_dir = env_working_dir
+
+    env_theme = os.environ.get("PYDANTIC_DEEP_THEME")
+    if env_theme:
+        config.theme = env_theme
+
+    env_charset = os.environ.get("PYDANTIC_DEEP_CHARSET")
+    if env_charset:
+        config.charset = env_charset
+
+
+def validate_config(config: CliConfig) -> list[str]:
+    """Validate config values, returning a list of warning messages."""
+    warnings: list[str] = []
+    if config.model and ":" not in config.model:
+        warnings.append(f"Model '{config.model}' missing provider prefix (e.g. 'openai:gpt-4.1')")
+    if config.working_dir:
+        from pathlib import Path as _Path
+
+        if not _Path(config.working_dir).exists():
+            warnings.append(f"Working directory '{config.working_dir}' does not exist")
+    known_themes = {"default", "minimal"}
+    if config.theme not in known_themes:
+        warnings.append(
+            f"Unknown theme '{config.theme}'. Known themes: {', '.join(sorted(known_themes))}"
+        )
+    known_charsets = {"auto", "unicode", "ascii"}
+    if config.charset not in known_charsets:
+        warnings.append(
+            f"Unknown charset '{config.charset}'. Known: {', '.join(sorted(known_charsets))}"
+        )
+    if config.max_history < 0:
+        warnings.append("max_history must be non-negative")
+    return warnings
 
 
 def _parse_config(data: dict[str, Any]) -> CliConfig:
@@ -112,6 +169,8 @@ def _coerce_value(key: str, value: str) -> Any:
     """Coerce string value to the correct type based on the field."""
     if key in _BOOL_FIELDS:
         return value.lower() in ("true", "1", "yes")
+    if key in _INT_FIELDS:
+        return int(value)
     if key == "shell_allow_list":
         return [v.strip() for v in value.split(",") if v.strip()]
     if key == "working_dir" and value.lower() in ("none", "null", ""):
@@ -128,6 +187,8 @@ def _write_toml(path: Path, data: dict[str, Any]) -> None:
             continue
         if isinstance(value, bool):
             lines.append(f"{key} = {'true' if value else 'false'}")
+        elif isinstance(value, int):
+            lines.append(f"{key} = {value}")
         elif isinstance(value, list):
             items = ", ".join(f'"{v}"' for v in value)
             lines.append(f"{key} = [{items}]")

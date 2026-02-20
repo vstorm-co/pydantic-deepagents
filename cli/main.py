@@ -11,21 +11,45 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+from dataclasses import fields
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 app = typer.Typer(
     name="pydantic-deep",
     help="Deep Agent CLI — AI coding assistant powered by pydantic-ai.",
     no_args_is_help=True,
+    rich_markup_mode="rich",
 )
 
 
-# ---------------------------------------------------------------------------
-# Core commands: run + chat
-# ---------------------------------------------------------------------------
+def _version_callback(value: bool) -> None:
+    if value:
+        from pydantic_deep import __version__
+
+        typer.echo(f"pydantic-deep v{__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main_callback(
+    version: Annotated[
+        bool | None,
+        typer.Option(
+            "--version",
+            "-V",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show version and exit.",
+        ),
+    ] = None,
+) -> None:
+    """Deep Agent CLI — AI coding assistant powered by pydantic-ai."""
 
 
 @app.command()
@@ -47,15 +71,17 @@ def run(
     no_stream: Annotated[
         bool, typer.Option("--no-stream", help="Buffer output instead of streaming")
     ] = False,
-    sandbox: Annotated[
-        bool, typer.Option("--sandbox", help="Run in Docker sandbox")
-    ] = False,
+    sandbox: Annotated[bool, typer.Option("--sandbox", help="Run in Docker sandbox")] = False,
     runtime: Annotated[
         str, typer.Option("--runtime", help="Sandbox runtime (e.g. python-minimal)")
     ] = "python-minimal",
+    output_format: Annotated[
+        str, typer.Option("--output-format", "-f", help="Output format: text, json, markdown")
+    ] = "text",
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
 ) -> None:
     """Run a task non-interactively (benchmark mode)."""
-    from pydantic_deep.cli.non_interactive import run_non_interactive
+    from cli.non_interactive import run_non_interactive
 
     exit_code = asyncio.run(
         run_non_interactive(
@@ -67,6 +93,8 @@ def run(
             stream=not no_stream,
             sandbox=sandbox,
             runtime=runtime,
+            output_format=output_format,
+            verbose=verbose,
         )
     )
     raise typer.Exit(exit_code)
@@ -82,15 +110,21 @@ def chat(
         str | None,
         typer.Option("--working-dir", "-w", help="Working directory"),
     ] = None,
-    sandbox: Annotated[
-        bool, typer.Option("--sandbox", help="Run in Docker sandbox")
-    ] = False,
+    sandbox: Annotated[bool, typer.Option("--sandbox", help="Run in Docker sandbox")] = False,
     runtime: Annotated[
         str, typer.Option("--runtime", help="Sandbox runtime (e.g. python-minimal)")
     ] = "python-minimal",
+    resume: Annotated[
+        str | None,
+        typer.Option("--resume", "-r", help="Resume a thread by ID (or latest if empty)"),
+    ] = None,
+    auto_approve: Annotated[
+        bool,
+        typer.Option("--auto-approve", help="Auto-approve all tool calls (skip HITL)"),
+    ] = False,
 ) -> None:
     """Start an interactive chat session."""
-    from pydantic_deep.cli.interactive import run_interactive
+    from cli.interactive import run_interactive
 
     asyncio.run(
         run_interactive(
@@ -98,13 +132,11 @@ def chat(
             working_dir=working_dir,
             sandbox=sandbox,
             runtime=runtime,
+            resume=resume,
+            auto_approve=auto_approve,
         )
     )
 
-
-# ---------------------------------------------------------------------------
-# Config sub-app
-# ---------------------------------------------------------------------------
 
 config_app = typer.Typer(name="config", help="Manage configuration.", no_args_is_help=True)
 app.add_typer(config_app)
@@ -113,10 +145,25 @@ app.add_typer(config_app)
 @config_app.command("show")
 def config_show() -> None:
     """Show current configuration."""
-    from pydantic_deep.cli.config import format_config, load_config
+    from cli.config import CliConfig, load_config
 
     config = load_config()
-    typer.echo(format_config(config))
+    console = Console()
+    table = Table(show_header=True, header_style="bold", show_lines=False)
+    table.add_column("Key", style="cyan")
+    table.add_column("Value")
+
+    for f in fields(CliConfig):
+        value = getattr(config, f.name)
+        if isinstance(value, bool):
+            style = "green" if value else "red"
+            table.add_row(f.name, Text(str(value), style=style))
+        elif value is None:
+            table.add_row(f.name, Text("None", style="dim"))
+        else:
+            table.add_row(f.name, str(value))
+
+    console.print(table)
 
 
 @config_app.command("set")
@@ -125,7 +172,7 @@ def config_set(
     value: Annotated[str, typer.Argument(help="Value to set")],
 ) -> None:
     """Set a configuration value."""
-    from pydantic_deep.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+    from cli.config import DEFAULT_CONFIG_PATH, set_config_value
 
     try:
         set_config_value(DEFAULT_CONFIG_PATH, key, value)
@@ -134,10 +181,6 @@ def config_set(
         raise typer.Exit(1) from None
     typer.echo(f"Set {key} = {value}")
 
-
-# ---------------------------------------------------------------------------
-# Skills sub-app
-# ---------------------------------------------------------------------------
 
 skills_app = typer.Typer(name="skills", help="Manage skills.", no_args_is_help=True)
 app.add_typer(skills_app)
@@ -152,16 +195,21 @@ def _discover_all_skills(user_dir: str | None = None) -> list[dict[str, str]]:
     """Discover all skills (built-in + user) and return name/description pairs."""
     skills: list[dict[str, str]] = []
 
-    # Built-in skills — read frontmatter from SKILL.md files
     builtin_dir = _get_builtin_skills_dir()
     if builtin_dir.is_dir():
         for skill_dir in sorted(builtin_dir.iterdir()):
             skill_file = skill_dir / "SKILL.md"
             if skill_file.is_file():
                 name, desc = _parse_skill_frontmatter(skill_file)
-                skills.append({"name": name, "description": desc, "path": str(skill_file), "source": "built-in"})
+                skills.append(
+                    {
+                        "name": name,
+                        "description": desc,
+                        "path": str(skill_file),
+                        "source": "built-in",
+                    }
+                )
 
-    # User skills
     if user_dir:
         user_path = Path(user_dir)
         if user_path.is_dir():
@@ -169,7 +217,14 @@ def _discover_all_skills(user_dir: str | None = None) -> list[dict[str, str]]:
                 skill_file = skill_dir / "SKILL.md"
                 if skill_file.is_file():
                     name, desc = _parse_skill_frontmatter(skill_file)
-                    skills.append({"name": name, "description": desc, "path": str(skill_file), "source": "user"})
+                    skills.append(
+                        {
+                            "name": name,
+                            "description": desc,
+                            "path": str(skill_file),
+                            "source": "user",
+                        }
+                    )
 
     return skills
 
@@ -207,14 +262,16 @@ def skills_list(
         typer.echo("No skills found.")
         return
 
-    current_source = ""
+    console = Console()
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Name", style="cyan")
+    table.add_column("Description")
+    table.add_column("Source", style="dim")
+
     for s in skills:
-        if s["source"] != current_source:
-            if current_source:
-                typer.echo()
-            current_source = s["source"]
-            typer.echo(f"{current_source.title()} skills:")
-        typer.echo(f"  {s['name']:25s} {s['description']}")
+        table.add_row(s["name"], s["description"], s["source"])
+
+    console.print(table)
 
 
 @skills_app.command("info")
@@ -222,16 +279,33 @@ def skills_info(
     name: Annotated[str, typer.Argument(help="Skill name")],
 ) -> None:
     """Show details for a specific skill."""
+    from rich.markdown import Markdown
+    from rich.panel import Panel
+
     skills = _discover_all_skills()
     for s in skills:
         if s["name"] == name:
-            typer.echo(f"Name: {s['name']}")
-            typer.echo(f"Description: {s['description']}")
-            typer.echo(f"Path: {s['path']}")
-            typer.echo()
-            # Print the full content
+            info_console = Console()
             content = Path(s["path"]).read_text()
-            typer.echo(content)
+
+            body_text = content
+            if content.startswith("---"):
+                fm_parts = content.split("---", 2)
+                if len(fm_parts) >= 3:
+                    body_text = fm_parts[2].strip()
+
+            header = (
+                f"[dim]Description:[/dim] {s['description']}\n"
+                f"[dim]Source:[/dim]      {s['source']}\n"
+                f"[dim]Path:[/dim]        {s['path']}"
+            )
+            info_console.print()
+            info_console.print(
+                Panel(header, title=f"[bold cyan]{s['name']}[/bold cyan]", padding=(0, 1))
+            )
+            if body_text:
+                info_console.print()
+                info_console.print(Markdown(body_text))
             return
 
     typer.echo(f"Skill '{name}' not found.", err=True)
@@ -264,10 +338,6 @@ Instructions for this skill go here.
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
-# ---------------------------------------------------------------------------
-# Threads sub-app
-# ---------------------------------------------------------------------------
-
 threads_app = typer.Typer(name="threads", help="Manage conversation threads.", no_args_is_help=True)
 app.add_typer(threads_app)
 
@@ -280,7 +350,7 @@ def threads_list(
     ] = None,
 ) -> None:
     """List saved conversation threads."""
-    from pydantic_deep.cli.config import DEFAULT_THREADS_DIR
+    from cli.config import DEFAULT_THREADS_DIR
     from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
     store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
@@ -294,9 +364,16 @@ def threads_list(
         typer.echo("No threads found.")
         return
 
+    console = Console()
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID", style="cyan", width=10)
+    table.add_column("Label")
+    table.add_column("Messages", justify="right")
+
     for cp in checkpoints:
-        short_id = cp.id[:8]
-        typer.echo(f"  {short_id}  {cp.label:30s}  {cp.message_count} msgs")
+        table.add_row(cp.id[:8], cp.label, str(cp.message_count))
+
+    console.print(table)
 
 
 @threads_app.command("delete")
@@ -308,7 +385,7 @@ def threads_delete(
     ] = None,
 ) -> None:
     """Delete a conversation thread."""
-    from pydantic_deep.cli.config import DEFAULT_THREADS_DIR
+    from cli.config import DEFAULT_THREADS_DIR
     from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
     store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
@@ -327,9 +404,58 @@ def threads_delete(
     typer.echo(f"Deleted thread {match.id[:8]} ({match.label})")
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+@threads_app.command("export")
+def threads_export(
+    thread_id: Annotated[str, typer.Argument(help="Thread ID (or prefix)")],
+    directory: Annotated[
+        str | None,
+        typer.Option("--dir", "-d", help="Threads directory"),
+    ] = None,
+    output_format: Annotated[
+        str, typer.Option("--format", "-f", help="Export format: json or markdown")
+    ] = "markdown",
+) -> None:
+    """Export a conversation thread."""
+    import json
+
+    from cli.config import DEFAULT_THREADS_DIR
+    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
+
+    store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
+    if not store_path.exists():
+        typer.echo("No threads found.", err=True)
+        raise typer.Exit(1)
+
+    store = FileCheckpointStore(store_path)
+    checkpoints = asyncio.run(store.list_all())
+    match = next((cp for cp in checkpoints if cp.id.startswith(thread_id)), None)
+    if match is None:
+        typer.echo(f"Thread '{thread_id}' not found.", err=True)
+        raise typer.Exit(1)
+
+    loaded = asyncio.run(store.get(match.id))
+    if loaded is None:
+        typer.echo("Failed to load thread.", err=True)
+        raise typer.Exit(1)
+
+    if output_format == "json":
+        data = {
+            "id": loaded.id,
+            "label": loaded.label,
+            "turn": loaded.turn,
+            "message_count": loaded.message_count,
+            "messages": [str(m) for m in (loaded.messages or [])],
+            "metadata": loaded.metadata,
+        }
+        typer.echo(json.dumps(data, indent=2, default=str))
+    else:
+        typer.echo(f"# Thread: {loaded.label}")
+        typer.echo(f"\nID: {loaded.id}")
+        typer.echo(f"Turn: {loaded.turn}")
+        typer.echo(f"Messages: {loaded.message_count}")
+        typer.echo()
+        for msg in loaded.messages or []:
+            typer.echo(f"---\n{msg}\n")
 
 
 def main() -> None:

@@ -8,7 +8,7 @@ from typing import Any
 from pydantic_ai_backends import LocalBackend
 
 from pydantic_deep.agent import create_deep_agent
-from pydantic_deep.cli.prompts import build_cli_instructions
+from cli.prompts import build_cli_instructions
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.middleware.hooks import Hook, HookEvent, HookInput, HookResult
 
@@ -56,8 +56,8 @@ def create_cli_agent(
     on_context_update: Any | None = None,
     extra_middleware: list[Any] | None = None,
     backend: Any | None = None,
+    permission_handler: Any | None = None,
     *,
-    # Feature flags — all enabled by default for full pydantic-deep power
     include_skills: bool = True,
     include_plan: bool = True,
     include_memory: bool = True,
@@ -91,7 +91,7 @@ def create_cli_agent(
     Returns:
         Tuple of (agent, deps) ready for agent.run().
     """
-    from pydantic_deep.cli.config import load_config
+    from cli.config import load_config
 
     config = load_config(config_path)
 
@@ -109,7 +109,7 @@ def create_cli_agent(
         hooks.append(_make_shell_allow_list_hook(effective_allow_list))
 
     # Build middleware list
-    from pydantic_deep.cli.middleware.loop_detection import LoopDetectionMiddleware
+    from cli.middleware.loop_detection import LoopDetectionMiddleware
 
     middleware: list[Any] = [LoopDetectionMiddleware()]
     if extra_middleware:
@@ -131,7 +131,7 @@ def create_cli_agent(
     instructions += working_dir_section
 
     # Add local context toolset (git info + directory tree)
-    from pydantic_deep.cli.local_context import LocalContextToolset
+    from cli.local_context import LocalContextToolset
 
     local_context = LocalContextToolset(root_dir=root)
 
@@ -179,6 +179,7 @@ def create_cli_agent(
         # Middleware & hooks
         hooks=hooks or None,
         middleware=middleware,
+        permission_handler=permission_handler,
         toolsets=[local_context],
     )
 

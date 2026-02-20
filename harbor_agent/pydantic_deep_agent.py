@@ -61,21 +61,11 @@ class PydanticDeep(BaseInstalledAgent):
             pai_model = self._convert_model_name(self.model_name)
             model_flag = f"--model {pai_model}"
 
-        # Use entry point if available, otherwise fall back to python -m
-        cli_cmd = (
-            "pydantic-deep"
-            ' || python3 -m pydantic_deep.cli.main'
-        )
-
         return [
             ExecInput(
                 command=(
-                    'export PATH="$HOME/.local/bin:$PATH"; '
-                    # Detect which CLI command works
-                    f"CLI_CMD=$(command -v pydantic-deep >/dev/null 2>&1 "
-                    f"&& echo 'pydantic-deep' "
-                    f"|| echo 'python3 -m pydantic_deep.cli.main'); "
-                    f"$CLI_CMD run {escaped_instruction} "
+                    'export PATH="/opt/pydantic-deep-venv/bin:$HOME/.local/bin:$PATH"; '
+                    f"pydantic-deep run {escaped_instruction} "
                     f"{model_flag} "
                     f"2>&1 | tee /logs/agent/pydantic-deep.txt"
                 ),

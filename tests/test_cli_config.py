@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from pydantic_deep.cli.config import (
+from cli.config import (
     CliConfig,
+    _apply_env_overrides,
     _coerce_value,
     _parse_config,
     _write_toml,
@@ -246,3 +247,79 @@ class TestFormatConfig:
         config = CliConfig(model="test-model")
         result = format_config(config)
         assert "test-model" in result
+
+
+class TestNewConfigFields:
+    """Tests for theme, show_cost, show_tokens fields."""
+
+    def test_default_theme(self) -> None:
+        config = CliConfig()
+        assert config.theme == "default"
+
+    def test_default_show_cost(self) -> None:
+        config = CliConfig()
+        assert config.show_cost is True
+
+    def test_default_show_tokens(self) -> None:
+        config = CliConfig()
+        assert config.show_tokens is True
+
+    def test_loads_theme_from_file(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('theme = "minimal"\n')
+        config = load_config(config_file)
+        assert config.theme == "minimal"
+
+    def test_loads_show_cost_false(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("show_cost = false\n")
+        config = load_config(config_file)
+        assert config.show_cost is False
+
+    def test_coerce_show_cost(self) -> None:
+        assert _coerce_value("show_cost", "true") is True
+        assert _coerce_value("show_cost", "false") is False
+
+    def test_coerce_show_tokens(self) -> None:
+        assert _coerce_value("show_tokens", "true") is True
+
+
+class TestEnvVarOverrides:
+    """Tests for _apply_env_overrides() and env var precedence."""
+
+    def test_model_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        config = CliConfig()
+        monkeypatch.setenv("PYDANTIC_DEEP_MODEL", "anthropic:claude-sonnet")
+        _apply_env_overrides(config)
+        assert config.model == "anthropic:claude-sonnet"
+
+    def test_working_dir_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        config = CliConfig()
+        monkeypatch.setenv("PYDANTIC_DEEP_WORKING_DIR", "/tmp/project")
+        _apply_env_overrides(config)
+        assert config.working_dir == "/tmp/project"
+
+    def test_theme_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        config = CliConfig()
+        monkeypatch.setenv("PYDANTIC_DEEP_THEME", "minimal")
+        _apply_env_overrides(config)
+        assert config.theme == "minimal"
+
+    def test_no_env_vars_no_change(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("PYDANTIC_DEEP_MODEL", raising=False)
+        monkeypatch.delenv("PYDANTIC_DEEP_WORKING_DIR", raising=False)
+        monkeypatch.delenv("PYDANTIC_DEEP_THEME", raising=False)
+        config = CliConfig()
+        _apply_env_overrides(config)
+        assert config.model == "openai:gpt-4.1"
+        assert config.working_dir is None
+        assert config.theme == "default"
+
+    def test_env_overrides_config_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('model = "openai:gpt-4o"\n')
+        monkeypatch.setenv("PYDANTIC_DEEP_MODEL", "anthropic:claude-sonnet")
+        config = load_config(config_file)
+        assert config.model == "anthropic:claude-sonnet"

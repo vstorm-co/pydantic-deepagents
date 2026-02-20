@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from pydantic_ai_middleware import ToolDecision, ToolPermissionResult
 
-from pydantic_deep.cli.middleware.loop_detection import (
+from cli.middleware.loop_detection import (
     LoopDetectionMiddleware,
     _hash_args,
 )

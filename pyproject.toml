@@ -63,14 +63,14 @@ Repository = "https://github.com/vstorm-co/pydantic-deepagents"
 Issues = "https://github.com/vstorm-co/pydantic-deepagents/issues"
 
 [project.scripts]
-pydantic-deep = "pydantic_deep.cli.main:app"
+pydantic-deep = "cli.main:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["pydantic_deep"]
+packages = ["pydantic_deep", "cli"]
 
 # Dependency groups for development
 [dependency-groups]

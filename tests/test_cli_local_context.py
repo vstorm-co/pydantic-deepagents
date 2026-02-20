@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pydantic_deep.cli.local_context import (
+from cli.local_context import (
     IGNORE_PATTERNS,
     LocalContextToolset,
     format_local_context,
@@ -26,7 +26,7 @@ class TestGetGitInfo:
         result = get_git_info(tmp_path)
         assert result == {} or "branch" in result  # depends on parent git repo
 
-    @patch("pydantic_deep.cli.local_context._get_git_executable")
+    @patch("cli.local_context._get_git_executable")
     def test_returns_empty_when_git_not_installed(
         self, mock_git: MagicMock, tmp_path: Path
     ) -> None:
@@ -34,8 +34,8 @@ class TestGetGitInfo:
         result = get_git_info(tmp_path)
         assert result == {}
 
-    @patch("pydantic_deep.cli.local_context.subprocess.run")
-    @patch("pydantic_deep.cli.local_context._get_git_executable")
+    @patch("cli.local_context.subprocess.run")
+    @patch("cli.local_context._get_git_executable")
     def test_returns_branch_info(
         self, mock_git: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
@@ -49,8 +49,8 @@ class TestGetGitInfo:
         assert result["branch"] == "feature-xyz"
         assert "main" in result["main_branches"]
 
-    @patch("pydantic_deep.cli.local_context.subprocess.run")
-    @patch("pydantic_deep.cli.local_context._get_git_executable")
+    @patch("cli.local_context.subprocess.run")
+    @patch("cli.local_context._get_git_executable")
     def test_handles_non_git_directory(
         self, mock_git: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
@@ -60,8 +60,8 @@ class TestGetGitInfo:
         result = get_git_info(tmp_path)
         assert result == {}
 
-    @patch("pydantic_deep.cli.local_context.subprocess.run")
-    @patch("pydantic_deep.cli.local_context._get_git_executable")
+    @patch("cli.local_context.subprocess.run")
+    @patch("cli.local_context._get_git_executable")
     def test_handles_timeout(
         self, mock_git: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
@@ -71,8 +71,8 @@ class TestGetGitInfo:
         result = get_git_info(tmp_path)
         assert result == {}
 
-    @patch("pydantic_deep.cli.local_context.subprocess.run")
-    @patch("pydantic_deep.cli.local_context._get_git_executable")
+    @patch("cli.local_context.subprocess.run")
+    @patch("cli.local_context._get_git_executable")
     def test_branch_list_fails(
         self, mock_git: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:

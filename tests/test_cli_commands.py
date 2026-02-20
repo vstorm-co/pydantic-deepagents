@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from pydantic_deep.cli.main import app
+from cli.main import app
 
 runner = CliRunner()
 
@@ -22,7 +23,7 @@ class TestConfigShow:
     """Tests for 'config show' command."""
 
     def test_shows_defaults(self) -> None:
-        with patch("pydantic_deep.cli.config.DEFAULT_CONFIG_PATH", Path("/tmp/nonexistent/config.toml")):
+        with patch("cli.config.DEFAULT_CONFIG_PATH", Path("/tmp/nonexistent/config.toml")):
             result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0
         assert "model" in result.output
@@ -31,7 +32,7 @@ class TestConfigShow:
         config_file = tmp_path / "config.toml"
         config_file.write_text('model = "test-model"\n')
 
-        with patch("pydantic_deep.cli.config.DEFAULT_CONFIG_PATH", config_file):
+        with patch("cli.config.DEFAULT_CONFIG_PATH", config_file):
             result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0
         assert "test-model" in result.output
@@ -42,14 +43,14 @@ class TestConfigSet:
 
     def test_sets_value(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
-        with patch("pydantic_deep.cli.config.DEFAULT_CONFIG_PATH", config_file):
+        with patch("cli.config.DEFAULT_CONFIG_PATH", config_file):
             result = runner.invoke(app, ["config", "set", "model", "new-model"])
         assert result.exit_code == 0
         assert "Set model = new-model" in result.output
 
     def test_invalid_key(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
-        with patch("pydantic_deep.cli.config.DEFAULT_CONFIG_PATH", config_file):
+        with patch("cli.config.DEFAULT_CONFIG_PATH", config_file):
             result = runner.invoke(app, ["config", "set", "bad_key", "value"])
         assert result.exit_code == 1
 
@@ -70,7 +71,7 @@ class TestSkillsList:
     def test_lists_builtin_skills(self) -> None:
         result = runner.invoke(app, ["skills", "list"])
         assert result.exit_code == 0
-        assert "Built-in" in result.output
+        assert "built-in" in result.output.lower()
         assert "skill-creator" in result.output
         assert "code-review" in result.output
         assert "test-writer" in result.output
@@ -184,6 +185,7 @@ class TestThreadsList:
             turn=1,
             messages=[],
             message_count=5,
+            created_at=datetime(2026, 1, 1),
         )
         asyncio.run(store.save(cp))
 
@@ -232,6 +234,7 @@ class TestThreadsDelete:
             turn=1,
             messages=[],
             message_count=3,
+            created_at=datetime(2026, 1, 1),
         )
         asyncio.run(store.save(cp))
 
@@ -253,13 +256,13 @@ class TestThreadsDelete:
 class TestSandboxFlags:
     """Tests for --sandbox and --runtime flags on run/chat."""
 
-    @patch("pydantic_deep.cli.main.asyncio.run")
+    @patch("cli.main.asyncio.run")
     def test_run_with_sandbox(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = 0
         result = runner.invoke(app, ["run", "test", "--sandbox"])
         assert result.exit_code == 0
 
-    @patch("pydantic_deep.cli.main.asyncio.run")
+    @patch("cli.main.asyncio.run")
     def test_run_with_sandbox_and_runtime(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = 0
         result = runner.invoke(
@@ -267,13 +270,13 @@ class TestSandboxFlags:
         )
         assert result.exit_code == 0
 
-    @patch("pydantic_deep.cli.main.asyncio.run")
+    @patch("cli.main.asyncio.run")
     def test_chat_with_sandbox(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = None
         result = runner.invoke(app, ["chat", "--sandbox"])
         assert result.exit_code == 0
 
-    @patch("pydantic_deep.cli.main.asyncio.run")
+    @patch("cli.main.asyncio.run")
     def test_chat_with_runtime(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = None
         result = runner.invoke(

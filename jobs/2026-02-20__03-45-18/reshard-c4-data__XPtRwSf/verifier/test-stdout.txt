@@ -1,0 +1,130 @@
+Downloading pandas (10.4MiB)
+Downloading numpy (15.8MiB)
+Downloading pyarrow (45.4MiB)
+ Downloaded numpy
+ Downloaded pandas
+ Downloaded pyarrow
+Installed 47 packages in 303ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: anyio-4.12.1, json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_outputs.py .                                               [100%]
+
+==================================== PASSES ====================================
+______________________ test_compress_decompress_workflow _______________________
+---------------------------- Captured stdout setup -----------------------------
+Generating test data.
+Generated mini-shard 1/10000
+Generated mini-shard 101/10000
+Generated mini-shard 201/10000
+Generated mini-shard 301/10000
+Generated mini-shard 401/10000
+Generated mini-shard 501/10000
+Generated mini-shard 601/10000
+Generated mini-shard 701/10000
+Generated mini-shard 801/10000
+Generated mini-shard 901/10000
+Generated mini-shard 1001/10000
+Generated mini-shard 1101/10000
+Generated mini-shard 1201/10000
+Generated mini-shard 1301/10000
+Generated mini-shard 1401/10000
+Generated mini-shard 1501/10000
+Generated mini-shard 1601/10000
+Generated mini-shard 1701/10000
+Generated mini-shard 1801/10000
+Generated mini-shard 1901/10000
+Generated mini-shard 2001/10000
+Generated mini-shard 2101/10000
+Generated mini-shard 2201/10000
+Generated mini-shard 2301/10000
+Generated mini-shard 2401/10000
+Generated mini-shard 2501/10000
+Generated mini-shard 2601/10000
+Generated mini-shard 2701/10000
+Generated mini-shard 2801/10000
+Generated mini-shard 2901/10000
+Generated mini-shard 3001/10000
+Generated mini-shard 3101/10000
+Generated mini-shard 3201/10000
+Generated mini-shard 3301/10000
+Generated mini-shard 3401/10000
+Generated mini-shard 3501/10000
+Generated mini-shard 3601/10000
+Generated mini-shard 3701/10000
+Generated mini-shard 3801/10000
+Generated mini-shard 3901/10000
+Generated mini-shard 4001/10000
+Generated mini-shard 4101/10000
+Generated mini-shard 4201/10000
+Generated mini-shard 4301/10000
+Generated mini-shard 4401/10000
+Generated mini-shard 4501/10000
+Generated mini-shard 4601/10000
+Generated mini-shard 4701/10000
+Generated mini-shard 4801/10000
+Generated mini-shard 4901/10000
+Generated mini-shard 5001/10000
+Generated mini-shard 5101/10000
+Generated mini-shard 5201/10000
+Generated mini-shard 5301/10000
+Generated mini-shard 5401/10000
+Generated mini-shard 5501/10000
+Generated mini-shard 5601/10000
+Generated mini-shard 5701/10000
+Generated mini-shard 5801/10000
+Generated mini-shard 5901/10000
+Generated mini-shard 6001/10000
+Generated mini-shard 6101/10000
+Generated mini-shard 6201/10000
+Generated mini-shard 6301/10000
+Generated mini-shard 6401/10000
+Generated mini-shard 6501/10000
+Generated mini-shard 6601/10000
+Generated mini-shard 6701/10000
+Generated mini-shard 6801/10000
+Generated mini-shard 6901/10000
+Generated mini-shard 7001/10000
+Generated mini-shard 7101/10000
+Generated mini-shard 7201/10000
+Generated mini-shard 7301/10000
+Generated mini-shard 7401/10000
+Generated mini-shard 7501/10000
+Generated mini-shard 7601/10000
+Generated mini-shard 7701/10000
+Generated mini-shard 7801/10000
+Generated mini-shard 7901/10000
+Generated mini-shard 8001/10000
+Generated mini-shard 8101/10000
+Generated mini-shard 8201/10000
+Generated mini-shard 8301/10000
+Generated mini-shard 8401/10000
+Generated mini-shard 8501/10000
+Generated mini-shard 8601/10000
+Generated mini-shard 8701/10000
+Generated mini-shard 8801/10000
+Generated mini-shard 8901/10000
+Generated mini-shard 9001/10000
+Generated mini-shard 9101/10000
+Generated mini-shard 9201/10000
+Generated mini-shard 9301/10000
+Generated mini-shard 9401/10000
+Generated mini-shard 9501/10000
+Generated mini-shard 9601/10000
+Generated mini-shard 9701/10000
+Generated mini-shard 9801/10000
+Generated 9898 test files
+---------------------------- Captured stderr setup -----------------------------
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 4628 examples [00:00, 17358.20 examples/s]Generating train split: 9408 examples [00:00, 23027.01 examples/s]Generating train split: 14037 examples [00:00, 22111.52 examples/s]Generating train split: 23057 examples [00:00, 29752.45 examples/s]Generating train split: 27549 examples [00:01, 28764.95 examples/s]Generating train split: 32060 examples [00:01, 31897.27 examples/s]Generating train split: 36548 examples [00:01, 33972.14 examples/s]Generating train split: 45801 examples [00:01, 39858.72 examples/s]Generating train split: 50561 examples [00:01, 40108.12 examples/s]Generating train split: 55346 examples [00:01, 39277.65 examples/s]Generating train split: 64252 examples [00:01, 44648.42 examples/s]Generating train split: 73564 examples [00:02, 46396.56 examples/s]Generating train split: 82514 examples [00:02, 52521.47 examples/s]Generating train split: 91794 examples [00:02, 54020.74 examples/s]Generating train split: 100921 examples [00:02, 60088.84 examples/s]Generating train split: 110011 examples [00:02, 55184.32 examples/s]Generating train split: 119080 examples [00:02, 59162.31 examples/s]Generating train split: 128199 examples [00:02, 57432.22 examples/s]Generating train split: 137465 examples [00:03, 59166.92 examples/s]Generating train split: 146537 examples [00:03, 58796.95 examples/s]Generating train split: 160125 examples [00:03, 57856.69 examples/s]Generating train split: 169418 examples [00:03, 53498.97 examples/s]Generating train split: 178721 examples [00:03, 54378.08 examples/s]Generating train split: 187976 examples [00:04, 52423.35 examples/s]Generating train split: 196759 examples [00:04, 50165.25 examples/s]Generating train split: 205928 examples [00:04, 49082.66 examples/s]Generating train split: 215024 examples [00:04, 53352.65 examples/s]Generating train split: 224136 examples [00:04, 52929.80 examples/s]Generating train split: 233020 examples [00:04, 51386.53 examples/s]Generating train split: 242080 examples [00:05, 55002.76 examples/s]Generating train split: 251191 examples [00:05, 54558.95 examples/s]Generating train split: 260334 examples [00:05, 58725.30 examples/s]Generating train split: 269418 examples [00:05, 58378.18 examples/s]Generating train split: 278833 examples [00:05, 65191.58 examples/s]Generating train split: 287951 examples [00:05, 65493.73 examples/s]Generating train split: 297116 examples [00:05, 62807.75 examples/s]Generating train split: 306036 examples [00:06, 62411.69 examples/s]Generating train split: 315368 examples [00:06, 61377.84 examples/s]Generating train split: 328806 examples [00:06, 61674.52 examples/s]Generating train split: 338040 examples [00:06, 58287.02 examples/s]Generating train split: 347254 examples [00:06, 60505.01 examples/s]Generating train split: 356318 examples [00:06, 58876.53 examples/s]Generating train split: 356318 examples [00:06, 51466.26 examples/s]
+----------------------------- Captured stdout call -----------------------------
+Installing dependencies with uv sync...
+Running compress script: /app/compress.py /app/c4_test_8497f11b-9a1f-42f2-abeb-7d69b558b712/ /app/c4_test_30c04223-20aa-432b-b5c7-ecded8841ed9/
+Compression test passed. Now testing decompression.
+Running decompress script: /app/decompress.py /app/c4_test_30c04223-20aa-432b-b5c7-ecded8841ed9/
+Successfully verified 9898 files match original hashes
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_compress_decompress_workflow
+========================= 1 passed in 67.78s (0:01:07) =========================

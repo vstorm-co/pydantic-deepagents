@@ -1,0 +1,14 @@
+Downloading pandas (10.4MiB)
+Downloading numpy (15.8MiB)
+Downloading pyarrow (45.4MiB)
+ Downloaded numpy
+ Downloaded pandas
+ Downloaded pyarrow
+Installed 47 packages in 291ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: anyio-4.12.1, json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_outputs.py 

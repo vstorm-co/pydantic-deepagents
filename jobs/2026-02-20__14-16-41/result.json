@@ -1,0 +1,30 @@
+{
+    "id": "4e7d80a8-400a-4ada-9d5b-8841d828d8b2",
+    "started_at": "2026-02-20T14:16:42.625185",
+    "finished_at": "2026-02-20T14:18:47.940854",
+    "n_total_trials": 2,
+    "stats": {
+        "n_trials": 2,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__openai-gpt-5.2-codex__terminal-bench": {
+                "n_trials": 2,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 0.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "llm-inference-batching-scheduler__XW5UFjr",
+                            "break-filter-js-from-html__F7hjdqj"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

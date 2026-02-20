@@ -1,0 +1,61 @@
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.88.1-10+deb12u14).
+0 upgraded, 0 newly installed, 0 to remove and 25 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 147ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 2 items
+
+../tests/test_outputs.py .F                                              [100%]
+
+=================================== FAILURES ===================================
+______________________ test_summary_structure_and_counts _______________________
+
+    def test_summary_structure_and_counts():
+        """Validate CSV structure and check if counts match expected hard-coded values."""
+        with OUTPUT_FILE.open("r", newline="") as f:
+            reader = list(csv.reader(f))
+        assert reader, "CSV file is empty"
+    
+        # Header check
+        header = reader[0]
+        assert header == ["period", "severity", "count"], f"Unexpected header: {header}"
+    
+        # Row count check
+        assert len(reader) - 1 == len(EXPECTED_ROWS), (
+            f"Expected {len(EXPECTED_ROWS)} rows, got {len(reader) - 1}"
+        )
+    
+        # Content check
+        for expected_row, actual_row in zip(EXPECTED_ROWS, reader[1:]):
+>           assert actual_row == expected_row, (
+                f"Expected row {expected_row}, got {actual_row}"
+            )
+E           AssertionError: Expected row ['today', 'ERROR', '370'], got ['today', 'ERROR', '414']
+E           assert ['today', 'ERROR', '414'] == ['today', 'ERROR', '370']
+E             
+E             At index 2 diff: '414' != '370'
+E             Use -v to get more diff
+
+/tests/test_outputs.py:49: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_summary_file_exists
+FAILED ../tests/test_outputs.py::test_summary_structure_and_counts - Assertio...
+========================= 1 failed, 1 passed in 0.09s ==========================

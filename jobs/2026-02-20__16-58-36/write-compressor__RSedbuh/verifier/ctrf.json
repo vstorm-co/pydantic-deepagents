@@ -1,0 +1,56 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 3,
+            "passed": 0,
+            "failed": 3,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771603501.6870532,
+            "stop": 1771603503.6417735
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_compressed_file_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.5776996669956134,
+                "start": 1771603501.7791262,
+                "stop": 1771603502.380294,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_compressed_file_exists():\n        \"\"\"Test that the compressed file was created.\"\"\"\n        setup()\n        compressed_path = Path(\"/app/data.comp\")\n>       assert compressed_path.exists(), f\"File {compressed_path} does not exist\"\nE       AssertionError: File /app/data.comp does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/data.comp').exists\n\n/tests/test_outputs.py:22: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_decompression_produces_original",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.43996020799386315,
+                "start": 1771603502.3811476,
+                "stop": 1771603502.8417962,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_decompression_produces_original():\n        \"\"\"Test that decompressing the compressed file produces the file content.\"\"\"\n        setup()\n        # Paths\n        compressed_path = Path(\"/app/data.comp\")\n        decompressor_path = Path(\"/app/decomp2\")\n        original_path = Path(\"/app/data.txt\")\n    \n        # Check that all required files exist\n>       assert compressed_path.exists(), f\"Compressed file {compressed_path} does not exist\"\nE       AssertionError: Compressed file /app/data.comp does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/data.comp').exists\n\n/tests/test_outputs.py:34: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_compression_size",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.7711644590017386,
+                "start": 1771603502.8424807,
+                "stop": 1771603503.6318645,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_compression_size():\n        \"\"\"Test that the compressed file size meets requirements.\"\"\"\n        setup()\n        max_size_bytes = 2500  # As specified in task.yaml\n    \n        compressed_path = Path(\"/app/data.comp\")\n>       assert compressed_path.exists(), f\"Compressed file {compressed_path} does not exist\"\nE       AssertionError: Compressed file /app/data.comp does not exist\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/data.comp').exists\n\n/tests/test_outputs.py:66: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            }
+        ]
+    }
+}

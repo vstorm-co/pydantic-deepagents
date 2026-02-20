@@ -1,0 +1,41 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 2,
+            "passed": 1,
+            "failed": 1,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771603843.8859422,
+            "stop": 1771603843.9732437
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_summary_file_exists",
+                "status": "passed",
+                "duration": 0.0017818339911173098,
+                "start": 1771603843.9474452,
+                "stop": 1771603843.9508567,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_summary_structure_and_counts",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0019780000002356246,
+                "start": 1771603843.951927,
+                "stop": 1771603843.9724834,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_summary_structure_and_counts():\n        \"\"\"Validate CSV structure and check if counts match expected hard-coded values.\"\"\"\n        with OUTPUT_FILE.open(\"r\", newline=\"\") as f:\n            reader = list(csv.reader(f))\n        assert reader, \"CSV file is empty\"\n    \n        # Header check\n        header = reader[0]\n        assert header == [\"period\", \"severity\", \"count\"], f\"Unexpected header: {header}\"\n    \n        # Row count check\n        assert len(reader) - 1 == len(EXPECTED_ROWS), (\n            f\"Expected {len(EXPECTED_ROWS)} rows, got {len(reader) - 1}\"\n        )\n    \n        # Content check\n        for expected_row, actual_row in zip(EXPECTED_ROWS, reader[1:]):\n>           assert actual_row == expected_row, (\n                f\"Expected row {expected_row}, got {actual_row}\"\n            )\nE           AssertionError: Expected row ['today', 'ERROR', '370'], got ['today', 'ERROR', '414']\nE           assert ['today', 'ERROR', '414'] == ['today', 'ERROR', '370']\nE             \nE             At index 2 diff: '414' != '370'\nE             Use -v to get more diff\n\n/tests/test_outputs.py:49: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            }
+        ]
+    }
+}

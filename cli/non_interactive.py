@@ -94,6 +94,7 @@ async def run_non_interactive(
     runtime: str = "python-minimal",
     output_format: str = "text",
     verbose: bool = False,
+    model_settings: dict[str, Any] | None = None,
 ) -> int:
     """Run a single task non-interactively and exit.
 
@@ -151,6 +152,7 @@ async def run_non_interactive(
             on_cost_update=_on_cost,
             backend=backend,
             non_interactive=True,
+            model_settings=model_settings,
         )
 
         show_tools = not effective_quiet or verbose

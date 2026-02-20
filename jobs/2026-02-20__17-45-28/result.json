@@ -1,0 +1,33 @@
+{
+    "id": "dbeb92de-2953-4ee7-bdcf-0439604aa350",
+    "started_at": "2026-02-20T17:45:29.482376",
+    "finished_at": "2026-02-20T17:55:12.264892",
+    "n_total_trials": 3,
+    "stats": {
+        "n_trials": 3,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__openai-gpt-5.2-codex__terminal-bench": {
+                "n_trials": 3,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 0.6666666666666666
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "break-filter-js-from-html__wxmRMhT"
+                        ],
+                        "1.0": [
+                            "reshard-c4-data__DEigP8n",
+                            "log-summary-date-ranges__DRagvtv"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

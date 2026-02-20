@@ -67,6 +67,7 @@ def create_cli_agent(
     context_discovery: bool = True,
     non_interactive: bool = False,
     config_path: Path | None = None,
+    model_settings: dict[str, Any] | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -166,12 +167,39 @@ def create_cli_agent(
     effective_plan = include_plan and not non_interactive
     effective_subagents = include_subagents and not non_interactive
 
+    # Model settings — non-interactive defaults, then config, then explicit overrides
+    effective_model_settings: dict[str, Any] = {}
+    if non_interactive:
+        effective_model_settings["temperature"] = 0.0
+    # Config-level defaults (lowest priority after non-interactive)
+    if config.temperature is not None and "temperature" not in (model_settings or {}):
+        effective_model_settings["temperature"] = config.temperature
+    if config.reasoning_effort and "openai_reasoning_effort" not in (model_settings or {}):
+        effective_model_settings["openai_reasoning_effort"] = config.reasoning_effort
+    if config.thinking and "anthropic_thinking" not in (model_settings or {}):
+        if config.thinking_budget:
+            effective_model_settings["anthropic_thinking"] = {
+                "type": "enabled",
+                "budget_tokens": config.thinking_budget,
+            }
+        else:
+            effective_model_settings["anthropic_thinking"] = {"type": "adaptive"}
+    elif config.thinking_budget and "anthropic_thinking" not in (model_settings or {}):
+        effective_model_settings["anthropic_thinking"] = {
+            "type": "enabled",
+            "budget_tokens": config.thinking_budget,
+        }
+    # Explicit CLI flags override everything
+    if model_settings:
+        effective_model_settings.update(model_settings)
+
     agent = create_deep_agent(
         model=effective_model,
         instructions=instructions,
         backend=effective_backend,
         skill_directories=skill_dirs if effective_skills else None,
         interrupt_on=interrupt_on,
+        model_settings=effective_model_settings or None,
         # Filesystem & execution
         include_execute=True,
         include_filesystem=True,

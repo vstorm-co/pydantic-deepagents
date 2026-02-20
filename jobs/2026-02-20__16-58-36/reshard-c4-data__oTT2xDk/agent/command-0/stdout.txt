@@ -1,0 +1,31 @@
+Running task non-interactively...
+Model: openrouter:openai/gpt-5.2-codex
+
+  ⏺ ls(.)
+    → Contents of /app:   c4_sample/
+  ⏺ ls(.)
+    → Contents of /app/c4_sample:   c4-mini-00000-of-10000.jsonl …
+  ⏺ write_file(, 1 lines)
+    → done
+  ⏺ write_file(, 1 lines)
+    → done
+  ⏺ write_file(, 1 lines)
+    → done
+  ⏺ execute()
+    → uv 0.10.4 
+  ⏺ execute()
+    → Using CPython 3.13.7 interpreter at: /usr/local/bin/python3…
+  ⏺ execute()
+    → 
+  ⏺ execute()
+    → Command failed (exit code 124): Error: Command timed out
+  ⏺ execute()
+    → Command failed (exit code 1): Manifest not found: /app/resh…
+  ⏺ ls(.)
+    → Contents of /app/resharded_test:   c4-mini-00000-of-10000.j…
+╭─────────────────────────────────── Error ────────────────────────────────────╮
+│ UnexpectedModelBehavior: Model token limit (provider default) exceeded       │
+│ before any response was generated. Increase the `max_tokens` model setting,  │
+│ or simplify the prompt to result in a shorter response that will fit within  │
+│ the limit.                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯

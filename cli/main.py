@@ -11,9 +11,10 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import fields
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -58,6 +59,31 @@ def _main_callback(
         pass
 
 
+def _build_model_settings(
+    model_settings_json: str | None,
+    temperature: float | None,
+    reasoning_effort: str | None,
+    thinking: bool,
+    thinking_budget: int | None,
+) -> dict[str, Any] | None:
+    """Build model settings dict from CLI flags."""
+    settings: dict[str, Any] = {}
+    if model_settings_json:
+        settings = json.loads(model_settings_json)
+    if temperature is not None:
+        settings["temperature"] = temperature
+    if reasoning_effort:
+        settings["openai_reasoning_effort"] = reasoning_effort
+    if thinking:
+        if thinking_budget:
+            settings["anthropic_thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+        else:
+            settings["anthropic_thinking"] = {"type": "adaptive"}
+    elif thinking_budget:
+        settings["anthropic_thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+    return settings if settings else None
+
+
 @app.command()
 def run(
     prompt: Annotated[str, typer.Argument(help="Task to execute")],
@@ -85,9 +111,33 @@ def run(
         str, typer.Option("--output-format", "-f", help="Output format: text, json, markdown")
     ] = "text",
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
+    temperature: Annotated[
+        float | None,
+        typer.Option("--temperature", "-t", help="Model temperature (0.0 = deterministic)"),
+    ] = None,
+    reasoning_effort: Annotated[
+        str | None,
+        typer.Option("--reasoning-effort", help="Reasoning effort: low, medium, high"),
+    ] = None,
+    thinking: Annotated[
+        bool,
+        typer.Option("--thinking/--no-thinking", help="Enable extended thinking (Anthropic)"),
+    ] = False,
+    thinking_budget: Annotated[
+        int | None,
+        typer.Option("--thinking-budget", help="Thinking budget in tokens (Anthropic)"),
+    ] = None,
+    model_settings_json: Annotated[
+        str | None,
+        typer.Option("--model-settings", help="Model settings as JSON"),
+    ] = None,
 ) -> None:
     """Run a task non-interactively (benchmark mode)."""
     from cli.non_interactive import run_non_interactive
+
+    settings = _build_model_settings(
+        model_settings_json, temperature, reasoning_effort, thinking, thinking_budget
+    )
 
     exit_code = asyncio.run(
         run_non_interactive(
@@ -101,6 +151,7 @@ def run(
             runtime=runtime,
             output_format=output_format,
             verbose=verbose,
+            model_settings=settings,
         )
     )
     raise typer.Exit(exit_code)
@@ -128,9 +179,33 @@ def chat(
         bool,
         typer.Option("--auto-approve", help="Auto-approve all tool calls (skip HITL)"),
     ] = False,
+    temperature: Annotated[
+        float | None,
+        typer.Option("--temperature", "-t", help="Model temperature (0.0 = deterministic)"),
+    ] = None,
+    reasoning_effort: Annotated[
+        str | None,
+        typer.Option("--reasoning-effort", help="Reasoning effort: low, medium, high"),
+    ] = None,
+    thinking: Annotated[
+        bool,
+        typer.Option("--thinking/--no-thinking", help="Enable extended thinking (Anthropic)"),
+    ] = False,
+    thinking_budget: Annotated[
+        int | None,
+        typer.Option("--thinking-budget", help="Thinking budget in tokens (Anthropic)"),
+    ] = None,
+    model_settings_json: Annotated[
+        str | None,
+        typer.Option("--model-settings", help="Model settings as JSON"),
+    ] = None,
 ) -> None:
     """Start an interactive chat session."""
     from cli.interactive import run_interactive
+
+    settings = _build_model_settings(
+        model_settings_json, temperature, reasoning_effort, thinking, thinking_budget
+    )
 
     asyncio.run(
         run_interactive(
@@ -140,6 +215,7 @@ def chat(
             runtime=runtime,
             resume=resume,
             auto_approve=auto_approve,
+            model_settings=settings,
         )
     )
 

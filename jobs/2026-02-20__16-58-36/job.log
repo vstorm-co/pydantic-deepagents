@@ -1,0 +1,2 @@
+Trial break-filter-js-from-html__5t4uHmo failed: Agent setup failed with exit code 1. See logs in jobs/2026-02-20__16-58-36/break-filter-js-from-html__5t4uHmo/agent/setup
+Not retrying trial because the maximum number of retries has been reached

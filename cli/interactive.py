@@ -609,6 +609,7 @@ async def run_interactive(
     runtime: str = "python-minimal",
     resume: str | None = None,
     auto_approve: bool = False,
+    model_settings: dict[str, Any] | None = None,
 ) -> None:
     """Run the interactive chat loop.
 
@@ -660,6 +661,7 @@ async def run_interactive(
                 on_cost_update=_on_cost,
                 backend=backend,
                 permission_handler=handler,
+                model_settings=model_settings,
             )
         except Exception as e:
             _print_model_error(e)

@@ -92,6 +92,7 @@ def create_deep_agent(
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
 
@@ -150,6 +151,7 @@ def create_deep_agent(
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
 
@@ -206,6 +208,7 @@ def create_deep_agent(  # noqa: C901
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
@@ -354,6 +357,10 @@ def create_deep_agent(  # noqa: C901
             between middleware hooks. Optional.
         plans_dir: Directory to save plan files from the planner subagent.
             Defaults to ``/plans`` (relative to backend root).
+        model_settings: Provider-specific model settings (temperature, thinking,
+            etc.). Passed directly to the pydantic-ai Agent. Common keys:
+            ``temperature``, ``max_tokens``, ``anthropic_thinking``,
+            ``openai_reasoning_effort``. See pydantic-ai ModelSettings docs.
         **agent_kwargs: Additional arguments passed to Agent constructor.
 
     Returns:
@@ -696,6 +703,10 @@ def create_deep_agent(  # noqa: C901
 
     if all_processors:
         agent_create_kwargs["history_processors"] = all_processors
+
+    # Apply model_settings (explicit param takes priority over agent_kwargs)
+    if model_settings is not None:
+        agent_create_kwargs["model_settings"] = model_settings
 
     agent_create_kwargs.update(agent_kwargs)
 

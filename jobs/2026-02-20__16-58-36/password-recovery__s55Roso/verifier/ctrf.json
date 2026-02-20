@@ -1,0 +1,44 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 2,
+            "passed": 0,
+            "failed": 2,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771604689.7312386,
+            "stop": 1771604689.9037685
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_recovery_file_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0023912489996291697,
+                "start": 1771604689.8398354,
+                "stop": 1771604689.859457,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_recovery_file_exists():\n        recovered_pass_path = Path(\"/app/recovered_passwords.txt\")\n>       assert recovered_pass_path.exists(), \"Recovery file not found\"\nE       AssertionError: Recovery file not found\nE       assert False\nE        +  where False = exists()\nE        +    where exists = PosixPath('/app/recovered_passwords.txt').exists\n\n/tests/test_outputs.py:10: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_password_match",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.000684124999679625,
+                "start": 1771604689.8602304,
+                "stop": 1771604689.9017665,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_password_match():\n>       guesses = Path(\"/app/recovered_passwords.txt\").read_text().strip().split(\"\\n\")\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n/tests/test_outputs.py:14: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/pathlib/_local.py:546: in read_text\n    return PathBase.read_text(self, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/pathlib/_abc.py:632: in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = PosixPath('/app/recovered_passwords.txt'), mode = 'r', buffering = -1\nencoding = 'utf-8', errors = None, newline = None\n\n    def open(self, mode='r', buffering=-1, encoding=None,\n             errors=None, newline=None):\n        \"\"\"\n        Open the file pointed to by this path and return a file object, as\n        the built-in open() function does.\n        \"\"\"\n        if \"b\" not in mode:\n            encoding = io.text_encoding(encoding)\n>       return io.open(self, mode, buffering, encoding, errors, newline)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE       FileNotFoundError: [Errno 2] No such file or directory: '/app/recovered_passwords.txt'\n\n/root/.local/share/uv/python/cpython-3.13.9-linux-x86_64-gnu/lib/python3.13/pathlib/_local.py:537: FileNotFoundError",
+                "message": "The test failed in the call phase"
+            }
+        ]
+    }
+}

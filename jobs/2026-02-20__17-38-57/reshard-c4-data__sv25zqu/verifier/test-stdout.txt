@@ -1,0 +1,171 @@
+Downloading pyarrow (45.4MiB)
+Downloading numpy (15.8MiB)
+Downloading pandas (10.4MiB)
+ Downloaded numpy
+ Downloaded pandas
+ Downloaded pyarrow
+Installed 47 packages in 212ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: anyio-4.12.1, json-ctrf-0.3.5
+collected 1 item
+
+../tests/test_outputs.py F                                               [100%]
+
+=================================== FAILURES ===================================
+______________________ test_compress_decompress_workflow _______________________
+
+generate_test_data = {'c4-mini-00000-of-10000.jsonl': '755f90ce91ae322c2643712308e12d120ca079180bf0d5180accfe7342ec2ee3', 'c4-mini-00001-of...3db97db8f138', 'c4-mini-00003-of-10000.jsonl': 'a7e4c98cecbca03fe6bcb719cfa252c6629c613863058da907cda1311f53342b', ...}
+
+    def test_compress_decompress_workflow(generate_test_data):
+        """Test the full compress -> decompress workflow is successful."""
+        original_hashes = generate_test_data
+    
+        # Part 1: Test compression
+        # Clean up output directory
+        if os.path.exists(TEST_OUTPUT_DIR):
+            shutil.rmtree(TEST_OUTPUT_DIR)
+    
+        # Install dependencies first to avoid snapshot contamination
+        print("Installing dependencies with uv sync...")
+        sync_result = subprocess.run(["uv", "sync"], capture_output=True, text=True)
+        if sync_result.returncode != 0:
+            print(f"uv sync failed: {sync_result.stderr}")
+    
+        # Run the compress script
+        try:
+            print(
+                f"Running compress script: {COMPRESS_SCRIPT} "
+                f"{TEST_INPUT_DIR} {TEST_OUTPUT_DIR}"
+            )
+            result = subprocess.run(
+                ["uv", "run", COMPRESS_SCRIPT, TEST_INPUT_DIR, TEST_OUTPUT_DIR],
+                timeout=600,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                print(f"Compress script failed with return code {result.returncode}")
+                print(f"stdout: {result.stdout}")
+                print(f"stderr: {result.stderr}")
+>               assert False, f"Compress script failed: {result.stderr}"
+E               AssertionError: Compress script failed: 
+E               assert False
+
+/tests/test_outputs.py:116: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+Generating test data.
+Generated mini-shard 1/10000
+Generated mini-shard 101/10000
+Generated mini-shard 201/10000
+Generated mini-shard 301/10000
+Generated mini-shard 401/10000
+Generated mini-shard 501/10000
+Generated mini-shard 601/10000
+Generated mini-shard 701/10000
+Generated mini-shard 801/10000
+Generated mini-shard 901/10000
+Generated mini-shard 1001/10000
+Generated mini-shard 1101/10000
+Generated mini-shard 1201/10000
+Generated mini-shard 1301/10000
+Generated mini-shard 1401/10000
+Generated mini-shard 1501/10000
+Generated mini-shard 1601/10000
+Generated mini-shard 1701/10000
+Generated mini-shard 1801/10000
+Generated mini-shard 1901/10000
+Generated mini-shard 2001/10000
+Generated mini-shard 2101/10000
+Generated mini-shard 2201/10000
+Generated mini-shard 2301/10000
+Generated mini-shard 2401/10000
+Generated mini-shard 2501/10000
+Generated mini-shard 2601/10000
+Generated mini-shard 2701/10000
+Generated mini-shard 2801/10000
+Generated mini-shard 2901/10000
+Generated mini-shard 3001/10000
+Generated mini-shard 3101/10000
+Generated mini-shard 3201/10000
+Generated mini-shard 3301/10000
+Generated mini-shard 3401/10000
+Generated mini-shard 3501/10000
+Generated mini-shard 3601/10000
+Generated mini-shard 3701/10000
+Generated mini-shard 3801/10000
+Generated mini-shard 3901/10000
+Generated mini-shard 4001/10000
+Generated mini-shard 4101/10000
+Generated mini-shard 4201/10000
+Generated mini-shard 4301/10000
+Generated mini-shard 4401/10000
+Generated mini-shard 4501/10000
+Generated mini-shard 4601/10000
+Generated mini-shard 4701/10000
+Generated mini-shard 4801/10000
+Generated mini-shard 4901/10000
+Generated mini-shard 5001/10000
+Generated mini-shard 5101/10000
+Generated mini-shard 5201/10000
+Generated mini-shard 5301/10000
+Generated mini-shard 5401/10000
+Generated mini-shard 5501/10000
+Generated mini-shard 5601/10000
+Generated mini-shard 5701/10000
+Generated mini-shard 5801/10000
+Generated mini-shard 5901/10000
+Generated mini-shard 6001/10000
+Generated mini-shard 6101/10000
+Generated mini-shard 6201/10000
+Generated mini-shard 6301/10000
+Generated mini-shard 6401/10000
+Generated mini-shard 6501/10000
+Generated mini-shard 6601/10000
+Generated mini-shard 6701/10000
+Generated mini-shard 6801/10000
+Generated mini-shard 6901/10000
+Generated mini-shard 7001/10000
+Generated mini-shard 7101/10000
+Generated mini-shard 7201/10000
+Generated mini-shard 7301/10000
+Generated mini-shard 7401/10000
+Generated mini-shard 7501/10000
+Generated mini-shard 7601/10000
+Generated mini-shard 7701/10000
+Generated mini-shard 7801/10000
+Generated mini-shard 7901/10000
+Generated mini-shard 8001/10000
+Generated mini-shard 8101/10000
+Generated mini-shard 8201/10000
+Generated mini-shard 8301/10000
+Generated mini-shard 8401/10000
+Generated mini-shard 8501/10000
+Generated mini-shard 8601/10000
+Generated mini-shard 8701/10000
+Generated mini-shard 8801/10000
+Generated mini-shard 8901/10000
+Generated mini-shard 9001/10000
+Generated mini-shard 9101/10000
+Generated mini-shard 9201/10000
+Generated mini-shard 9301/10000
+Generated mini-shard 9401/10000
+Generated mini-shard 9501/10000
+Generated mini-shard 9601/10000
+Generated mini-shard 9701/10000
+Generated mini-shard 9801/10000
+Generated 9898 test files
+---------------------------- Captured stderr setup -----------------------------
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 4628 examples [00:00, 14327.59 examples/s]Generating train split: 9408 examples [00:00, 20264.28 examples/s]Generating train split: 14037 examples [00:00, 13151.08 examples/s]Generating train split: 18508 examples [00:01, 17379.83 examples/s]Generating train split: 27549 examples [00:01, 21706.10 examples/s]Generating train split: 32060 examples [00:01, 22251.95 examples/s]Generating train split: 36548 examples [00:01, 25179.04 examples/s]Generating train split: 45801 examples [00:01, 30927.84 examples/s]Generating train split: 50561 examples [00:02, 26439.61 examples/s]Generating train split: 55346 examples [00:02, 26465.35 examples/s]Generating train split: 59997 examples [00:02, 26610.57 examples/s]Generating train split: 64252 examples [00:02, 23306.78 examples/s]Generating train split: 68767 examples [00:02, 25447.68 examples/s]Generating train split: 73564 examples [00:03, 27046.48 examples/s]Generating train split: 82514 examples [00:03, 32222.74 examples/s]Generating train split: 87212 examples [00:03, 31107.69 examples/s]Generating train split: 91794 examples [00:03, 24911.04 examples/s]Generating train split: 96407 examples [00:03, 26433.90 examples/s]Generating train split: 100921 examples [00:04, 28375.43 examples/s]Generating train split: 105527 examples [00:04, 31225.91 examples/s]Generating train split: 114448 examples [00:04, 37733.42 examples/s]Generating train split: 119080 examples [00:04, 38429.84 examples/s]Generating train split: 123717 examples [00:04, 38479.19 examples/s]Generating train split: 128199 examples [00:05, 15730.80 examples/s]Generating train split: 132871 examples [00:05, 12825.54 examples/s]Generating train split: 137465 examples [00:06, 14445.54 examples/s]Generating train split: 142093 examples [00:06, 16119.23 examples/s]Generating train split: 151171 examples [00:06, 23127.40 examples/s]Generating train split: 155695 examples [00:06, 24670.32 examples/s]Generating train split: 160125 examples [00:06, 26629.56 examples/s]Generating train split: 164831 examples [00:06, 30224.10 examples/s]Generating train split: 169418 examples [00:07, 27523.47 examples/s]Generating train split: 174224 examples [00:07, 27449.37 examples/s]Generating train split: 178721 examples [00:07, 30779.89 examples/s]Generating train split: 187976 examples [00:07, 39725.75 examples/s]Generating train split: 196759 examples [00:07, 43346.64 examples/s]Generating train split: 205928 examples [00:07, 46970.93 examples/s]Generating train split: 215024 examples [00:07, 51396.16 examples/s]Generating train split: 224136 examples [00:08, 51779.15 examples/s]Generating train split: 233020 examples [00:08, 50490.70 examples/s]Generating train split: 242080 examples [00:11, 8942.12 examples/s] Generating train split: 251191 examples [00:11, 11700.19 examples/s]Generating train split: 260334 examples [00:11, 15497.52 examples/s]Generating train split: 264806 examples [00:11, 16997.40 examples/s]Generating train split: 269418 examples [00:11, 19439.53 examples/s]Generating train split: 278833 examples [00:12, 25149.22 examples/s]Generating train split: 287951 examples [00:12, 31493.94 examples/s]Generating train split: 297116 examples [00:12, 32697.42 examples/s]Generating train split: 301743 examples [00:12, 33974.28 examples/s]Generating train split: 310765 examples [00:12, 37425.17 examples/s]Generating train split: 319765 examples [00:12, 40384.15 examples/s]Generating train split: 328806 examples [00:13, 46274.62 examples/s]Generating train split: 338040 examples [00:13, 48976.10 examples/s]Generating train split: 351738 examples [00:13, 46715.29 examples/s]Generating train split: 356318 examples [00:13, 25600.96 examples/s]
+----------------------------- Captured stdout call -----------------------------
+Installing dependencies with uv sync...
+uv sync failed: error: No `pyproject.toml` found in current directory or any parent directory
+
+Running compress script: /app/compress.py /app/c4_test_7b505e01-b95c-4677-8b53-770f2fcfbaca/ /app/c4_test_b3a69578-352a-4527-890e-6fd1e3cc7d49/
+Compress script failed with return code 127
+stdout: 
+stderr: 
+=========================== short test summary info ============================
+FAILED ../tests/test_outputs.py::test_compress_decompress_workflow - Assertio...
+============================== 1 failed in 57.18s ==============================

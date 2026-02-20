@@ -1,0 +1,100 @@
+Collecting pytest==8.4.1
+  Downloading pytest-8.4.1-py3-none-any.whl.metadata (7.7 kB)
+Collecting pytest-json-ctrf==0.3.5
+  Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl.metadata (3.3 kB)
+Collecting iniconfig>=1 (from pytest==8.4.1)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting packaging>=20 (from pytest==8.4.1)
+  Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting pluggy<2,>=1.5 (from pytest==8.4.1)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting pygments>=2.7.2 (from pytest==8.4.1)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Downloading pytest-8.4.1-py3-none-any.whl (365 kB)
+Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl (6.8 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading packaging-26.0-py3-none-any.whl (74 kB)
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 17.0 MB/s  0:00:00
+Installing collected packages: pygments, pluggy, packaging, iniconfig, pytest, pytest-json-ctrf
+
+Successfully installed iniconfig-2.3.0 packaging-26.0 pluggy-1.6.0 pygments-2.19.2 pytest-8.4.1 pytest-json-ctrf-0.3.5
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 27 items
+
+../tests/test_outputs.py ...........................                     [100%]
+
+==================================== PASSES ====================================
+_______________________________ test_speedup[2] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 2x2 (ref): 0.000080 seconds
+Median time for 2x2: 0.000008 seconds
+_______________________________ test_speedup[3] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 3x3 (ref): 0.000086 seconds
+Median time for 3x3: 0.000026 seconds
+_______________________________ test_speedup[4] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 4x4 (ref): 0.000266 seconds
+Median time for 4x4: 0.000053 seconds
+_______________________________ test_speedup[5] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 5x5 (ref): 0.000133 seconds
+Median time for 5x5: 0.000037 seconds
+_______________________________ test_speedup[6] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 6x6 (ref): 0.000093 seconds
+Median time for 6x6: 0.000041 seconds
+_______________________________ test_speedup[7] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 7x7 (ref): 0.000212 seconds
+Median time for 7x7: 0.000056 seconds
+_______________________________ test_speedup[8] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 8x8 (ref): 0.000268 seconds
+Median time for 8x8: 0.000176 seconds
+_______________________________ test_speedup[9] ________________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 9x9 (ref): 0.000215 seconds
+Median time for 9x9: 0.000095 seconds
+_______________________________ test_speedup[10] _______________________________
+----------------------------- Captured stdout call -----------------------------
+Median time for 10x10 (ref): 0.000331 seconds
+Median time for 10x10: 0.000215 seconds
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_eigen_pair[2]
+PASSED ../tests/test_outputs.py::test_eigen_pair[3]
+PASSED ../tests/test_outputs.py::test_eigen_pair[4]
+PASSED ../tests/test_outputs.py::test_eigen_pair[5]
+PASSED ../tests/test_outputs.py::test_eigen_pair[6]
+PASSED ../tests/test_outputs.py::test_eigen_pair[7]
+PASSED ../tests/test_outputs.py::test_eigen_pair[8]
+PASSED ../tests/test_outputs.py::test_eigen_pair[9]
+PASSED ../tests/test_outputs.py::test_eigen_pair[10]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[2]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[3]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[4]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[5]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[6]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[7]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[8]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[9]
+PASSED ../tests/test_outputs.py::test_dominance_eigenvalue[10]
+PASSED ../tests/test_outputs.py::test_speedup[2]
+PASSED ../tests/test_outputs.py::test_speedup[3]
+PASSED ../tests/test_outputs.py::test_speedup[4]
+PASSED ../tests/test_outputs.py::test_speedup[5]
+PASSED ../tests/test_outputs.py::test_speedup[6]
+PASSED ../tests/test_outputs.py::test_speedup[7]
+PASSED ../tests/test_outputs.py::test_speedup[8]
+PASSED ../tests/test_outputs.py::test_speedup[9]
+PASSED ../tests/test_outputs.py::test_speedup[10]
+============================== 27 passed in 5.07s ==============================

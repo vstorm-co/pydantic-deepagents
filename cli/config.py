@@ -36,10 +36,13 @@ _BOOL_FIELDS = frozenset(
         "context_discovery",
         "show_cost",
         "show_tokens",
+        "thinking",
     }
 )
 
-_INT_FIELDS = frozenset({"max_history"})
+_INT_FIELDS = frozenset({"max_history", "thinking_budget"})
+
+_FLOAT_FIELDS = frozenset({"temperature"})
 
 
 @dataclass
@@ -62,6 +65,10 @@ class CliConfig:
     include_subagents: bool = True
     include_todo: bool = True
     context_discovery: bool = True
+    temperature: float | None = None
+    reasoning_effort: str | None = None
+    thinking: bool = False
+    thinking_budget: int | None = None
 
 
 def load_config(path: Path | None = None) -> CliConfig:
@@ -171,6 +178,8 @@ def _coerce_value(key: str, value: str) -> Any:
         return value.lower() in ("true", "1", "yes")
     if key in _INT_FIELDS:
         return int(value)
+    if key in _FLOAT_FIELDS:
+        return float(value)
     if key == "shell_allow_list":
         return [v.strip() for v in value.split(",") if v.strip()]
     if key == "working_dir" and value.lower() in ("none", "null", ""):
@@ -187,6 +196,8 @@ def _write_toml(path: Path, data: dict[str, Any]) -> None:
             continue
         if isinstance(value, bool):
             lines.append(f"{key} = {'true' if value else 'false'}")
+        elif isinstance(value, float):
+            lines.append(f"{key} = {value}")
         elif isinstance(value, int):
             lines.append(f"{key} = {value}")
         elif isinstance(value, list):

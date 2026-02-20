@@ -69,6 +69,7 @@ def create_deep_agent(
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int = 200_000,
     on_context_update: Any | None = None,
@@ -126,6 +127,7 @@ def create_deep_agent(
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int = 200_000,
     on_context_update: Any | None = None,
@@ -181,6 +183,7 @@ def create_deep_agent(  # noqa: C901
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int = 200_000,
     on_context_update: Any | None = None,
@@ -450,6 +453,7 @@ def create_deep_agent(  # noqa: C901
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
             image_support=image_support,
+            edit_format=edit_format,  # type: ignore[arg-type]
         )
         _set_toolset_retries(console_toolset, retries)
         all_toolsets.append(console_toolset)
@@ -469,6 +473,7 @@ def create_deep_agent(  # noqa: C901
                 require_write_approval=False,
                 require_execute_approval=False,
                 image_support=image_support,
+                edit_format=edit_format,  # type: ignore[arg-type]
             )
             _set_toolset_retries(sub_console, _retries)
             result: list[Any] = [sub_console, create_todo_toolset()]
@@ -717,7 +722,7 @@ def create_deep_agent(  # noqa: C901
                 parts.append(todo_prompt)
 
         if include_filesystem:
-            console_prompt = get_console_system_prompt()
+            console_prompt = get_console_system_prompt(edit_format=edit_format)  # type: ignore[arg-type]
             if console_prompt:
                 parts.append(console_prompt)
 

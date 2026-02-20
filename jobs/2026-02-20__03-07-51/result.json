@@ -1,0 +1,29 @@
+{
+    "id": "9b0d991c-c660-4391-9085-5bcc2c7c7d74",
+    "started_at": "2026-02-20T03:07:51.815714",
+    "finished_at": "2026-02-20T03:08:40.687433",
+    "n_total_trials": 1,
+    "stats": {
+        "n_trials": 1,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__gpt-5.2-codex__terminal-bench": {
+                "n_trials": 1,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 0.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "gpt2-codegolf__5bVnHK3"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

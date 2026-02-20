@@ -65,6 +65,7 @@ def create_cli_agent(
     include_subagents: bool = True,
     include_todo: bool = True,
     context_discovery: bool = True,
+    non_interactive: bool = False,
     config_path: Path | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
@@ -131,6 +132,7 @@ def create_cli_agent(
         include_execute=True,
         include_todo=include_todo,
         include_subagents=include_subagents,
+        non_interactive=non_interactive,
     )
 
     # Append working directory context

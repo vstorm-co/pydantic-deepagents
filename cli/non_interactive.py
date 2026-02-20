@@ -150,6 +150,7 @@ async def run_non_interactive(
             shell_allow_list=shell_allow_list,
             on_cost_update=_on_cost,
             backend=backend,
+            non_interactive=True,
         )
 
         show_tools = not effective_quiet or verbose

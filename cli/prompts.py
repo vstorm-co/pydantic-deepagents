@@ -190,11 +190,31 @@ rather than doing it yourself when it would block your main work
 """
 
 
+_NON_INTERACTIVE_SECTION = """\
+
+## Non-Interactive / Benchmark Mode
+
+You are running in NON-INTERACTIVE mode. There is NO user to ask questions to.
+
+CRITICAL RULES:
+- NEVER ask clarifying questions — the user cannot respond
+- NEVER output "Provide me with...", "What format...", "Can you clarify..." etc.
+- ALWAYS make your best judgment and proceed with the task immediately
+- If requirements are ambiguous, choose the most reasonable interpretation and act
+- You MUST use tools (read_file, write_file, edit_file, execute, etc.) to complete the task
+- Just outputting text is NOT completing the task — you must create/modify files
+- Work autonomously from start to finish without pausing
+- Do NOT stop early — keep working until the task is fully complete
+- After implementing, ALWAYS verify by running tests or checking your output
+"""
+
+
 def build_cli_instructions(
     *,
     include_execute: bool = True,
     include_todo: bool = True,
     include_subagents: bool = True,
+    non_interactive: bool = False,
 ) -> str:
     """Build CLI system prompt dynamically based on active capabilities.
 
@@ -210,6 +230,9 @@ def build_cli_instructions(
         Assembled system prompt string.
     """
     parts: list[str] = [BASE_PROMPT, _CLI_CORE]
+
+    if non_interactive:
+        parts.append(_NON_INTERACTIVE_SECTION)
 
     if include_execute:
         parts.append(_SHELL_SECTION)

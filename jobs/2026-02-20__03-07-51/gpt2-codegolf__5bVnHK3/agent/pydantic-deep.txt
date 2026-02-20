@@ -1,0 +1,10 @@
+Running task non-interactively...
+Model: openrouter:openai/gpt-5.2-codex
+
+Need exact ckpt format and files. Provide:
+- list of files (e.g., .ckpt + .index + .meta + .data-00000-of-00001?) and sizes
+- vocab.bpe format (same as GPT-2 encoder.json? or merges only?)
+Also 5k bytes for full GPT-2 sampling is unrealistic. Confirm minimal model or 
+allow larger file?
+
+✓ Task completed

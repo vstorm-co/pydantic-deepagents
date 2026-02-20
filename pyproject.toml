@@ -52,9 +52,11 @@ web = [
     "uvicorn>=0.38.0",
     "python-multipart>=0.0.21",
 ]
+# Logfire tracing support
+logfire = ["logfire>=4.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml]",
+    "pydantic-deep[sandbox,cli,web,yaml,logfire]",
 ]
 
 [project.urls]

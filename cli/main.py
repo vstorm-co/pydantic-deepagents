@@ -37,6 +37,23 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _setup_logfire() -> None:
+    """Configure Logfire tracing for all pydantic-ai agents."""
+    try:
+        import logfire
+
+        logfire.configure()
+        logfire.instrument_pydantic_ai()
+    except ImportError:
+        import sys
+
+        print(
+            "Logfire not installed. Run: pip install pydantic-deep[logfire]",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+
+
 @app.callback()
 def _main_callback(
     version: Annotated[
@@ -49,6 +66,10 @@ def _main_callback(
             help="Show version and exit.",
         ),
     ] = None,
+    logfire_enabled: Annotated[
+        bool,
+        typer.Option("--logfire/--no-logfire", help="Enable Logfire tracing"),
+    ] = False,
 ) -> None:
     """Deep Agent CLI — AI coding assistant powered by pydantic-ai."""
     try:
@@ -57,6 +78,15 @@ def _main_callback(
         load_dotenv()
     except ImportError:  # pragma: no cover
         pass
+
+    if not logfire_enabled:
+        from cli.config import load_config
+
+        config = load_config()
+        logfire_enabled = config.logfire
+
+    if logfire_enabled:
+        _setup_logfire()
 
 
 def _build_model_settings(

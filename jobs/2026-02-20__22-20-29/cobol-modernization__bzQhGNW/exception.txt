@@ -1,0 +1,31 @@
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py", line 360, in run
+    await self._execute_agent()
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py", line 249, in _execute_agent
+    await asyncio.wait_for(
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 150, in run
+    result = await environment.exec(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 326, in exec
+    return await self._run_docker_compose_command(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/environments/docker/docker.py", line 190, in _run_docker_compose_command
+    stdout_bytes, stderr_bytes = await process.communicate()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/subprocess.py", line 201, in communicate
+    stdin, stdout, stderr = await tasks.gather(stdin, stdout, stderr)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/subprocess.py", line 181, in _read_stream
+    output = await stream.read()
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 706, in read
+    block = await self.read(self._limit)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 713, in read
+    await self._wait_for_data('read')
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py", line 545, in _wait_for_data
+    await self._waiter
+asyncio.exceptions.CancelledError

@@ -1,0 +1,38 @@
+{
+    "id": "2922224c-3246-43bd-8168-87d460967775",
+    "started_at": "2026-02-20T22:20:30.910009",
+    "finished_at": null,
+    "n_total_trials": 4,
+    "stats": {
+        "n_trials": 4,
+        "n_errors": 1,
+        "evals": {
+            "pydantic-deep__minimax-minimax-m2.5__terminal-bench": {
+                "n_trials": 3,
+                "n_errors": 1,
+                "metrics": [
+                    {
+                        "mean": 0.25
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "prove-plus-comm__wvPkeAr",
+                            "overfull-hbox__KtAvZ6X"
+                        ],
+                        "1.0": [
+                            "fix-git__5JZJmqf"
+                        ]
+                    }
+                },
+                "exception_stats": {
+                    "CancelledError": [
+                        "cobol-modernization__bzQhGNW"
+                    ]
+                }
+            }
+        }
+    },
+    "trial_results": []
+}

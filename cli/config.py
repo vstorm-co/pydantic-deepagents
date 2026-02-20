@@ -37,6 +37,7 @@ _BOOL_FIELDS = frozenset(
         "show_cost",
         "show_tokens",
         "thinking",
+        "logfire",
     }
 )
 
@@ -69,6 +70,7 @@ class CliConfig:
     reasoning_effort: str | None = None
     thinking: bool = False
     thinking_budget: int | None = None
+    logfire: bool = False
 
 
 def load_config(path: Path | None = None) -> CliConfig:

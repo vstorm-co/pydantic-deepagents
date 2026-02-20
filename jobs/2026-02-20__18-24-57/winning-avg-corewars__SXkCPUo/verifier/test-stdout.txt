@@ -1,0 +1,43 @@
+Hit:1 http://deb.debian.org/debian stable InRelease
+Hit:2 http://deb.debian.org/debian trixie InRelease
+Hit:3 http://deb.debian.org/debian trixie-updates InRelease
+Hit:4 http://deb.debian.org/debian-security trixie-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (8.14.1-2+deb13u2).
+curl set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 37 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 33ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 3 items
+
+../tests/test_outputs.py ...                                             [100%]
+
+==================================== PASSES ====================================
+___________________________ test_warrior_performance ___________________________
+----------------------------- Captured stdout call -----------------------------
+vs stone.red   :  76/100 wins ( 76%) - PASS (need 75%+)
+vs vampire.red :  79/100 wins ( 79%) - PASS (need 75%+)
+vs paper.red   :  83/100 wins ( 83%) - PASS (need 75%+)
+vs snake.red   :  45/100 wins ( 45%) - PASS (need 33%+)
+vs g2-clear.red:  45/100 wins ( 45%) - PASS (need 33%+)
+PASSED (5/5): stone.red, vampire.red, paper.red, snake.red, g2-clear.red
+FAILED (0/5): None
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_opponents_integrity
+PASSED ../tests/test_outputs.py::test_warrior_exists
+PASSED ../tests/test_outputs.py::test_warrior_performance
+============================== 3 passed in 0.74s ===============================

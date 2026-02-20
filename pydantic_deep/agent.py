@@ -93,6 +93,7 @@ def create_deep_agent(
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
     model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
 
@@ -152,6 +153,7 @@ def create_deep_agent(
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
     model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
 
@@ -209,6 +211,7 @@ def create_deep_agent(  # noqa: C901
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
     model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
@@ -361,6 +364,10 @@ def create_deep_agent(  # noqa: C901
             etc.). Passed directly to the pydantic-ai Agent. Common keys:
             ``temperature``, ``max_tokens``, ``anthropic_thinking``,
             ``openai_reasoning_effort``. See pydantic-ai ModelSettings docs.
+        instrument: Enable OpenTelemetry/Logfire instrumentation. When True,
+            the agent emits spans for LLM calls, tool invocations, and token
+            usage. Requires ``logfire`` or OpenTelemetry SDK. None (default)
+            means no instrumentation.
         **agent_kwargs: Additional arguments passed to Agent constructor.
 
     Returns:
@@ -707,6 +714,10 @@ def create_deep_agent(  # noqa: C901
     # Apply model_settings (explicit param takes priority over agent_kwargs)
     if model_settings is not None:
         agent_create_kwargs["model_settings"] = model_settings
+
+    # Apply instrumentation
+    if instrument is not None:
+        agent_create_kwargs["instrument"] = instrument
 
     agent_create_kwargs.update(agent_kwargs)
 

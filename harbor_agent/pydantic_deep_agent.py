@@ -62,6 +62,7 @@ class PydanticDeep(BaseInstalledAgent):
         provider = pai_model.split(":")[0] if pai_model else "openai"
         env = self._build_env(provider)
         model_flag = f"--model {pai_model}" if pai_model else ""
+        logfire_flag = "--logfire " if os.environ.get("LOGFIRE_TOKEN") else ""
 
         return [
             ExecInput(
@@ -70,6 +71,7 @@ class PydanticDeep(BaseInstalledAgent):
                     f"pydantic-deep run {escaped_instruction} "
                     f"{model_flag} "
                     f"--temperature 0 "
+                    f"{logfire_flag}"
                     f"2>&1 | tee /logs/agent/pydantic-deep.txt"
                 ),
                 env={k: v for k, v in env.items() if v},
@@ -138,6 +140,7 @@ class PydanticDeep(BaseInstalledAgent):
                 "AZURE_OPENAI_API_KEY",
                 "AZURE_OPENAI_ENDPOINT",
                 "OPENAI_API_VERSION",
+                "LOGFIRE_TOKEN",
             ]
 
         env: dict[str, str] = {}

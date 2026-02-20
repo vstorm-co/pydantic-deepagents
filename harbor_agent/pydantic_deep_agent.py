@@ -54,11 +54,9 @@ class PydanticDeep(BaseInstalledAgent):
 
         env = self._build_env()
 
-        # pydantic-ai uses "provider:model" format;
-        # Harbor uses "provider/model" — convert.
         model_flag = ""
         if self.model_name:
-            pai_model = self._convert_model_name(self.model_name)
+            pai_model = self._convert_model_name(self.model_name, env)
             model_flag = f"--model {pai_model}"
 
         return [
@@ -93,14 +91,14 @@ class PydanticDeep(BaseInstalledAgent):
         """Collect API keys and configuration from environment."""
         env: dict[str, str] = {}
 
-        # Pass through all common LLM provider API keys
         for var in (
             "OPENAI_API_KEY",
+            "OPENAI_BASE_URL",
+            "OPENROUTER_API_KEY",
             "ANTHROPIC_API_KEY",
             "GOOGLE_API_KEY",
             "GROQ_API_KEY",
             "MISTRAL_API_KEY",
-            # Azure OpenAI
             "AZURE_OPENAI_API_KEY",
             "AZURE_OPENAI_ENDPOINT",
         ):
@@ -111,12 +109,18 @@ class PydanticDeep(BaseInstalledAgent):
         return env
 
     @staticmethod
-    def _convert_model_name(harbor_name: str) -> str:
+    def _convert_model_name(harbor_name: str, env: dict[str, str] | None = None) -> str:
         """Convert Harbor model name to pydantic-ai format.
 
         Harbor:      ``openai/gpt-4.1``  or ``anthropic/claude-sonnet-4-20250514``
         pydantic-ai: ``openai:gpt-4.1``  or ``anthropic:claude-sonnet-4-20250514``
+
+        When OPENROUTER_API_KEY is set, uses ``openrouter:`` prefix with the
+        full model name (e.g. ``openrouter:openai/gpt-5.2-codex``).
         """
+        env = env or {}
+        if env.get("OPENROUTER_API_KEY"):
+            return f"openrouter:{harbor_name}"
         if "/" in harbor_name:
             provider, model = harbor_name.split("/", 1)
             return f"{provider}:{model}"

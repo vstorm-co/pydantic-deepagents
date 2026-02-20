@@ -24,11 +24,9 @@ export PATH="/opt/pydantic-deep-venv/bin:$PATH"
 export VIRTUAL_ENV="/opt/pydantic-deep-venv"
 
 # Install pydantic-deep from git (CLI not yet published to PyPI)
-{% if version %}
-uv pip install "pydantic-deep[cli] @ git+https://github.com/vstorm-co/pydantic-deep.git@{{ version }}"
-{% else %}
+
 uv pip install "pydantic-deep[cli] @ git+https://github.com/vstorm-co/pydantic-deep.git@feat/cli"
-{% endif %}
+
 
 # Install optional model providers (OpenRouter etc.)
 uv pip install "pydantic-ai-slim[openrouter]"

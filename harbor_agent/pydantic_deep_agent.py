@@ -96,6 +96,13 @@ class PydanticDeep(BaseInstalledAgent):
         package isn't importable (e.g. in the Harbor host process).
         """
         try:
+            from dotenv import load_dotenv
+
+            load_dotenv()
+        except ImportError:
+            pass
+
+        try:
             from cli.providers import PROVIDERS
 
             info = PROVIDERS.get(provider)

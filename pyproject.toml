@@ -44,6 +44,7 @@ cli = [
     "rich>=13.0.0",
     "prompt-toolkit>=3.0.0",
     "tomli>=2.0; python_version < '3.11'",
+    "python-dotenv>=1.0.0",
 ]
 # Web server support (for full_app example)
 web = [

@@ -50,6 +50,12 @@ def _main_callback(
     ] = None,
 ) -> None:
     """Deep Agent CLI — AI coding assistant powered by pydantic-ai."""
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:  # pragma: no cover
+        pass
 
 
 @app.command()

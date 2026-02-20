@@ -1,0 +1,6 @@
+Running task non-interactively...
+Model: openrouter:openai/gpt-5.2-codex
+
+Error: Missing environment variable(s) for OpenRouter: OPENROUTER_API_KEY
+export OPENROUTER_API_KEY=your-key-here
+Run 'pydantic-deep providers list' to see all providers.

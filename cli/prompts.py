@@ -190,6 +190,44 @@ rather than doing it yourself when it would block your main work
 """
 
 
+_CODE_QUALITY_SECTION = """\
+
+## Writing Code
+
+### Correctness First
+- Read and understand input/output formats BEFORE writing code — inspect \
+actual file contents, headers, byte layouts, schemas
+- Test with the REAL data, not toy examples — edge cases live in real data
+- When the task specifies constraints (size limits, time limits, formats), \
+verify your solution meets ALL of them before declaring done
+
+### Performance
+- Think about data sizes — a 500MB file needs mmap or streaming, not \
+read-into-memory
+- Prefer O(n) over O(n²) — nested loops on large data will timeout
+- Use efficient I/O: binary reads, buffered I/O, memory-mapped files \
+when dealing with large inputs
+- Use built-in/standard library functions over hand-rolled equivalents — \
+they're usually faster and better tested
+- If a program times out, profile or reason about the bottleneck before \
+rewriting — don't guess
+
+### Robustness
+- Handle the actual input format — don't assume CSV when it's TSV, \
+don't assume UTF-8 when it's binary
+- Check return codes and error outputs from commands you run
+- If a compilation or test fails, read the FULL error message and fix \
+the root cause — don't add random flags hoping it works
+
+### Testing Your Code
+- ALWAYS compile and run your code after writing it
+- Test with sample inputs from the task when available
+- If the program crashes or gives wrong output, debug systematically: \
+check inputs, add minimal prints, verify assumptions
+- If a program hangs or times out, it likely has an infinite loop or \
+is processing data too slowly — diagnose which one
+"""
+
 _NON_INTERACTIVE_SECTION = """\
 
 ## Non-Interactive / Benchmark Mode
@@ -229,7 +267,7 @@ def build_cli_instructions(
     Returns:
         Assembled system prompt string.
     """
-    parts: list[str] = [BASE_PROMPT, _CLI_CORE]
+    parts: list[str] = [BASE_PROMPT, _CLI_CORE, _CODE_QUALITY_SECTION]
 
     if non_interactive:
         parts.append(_NON_INTERACTIVE_SECTION)

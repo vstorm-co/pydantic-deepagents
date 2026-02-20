@@ -338,7 +338,9 @@ Instructions for this skill go here.
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
-providers_app = typer.Typer(name="providers", help="Model provider information.", no_args_is_help=True)
+providers_app = typer.Typer(
+    name="providers", help="Model provider information.", no_args_is_help=True
+)
 app.add_typer(providers_app)
 
 
@@ -369,7 +371,7 @@ def providers_list() -> None:
 
     console.print(table)
     console.print(
-        "\n[dim]Usage: pydantic-deep run \"task\" --model provider:model-name[/dim]",
+        '\n[dim]Usage: pydantic-deep run "task" --model provider:model-name[/dim]',
     )
     console.print(
         "[dim]Example: pydantic-deep chat --model openrouter:openai/gpt-5.2-codex[/dim]",
@@ -378,7 +380,9 @@ def providers_list() -> None:
 
 @providers_app.command("check")
 def providers_check(
-    model: Annotated[str, typer.Argument(help="Model string to check (e.g. openrouter:openai/gpt-5)")],
+    model: Annotated[
+        str, typer.Argument(help="Model string to check (e.g. openrouter:openai/gpt-5)")
+    ],
 ) -> None:
     """Check if a model provider is properly configured."""
     from cli.providers import format_provider_error, parse_model_string

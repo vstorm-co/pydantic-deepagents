@@ -45,34 +45,24 @@ class TestLoopDetectionMiddleware:
         return LoopDetectionMiddleware(max_repeats=3, window_size=15)
 
     async def test_allows_first_call(self, middleware: LoopDetectionMiddleware) -> None:
-        result = await middleware.before_tool_call(
-            "execute", {"command": "python test.py"}
-        )
+        result = await middleware.before_tool_call("execute", {"command": "python test.py"})
         assert isinstance(result, dict)
         assert result == {"command": "python test.py"}
 
-    async def test_allows_different_calls(
-        self, middleware: LoopDetectionMiddleware
-    ) -> None:
+    async def test_allows_different_calls(self, middleware: LoopDetectionMiddleware) -> None:
         for i in range(5):
-            result = await middleware.before_tool_call(
-                "execute", {"command": f"python test{i}.py"}
-            )
+            result = await middleware.before_tool_call("execute", {"command": f"python test{i}.py"})
             assert isinstance(result, dict)
 
-    async def test_allows_up_to_max_repeats(
-        self, middleware: LoopDetectionMiddleware
-    ) -> None:
+    async def test_allows_up_to_max_repeats(self, middleware: LoopDetectionMiddleware) -> None:
         args = {"command": "python test.py"}
 
         # First 3 calls should be allowed (max_repeats=3 means 4th is denied)
         for i in range(3):
             result = await middleware.before_tool_call("execute", args)
-            assert isinstance(result, dict), f"Call {i+1} should be allowed"
+            assert isinstance(result, dict), f"Call {i + 1} should be allowed"
 
-    async def test_denies_after_max_repeats(
-        self, middleware: LoopDetectionMiddleware
-    ) -> None:
+    async def test_denies_after_max_repeats(self, middleware: LoopDetectionMiddleware) -> None:
         args = {"command": "python test.py"}
 
         # First 3 calls allowed
@@ -104,9 +94,7 @@ class TestLoopDetectionMiddleware:
             await middleware.before_tool_call("execute", {"command": "python a.py"})
 
         # Same tool, different args should be allowed
-        result = await middleware.before_tool_call(
-            "execute", {"command": "python b.py"}
-        )
+        result = await middleware.before_tool_call("execute", {"command": "python b.py"})
         assert isinstance(result, dict)
 
     async def test_window_size_limits_history(self) -> None:

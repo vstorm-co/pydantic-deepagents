@@ -222,10 +222,7 @@ def format_provider_error(model: str) -> str | None:
     if missing_vars:
         vars_str = ", ".join(missing_vars)
         hint = f"export {missing_vars[0]}=your-key-here" if len(missing_vars) == 1 else ""
-        return (
-            f"Missing environment variable(s) for {info.name}: {vars_str}\n"
-            f"{hint}"
-        ).strip()
+        return (f"Missing environment variable(s) for {info.name}: {vars_str}\n{hint}").strip()
 
     install_cmd = check_provider_extra(provider)
     if install_cmd:

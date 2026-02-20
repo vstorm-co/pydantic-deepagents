@@ -124,9 +124,7 @@ class TestSkillsCreate:
     """Tests for 'skills create' command."""
 
     def test_creates_scaffold(self, tmp_path: Path) -> None:
-        result = runner.invoke(
-            app, ["skills", "create", "my-skill", "--dir", str(tmp_path)]
-        )
+        result = runner.invoke(app, ["skills", "create", "my-skill", "--dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "Created skill scaffold" in result.output
 
@@ -140,9 +138,7 @@ class TestSkillsCreate:
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("existing")
 
-        result = runner.invoke(
-            app, ["skills", "create", "existing", "--dir", str(tmp_path)]
-        )
+        result = runner.invoke(app, ["skills", "create", "existing", "--dir", str(tmp_path)])
         assert result.exit_code == 1
         assert "already exists" in result.output
 
@@ -156,9 +152,7 @@ class TestThreadsList:
     """Tests for 'threads list' command."""
 
     def test_no_threads_dir(self, tmp_path: Path) -> None:
-        result = runner.invoke(
-            app, ["threads", "list", "--dir", str(tmp_path / "nope")]
-        )
+        result = runner.invoke(app, ["threads", "list", "--dir", str(tmp_path / "nope")])
         assert result.exit_code == 0
         assert "No threads found" in result.output
 
@@ -166,9 +160,7 @@ class TestThreadsList:
         threads_dir = tmp_path / "threads"
         threads_dir.mkdir()
 
-        result = runner.invoke(
-            app, ["threads", "list", "--dir", str(threads_dir)]
-        )
+        result = runner.invoke(app, ["threads", "list", "--dir", str(threads_dir)])
         assert result.exit_code == 0
         assert "No threads found" in result.output
 
@@ -189,9 +181,7 @@ class TestThreadsList:
         )
         asyncio.run(store.save(cp))
 
-        result = runner.invoke(
-            app, ["threads", "list", "--dir", str(threads_dir)]
-        )
+        result = runner.invoke(app, ["threads", "list", "--dir", str(threads_dir)])
         assert result.exit_code == 0
         assert "abc12345" in result.output
         assert "test-thread" in result.output
@@ -215,9 +205,7 @@ class TestThreadsDelete:
         threads_dir = tmp_path / "threads"
         threads_dir.mkdir()
 
-        result = runner.invoke(
-            app, ["threads", "delete", "nonexistent", "--dir", str(threads_dir)]
-        )
+        result = runner.invoke(app, ["threads", "delete", "nonexistent", "--dir", str(threads_dir)])
         assert result.exit_code == 1
         assert "not found" in result.output
 
@@ -238,9 +226,7 @@ class TestThreadsDelete:
         )
         asyncio.run(store.save(cp))
 
-        result = runner.invoke(
-            app, ["threads", "delete", "abc12345", "--dir", str(threads_dir)]
-        )
+        result = runner.invoke(app, ["threads", "delete", "abc12345", "--dir", str(threads_dir)])
         assert result.exit_code == 0
         assert "Deleted" in result.output
 
@@ -265,9 +251,7 @@ class TestSandboxFlags:
     @patch("cli.main.asyncio.run")
     def test_run_with_sandbox_and_runtime(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = 0
-        result = runner.invoke(
-            app, ["run", "test", "--sandbox", "--runtime", "python-datascience"]
-        )
+        result = runner.invoke(app, ["run", "test", "--sandbox", "--runtime", "python-datascience"])
         assert result.exit_code == 0
 
     @patch("cli.main.asyncio.run")
@@ -279,7 +263,5 @@ class TestSandboxFlags:
     @patch("cli.main.asyncio.run")
     def test_chat_with_runtime(self, mock_asyncio_run: MagicMock) -> None:
         mock_asyncio_run.return_value = None
-        result = runner.invoke(
-            app, ["chat", "--sandbox", "--runtime", "node-minimal"]
-        )
+        result = runner.invoke(app, ["chat", "--sandbox", "--runtime", "node-minimal"])
         assert result.exit_code == 0

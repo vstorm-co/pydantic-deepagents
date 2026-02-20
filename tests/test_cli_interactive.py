@@ -110,9 +110,7 @@ class TestHandleCommand:
 
     @patch("cli.interactive._print_todos")
     @patch("cli.interactive.console")
-    def test_todos_command(
-        self, _mock_console: MagicMock, mock_print_todos: MagicMock
-    ) -> None:
+    def test_todos_command(self, _mock_console: MagicMock, mock_print_todos: MagicMock) -> None:
         deps = MagicMock()
         should_break, _ = _handle_command("/todos", deps, [])
         assert should_break is False
@@ -141,9 +139,7 @@ class TestHandleCommand:
     @patch("cli.interactive.console")
     def test_cost_command_with_data(self, mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command(
-            "/cost", deps, [], cumulative_cost=0.0456
-        )
+        should_break, _ = _handle_command("/cost", deps, [], cumulative_cost=0.0456)
         assert should_break is False
         calls = [str(c) for c in mock_console.print.call_args_list]
         assert any("0.0456" in c for c in calls)
@@ -171,9 +167,7 @@ class TestPrintModelError:
 
     @patch("cli.interactive.print_error")
     @patch("cli.interactive.console")
-    def test_non_api_key_error(
-        self, _mock_console: MagicMock, mock_print_error: MagicMock
-    ) -> None:
+    def test_non_api_key_error(self, _mock_console: MagicMock, mock_print_error: MagicMock) -> None:
         from cli.interactive import _print_model_error
 
         _print_model_error(RuntimeError("Connection timeout"))

@@ -170,8 +170,12 @@ class TestCoerceValue:
 
     def test_all_bool_fields(self) -> None:
         bool_fields = [
-            "include_skills", "include_plan", "include_memory",
-            "include_checkpoints", "include_subagents", "include_todo",
+            "include_skills",
+            "include_plan",
+            "include_memory",
+            "include_checkpoints",
+            "include_subagents",
+            "include_todo",
             "context_discovery",
         ]
         for field in bool_fields:

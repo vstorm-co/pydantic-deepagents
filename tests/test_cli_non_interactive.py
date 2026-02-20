@@ -43,9 +43,7 @@ class TestRunNonInteractive:
     """Tests for run_non_interactive()."""
 
     @patch("cli.non_interactive.create_cli_agent")
-    async def test_returns_zero_on_success(
-        self, mock_create: MagicMock, tmp_path: Path
-    ) -> None:
+    async def test_returns_zero_on_success(self, mock_create: MagicMock, tmp_path: Path) -> None:
         mock_agent = AsyncMock()
         mock_result = MagicMock()
         mock_result.output = "Task completed successfully"
@@ -92,9 +90,7 @@ class TestRunNonInteractive:
         assert "Done" in captured.out
 
     @patch("cli.non_interactive.create_cli_agent")
-    async def test_passes_shell_allow_list(
-        self, mock_create: MagicMock, tmp_path: Path
-    ) -> None:
+    async def test_passes_shell_allow_list(self, mock_create: MagicMock, tmp_path: Path) -> None:
         mock_agent = AsyncMock()
         mock_result = MagicMock()
         mock_result.output = "OK"
@@ -251,9 +247,7 @@ class TestRunNonInteractive:
         callback(cost_info)  # Should not raise
 
     @patch("cli.non_interactive.create_cli_agent")
-    async def test_cost_callback_no_run_cost(
-        self, mock_create: MagicMock, tmp_path: Path
-    ) -> None:
+    async def test_cost_callback_no_run_cost(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """Cost callback handles missing run_cost_usd."""
         mock_agent = AsyncMock()
         mock_result = MagicMock()

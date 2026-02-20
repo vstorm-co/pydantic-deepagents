@@ -122,9 +122,7 @@ class TestFormatToolCall:
         assert "arg1=val1" in result
 
     def test_generic_truncates_many_args(self) -> None:
-        result = format_tool_call(
-            "tool", {"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}
-        )
+        result = format_tool_call("tool", {"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"})
         assert "..." in result
 
 

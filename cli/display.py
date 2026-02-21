@@ -7,6 +7,7 @@ token formatting, and Rich Markdown rendering with automatic TTY detection.
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from rich.console import Console, ConsoleOptions, RenderResult
 from rich.markdown import CodeBlock, Markdown
@@ -14,7 +15,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
 
-from cli.theme import get_theme
+from cli.theme import get_glyphs, get_theme
 
 
 class SimpleCodeBlock(CodeBlock):
@@ -54,41 +55,61 @@ def _get_git_branch() -> str | None:
     return None
 
 
+def _abbreviate_home(path_str: str) -> str:
+    """Replace the home directory prefix with ~."""
+    try:
+        home = str(Path.home())
+        if path_str.startswith(home):
+            return "~" + path_str[len(home) :]
+    except Exception:  # pragma: no cover
+        pass
+    return path_str
+
+
 def print_welcome_banner(
     console: Console,
     *,
     model: str | None = None,
     working_dir: str | None = None,
 ) -> None:
-    """Print a Rich Panel welcome banner with version, model, and context info."""
+    """Print a styled welcome banner with version, model, and context info."""
     from pydantic_deep import __version__
 
     theme = get_theme()
+    glyphs = get_glyphs()
 
     lines: list[str] = []
     lines.append(
-        f"[bold {theme.primary}]pydantic-deep[/bold {theme.primary}] [dim]v{__version__}[/dim]"
+        f"[bold {theme.primary}]pydantic-deep[/bold {theme.primary}] "
+        f"[{theme.muted}]v{__version__}[/{theme.muted}]"
     )
+    lines.append("")
 
     if model:
-        lines.append(f"[dim]Model:[/dim] {model}")
+        lines.append(f"[{theme.muted}]Model[/{theme.muted}]   {model}")
 
     if working_dir:
-        lines.append(f"[dim]Dir:[/dim]   {working_dir}")
+        display_dir = _abbreviate_home(working_dir)
+        lines.append(f"[{theme.muted}]Dir[/{theme.muted}]     {display_dir}")
 
     branch = _get_git_branch()
     if branch:
-        lines.append(f"[dim]Git:[/dim]   {branch}")
+        lines.append(f"[{theme.muted}]Git[/{theme.muted}]     {branch}")
 
     lines.append("")
-    lines.append("[dim]Commands: /help /quit /clear /compact /todos /cost /save /load[/dim]")
+    lines.append(f"[{theme.primary}]Ready! What would you like to build?[/{theme.primary}]")
+    lines.append(
+        f"[{theme.muted}]Enter send {glyphs.bullet} "
+        f"/help commands {glyphs.bullet} "
+        f"@files[/{theme.muted}]"
+    )
 
     console.print()
     console.print(
         Panel(
             "\n".join(lines),
             border_style=theme.primary,
-            padding=(0, 1),
+            padding=(1, 2),
         )
     )
     console.print()
@@ -105,7 +126,7 @@ def render_markdown(console: Console, text: str) -> None:
 
 
 def format_tokens(n: int) -> str:
-    """Format token count with K suffix: 500 → "500", 1200 → "1.2K", 150000 → "150K"."""
+    """Format token count with K suffix: 500 -> "500", 1200 -> "1.2K", 150000 -> "150K"."""
     if n < 1000:
         return str(n)
     k = n / 1000
@@ -135,7 +156,7 @@ def format_cost_line(
         parts.append(f"{format_tokens(tokens)} tokens")
     if not parts:
         return ""
-    return "[dim]  " + " · ".join(parts) + "[/dim]"
+    return "[dim]  " + " \u00b7 ".join(parts) + "[/dim]"
 
 
 def print_error(

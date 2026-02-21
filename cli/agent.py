@@ -68,13 +68,14 @@ def create_cli_agent(
     non_interactive: bool = False,
     config_path: Path | None = None,
     model_settings: dict[str, Any] | None = None,
+    session_id: str | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
     Configuration precedence: explicit arguments > config file > defaults.
 
     Args:
-        model: Model to use. Falls back to config, then ``"openai:gpt-4.1"``.
+        model: Model to use. Falls back to config, then ``"openrouter:openai/gpt-4.1"``.
         working_dir: Filesystem root directory. Defaults to cwd.
         shell_allow_list: Allowed shell command prefixes. None = all allowed.
         on_cost_update: Callback for cost updates.
@@ -87,8 +88,9 @@ def create_cli_agent(
         include_checkpoints: Whether to include conversation checkpointing.
         include_subagents: Whether to include the subagent toolset.
         include_todo: Whether to include the todo toolset.
-        context_discovery: Whether to auto-discover context files (DEEP.md, CLAUDE.md, etc.).
+        context_discovery: Whether to auto-discover context files (AGENT.md).
         config_path: Override config file path (for testing).
+        session_id: Session identifier for per-session plans storage.
 
     Returns:
         Tuple of (agent, deps) ready for agent.run().
@@ -102,16 +104,15 @@ def create_cli_agent(
     effective_working_dir = working_dir or config.working_dir
     effective_allow_list = shell_allow_list or config.shell_allow_list or None
 
-    # Validate provider configuration
+    # Warn (but don't block) if provider env vars are missing
     from cli.providers import format_provider_error
 
     provider_error = format_provider_error(effective_model)
     if provider_error:
         import sys
 
-        print(f"Error: {provider_error}", file=sys.stderr)
+        print(f"Warning: {provider_error}", file=sys.stderr)
         print("Run 'pydantic-deep providers list' to see all providers.", file=sys.stderr)
-        raise SystemExit(2)
 
     root = Path(effective_working_dir) if effective_working_dir else Path.cwd()
     effective_backend = backend or LocalBackend(root_dir=root)
@@ -149,12 +150,12 @@ def create_cli_agent(
 
     local_context = LocalContextToolset(root_dir=root)
 
-    # Built-in skills directory (SKILL.md files shipped with the package)
+    # Skills directory — use .pydantic-deep/skills/ (populated by init)
     skill_dirs: list[str] = []
     if include_skills:
-        builtin_skills_dir = Path(__file__).parent / "skills"
-        if builtin_skills_dir.is_dir():
-            skill_dirs.append(str(builtin_skills_dir))
+        project_skills_dir = root / ".pydantic-deep" / "skills"
+        if project_skills_dir.is_dir():
+            skill_dirs.append(str(project_skills_dir))
 
     # In non-interactive mode: no approval needed, disable features that add
     # noise (memory, checkpoints, skills, plan, subagents) — single-shot tasks
@@ -193,6 +194,22 @@ def create_cli_agent(
     if model_settings:
         effective_model_settings.update(model_settings)
 
+    # Per-session plans directory (relative to backend root)
+    if session_id:
+        plans_dir = f".pydantic-deep/sessions/{session_id}/plans"
+    else:
+        plans_dir = ".pydantic-deep/plans"
+
+    # Checkpoint store — per-session FileCheckpointStore for persistent sessions
+    cp_store = None
+    if effective_checkpoints and session_id:
+        from cli.config import get_sessions_dir
+        from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
+
+        session_dir = get_sessions_dir() / session_id
+        session_dir.mkdir(parents=True, exist_ok=True)
+        cp_store = FileCheckpointStore(session_dir)
+
     agent = create_deep_agent(
         model=effective_model,
         instructions=instructions,
@@ -206,16 +223,20 @@ def create_cli_agent(
         # Planning & task management
         include_todo=include_todo,
         include_plan=effective_plan,
+        plans_dir=plans_dir,
         # Delegation
         include_subagents=effective_subagents,
         include_general_purpose_subagent=effective_subagents,
         # Skills
         include_skills=effective_skills,
-        # Memory
+        # Memory (store in .pydantic-deep/main/MEMORY.md)
         include_memory=effective_memory,
-        # Checkpointing
+        memory_dir=".pydantic-deep",
+        # Checkpointing — auto-save every turn to session directory
         include_checkpoints=effective_checkpoints,
-        # Context files (auto-discover DEEP.md, CLAUDE.md, AGENTS.md, SOUL.md)
+        checkpoint_store=cp_store,
+        checkpoint_frequency="every_turn",
+        # Context files (auto-discover AGENT.md)
         context_discovery=context_discovery,
         # Teams (not needed for CLI single-agent use)
         include_teams=False,
@@ -236,7 +257,7 @@ def create_cli_agent(
         toolsets=[local_context],
     )
 
-    deps = DeepAgentDeps(backend=effective_backend)
+    deps = DeepAgentDeps(backend=effective_backend, checkpoint_store=cp_store)
     return agent, deps
 
 

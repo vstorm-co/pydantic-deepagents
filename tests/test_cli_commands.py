@@ -43,14 +43,14 @@ class TestConfigSet:
 
     def test_sets_value(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
-        with patch("cli.config.DEFAULT_CONFIG_PATH", config_file):
+        with patch("cli.config.get_config_path", return_value=config_file):
             result = runner.invoke(app, ["config", "set", "model", "new-model"])
         assert result.exit_code == 0
         assert "Set model = new-model" in result.output
 
     def test_invalid_key(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
-        with patch("cli.config.DEFAULT_CONFIG_PATH", config_file):
+        with patch("cli.config.get_config_path", return_value=config_file):
             result = runner.invoke(app, ["config", "set", "bad_key", "value"])
         assert result.exit_code == 1
 
@@ -107,7 +107,7 @@ class TestSkillsInfo:
     def test_shows_builtin_skill(self) -> None:
         result = runner.invoke(app, ["skills", "info", "code-review"])
         assert result.exit_code == 0
-        assert "Name: code-review" in result.output
+        assert "code-review" in result.output
         assert "Description:" in result.output
 
     def test_shows_skill_content(self) -> None:
@@ -170,10 +170,13 @@ class TestThreadsList:
 
         from pydantic_deep.toolsets.checkpointing import Checkpoint, FileCheckpointStore
 
-        store = FileCheckpointStore(threads_dir)
+        # Create a session subdirectory with a checkpoint
+        session_dir = threads_dir / "abc12345abcd"
+        session_dir.mkdir()
+        store = FileCheckpointStore(session_dir)
         cp = Checkpoint(
-            id="abc12345-1234-1234-1234-123456789012",
-            label="test-thread",
+            id="cp-001",
+            label="turn-1",
             turn=1,
             messages=[],
             message_count=5,
@@ -184,7 +187,6 @@ class TestThreadsList:
         result = runner.invoke(app, ["threads", "list", "--dir", str(threads_dir)])
         assert result.exit_code == 0
         assert "abc12345" in result.output
-        assert "test-thread" in result.output
 
     def test_threads_help(self) -> None:
         result = runner.invoke(app, ["threads", "--help"])
@@ -215,10 +217,13 @@ class TestThreadsDelete:
 
         from pydantic_deep.toolsets.checkpointing import Checkpoint, FileCheckpointStore
 
-        store = FileCheckpointStore(threads_dir)
+        # Create a session subdirectory with a checkpoint
+        session_dir = threads_dir / "abc12345abcd"
+        session_dir.mkdir()
+        store = FileCheckpointStore(session_dir)
         cp = Checkpoint(
-            id="abc12345-1234-1234-1234-123456789012",
-            label="my-thread",
+            id="cp-001",
+            label="turn-1",
             turn=1,
             messages=[],
             message_count=3,
@@ -230,8 +235,8 @@ class TestThreadsDelete:
         assert result.exit_code == 0
         assert "Deleted" in result.output
 
-        remaining = asyncio.run(store.list_all())
-        assert len(remaining) == 0
+        # Session directory should be removed
+        assert not session_dir.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -242,26 +247,32 @@ class TestThreadsDelete:
 class TestSandboxFlags:
     """Tests for --sandbox and --runtime flags on run/chat."""
 
+    @patch("cli.init.ensure_initialized", return_value=Path("/tmp"))
     @patch("cli.main.asyncio.run")
-    def test_run_with_sandbox(self, mock_asyncio_run: MagicMock) -> None:
+    def test_run_with_sandbox(self, mock_asyncio_run: MagicMock, _: MagicMock) -> None:
         mock_asyncio_run.return_value = 0
         result = runner.invoke(app, ["run", "test", "--sandbox"])
         assert result.exit_code == 0
 
+    @patch("cli.init.ensure_initialized", return_value=Path("/tmp"))
     @patch("cli.main.asyncio.run")
-    def test_run_with_sandbox_and_runtime(self, mock_asyncio_run: MagicMock) -> None:
+    def test_run_with_sandbox_and_runtime(
+        self, mock_asyncio_run: MagicMock, _: MagicMock
+    ) -> None:
         mock_asyncio_run.return_value = 0
         result = runner.invoke(app, ["run", "test", "--sandbox", "--runtime", "python-datascience"])
         assert result.exit_code == 0
 
+    @patch("cli.init.ensure_initialized", return_value=Path("/tmp"))
     @patch("cli.main.asyncio.run")
-    def test_chat_with_sandbox(self, mock_asyncio_run: MagicMock) -> None:
+    def test_chat_with_sandbox(self, mock_asyncio_run: MagicMock, _: MagicMock) -> None:
         mock_asyncio_run.return_value = None
         result = runner.invoke(app, ["chat", "--sandbox"])
         assert result.exit_code == 0
 
+    @patch("cli.init.ensure_initialized", return_value=Path("/tmp"))
     @patch("cli.main.asyncio.run")
-    def test_chat_with_runtime(self, mock_asyncio_run: MagicMock) -> None:
+    def test_chat_with_runtime(self, mock_asyncio_run: MagicMock, _: MagicMock) -> None:
         mock_asyncio_run.return_value = None
         result = runner.invoke(app, ["chat", "--sandbox", "--runtime", "node-minimal"])
         assert result.exit_code == 0

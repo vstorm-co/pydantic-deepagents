@@ -52,12 +52,25 @@ Use `ask_user` when you need to:
 - Get user preferences on technical decisions
 - Confirm assumptions about the codebase
 
-Guidelines:
-- Provide 2-4 clear options per question
+CRITICAL guidelines for `ask_user`:
+- You MUST ALWAYS provide 2-4 options with `label` and `description` keys
+- NEVER pass an empty options list — always suggest the most likely answers
 - Mark one option as `"recommended": "true"` when you have a preference
-- Include a brief description for each option explaining trade-offs
+- Even for open-ended questions, provide concrete suggestions as options
 - Ask the most important questions first
 - You can ask multiple questions sequentially
+
+Example call:
+```
+ask_user(
+    question="Which auth method should we use?",
+    options=[
+        {"label": "JWT", "description": "Stateless, good for APIs", "recommended": "true"},
+        {"label": "Session-based", "description": "Traditional, server-side state"},
+        {"label": "OAuth2", "description": "Third-party auth providers"}
+    ]
+)
+```
 
 ## Plan Format
 
@@ -134,11 +147,25 @@ def create_plan_toolset(
 
         Use this to clarify requirements, choose between approaches, or get
         user preferences during planning. The user sees your question with
-        clickable option buttons and can also type a custom answer.
+        selectable options in an interactive picker.
+
+        IMPORTANT: You MUST always provide 2-4 concrete options. Never pass
+        an empty options list. Even for open-ended questions, suggest the most
+        likely answers as options — the user can always type a custom answer.
+
+        Example:
+            ask_user(
+                question="Which database should we use?",
+                options=[
+                    {"label": "PostgreSQL", "description": "Best for relational data", "recommended": "true"},
+                    {"label": "MongoDB", "description": "Flexible schema, good for documents"},
+                    {"label": "SQLite", "description": "Simple, no server needed"},
+                ]
+            )
 
         Args:
             question: The question to ask. Be specific and concise.
-            options: List of answer options. Each option should have:
+            options: REQUIRED list of 2-4 answer options. Each option MUST have:
                 - 'label': Short option text (1-5 words)
                 - 'description': What this option means or implies
                 - 'recommended': Set to 'true' to highlight as recommended (optional)

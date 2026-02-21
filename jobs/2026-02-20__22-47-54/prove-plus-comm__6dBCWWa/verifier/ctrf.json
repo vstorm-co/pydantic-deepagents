@@ -1,0 +1,65 @@
+{
+    "results": {
+        "tool": {
+            "name": "pytest",
+            "version": "8.4.1"
+        },
+        "summary": {
+            "tests": 4,
+            "passed": 1,
+            "failed": 3,
+            "skipped": 0,
+            "pending": 0,
+            "other": 0,
+            "start": 1771624139.7401361,
+            "stop": 1771624143.343149
+        },
+        "tests": [
+            {
+                "name": "test_outputs.py::test_proof_file_exists",
+                "status": "passed",
+                "duration": 0.0009560420148773119,
+                "start": 1771624139.855098,
+                "stop": 1771624139.8582222,
+                "retries": 0,
+                "file_path": "test_outputs.py"
+            },
+            {
+                "name": "test_outputs.py::test_compiled_proof_exists",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0034160829964093864,
+                "start": 1771624139.85857,
+                "stop": 1771624139.8767126,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_compiled_proof_exists():\n>       assert os.path.exists(\"plus_comm.vo\"), (\n            \"The compiled proof file plus_comm.vo should exist\"\n        )\nE       AssertionError: The compiled proof file plus_comm.vo should exist\nE       assert False\nE        +  where False = <function exists at 0x7fffff1e3240>('plus_comm.vo')\nE        +    where <function exists at 0x7fffff1e3240> = <module 'posixpath' (frozen)>.exists\nE        +      where <module 'posixpath' (frozen)> = os.path\n\n/tests/test_outputs.py:12: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_proof_contents",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 0.0005827080021845177,
+                "start": 1771624139.8769825,
+                "stop": 1771624139.8789601,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_proof_contents():\n        with open(\"plus_comm.v\", \"r\") as f:\n            content = f.read()\n            assert \"n + m = m + n\" in content, (\n                \"The file should contain the plus_comm theorem\"\n            )\n            assert \"Proof.\" in content, \"The file should contain a proof\"\n            assert \"Qed.\" in content, \"The proof should be completed with Qed\"\n>           assert \"admit\" not in content, \"The proof should not contain any admits\"\nE           AssertionError: The proof should not contain any admits\nE           assert 'admit' not in 'Require Imp...dmit.\\nQed. '\nE             \nE             'admit' is contained here:\nE               se *)\nE                   admit.\nE                 - simpl.\nE                   (* Need to use the inductive hypothesis and plus_n_Sm *)\nE                   admit.\nE               Qed.\n\n/tests/test_outputs.py:25: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            },
+            {
+                "name": "test_outputs.py::test_compiled_proof_content",
+                "status": "failed",
+                "raw_status": "call_failed",
+                "duration": 3.4534644179948373,
+                "start": 1771624139.879176,
+                "stop": 1771624143.340934,
+                "retries": 0,
+                "file_path": "test_outputs.py",
+                "trace": "def test_compiled_proof_content():\n        # First verify the proof compiles without errors\n        compile_result = subprocess.run(\n            [\"coqc\", \"plus_comm.v\"],\n            capture_output=True,\n            text=True,\n        )\n>       assert compile_result.returncode == 0, \"Proof should compile without errors\"\nE       AssertionError: Proof should compile without errors\nE       assert 1 == 0\nE        +  where 1 = CompletedProcess(args=['coqc', 'plus_comm.v'], returncode=1, stdout='', stderr='File \"./plus_comm.v\", line 14, charact...ttempt to save a proof with given up goals. If\\nthis is really what you want to do, use Admitted in place of Qed.\\n\\n').returncode\n\n/tests/test_outputs.py:35: AssertionError",
+                "message": "The test failed in the call phase due to an assertion error"
+            }
+        ]
+    }
+}

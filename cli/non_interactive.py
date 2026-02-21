@@ -116,11 +116,14 @@ async def run_non_interactive(
     Returns:
         Exit code: 0 for success, 1 for error, 2 for API key error, 130 for interrupt.
     """
+    import uuid
+
     theme = get_theme()
     glyphs = get_glyphs()
     err_console = Console(stderr=True)
     out_console = Console()
     effective_quiet = quiet and not verbose
+    session_id = uuid.uuid4().hex[:12]
 
     _print_diagnostics(err_console, model, working_dir, sandbox, runtime, effective_quiet)
 
@@ -153,6 +156,7 @@ async def run_non_interactive(
             backend=backend,
             non_interactive=True,
             model_settings=model_settings,
+            session_id=session_id,
         )
 
         show_tools = not effective_quiet or verbose
@@ -169,7 +173,8 @@ async def run_non_interactive(
         else:
             if not effective_quiet:
                 spinner = err_console.status(
-                    f"[dim]{glyphs.lightning} Running...[/dim]", spinner="dots"
+                    f"[{theme.warning}]{glyphs.tool_prefix} Running...[/{theme.warning}]",
+                    spinner="dots",
                 )
                 spinner.start()
             try:
@@ -192,7 +197,11 @@ async def run_non_interactive(
         err_console.print(f"\n[{theme.warning}]Interrupted[/{theme.warning}]")
         return 130
     except Exception as e:
+        import traceback
+
         _print_api_error(e, err_console)
+        if not _is_api_key_error(e):
+            err_console.print(f"[dim]{traceback.format_exc()}[/dim]")
         return 2 if _is_api_key_error(e) else 1
     finally:
         if sandbox_instance is not None:

@@ -1,13 +1,15 @@
 """Smart tool call formatting for the CLI.
 
 Provides compact, readable one-liners for each tool type instead of raw
-argument dumps. Includes tool result summaries.
+argument dumps. Includes tool result previews with actual content.
 """
 
 from __future__ import annotations
 
 import os
 from typing import Any
+
+from rich.markup import escape
 
 from cli.theme import Glyphs, get_glyphs, get_theme
 
@@ -130,6 +132,35 @@ def _fmt_ask_user(args: dict[str, Any]) -> str:
     return f'ask_user("{question}")'
 
 
+# Subagent tool names — map "task" to friendlier labels
+_SUBAGENT_LABELS: dict[str, str] = {
+    "planner": "Plan Agent",
+    "general_purpose": "Research Agent",
+    "general-purpose": "Research Agent",
+}
+
+
+@_register("task")
+def _fmt_task(args: dict[str, Any]) -> str:
+    subagent = str(args.get("subagent_type", ""))
+    desc = _truncate(str(args.get("description", "")), 60)
+    label = _SUBAGENT_LABELS.get(subagent, subagent or "subagent")
+    if desc:
+        return f'{label}("{desc}")'
+    return label
+
+
+@_register("check_task")
+def _fmt_check_task(args: dict[str, Any]) -> str:
+    task_id = args.get("task_id", "")
+    return f"check_task({task_id})"
+
+
+@_register("list_active_tasks")
+def _fmt_list_active_tasks(args: dict[str, Any]) -> str:
+    return "list_active_tasks()"
+
+
 def format_tool_call(tool_name: str, args: dict[str, Any]) -> str:
     """Format a tool call as a compact one-liner.
 
@@ -150,7 +181,10 @@ def format_tool_call(tool_name: str, args: dict[str, Any]) -> str:
 
 
 def format_tool_result(tool_name: str, result_content: Any) -> str:
-    """Format a tool result as a compact summary line."""
+    """Format a tool result as a compact summary line.
+
+    Returns a plain-text summary (no Rich markup).
+    """
     raw = str(result_content)
     flat = raw.replace("\n", " ")
 
@@ -175,6 +209,96 @@ def format_tool_result(tool_name: str, result_content: Any) -> str:
     return _truncate(flat, 60)
 
 
+# ---------------------------------------------------------------------------
+# Content preview formatters (used by render_tool_result)
+# ---------------------------------------------------------------------------
+
+_PREVIEW_LINES = 6
+_PREVIEW_CHARS = 400
+
+
+def _preview_head(raw: str, max_lines: int = _PREVIEW_LINES) -> str:
+    """Show first N lines of text with truncation marker."""
+    lines = raw.splitlines()
+    if not lines:
+        return "(empty)"
+    if len(lines) <= max_lines:
+        return "\n".join(lines)
+    shown = lines[:max_lines]
+    remaining = len(lines) - max_lines
+    glyphs = get_glyphs()
+    shown.append(f"{glyphs.ellipsis} ({remaining} more lines)")
+    return "\n".join(shown)
+
+
+def _preview_read_file(raw: str) -> str:
+    return _preview_head(raw)
+
+
+def _preview_execute(raw: str) -> str:
+    return _preview_head(raw)
+
+
+def _preview_search(raw: str) -> str:
+    """Preview grep/glob results."""
+    lines = raw.splitlines()
+    if not lines or not raw.strip():
+        return "(no matches)"
+    if len(lines) <= _PREVIEW_LINES:
+        return "\n".join(lines)
+    shown = lines[:_PREVIEW_LINES]
+    remaining = len(lines) - _PREVIEW_LINES
+    glyphs = get_glyphs()
+    shown.append(f"{glyphs.ellipsis} ({remaining} more)")
+    return "\n".join(shown)
+
+
+def _preview_write(raw: str) -> str:
+    lines = raw.count("\n") + 1 if raw.strip() else 0
+    if lines:
+        return f"(written, {lines} lines)"
+    return "done"
+
+
+def _preview_ls(raw: str) -> str:
+    return _preview_head(raw)
+
+
+def _preview_generic(raw: str) -> str:
+    if not raw.strip():
+        return "(empty)"
+    if len(raw) > _PREVIEW_CHARS:
+        glyphs = get_glyphs()
+        return raw[:_PREVIEW_CHARS] + glyphs.ellipsis
+    return _preview_head(raw)
+
+
+_PREVIEW_MAP: dict[str, Any] = {
+    "read_file": _preview_read_file,
+    "execute": _preview_execute,
+    "grep": _preview_search,
+    "glob": _preview_search,
+    "write_file": _preview_write,
+    "edit_file": _preview_write,
+    "ls": _preview_ls,
+    "write_todos": lambda _: "updated",
+    "read_todos": _preview_generic,
+}
+
+
+def _format_result_preview(tool_name: str, raw: str) -> str:
+    """Format tool result as a content preview."""
+    if not raw.strip():
+        return "(empty)"
+    formatter = _PREVIEW_MAP.get(tool_name, _preview_generic)
+    return formatter(raw)
+
+
+# ---------------------------------------------------------------------------
+# Rich-rendered output (used by interactive/non-interactive display)
+# ---------------------------------------------------------------------------
+
+
 def render_tool_call(
     tool_name: str,
     args: dict[str, Any],
@@ -188,7 +312,7 @@ def render_tool_call(
         glyphs = get_glyphs()
     theme = get_theme()
     formatted = format_tool_call(tool_name, args)
-    return f"  [{theme.warning}]{glyphs.tool} {formatted}[/{theme.warning}]"
+    return f"[bold {theme.warning}]{glyphs.tool_prefix} {formatted}[/bold {theme.warning}]"
 
 
 def render_tool_result(
@@ -196,14 +320,31 @@ def render_tool_result(
     result_content: Any,
     glyphs: Glyphs | None = None,
 ) -> str:
-    """Render a tool result summary line.
+    """Render a tool result with content preview.
 
+    Shows actual output (first few lines) with the output_prefix glyph.
     Returns a Rich markup string ready for console.print().
     """
     if glyphs is None:
         glyphs = get_glyphs()
-    summary = format_tool_result(tool_name, result_content)
-    return f"    [dim]{glyphs.arrow} {summary}[/dim]"
+    theme = get_theme()
+
+    raw = str(result_content)
+    preview = _format_result_preview(tool_name, raw)
+    lines = preview.splitlines()
+
+    if not lines:
+        return ""
+
+    parts: list[str] = []
+    # First line gets the output_prefix glyph (⎿)
+    first = escape(lines[0])
+    parts.append(f"[{theme.muted}]{glyphs.output_prefix} {first}[/{theme.muted}]")
+    # Continuation lines indented to align with first line content
+    for line in lines[1:]:
+        parts.append(f"[{theme.muted}]  {escape(line)}[/{theme.muted}]")
+
+    return "\n".join(parts)
 
 
 def render_write_preview(content: str, language: str = "", max_lines: int = 20) -> str:

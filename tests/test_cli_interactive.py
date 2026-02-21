@@ -54,7 +54,8 @@ class TestPrintTodos:
         deps = MagicMock()
         deps.todos = []
         _print_todos(deps)
-        mock_console.print.assert_called_once_with("[dim]No TODOs[/dim]")
+        # Empty list should not print anything
+        mock_console.print.assert_not_called()
 
     @patch("cli.interactive.console")
     def test_completed_todo(self, mock_console: MagicMock) -> None:
@@ -86,68 +87,68 @@ class TestHandleCommand:
     """Tests for _handle_command()."""
 
     @patch("cli.interactive.console")
-    def test_quit_command(self, _mock_console: MagicMock) -> None:
+    async def test_quit_command(self, _mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/quit", deps, [])
+        should_break, _ = await _handle_command("/quit", deps, [])
         assert should_break is True
 
     @patch("cli.interactive.console")
-    def test_exit_command(self, _mock_console: MagicMock) -> None:
+    async def test_exit_command(self, _mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/exit", deps, [])
+        should_break, _ = await _handle_command("/exit", deps, [])
         assert should_break is True
 
     @patch("cli.interactive.console")
-    def test_clear_command(self, _mock_console: MagicMock) -> None:
+    async def test_clear_command(self, _mock_console: MagicMock) -> None:
         deps = MagicMock()
         deps.todos = [Todo(content="test", status="pending", active_form="Testing")]
         history: list[ModelMessage] = [MagicMock()]
 
-        should_break, new_history = _handle_command("/clear", deps, history)
+        should_break, new_history = await _handle_command("/clear", deps, history)
         assert should_break is False
         assert new_history == []
         assert deps.todos == []
 
     @patch("cli.interactive._print_todos")
     @patch("cli.interactive.console")
-    def test_todos_command(self, _mock_console: MagicMock, mock_print_todos: MagicMock) -> None:
+    async def test_todos_command(self, _mock_console: MagicMock, mock_print_todos: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/todos", deps, [])
+        should_break, _ = await _handle_command("/todos", deps, [])
         assert should_break is False
         mock_print_todos.assert_called_once_with(deps)
 
     @patch("cli.interactive.console")
-    def test_unknown_command(self, _mock_console: MagicMock) -> None:
+    async def test_unknown_command(self, _mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/unknown", deps, [])
+        should_break, _ = await _handle_command("/unknown", deps, [])
         assert should_break is False
 
     @patch("cli.interactive.console")
-    def test_case_insensitive(self, _mock_console: MagicMock) -> None:
+    async def test_case_insensitive(self, _mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/QUIT", deps, [])
+        should_break, _ = await _handle_command("/QUIT", deps, [])
         assert should_break is True
 
     @patch("cli.interactive.console")
-    def test_cost_command_no_data(self, mock_console: MagicMock) -> None:
+    async def test_cost_command_no_data(self, mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/cost", deps, [])
+        should_break, _ = await _handle_command("/cost", deps, [])
         assert should_break is False
         calls = [str(c) for c in mock_console.print.call_args_list]
         assert any("No cost data" in c for c in calls)
 
     @patch("cli.interactive.console")
-    def test_cost_command_with_data(self, mock_console: MagicMock) -> None:
+    async def test_cost_command_with_data(self, mock_console: MagicMock) -> None:
         deps = MagicMock()
-        should_break, _ = _handle_command("/cost", deps, [], cumulative_cost=0.0456)
+        should_break, _ = await _handle_command("/cost", deps, [], cumulative_cost=0.0456)
         assert should_break is False
         calls = [str(c) for c in mock_console.print.call_args_list]
         assert any("0.0456" in c for c in calls)
 
     @patch("cli.interactive.console")
-    def test_help_shows_cost_command(self, mock_console: MagicMock) -> None:
+    async def test_help_shows_cost_command(self, mock_console: MagicMock) -> None:
         deps = MagicMock()
-        _handle_command("/help", deps, [])
+        await _handle_command("/help", deps, [])
         calls = [str(c) for c in mock_console.print.call_args_list]
         assert any("/cost" in c for c in calls)
 
@@ -395,6 +396,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.return_value = "/quit"
@@ -416,6 +418,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.side_effect = ["", "/quit"]
@@ -437,6 +440,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_stream.return_value = []
@@ -460,6 +464,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = [Todo(content="test task", status="pending", active_form="Testing")]
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_stream.return_value = []
@@ -483,13 +488,14 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.side_effect = [KeyboardInterrupt(), "/quit"]
         await run_interactive()
         # Should print interrupted message
         calls = [str(c) for c in mock_console.print.call_args_list]
-        assert any("Interrupted" in c for c in calls)
+        assert any("Ctrl+C" in c for c in calls)
 
     @patch("cli.interactive.create_cli_agent")
     @patch("cli.interactive.print_welcome_banner")
@@ -505,6 +511,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.side_effect = EOFError()
@@ -528,6 +535,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_stream.side_effect = [RuntimeError("test error"), []]
@@ -551,6 +559,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.return_value = "/quit"
@@ -582,6 +591,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.return_value = "/quit"
@@ -610,6 +620,7 @@ class TestRunInteractive:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         # /clear is non-breaking, then /quit exits
@@ -625,7 +636,10 @@ class TestStreamModelRequest:
     async def test_tool_name_in_part_start(
         self, mock_console: MagicMock, _mock_tty: MagicMock
     ) -> None:
+        """Tool PartStartEvent stops spinner but does not print (handled by _stream_tool_calls)."""
         from cli.interactive import _stream_model_request
+
+        from pydantic_ai import PartStartEvent
 
         part_start = MagicMock(spec=PartStartEvent)
         part_start.part = MagicMock()
@@ -650,8 +664,10 @@ class TestStreamModelRequest:
 
         result = await _stream_model_request(node, ctx)
         assert result == ""
+        # Tool calls are rendered by _stream_tool_calls, not here
+        # PartStartEvent with tool_name just stops the spinner
         calls = [str(c) for c in mock_console.print.call_args_list]
-        assert any("grep" in c for c in calls)
+        assert not any("grep" in c for c in calls)
 
 
 class TestRunInteractiveSandbox:
@@ -685,12 +701,14 @@ class TestRunInteractiveSandbox:
         mock_agent = MagicMock()
         mock_deps = MagicMock()
         mock_deps.todos = []
+        mock_deps.checkpoint_store = None
         mock_create.return_value = (mock_agent, mock_deps)
 
         mock_input.return_value = "/quit"
         await run_interactive(sandbox=True)
         mock_stop.assert_called_once_with(mock_sandbox)
 
+    @patch("builtins.input", return_value="q")
     @patch("cli.interactive._print_model_error")
     @patch("cli.interactive.create_cli_agent", side_effect=ValueError("Bad model"))
     @patch("cli.interactive.console")
@@ -699,6 +717,7 @@ class TestRunInteractiveSandbox:
         _mock_console: MagicMock,
         _mock_create: MagicMock,
         mock_error: MagicMock,
+        _mock_input: MagicMock,
     ) -> None:
         await run_interactive()
         mock_error.assert_called_once()

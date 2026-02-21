@@ -31,6 +31,18 @@ class Theme:
 
 DEFAULT_THEME = Theme(
     name="default",
+    primary="#10b981",  # Emerald
+    accent="#34d399",  # Light emerald
+    success="#10b981",
+    warning="#fbbf24",  # Amber
+    error="#ef4444",  # Red
+    info="#3b82f6",  # Blue
+    text="#e5e7eb",  # Light gray
+    muted="#6b7280",  # Gray
+)
+
+CLASSIC_THEME = Theme(
+    name="classic",
     primary="green",
     accent="cyan",
     success="green",
@@ -55,6 +67,7 @@ MINIMAL_THEME = Theme(
 
 _THEMES: dict[str, Theme] = {
     "default": DEFAULT_THEME,
+    "classic": CLASSIC_THEME,
     "minimal": MINIMAL_THEME,
 }
 
@@ -77,6 +90,8 @@ class Glyphs:
     tool: str
     arrow: str
     lightning: str
+    tool_prefix: str
+    output_prefix: str
 
     # Status
     success: str
@@ -90,33 +105,46 @@ class Glyphs:
     ellipsis: str
     separator: str
 
+    # Animation
+    spinner_frames: tuple[str, ...]
+
 
 UNICODE_GLYPHS = Glyphs(
-    tool="\u23fa",  # ⏺
-    arrow="\u2192",  # →
-    lightning="\u26a1",  # ⚡
+    tool="\u25b8",  # ▸
+    arrow="\u2514\u2500",  # └─
+    lightning="\u25b8",  # ▸
+    tool_prefix="\u23fa",  # ⏺
+    output_prefix="\u23bf",  # ⎿
     success="\u2713",  # ✓
     error="\u2717",  # ✗
-    warning="\u26a0",  # ⚠
+    warning="!",
     pending="\u25cb",  # ○
     active="\u25cf",  # ●
     bullet="\u2022",  # •
     ellipsis="\u2026",  # …
     separator="\u2500",  # ─
+    spinner_frames=(
+        "\u280b", "\u2819", "\u2839", "\u2838",
+        "\u283c", "\u2834", "\u2826", "\u2827",
+        "\u2807", "\u280f",
+    ),
 )
 
 ASCII_GLYPHS = Glyphs(
-    tool="(*)",
-    arrow="->",
-    lightning="!",
-    success="[OK]",
-    error="[X]",
-    warning="[!]",
+    tool=">",
+    arrow="`-",
+    lightning=">",
+    tool_prefix="(*)",
+    output_prefix="|",
+    success="ok",
+    error="x",
+    warning="!",
     pending="[ ]",
     active="[*]",
     bullet="-",
     ellipsis="...",
     separator="-",
+    spinner_frames=("-", "\\", "|", "/"),
 )
 
 
@@ -149,6 +177,7 @@ def get_glyphs() -> Glyphs:
 
 __all__ = [
     "ASCII_GLYPHS",
+    "CLASSIC_THEME",
     "DEFAULT_THEME",
     "Glyphs",
     "MINIMAL_THEME",

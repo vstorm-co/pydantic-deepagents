@@ -21,7 +21,7 @@ class TestGetTheme:
     def test_default_theme(self) -> None:
         theme = get_theme("default")
         assert theme is DEFAULT_THEME
-        assert theme.primary == "green"
+        assert theme.primary == "#10b981"
 
     def test_minimal_theme(self) -> None:
         theme = get_theme("minimal")
@@ -151,6 +151,9 @@ class TestGlyphValues:
         assert UNICODE_GLYPHS.success
         assert UNICODE_GLYPHS.error
         assert UNICODE_GLYPHS.ellipsis
+        assert UNICODE_GLYPHS.tool_prefix
+        assert UNICODE_GLYPHS.output_prefix
+        assert len(UNICODE_GLYPHS.spinner_frames) >= 4
 
     def test_ascii_glyphs_have_values(self) -> None:
         assert ASCII_GLYPHS.tool
@@ -158,3 +161,6 @@ class TestGlyphValues:
         assert ASCII_GLYPHS.success
         assert ASCII_GLYPHS.error
         assert ASCII_GLYPHS.ellipsis == "..."
+        assert ASCII_GLYPHS.tool_prefix == "(*)"
+        assert ASCII_GLYPHS.output_prefix == "|"
+        assert len(ASCII_GLYPHS.spinner_frames) >= 4

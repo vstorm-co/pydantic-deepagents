@@ -24,7 +24,7 @@ class TestCliConfig:
 
     def test_default_model(self) -> None:
         config = CliConfig()
-        assert config.model == "openai:gpt-4.1"
+        assert config.model == "openrouter:openai/gpt-4.1"
 
     def test_default_working_dir(self) -> None:
         config = CliConfig()
@@ -50,7 +50,7 @@ class TestLoadConfig:
 
     def test_returns_defaults_when_no_file(self, tmp_path: Path) -> None:
         config = load_config(tmp_path / "nonexistent.toml")
-        assert config.model == "openai:gpt-4.1"
+        assert config.model == "openrouter:openai/gpt-4.1"
 
     def test_loads_from_file(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
@@ -65,7 +65,7 @@ class TestLoadConfig:
 
         config = load_config(config_file)
         assert config.include_skills is False
-        assert config.model == "openai:gpt-4.1"  # default preserved
+        assert config.model == "openrouter:openai/gpt-4.1"  # default preserved
 
     def test_ignores_unknown_keys(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"
@@ -81,7 +81,7 @@ class TestParseConfig:
 
     def test_empty_dict(self) -> None:
         config = _parse_config({})
-        assert config.model == "openai:gpt-4.1"
+        assert config.model == "openrouter:openai/gpt-4.1"
 
     def test_full_dict(self) -> None:
         data = {
@@ -315,7 +315,7 @@ class TestEnvVarOverrides:
         monkeypatch.delenv("PYDANTIC_DEEP_THEME", raising=False)
         config = CliConfig()
         _apply_env_overrides(config)
-        assert config.model == "openai:gpt-4.1"
+        assert config.model == "openrouter:openai/gpt-4.1"
         assert config.working_dir is None
         assert config.theme == "default"
 

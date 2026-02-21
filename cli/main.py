@@ -119,6 +119,20 @@ def _build_model_settings(
 
 
 @app.command()
+def init(
+    directory: Annotated[
+        str | None,
+        typer.Option("--dir", "-d", help="Project directory (default: CWD)"),
+    ] = None,
+) -> None:
+    """Initialize .pydantic-deep/ project directory with scaffolding."""
+    from cli.init import init_project
+
+    root = Path(directory) if directory else Path.cwd()
+    init_project(root)
+
+
+@app.command()
 def run(
     prompt: Annotated[str, typer.Argument(help="Task to execute")],
     model: Annotated[
@@ -167,7 +181,10 @@ def run(
     ] = None,
 ) -> None:
     """Run a task non-interactively (benchmark mode)."""
+    from cli.init import ensure_initialized
     from cli.non_interactive import run_non_interactive
+
+    ensure_initialized()
 
     settings = _build_model_settings(
         model_settings_json, temperature, reasoning_effort, thinking, thinking_budget
@@ -207,8 +224,12 @@ def chat(
     ] = "python-minimal",
     resume: Annotated[
         str | None,
-        typer.Option("--resume", "-r", help="Resume a thread by ID (or latest if empty)"),
+        typer.Option("--resume", "-r", help="Resume a session by ID"),
     ] = None,
+    sessions: Annotated[
+        bool,
+        typer.Option("--sessions", "-s", help="Pick a previous session to resume"),
+    ] = False,
     auto_approve: Annotated[
         bool,
         typer.Option("--auto-approve", help="Auto-approve all tool calls (skip HITL)"),
@@ -235,11 +256,17 @@ def chat(
     ] = None,
 ) -> None:
     """Start an interactive chat session."""
+    from cli.init import ensure_initialized
     from cli.interactive import run_interactive
+
+    ensure_initialized()
 
     settings = _build_model_settings(
         model_settings_json, temperature, reasoning_effort, thinking, thinking_budget
     )
+
+    # --sessions flag triggers interactive picker (resume="")
+    effective_resume = "" if sessions else resume
 
     asyncio.run(
         run_interactive(
@@ -247,7 +274,7 @@ def chat(
             working_dir=working_dir,
             sandbox=sandbox,
             runtime=runtime,
-            resume=resume,
+            resume=effective_resume,
             auto_approve=auto_approve,
             model_settings=settings,
         )
@@ -288,10 +315,10 @@ def config_set(
     value: Annotated[str, typer.Argument(help="Value to set")],
 ) -> None:
     """Set a configuration value."""
-    from cli.config import DEFAULT_CONFIG_PATH, set_config_value
+    from cli.config import get_config_path, set_config_value
 
     try:
-        set_config_value(DEFAULT_CONFIG_PATH, key, value)
+        set_config_value(get_config_path(), key, value)
     except KeyError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from None
@@ -525,28 +552,36 @@ def threads_list(
     ] = None,
 ) -> None:
     """List saved conversation threads."""
-    from cli.config import DEFAULT_THREADS_DIR
+    from cli.config import get_sessions_dir
     from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
-    store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
+    store_path = Path(directory) if directory else get_sessions_dir()
     if not store_path.exists():
         typer.echo("No threads found.")
         return
 
-    store = FileCheckpointStore(store_path)
-    checkpoints = asyncio.run(store.list_all())
-    if not checkpoints:
+    # Each session is a subdirectory with its own checkpoint store
+    sessions: list[tuple[str, int]] = []
+    for session_dir in sorted(store_path.iterdir()):
+        if not session_dir.is_dir():
+            continue
+        store = FileCheckpointStore(session_dir)
+        checkpoints = asyncio.run(store.list_all())
+        if checkpoints:
+            latest = checkpoints[-1]
+            sessions.append((session_dir.name, latest.message_count))
+
+    if not sessions:
         typer.echo("No threads found.")
         return
 
     console = Console()
     table = Table(show_header=True, header_style="bold")
-    table.add_column("ID", style="cyan", width=10)
-    table.add_column("Label")
+    table.add_column("Session ID", style="cyan", width=14)
     table.add_column("Messages", justify="right")
 
-    for cp in checkpoints:
-        table.add_row(cp.id[:8], cp.label, str(cp.message_count))
+    for sid, msg_count in sessions:
+        table.add_row(sid, str(msg_count))
 
     console.print(table)
 
@@ -560,23 +595,28 @@ def threads_delete(
     ] = None,
 ) -> None:
     """Delete a conversation thread."""
-    from cli.config import DEFAULT_THREADS_DIR
-    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
+    import shutil
 
-    store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
+    from cli.config import get_sessions_dir
+
+    store_path = Path(directory) if directory else get_sessions_dir()
     if not store_path.exists():
         typer.echo("No threads found.", err=True)
         raise typer.Exit(1)
 
-    store = FileCheckpointStore(store_path)
-    checkpoints = asyncio.run(store.list_all())
-    match = next((cp for cp in checkpoints if cp.id.startswith(thread_id)), None)
-    if match is None:
+    # Find session directory by prefix match
+    match_dir = None
+    for session_dir in store_path.iterdir():
+        if session_dir.is_dir() and session_dir.name.startswith(thread_id):
+            match_dir = session_dir
+            break
+
+    if match_dir is None:
         typer.echo(f"Thread '{thread_id}' not found.", err=True)
         raise typer.Exit(1)
 
-    asyncio.run(store.remove(match.id))
-    typer.echo(f"Deleted thread {match.id[:8]} ({match.label})")
+    shutil.rmtree(match_dir)
+    typer.echo(f"Deleted thread {match_dir.name}")
 
 
 @threads_app.command("export")
@@ -593,25 +633,32 @@ def threads_export(
     """Export a conversation thread."""
     import json
 
-    from cli.config import DEFAULT_THREADS_DIR
+    from cli.config import get_sessions_dir
     from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
-    store_path = Path(directory) if directory else DEFAULT_THREADS_DIR
+    store_path = Path(directory) if directory else get_sessions_dir()
     if not store_path.exists():
         typer.echo("No threads found.", err=True)
         raise typer.Exit(1)
 
-    store = FileCheckpointStore(store_path)
-    checkpoints = asyncio.run(store.list_all())
-    match = next((cp for cp in checkpoints if cp.id.startswith(thread_id)), None)
-    if match is None:
+    # Find session directory by prefix match
+    session_dir = None
+    for d in store_path.iterdir():
+        if d.is_dir() and d.name.startswith(thread_id):
+            session_dir = d
+            break
+
+    if session_dir is None:
         typer.echo(f"Thread '{thread_id}' not found.", err=True)
         raise typer.Exit(1)
 
-    loaded = asyncio.run(store.get(match.id))
-    if loaded is None:
-        typer.echo("Failed to load thread.", err=True)
+    store = FileCheckpointStore(session_dir)
+    checkpoints = asyncio.run(store.list_all())
+    if not checkpoints:
+        typer.echo("Thread has no checkpoints.", err=True)
         raise typer.Exit(1)
+
+    loaded = checkpoints[-1]  # Latest checkpoint
 
     if output_format == "json":
         data = {

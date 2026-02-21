@@ -188,7 +188,7 @@ class TestRenderToolCall:
         from cli.theme import ASCII_GLYPHS
 
         result = render_tool_call("ls", {"path": "."}, glyphs=ASCII_GLYPHS)
-        assert "(*)" in result
+        assert ASCII_GLYPHS.tool_prefix in result
 
 
 class TestRenderToolResult:
@@ -196,11 +196,12 @@ class TestRenderToolResult:
 
     def test_returns_markup_string(self) -> None:
         result = render_tool_result("read_file", "content\nline2")
-        assert "1 lines read" in result
-        assert "[dim]" in result
+        # Now shows content preview instead of summary
+        assert "content" in result
+        assert "[" in result  # Rich markup tags
 
     def test_with_custom_glyphs(self) -> None:
         from cli.theme import ASCII_GLYPHS
 
         result = render_tool_result("write_file", "ok", glyphs=ASCII_GLYPHS)
-        assert "->" in result
+        assert ASCII_GLYPHS.output_prefix in result

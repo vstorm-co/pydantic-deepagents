@@ -1,6 +1,6 @@
 """Configuration system for the pydantic-deep CLI.
 
-Config file: ``~/.pydantic-deep/config.toml``
+Config file: ``.pydantic-deep/config.toml`` (in working directory)
 
 Precedence: CLI arguments > config file > hardcoded defaults.
 """
@@ -21,9 +21,31 @@ else:  # pragma: no cover
     except ImportError:
         import tomli as tomllib  # type: ignore[import-not-found,no-redefine]
 
-DEFAULT_CONFIG_DIR = Path.home() / ".pydantic-deep"
-DEFAULT_CONFIG_PATH = DEFAULT_CONFIG_DIR / "config.toml"
-DEFAULT_THREADS_DIR = DEFAULT_CONFIG_DIR / "threads"
+
+def get_project_dir() -> Path:
+    """Return ``.pydantic-deep/`` in CWD."""
+    return Path.cwd() / ".pydantic-deep"
+
+
+def get_config_path() -> Path:
+    """Return path to ``config.toml``."""
+    return get_project_dir() / "config.toml"
+
+
+def get_sessions_dir() -> Path:
+    """Return path to ``sessions/`` directory."""
+    return get_project_dir() / "sessions"
+
+
+def get_history_path() -> Path:
+    """Return path to ``history.txt``."""
+    return get_project_dir() / "history.txt"
+
+
+# Keep these for backward compatibility — used by imports
+DEFAULT_CONFIG_DIR = get_project_dir()
+DEFAULT_CONFIG_PATH = get_config_path()
+DEFAULT_THREADS_DIR = get_sessions_dir()
 
 _BOOL_FIELDS = frozenset(
     {
@@ -50,14 +72,14 @@ _FLOAT_FIELDS = frozenset({"temperature"})
 class CliConfig:
     """CLI configuration loaded from config.toml."""
 
-    model: str = "openai:gpt-4.1"
+    model: str = "openrouter:openai/gpt-4.1"
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
     theme: str = "default"
     charset: str = "auto"
     show_cost: bool = True
     show_tokens: bool = True
-    history_file: str = str(Path.home() / ".pydantic-deep" / "history.txt")
+    history_file: str = ""  # empty = use get_history_path() at runtime
     max_history: int = 1000
     include_skills: bool = True
     include_plan: bool = True
@@ -225,7 +247,11 @@ __all__ = [
     "DEFAULT_CONFIG_PATH",
     "DEFAULT_THREADS_DIR",
     "format_config",
+    "get_config_path",
     "get_config_value",
+    "get_history_path",
+    "get_project_dir",
+    "get_sessions_dir",
     "load_config",
     "set_config_value",
 ]

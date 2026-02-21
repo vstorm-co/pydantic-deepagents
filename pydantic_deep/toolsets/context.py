@@ -1,7 +1,7 @@
 """Project context file loading and injection.
 
-Loads project context files (DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md)
-from the backend and injects them into the agent's system prompt.
+Loads the project context file (AGENT.md) from the backend and injects
+it into the agent's system prompt.
 
 Uses FunctionToolset.get_instructions() for native pydantic-ai integration.
 Works with both main agents and subagents (with configurable filtering).
@@ -17,25 +17,16 @@ from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import BackendProtocol
 
 DEFAULT_CONTEXT_FILENAMES: list[str] = [
-    "DEEP.md",
-    "AGENTS.md",
-    "CLAUDE.md",
-    "SOUL.md",
+    "AGENT.md",
 ]
 """Default filenames to scan for during auto-discovery."""
 
 SUBAGENT_CONTEXT_ALLOWLIST: frozenset[str] = frozenset(
     {
-        "DEEP.md",
-        "AGENTS.md",
+        "AGENT.md",
     }
 )
-"""Context files that subagents are allowed to see.
-
-SOUL.md and MEMORY.md contain personal/persona context
-that should not leak to subagents (security isolation,
-following openclaw pattern).
-"""
+"""Context files that subagents are allowed to see."""
 
 DEFAULT_MAX_CONTEXT_CHARS: int = 20_000
 """Default max chars per context file before truncation."""
@@ -162,8 +153,7 @@ class ContextToolset(FunctionToolset[Any]):
     Has no tools — only provides instructions via get_instructions().
     Uses runtime backend (ctx.deps.backend) to load files.
 
-    Works with both main agents and subagents. Subagents get
-    filtered context (only DEEP.md, AGENTS.md — not SOUL.md).
+    Works with both main agents and subagents.
     """
 
     def __init__(

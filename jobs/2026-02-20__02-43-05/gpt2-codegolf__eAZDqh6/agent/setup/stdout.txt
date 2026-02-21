@@ -1,467 +1,0 @@
-Get:1 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
-Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease
-Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
-Get:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
-Get:5 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1857 kB]
-Get:6 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1207 kB]
-Get:7 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [34.8 kB]
-Get:8 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [3196 kB]
-Get:9 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [3381 kB]
-Get:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [2240 kB]
-Get:11 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [2016 kB]
-Get:12 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [38.1 kB]
-Get:13 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [34.6 kB]
-Get:14 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [49.5 kB]
-Fetched 14.4 MB in 3s (5123 kB/s)
-Reading package lists...
-Reading package lists...
-Building dependency tree...
-Reading state information...
-curl is already the newest version (8.5.0-2ubuntu10.6).
-procps is already the newest version (2:4.0.4-4ubuntu3.2).
-The following additional packages will be installed:
-  adduser git-man less libcbor0.10 libcurl3t64-gnutls libedit2 liberror-perl
-  libfido2-1 libgdbm-compat4t64 libgdbm6t64 libperl5.38t64 libpython3-stdlib
-  libpython3.12-minimal libpython3.12-stdlib libreadline8t64 libsqlite3-0
-  libxext6 libxmuu1 media-types netbase openssh-client patch perl
-  perl-modules-5.38 python3-minimal python3-pip-whl python3-setuptools-whl
-  python3.12 python3.12-minimal python3.12-venv readline-common tzdata xauth
-Suggested packages:
-  liblocale-gettext-perl cron quota ecryptfs-utils gettext-base git-daemon-run
-  | git-daemon-sysvinit git-doc git-email git-gui gitk gitweb git-cvs
-  git-mediawiki git-svn gdbm-l10n keychain libpam-ssh monkeysphere ssh-askpass
-  ed diffutils-doc perl-doc libterm-readline-gnu-perl
-  | libterm-readline-perl-perl make libtap-harness-archive-perl python3-doc
-  python3-tk python3.12-doc binfmt-support readline-doc
-The following NEW packages will be installed:
-  adduser git git-man less libcbor0.10 libcurl3t64-gnutls libedit2
-  liberror-perl libfido2-1 libgdbm-compat4t64 libgdbm6t64 libperl5.38t64
-  libpython3-stdlib libpython3.12-minimal libpython3.12-stdlib libreadline8t64
-  libsqlite3-0 libxext6 libxmuu1 media-types netbase openssh-client patch perl
-  perl-modules-5.38 python3 python3-minimal python3-pip-whl
-  python3-setuptools-whl python3-venv python3.12 python3.12-minimal
-  python3.12-venv readline-common tzdata xauth
-0 upgraded, 36 newly installed, 0 to remove and 57 not upgraded.
-Need to get 24.5 MB of archives.
-After this operation, 112 MB of additional disk space will be used.
-Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libpython3.12-minimal amd64 3.12.3-1ubuntu0.11 [837 kB]
-Get:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 python3.12-minimal amd64 3.12.3-1ubuntu0.11 [2342 kB]
-Get:3 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 python3-minimal amd64 3.12.3-0ubuntu2.1 [27.4 kB]
-Get:4 http://archive.ubuntu.com/ubuntu noble/main amd64 media-types all 10.1.0 [27.5 kB]
-Get:5 http://archive.ubuntu.com/ubuntu noble/main amd64 netbase all 6.4 [13.1 kB]
-Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 tzdata all 2025b-0ubuntu0.24.04.1 [276 kB]
-Get:7 http://archive.ubuntu.com/ubuntu noble/main amd64 readline-common all 8.2-4build1 [56.5 kB]
-Get:8 http://archive.ubuntu.com/ubuntu noble/main amd64 libreadline8t64 amd64 8.2-4build1 [153 kB]
-Get:9 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libsqlite3-0 amd64 3.45.1-1ubuntu2.5 [701 kB]
-Get:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libpython3.12-stdlib amd64 3.12.3-1ubuntu0.11 [2069 kB]
-Get:11 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 python3.12 amd64 3.12.3-1ubuntu0.11 [651 kB]
-Get:12 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libpython3-stdlib amd64 3.12.3-0ubuntu2.1 [10.1 kB]
-Get:13 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 python3 amd64 3.12.3-0ubuntu2.1 [23.0 kB]
-Get:14 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 perl-modules-5.38 all 5.38.2-3.2ubuntu0.2 [3110 kB]
-Get:15 http://archive.ubuntu.com/ubuntu noble/main amd64 libgdbm6t64 amd64 1.23-5.1build1 [34.4 kB]
-Get:16 http://archive.ubuntu.com/ubuntu noble/main amd64 libgdbm-compat4t64 amd64 1.23-5.1build1 [6710 B]
-Get:17 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libperl5.38t64 amd64 5.38.2-3.2ubuntu0.2 [4874 kB]
-Get:18 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 perl amd64 5.38.2-3.2ubuntu0.2 [231 kB]
-Get:19 http://archive.ubuntu.com/ubuntu noble/main amd64 adduser all 3.137ubuntu1 [101 kB]
-Get:20 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 less amd64 590-2ubuntu2.1 [142 kB]
-Get:21 http://archive.ubuntu.com/ubuntu noble/main amd64 libcbor0.10 amd64 0.10.2-1.2ubuntu2 [25.8 kB]
-Get:22 http://archive.ubuntu.com/ubuntu noble/main amd64 libedit2 amd64 3.1-20230828-1build1 [97.6 kB]
-Get:23 http://archive.ubuntu.com/ubuntu noble/main amd64 libfido2-1 amd64 1.14.0-1build3 [83.5 kB]
-Get:24 http://archive.ubuntu.com/ubuntu noble/main amd64 libxext6 amd64 2:1.3.4-1build2 [30.4 kB]
-Get:25 http://archive.ubuntu.com/ubuntu noble/main amd64 libxmuu1 amd64 2:1.1.3-3build2 [8958 B]
-Get:26 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssh-client amd64 1:9.6p1-3ubuntu13.14 [906 kB]
-Get:27 http://archive.ubuntu.com/ubuntu noble/main amd64 xauth amd64 1:1.1.2-1build1 [25.6 kB]
-Get:28 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libcurl3t64-gnutls amd64 8.5.0-2ubuntu10.6 [333 kB]
-Get:29 http://archive.ubuntu.com/ubuntu noble/main amd64 liberror-perl all 0.17029-2 [25.6 kB]
-Get:30 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 git-man all 1:2.43.0-1ubuntu7.3 [1100 kB]
-Get:31 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 git amd64 1:2.43.0-1ubuntu7.3 [3680 kB]
-Get:32 http://archive.ubuntu.com/ubuntu noble/main amd64 patch amd64 2.7.6-7build3 [104 kB]
-Get:33 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 python3-pip-whl all 24.0+dfsg-1ubuntu1.3 [1707 kB]
-Get:34 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 python3-setuptools-whl all 68.1.2-2ubuntu1.2 [716 kB]
-Get:35 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 python3.12-venv amd64 3.12.3-1ubuntu0.11 [5680 B]
-Get:36 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 python3-venv amd64 3.12.3-0ubuntu2.1 [1032 B]
-debconf: delaying package configuration, since apt-utils is not installed
-Fetched 24.5 MB in 1s (26.1 MB/s)
-Selecting previously unselected package libpython3.12-minimal:amd64.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 10501 files and directories currently installed.)
-Preparing to unpack .../libpython3.12-minimal_3.12.3-1ubuntu0.11_amd64.deb ...
-Unpacking libpython3.12-minimal:amd64 (3.12.3-1ubuntu0.11) ...
-Selecting previously unselected package python3.12-minimal.
-Preparing to unpack .../python3.12-minimal_3.12.3-1ubuntu0.11_amd64.deb ...
-Unpacking python3.12-minimal (3.12.3-1ubuntu0.11) ...
-Setting up libpython3.12-minimal:amd64 (3.12.3-1ubuntu0.11) ...
-Setting up python3.12-minimal (3.12.3-1ubuntu0.11) ...
-Selecting previously unselected package python3-minimal.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 10812 files and directories currently installed.)
-Preparing to unpack .../0-python3-minimal_3.12.3-0ubuntu2.1_amd64.deb ...
-Unpacking python3-minimal (3.12.3-0ubuntu2.1) ...
-Selecting previously unselected package media-types.
-Preparing to unpack .../1-media-types_10.1.0_all.deb ...
-Unpacking media-types (10.1.0) ...
-Selecting previously unselected package netbase.
-Preparing to unpack .../2-netbase_6.4_all.deb ...
-Unpacking netbase (6.4) ...
-Selecting previously unselected package tzdata.
-Preparing to unpack .../3-tzdata_2025b-0ubuntu0.24.04.1_all.deb ...
-Unpacking tzdata (2025b-0ubuntu0.24.04.1) ...
-Selecting previously unselected package readline-common.
-Preparing to unpack .../4-readline-common_8.2-4build1_all.deb ...
-Unpacking readline-common (8.2-4build1) ...
-Selecting previously unselected package libreadline8t64:amd64.
-Preparing to unpack .../5-libreadline8t64_8.2-4build1_amd64.deb ...
-Adding 'diversion of /lib/x86_64-linux-gnu/libhistory.so.8 to /lib/x86_64-linux-gnu/libhistory.so.8.usr-is-merged by libreadline8t64'
-Adding 'diversion of /lib/x86_64-linux-gnu/libhistory.so.8.2 to /lib/x86_64-linux-gnu/libhistory.so.8.2.usr-is-merged by libreadline8t64'
-Adding 'diversion of /lib/x86_64-linux-gnu/libreadline.so.8 to /lib/x86_64-linux-gnu/libreadline.so.8.usr-is-merged by libreadline8t64'
-Adding 'diversion of /lib/x86_64-linux-gnu/libreadline.so.8.2 to /lib/x86_64-linux-gnu/libreadline.so.8.2.usr-is-merged by libreadline8t64'
-Unpacking libreadline8t64:amd64 (8.2-4build1) ...
-Selecting previously unselected package libsqlite3-0:amd64.
-Preparing to unpack .../6-libsqlite3-0_3.45.1-1ubuntu2.5_amd64.deb ...
-Unpacking libsqlite3-0:amd64 (3.45.1-1ubuntu2.5) ...
-Selecting previously unselected package libpython3.12-stdlib:amd64.
-Preparing to unpack .../7-libpython3.12-stdlib_3.12.3-1ubuntu0.11_amd64.deb ...
-Unpacking libpython3.12-stdlib:amd64 (3.12.3-1ubuntu0.11) ...
-Selecting previously unselected package python3.12.
-Preparing to unpack .../8-python3.12_3.12.3-1ubuntu0.11_amd64.deb ...
-Unpacking python3.12 (3.12.3-1ubuntu0.11) ...
-Selecting previously unselected package libpython3-stdlib:amd64.
-Preparing to unpack .../9-libpython3-stdlib_3.12.3-0ubuntu2.1_amd64.deb ...
-Unpacking libpython3-stdlib:amd64 (3.12.3-0ubuntu2.1) ...
-Setting up python3-minimal (3.12.3-0ubuntu2.1) ...
-Selecting previously unselected package python3.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 11818 files and directories currently installed.)
-Preparing to unpack .../0-python3_3.12.3-0ubuntu2.1_amd64.deb ...
-Unpacking python3 (3.12.3-0ubuntu2.1) ...
-Selecting previously unselected package perl-modules-5.38.
-Preparing to unpack .../1-perl-modules-5.38_5.38.2-3.2ubuntu0.2_all.deb ...
-Unpacking perl-modules-5.38 (5.38.2-3.2ubuntu0.2) ...
-Selecting previously unselected package libgdbm6t64:amd64.
-Preparing to unpack .../2-libgdbm6t64_1.23-5.1build1_amd64.deb ...
-Unpacking libgdbm6t64:amd64 (1.23-5.1build1) ...
-Selecting previously unselected package libgdbm-compat4t64:amd64.
-Preparing to unpack .../3-libgdbm-compat4t64_1.23-5.1build1_amd64.deb ...
-Unpacking libgdbm-compat4t64:amd64 (1.23-5.1build1) ...
-Selecting previously unselected package libperl5.38t64:amd64.
-Preparing to unpack .../4-libperl5.38t64_5.38.2-3.2ubuntu0.2_amd64.deb ...
-Unpacking libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.2) ...
-Selecting previously unselected package perl.
-Preparing to unpack .../5-perl_5.38.2-3.2ubuntu0.2_amd64.deb ...
-Unpacking perl (5.38.2-3.2ubuntu0.2) ...
-Selecting previously unselected package adduser.
-Preparing to unpack .../6-adduser_3.137ubuntu1_all.deb ...
-Unpacking adduser (3.137ubuntu1) ...
-Setting up adduser (3.137ubuntu1) ...
-Selecting previously unselected package less.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 13899 files and directories currently installed.)
-Preparing to unpack .../00-less_590-2ubuntu2.1_amd64.deb ...
-Unpacking less (590-2ubuntu2.1) ...
-Selecting previously unselected package libcbor0.10:amd64.
-Preparing to unpack .../01-libcbor0.10_0.10.2-1.2ubuntu2_amd64.deb ...
-Unpacking libcbor0.10:amd64 (0.10.2-1.2ubuntu2) ...
-Selecting previously unselected package libedit2:amd64.
-Preparing to unpack .../02-libedit2_3.1-20230828-1build1_amd64.deb ...
-Unpacking libedit2:amd64 (3.1-20230828-1build1) ...
-Selecting previously unselected package libfido2-1:amd64.
-Preparing to unpack .../03-libfido2-1_1.14.0-1build3_amd64.deb ...
-Unpacking libfido2-1:amd64 (1.14.0-1build3) ...
-Selecting previously unselected package libxext6:amd64.
-Preparing to unpack .../04-libxext6_2%3a1.3.4-1build2_amd64.deb ...
-Unpacking libxext6:amd64 (2:1.3.4-1build2) ...
-Selecting previously unselected package libxmuu1:amd64.
-Preparing to unpack .../05-libxmuu1_2%3a1.1.3-3build2_amd64.deb ...
-Unpacking libxmuu1:amd64 (2:1.1.3-3build2) ...
-Selecting previously unselected package openssh-client.
-Preparing to unpack .../06-openssh-client_1%3a9.6p1-3ubuntu13.14_amd64.deb ...
-Unpacking openssh-client (1:9.6p1-3ubuntu13.14) ...
-Selecting previously unselected package xauth.
-Preparing to unpack .../07-xauth_1%3a1.1.2-1build1_amd64.deb ...
-Unpacking xauth (1:1.1.2-1build1) ...
-Selecting previously unselected package libcurl3t64-gnutls:amd64.
-Preparing to unpack .../08-libcurl3t64-gnutls_8.5.0-2ubuntu10.6_amd64.deb ...
-Unpacking libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.6) ...
-Selecting previously unselected package liberror-perl.
-Preparing to unpack .../09-liberror-perl_0.17029-2_all.deb ...
-Unpacking liberror-perl (0.17029-2) ...
-Selecting previously unselected package git-man.
-Preparing to unpack .../10-git-man_1%3a2.43.0-1ubuntu7.3_all.deb ...
-Unpacking git-man (1:2.43.0-1ubuntu7.3) ...
-Selecting previously unselected package git.
-Preparing to unpack .../11-git_1%3a2.43.0-1ubuntu7.3_amd64.deb ...
-Unpacking git (1:2.43.0-1ubuntu7.3) ...
-Selecting previously unselected package patch.
-Preparing to unpack .../12-patch_2.7.6-7build3_amd64.deb ...
-Unpacking patch (2.7.6-7build3) ...
-Selecting previously unselected package python3-pip-whl.
-Preparing to unpack .../13-python3-pip-whl_24.0+dfsg-1ubuntu1.3_all.deb ...
-Unpacking python3-pip-whl (24.0+dfsg-1ubuntu1.3) ...
-Selecting previously unselected package python3-setuptools-whl.
-Preparing to unpack .../14-python3-setuptools-whl_68.1.2-2ubuntu1.2_all.deb ...
-Unpacking python3-setuptools-whl (68.1.2-2ubuntu1.2) ...
-Selecting previously unselected package python3.12-venv.
-Preparing to unpack .../15-python3.12-venv_3.12.3-1ubuntu0.11_amd64.deb ...
-Unpacking python3.12-venv (3.12.3-1ubuntu0.11) ...
-Selecting previously unselected package python3-venv.
-Preparing to unpack .../16-python3-venv_3.12.3-0ubuntu2.1_amd64.deb ...
-Unpacking python3-venv (3.12.3-0ubuntu2.1) ...
-Setting up media-types (10.1.0) ...
-Setting up python3-setuptools-whl (68.1.2-2ubuntu1.2) ...
-Setting up libgdbm6t64:amd64 (1.23-5.1build1) ...
-Setting up libgdbm-compat4t64:amd64 (1.23-5.1build1) ...
-Setting up python3-pip-whl (24.0+dfsg-1ubuntu1.3) ...
-Setting up libcbor0.10:amd64 (0.10.2-1.2ubuntu2) ...
-Setting up libedit2:amd64 (3.1-20230828-1build1) ...
-Setting up libsqlite3-0:amd64 (3.45.1-1ubuntu2.5) ...
-Setting up libcurl3t64-gnutls:amd64 (8.5.0-2ubuntu10.6) ...
-Setting up less (590-2ubuntu2.1) ...
-Setting up libxext6:amd64 (2:1.3.4-1build2) ...
-Setting up tzdata (2025b-0ubuntu0.24.04.1) ...
-
-Current default time zone: 'Etc/UTC'
-Local time is now:      Fri Feb 20 01:43:38 UTC 2026.
-Universal Time is now:  Fri Feb 20 01:43:38 UTC 2026.
-Run 'dpkg-reconfigure tzdata' if you wish to change it.
-
-Setting up perl-modules-5.38 (5.38.2-3.2ubuntu0.2) ...
-Setting up patch (2.7.6-7build3) ...
-Setting up git-man (1:2.43.0-1ubuntu7.3) ...
-Setting up netbase (6.4) ...
-Setting up libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.2) ...
-Setting up libfido2-1:amd64 (1.14.0-1build3) ...
-Setting up readline-common (8.2-4build1) ...
-Setting up libxmuu1:amd64 (2:1.1.3-3build2) ...
-Setting up openssh-client (1:9.6p1-3ubuntu13.14) ...
-Setting up perl (5.38.2-3.2ubuntu0.2) ...
-Setting up libreadline8t64:amd64 (8.2-4build1) ...
-Setting up xauth (1:1.1.2-1build1) ...
-Setting up libpython3.12-stdlib:amd64 (3.12.3-1ubuntu0.11) ...
-Setting up python3.12 (3.12.3-1ubuntu0.11) ...
-Setting up liberror-perl (0.17029-2) ...
-Setting up git (1:2.43.0-1ubuntu7.3) ...
-Setting up libpython3-stdlib:amd64 (3.12.3-0ubuntu2.1) ...
-Setting up python3.12-venv (3.12.3-1ubuntu0.11) ...
-Setting up python3 (3.12.3-0ubuntu2.1) ...
-Setting up python3-venv (3.12.3-0ubuntu2.1) ...
-Processing triggers for libc-bin (2.39-0ubuntu8.6) ...
-downloading uv 0.10.4 x86_64-unknown-linux-gnu
-no checksums to verify
-installing to /root/.local/bin
-  uv
-  uvx
-everything's installed!
-
-To add $HOME/.local/bin to your PATH, either restart your shell or run:
-
-    source $HOME/.local/bin/env (sh, bash, zsh)
-    source $HOME/.local/bin/env.fish (fish)
-Using CPython 3.12.3 interpreter at: /usr/bin/python3
-Creating virtual environment at: /opt/pydantic-deep-venv
-Activate with: source /opt/pydantic-deep-venv/bin/activate
-Using Python 3.12.3 environment at: /opt/pydantic-deep-venv
-   Updating https://github.com/vstorm-co/pydantic-deep.git (feat/cli)
-    Updated https://github.com/vstorm-co/pydantic-deep.git (72e7f3f8e46bd93c4183a8d13377b6196a45459f)
-Resolved 152 packages in 3.44s
-Downloading botocore (13.9MiB)
-Downloading openai (1.1MiB)
-Downloading tiktoken (1.1MiB)
-Downloading aiohttp (1.7MiB)
-Downloading tokenizers (3.1MiB)
-Downloading hf-xet (3.2MiB)
-Downloading cryptography (4.3MiB)
-Downloading temporalio (11.6MiB)
-Downloading beartype (1.3MiB)
-Downloading pygments (1.2MiB)
-Downloading pydantic-core (2.0MiB)
-Downloading asyncpg (3.4MiB)
-Downloading fastavro (3.3MiB)
-Downloading grpcio (6.4MiB)
-   Building pydantic-deep @ git+https://github.com/vstorm-co/pydantic-deep.git@72e7f3f8e46bd93c4183a8d13377b6196a45459f
- Downloaded tiktoken
- Downloaded aiohttp
- Downloaded pydantic-core
- Downloaded pygments
- Downloaded tokenizers
- Downloaded hf-xet
- Downloaded asyncpg
- Downloaded fastavro
- Downloaded beartype
-      Built pydantic-deep @ git+https://github.com/vstorm-co/pydantic-deep.git@72e7f3f8e46bd93c4183a8d13377b6196a45459f
- Downloaded cryptography
- Downloaded grpcio
- Downloaded openai
- Downloaded temporalio
- Downloaded botocore
-Prepared 152 packages in 5.57s
-Installed 152 packages in 202ms
- + ag-ui-protocol==0.1.13
- + aiofile==3.9.0
- + aiohappyeyeballs==2.6.1
- + aiohttp==3.13.3
- + aiosignal==1.4.0
- + annotated-doc==0.0.4
- + annotated-types==0.7.0
- + anthropic==0.83.0
- + anyio==4.12.1
- + argcomplete==3.6.3
- + asyncpg==0.31.0
- + attrs==25.4.0
- + authlib==1.6.8
- + beartype==0.22.9
- + boto3==1.42.53
- + botocore==1.42.53
- + bracex==2.6
- + cachetools==7.0.1
- + caio==0.9.25
- + certifi==2026.1.4
- + cffi==2.0.0
- + chardet==5.2.0
- + charset-normalizer==3.4.4
- + click==8.3.1
- + cohere==5.20.6
- + cryptography==46.0.5
- + cyclopts==4.5.4
- + distro==1.9.0
- + dnspython==2.8.0
- + docstring-parser==0.17.0
- + docutils==0.22.4
- + email-validator==2.3.0
- + eval-type-backport==0.3.1
- + exceptiongroup==1.3.1
- + executing==2.2.1
- + fastavro==1.12.1
- + fastmcp==3.0.0
- + filelock==3.24.3
- + frozenlist==1.8.0
- + fsspec==2026.2.0
- + genai-prices==0.0.54
- + google-auth==2.48.0
- + google-genai==1.64.0
- + googleapis-common-protos==1.72.0
- + griffelib==2.0.0
- + groq==1.0.0
- + grpcio==1.78.1
- + h11==0.16.0
- + hf-xet==1.2.0
- + httpcore==1.0.9
- + httpx==0.28.1
- + httpx-sse==0.4.3
- + huggingface-hub==1.4.1
- + idna==3.11
- + importlib-metadata==8.7.1
- + invoke==2.2.1
- + jaraco-classes==3.4.0
- + jaraco-context==6.1.0
- + jaraco-functools==4.4.0
- + jeepney==0.9.0
- + jiter==0.13.0
- + jmespath==1.1.0
- + jsonref==1.1.0
- + jsonschema==4.26.0
- + jsonschema-path==0.3.4
- + jsonschema-specifications==2025.9.1
- + keyring==25.7.0
- + logfire==4.25.0
- + logfire-api==4.25.0
- + markdown-it-py==4.0.0
- + mcp==1.26.0
- + mdurl==0.1.2
- + mistralai==1.12.3
- + more-itertools==10.8.0
- + multidict==6.7.1
- + nexus-rpc==1.2.0
- + openai==2.21.0
- + openapi-pydantic==0.5.1
- + opentelemetry-api==1.39.1
- + opentelemetry-exporter-otlp-proto-common==1.39.1
- + opentelemetry-exporter-otlp-proto-http==1.39.1
- + opentelemetry-instrumentation==0.60b1
- + opentelemetry-instrumentation-httpx==0.60b1
- + opentelemetry-proto==1.39.1
- + opentelemetry-sdk==1.39.1
- + opentelemetry-semantic-conventions==0.60b1
- + opentelemetry-util-http==0.60b1
- + packaging==25.0
- + pathable==0.4.4
- + platformdirs==4.9.2
- + prompt-toolkit==3.0.52
- + propcache==0.4.1
- + protobuf==6.33.5
- + py-key-value-aio==0.4.4
- + pyasn1==0.6.2
- + pyasn1-modules==0.4.2
- + pycparser==3.0
- + pydantic==2.12.5
- + pydantic-ai==1.62.0
- + pydantic-ai-backend==0.1.8
- + pydantic-ai-middleware==0.2.1
- + pydantic-ai-slim==1.62.0
- + pydantic-ai-todo==0.1.8
- + pydantic-core==2.41.5
- + pydantic-deep==0.2.18 (from git+https://github.com/vstorm-co/pydantic-deep.git@72e7f3f8e46bd93c4183a8d13377b6196a45459f)
- + pydantic-evals==1.62.0
- + pydantic-graph==1.62.0
- + pydantic-settings==2.13.1
- + pygments==2.19.2
- + pyjwt==2.11.0
- + pyperclip==1.11.0
- + python-dateutil==2.9.0.post0
- + python-dotenv==1.2.1
- + python-multipart==0.0.22
- + pyyaml==6.0.3
- + referencing==0.36.2
- + regex==2026.2.19
- + requests==2.32.5
- + rich==14.3.3
- + rich-rst==1.3.2
- + rpds-py==0.30.0
- + rsa==4.9.1
- + s3transfer==0.16.0
- + secretstorage==3.5.0
- + shellingham==1.5.4
- + six==1.17.0
- + sniffio==1.3.1
- + sse-starlette==3.2.0
- + starlette==0.52.1
- + subagents-pydantic-ai==0.0.5
- + summarization-pydantic-ai==0.0.3
- + temporalio==1.20.0
- + tenacity==9.1.4
- + tiktoken==0.12.0
- + tokenizers==0.22.2
- + tqdm==4.67.3
- + typer==0.24.0
- + typer-slim==0.24.0
- + types-protobuf==6.32.1.20251210
- + types-requests==2.32.4.20260107
- + typing-extensions==4.15.0
- + typing-inspection==0.4.2
- + urllib3==2.6.3
- + uvicorn==0.41.0
- + watchfiles==1.1.1
- + wcmatch==10.1
- + wcwidth==0.6.0
- + websockets==15.0.1
- + wrapt==1.17.3
- + xai-sdk==1.7.0
- + yarl==1.22.0
- + zipp==3.23.0
-Using Python 3.12.3 environment at: /opt/pydantic-deep-venv
-Audited 1 package in 29ms
-                                                                                
- Usage: pydantic-deep [OPTIONS] COMMAND [ARGS]...                               
-                                                                                
- Deep Agent CLI — AI coding assistant powered by pydantic-ai.                   
-                                                                                
-╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --version             -V        Show version and exit.                       │
-│ --install-completion            Install completion for the current shell.    │
-│ --show-completion               Show completion for the current shell, to    │
-│                                 copy it or customize the installation.       │
-│ --help                          Show this message and exit.                  │
-╰──────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ run      Run a task non-interactively (benchmark mode).                      │
-│ chat     Start an interactive chat session.                                  │
-│ config   Manage configuration.                                               │
-│ skills   Manage skills.                                                      │
-│ threads  Manage conversation threads.                                        │
-╰──────────────────────────────────────────────────────────────────────────────╯
-

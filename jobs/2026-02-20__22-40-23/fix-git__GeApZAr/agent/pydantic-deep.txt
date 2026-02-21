@@ -1,5 +1,0 @@
-Usage: pydantic-deep run [OPTIONS] PROMPT
-Try 'pydantic-deep run --help' for help.
-╭─ Error ──────────────────────────────────────────────────────────────────────╮
-│ No such option: --logfire                                                    │
-╰──────────────────────────────────────────────────────────────────────────────╯

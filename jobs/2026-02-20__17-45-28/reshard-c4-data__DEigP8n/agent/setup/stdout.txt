@@ -1,601 +1,0 @@
-Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
-Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
-Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
-Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8792 kB]
-Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
-Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [297 kB]
-Fetched 9350 kB in 4s (2419 kB/s)
-Reading package lists...
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following additional packages will be installed:
-  git-man krb5-locales less libbrotli1 libbsd0 libcbor0.8 libcurl3-gnutls
-  libcurl4 libedit2 liberror-perl libexpat1 libfido2-1 libgdbm-compat4
-  libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0
-  libldap-2.5-0 libldap-common libnghttp2-14 libnsl2 libperl5.36 libproc2-0
-  libpsl5 libpython3-stdlib libpython3.11-minimal libpython3.11-stdlib
-  librtmp1 libsasl2-2 libsasl2-modules libsasl2-modules-db libssh2-1
-  libtirpc-common libtirpc3 libx11-6 libx11-data libxau6 libxcb1 libxdmcp6
-  libxext6 libxmuu1 media-types openssh-client patch perl perl-base
-  perl-modules-5.36 psmisc publicsuffix python3-distutils python3-lib2to3
-  python3-minimal python3-pip-whl python3-setuptools-whl python3.11
-  python3.11-minimal python3.11-venv xauth
-Suggested packages:
-  gettext-base git-daemon-run | git-daemon-sysvinit git-doc git-email git-gui
-  gitk gitweb git-cvs git-mediawiki git-svn krb5-doc krb5-user sensible-utils
-  libsasl2-modules-gssapi-mit | libsasl2-modules-gssapi-heimdal
-  libsasl2-modules-ldap libsasl2-modules-otp libsasl2-modules-sql keychain
-  libpam-ssh monkeysphere ssh-askpass ed diffutils-doc perl-doc
-  libterm-readline-gnu-perl | libterm-readline-perl-perl make
-  libtap-harness-archive-perl python3-doc python3-tk python3.11-doc binutils
-  binfmt-support
-The following NEW packages will be installed:
-  curl git git-man krb5-locales less libbrotli1 libbsd0 libcbor0.8
-  libcurl3-gnutls libcurl4 libedit2 liberror-perl libexpat1 libfido2-1
-  libgdbm-compat4 libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3
-  libkrb5support0 libldap-2.5-0 libldap-common libnghttp2-14 libnsl2
-  libperl5.36 libproc2-0 libpsl5 libpython3-stdlib libpython3.11-minimal
-  libpython3.11-stdlib librtmp1 libsasl2-2 libsasl2-modules
-  libsasl2-modules-db libssh2-1 libtirpc-common libtirpc3 libx11-6 libx11-data
-  libxau6 libxcb1 libxdmcp6 libxext6 libxmuu1 media-types openssh-client patch
-  perl perl-modules-5.36 procps psmisc publicsuffix python3 python3-distutils
-  python3-lib2to3 python3-minimal python3-pip-whl python3-setuptools-whl
-  python3-venv python3.11 python3.11-minimal python3.11-venv xauth
-The following packages will be upgraded:
-  perl-base
-1 upgraded, 63 newly installed, 0 to remove and 25 not upgraded.
-Need to get 33.7 MB of archives.
-After this operation, 146 MB of additional disk space will be used.
-Get:1 http://deb.debian.org/debian bookworm/main amd64 perl-base amd64 5.36.0-7+deb12u3 [1608 kB]
-Get:2 http://deb.debian.org/debian bookworm/main amd64 perl-modules-5.36 all 5.36.0-7+deb12u3 [2815 kB]
-Get:3 http://deb.debian.org/debian bookworm/main amd64 libgdbm-compat4 amd64 1.23-3 [48.2 kB]
-Get:4 http://deb.debian.org/debian bookworm/main amd64 libperl5.36 amd64 5.36.0-7+deb12u3 [4196 kB]
-Get:5 http://deb.debian.org/debian bookworm/main amd64 perl amd64 5.36.0-7+deb12u3 [239 kB]
-Get:6 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-minimal amd64 3.11.2-6+deb12u6 [817 kB]
-Get:7 http://deb.debian.org/debian bookworm/main amd64 libexpat1 amd64 2.5.0-1+deb12u2 [99.9 kB]
-Get:8 http://deb.debian.org/debian bookworm/main amd64 python3.11-minimal amd64 3.11.2-6+deb12u6 [2064 kB]
-Get:9 http://deb.debian.org/debian bookworm/main amd64 python3-minimal amd64 3.11.2-1+b1 [26.3 kB]
-Get:10 http://deb.debian.org/debian bookworm/main amd64 media-types all 10.0.0 [26.1 kB]
-Get:11 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u4 [33.2 kB]
-Get:12 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u4 [79.8 kB]
-Get:13 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
-Get:14 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u4 [334 kB]
-Get:15 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u4 [135 kB]
-Get:16 http://deb.debian.org/debian bookworm/main amd64 libtirpc-common all 1.3.3+ds-1 [14.0 kB]
-Get:17 http://deb.debian.org/debian bookworm/main amd64 libtirpc3 amd64 1.3.3+ds-1 [85.2 kB]
-Get:18 http://deb.debian.org/debian bookworm/main amd64 libnsl2 amd64 1.3.0-2 [39.5 kB]
-Get:19 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-stdlib amd64 3.11.2-6+deb12u6 [1798 kB]
-Get:20 http://deb.debian.org/debian bookworm/main amd64 python3.11 amd64 3.11.2-6+deb12u6 [573 kB]
-Get:21 http://deb.debian.org/debian bookworm/main amd64 libpython3-stdlib amd64 3.11.2-1+b1 [9312 B]
-Get:22 http://deb.debian.org/debian bookworm/main amd64 python3 amd64 3.11.2-1+b1 [26.3 kB]
-Get:23 http://deb.debian.org/debian bookworm/main amd64 less amd64 590-2.1~deb12u2 [132 kB]
-Get:24 http://deb.debian.org/debian bookworm/main amd64 libproc2-0 amd64 2:4.0.2-3 [62.8 kB]
-Get:25 http://deb.debian.org/debian bookworm/main amd64 procps amd64 2:4.0.2-3 [709 kB]
-Get:26 http://deb.debian.org/debian bookworm/main amd64 krb5-locales all 1.20.1-2+deb12u4 [63.4 kB]
-Get:27 http://deb.debian.org/debian bookworm/main amd64 libbsd0 amd64 0.11.7-2 [117 kB]
-Get:28 http://deb.debian.org/debian bookworm/main amd64 libedit2 amd64 3.1-20221030-2 [93.0 kB]
-Get:29 http://deb.debian.org/debian bookworm/main amd64 libcbor0.8 amd64 0.8.0-2+b1 [27.4 kB]
-Get:30 http://deb.debian.org/debian bookworm/main amd64 libfido2-1 amd64 1.12.0-2+b1 [77.2 kB]
-Get:31 http://deb.debian.org/debian bookworm/main amd64 openssh-client amd64 1:9.2p1-2+deb12u7 [992 kB]
-Get:32 http://deb.debian.org/debian bookworm/main amd64 libbrotli1 amd64 1.0.9-2+b6 [275 kB]
-Get:33 http://deb.debian.org/debian bookworm/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg-10 [20.3 kB]
-Get:34 http://deb.debian.org/debian bookworm/main amd64 libsasl2-2 amd64 2.1.28+dfsg-10 [59.7 kB]
-Get:35 http://deb.debian.org/debian bookworm/main amd64 libldap-2.5-0 amd64 2.5.13+dfsg-5 [183 kB]
-Get:36 http://deb.debian.org/debian bookworm/main amd64 libnghttp2-14 amd64 1.52.0-1+deb12u2 [73.0 kB]
-Get:37 http://deb.debian.org/debian bookworm/main amd64 libpsl5 amd64 0.21.2-1 [58.7 kB]
-Get:38 http://deb.debian.org/debian bookworm/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b2 [60.8 kB]
-Get:39 http://deb.debian.org/debian bookworm/main amd64 libssh2-1 amd64 1.10.0-3+b1 [179 kB]
-Get:40 http://deb.debian.org/debian bookworm/main amd64 libcurl4 amd64 7.88.1-10+deb12u14 [392 kB]
-Get:41 http://deb.debian.org/debian bookworm/main amd64 curl amd64 7.88.1-10+deb12u14 [316 kB]
-Get:42 http://deb.debian.org/debian bookworm/main amd64 libcurl3-gnutls amd64 7.88.1-10+deb12u14 [386 kB]
-Get:43 http://deb.debian.org/debian bookworm/main amd64 liberror-perl all 0.17029-2 [29.0 kB]
-Get:44 http://deb.debian.org/debian bookworm/main amd64 git-man all 1:2.39.5-0+deb12u3 [2053 kB]
-Get:45 http://deb.debian.org/debian bookworm/main amd64 git amd64 1:2.39.5-0+deb12u3 [7264 kB]
-Get:46 http://deb.debian.org/debian bookworm/main amd64 libldap-common all 2.5.13+dfsg-5 [29.3 kB]
-Get:47 http://deb.debian.org/debian bookworm/main amd64 libsasl2-modules amd64 2.1.28+dfsg-10 [66.6 kB]
-Get:48 http://deb.debian.org/debian bookworm/main amd64 libxau6 amd64 1:1.0.9-1 [19.7 kB]
-Get:49 http://deb.debian.org/debian bookworm/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]
-Get:50 http://deb.debian.org/debian bookworm/main amd64 libxcb1 amd64 1.15-1 [144 kB]
-Get:51 http://deb.debian.org/debian bookworm/main amd64 libx11-data all 2:1.8.4-2+deb12u2 [292 kB]
-Get:52 http://deb.debian.org/debian bookworm/main amd64 libx11-6 amd64 2:1.8.4-2+deb12u2 [760 kB]
-Get:53 http://deb.debian.org/debian bookworm/main amd64 libxext6 amd64 2:1.3.4-1+b1 [52.9 kB]
-Get:54 http://deb.debian.org/debian bookworm/main amd64 libxmuu1 amd64 2:1.1.3-3 [23.9 kB]
-Get:55 http://deb.debian.org/debian bookworm/main amd64 patch amd64 2.7.6-7 [128 kB]
-Get:56 http://deb.debian.org/debian bookworm/main amd64 psmisc amd64 23.6-1 [259 kB]
-Get:57 http://deb.debian.org/debian bookworm/main amd64 publicsuffix all 20230209.2326-1 [126 kB]
-Get:58 http://deb.debian.org/debian bookworm/main amd64 python3-lib2to3 all 3.11.2-3 [76.3 kB]
-Get:59 http://deb.debian.org/debian bookworm/main amd64 python3-distutils all 3.11.2-3 [131 kB]
-Get:60 http://deb.debian.org/debian bookworm/main amd64 python3-pip-whl all 23.0.1+dfsg-1 [1717 kB]
-Get:61 http://deb.debian.org/debian bookworm/main amd64 python3-setuptools-whl all 66.1.1-1+deb12u2 [1112 kB]
-Get:62 http://deb.debian.org/debian bookworm/main amd64 python3.11-venv amd64 3.11.2-6+deb12u6 [5896 B]
-Get:63 http://deb.debian.org/debian bookworm/main amd64 python3-venv amd64 3.11.2-1+b1 [1200 B]
-Get:64 http://deb.debian.org/debian bookworm/main amd64 xauth amd64 1:1.1.2-1 [36.0 kB]
-debconf: delaying package configuration, since apt-utils is not installed
-Fetched 33.7 MB in 1s (28.4 MB/s)
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6632 files and directories currently installed.)
-Preparing to unpack .../perl-base_5.36.0-7+deb12u3_amd64.deb ...
-Unpacking perl-base (5.36.0-7+deb12u3) over (5.36.0-7+deb12u2) ...
-Setting up perl-base (5.36.0-7+deb12u3) ...
-Selecting previously unselected package perl-modules-5.36.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6633 files and directories currently installed.)
-Preparing to unpack .../0-perl-modules-5.36_5.36.0-7+deb12u3_all.deb ...
-Unpacking perl-modules-5.36 (5.36.0-7+deb12u3) ...
-Selecting previously unselected package libgdbm-compat4:amd64.
-Preparing to unpack .../1-libgdbm-compat4_1.23-3_amd64.deb ...
-Unpacking libgdbm-compat4:amd64 (1.23-3) ...
-Selecting previously unselected package libperl5.36:amd64.
-Preparing to unpack .../2-libperl5.36_5.36.0-7+deb12u3_amd64.deb ...
-Unpacking libperl5.36:amd64 (5.36.0-7+deb12u3) ...
-Selecting previously unselected package perl.
-Preparing to unpack .../3-perl_5.36.0-7+deb12u3_amd64.deb ...
-Unpacking perl (5.36.0-7+deb12u3) ...
-Selecting previously unselected package libpython3.11-minimal:amd64.
-Preparing to unpack .../4-libpython3.11-minimal_3.11.2-6+deb12u6_amd64.deb ...
-Unpacking libpython3.11-minimal:amd64 (3.11.2-6+deb12u6) ...
-Selecting previously unselected package libexpat1:amd64.
-Preparing to unpack .../5-libexpat1_2.5.0-1+deb12u2_amd64.deb ...
-Unpacking libexpat1:amd64 (2.5.0-1+deb12u2) ...
-Selecting previously unselected package python3.11-minimal.
-Preparing to unpack .../6-python3.11-minimal_3.11.2-6+deb12u6_amd64.deb ...
-Unpacking python3.11-minimal (3.11.2-6+deb12u6) ...
-Setting up libpython3.11-minimal:amd64 (3.11.2-6+deb12u6) ...
-Setting up libexpat1:amd64 (2.5.0-1+deb12u2) ...
-Setting up python3.11-minimal (3.11.2-6+deb12u6) ...
-Selecting previously unselected package python3-minimal.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 8947 files and directories currently installed.)
-Preparing to unpack .../00-python3-minimal_3.11.2-1+b1_amd64.deb ...
-Unpacking python3-minimal (3.11.2-1+b1) ...
-Selecting previously unselected package media-types.
-Preparing to unpack .../01-media-types_10.0.0_all.deb ...
-Unpacking media-types (10.0.0) ...
-Selecting previously unselected package libkrb5support0:amd64.
-Preparing to unpack .../02-libkrb5support0_1.20.1-2+deb12u4_amd64.deb ...
-Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u4) ...
-Selecting previously unselected package libk5crypto3:amd64.
-Preparing to unpack .../03-libk5crypto3_1.20.1-2+deb12u4_amd64.deb ...
-Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u4) ...
-Selecting previously unselected package libkeyutils1:amd64.
-Preparing to unpack .../04-libkeyutils1_1.6.3-2_amd64.deb ...
-Unpacking libkeyutils1:amd64 (1.6.3-2) ...
-Selecting previously unselected package libkrb5-3:amd64.
-Preparing to unpack .../05-libkrb5-3_1.20.1-2+deb12u4_amd64.deb ...
-Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u4) ...
-Selecting previously unselected package libgssapi-krb5-2:amd64.
-Preparing to unpack .../06-libgssapi-krb5-2_1.20.1-2+deb12u4_amd64.deb ...
-Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u4) ...
-Selecting previously unselected package libtirpc-common.
-Preparing to unpack .../07-libtirpc-common_1.3.3+ds-1_all.deb ...
-Unpacking libtirpc-common (1.3.3+ds-1) ...
-Selecting previously unselected package libtirpc3:amd64.
-Preparing to unpack .../08-libtirpc3_1.3.3+ds-1_amd64.deb ...
-Unpacking libtirpc3:amd64 (1.3.3+ds-1) ...
-Selecting previously unselected package libnsl2:amd64.
-Preparing to unpack .../09-libnsl2_1.3.0-2_amd64.deb ...
-Unpacking libnsl2:amd64 (1.3.0-2) ...
-Selecting previously unselected package libpython3.11-stdlib:amd64.
-Preparing to unpack .../10-libpython3.11-stdlib_3.11.2-6+deb12u6_amd64.deb ...
-Unpacking libpython3.11-stdlib:amd64 (3.11.2-6+deb12u6) ...
-Selecting previously unselected package python3.11.
-Preparing to unpack .../11-python3.11_3.11.2-6+deb12u6_amd64.deb ...
-Unpacking python3.11 (3.11.2-6+deb12u6) ...
-Selecting previously unselected package libpython3-stdlib:amd64.
-Preparing to unpack .../12-libpython3-stdlib_3.11.2-1+b1_amd64.deb ...
-Unpacking libpython3-stdlib:amd64 (3.11.2-1+b1) ...
-Setting up python3-minimal (3.11.2-1+b1) ...
-Selecting previously unselected package python3.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 9413 files and directories currently installed.)
-Preparing to unpack .../00-python3_3.11.2-1+b1_amd64.deb ...
-Unpacking python3 (3.11.2-1+b1) ...
-Selecting previously unselected package less.
-Preparing to unpack .../01-less_590-2.1~deb12u2_amd64.deb ...
-Unpacking less (590-2.1~deb12u2) ...
-Selecting previously unselected package libproc2-0:amd64.
-Preparing to unpack .../02-libproc2-0_2%3a4.0.2-3_amd64.deb ...
-Unpacking libproc2-0:amd64 (2:4.0.2-3) ...
-Selecting previously unselected package procps.
-Preparing to unpack .../03-procps_2%3a4.0.2-3_amd64.deb ...
-Unpacking procps (2:4.0.2-3) ...
-Selecting previously unselected package krb5-locales.
-Preparing to unpack .../04-krb5-locales_1.20.1-2+deb12u4_all.deb ...
-Unpacking krb5-locales (1.20.1-2+deb12u4) ...
-Selecting previously unselected package libbsd0:amd64.
-Preparing to unpack .../05-libbsd0_0.11.7-2_amd64.deb ...
-Unpacking libbsd0:amd64 (0.11.7-2) ...
-Selecting previously unselected package libedit2:amd64.
-Preparing to unpack .../06-libedit2_3.1-20221030-2_amd64.deb ...
-Unpacking libedit2:amd64 (3.1-20221030-2) ...
-Selecting previously unselected package libcbor0.8:amd64.
-Preparing to unpack .../07-libcbor0.8_0.8.0-2+b1_amd64.deb ...
-Unpacking libcbor0.8:amd64 (0.8.0-2+b1) ...
-Selecting previously unselected package libfido2-1:amd64.
-Preparing to unpack .../08-libfido2-1_1.12.0-2+b1_amd64.deb ...
-Unpacking libfido2-1:amd64 (1.12.0-2+b1) ...
-Selecting previously unselected package openssh-client.
-Preparing to unpack .../09-openssh-client_1%3a9.2p1-2+deb12u7_amd64.deb ...
-Unpacking openssh-client (1:9.2p1-2+deb12u7) ...
-Selecting previously unselected package libbrotli1:amd64.
-Preparing to unpack .../10-libbrotli1_1.0.9-2+b6_amd64.deb ...
-Unpacking libbrotli1:amd64 (1.0.9-2+b6) ...
-Selecting previously unselected package libsasl2-modules-db:amd64.
-Preparing to unpack .../11-libsasl2-modules-db_2.1.28+dfsg-10_amd64.deb ...
-Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg-10) ...
-Selecting previously unselected package libsasl2-2:amd64.
-Preparing to unpack .../12-libsasl2-2_2.1.28+dfsg-10_amd64.deb ...
-Unpacking libsasl2-2:amd64 (2.1.28+dfsg-10) ...
-Selecting previously unselected package libldap-2.5-0:amd64.
-Preparing to unpack .../13-libldap-2.5-0_2.5.13+dfsg-5_amd64.deb ...
-Unpacking libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
-Selecting previously unselected package libnghttp2-14:amd64.
-Preparing to unpack .../14-libnghttp2-14_1.52.0-1+deb12u2_amd64.deb ...
-Unpacking libnghttp2-14:amd64 (1.52.0-1+deb12u2) ...
-Selecting previously unselected package libpsl5:amd64.
-Preparing to unpack .../15-libpsl5_0.21.2-1_amd64.deb ...
-Unpacking libpsl5:amd64 (0.21.2-1) ...
-Selecting previously unselected package librtmp1:amd64.
-Preparing to unpack .../16-librtmp1_2.4+20151223.gitfa8646d.1-2+b2_amd64.deb ...
-Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b2) ...
-Selecting previously unselected package libssh2-1:amd64.
-Preparing to unpack .../17-libssh2-1_1.10.0-3+b1_amd64.deb ...
-Unpacking libssh2-1:amd64 (1.10.0-3+b1) ...
-Selecting previously unselected package libcurl4:amd64.
-Preparing to unpack .../18-libcurl4_7.88.1-10+deb12u14_amd64.deb ...
-Unpacking libcurl4:amd64 (7.88.1-10+deb12u14) ...
-Selecting previously unselected package curl.
-Preparing to unpack .../19-curl_7.88.1-10+deb12u14_amd64.deb ...
-Unpacking curl (7.88.1-10+deb12u14) ...
-Selecting previously unselected package libcurl3-gnutls:amd64.
-Preparing to unpack .../20-libcurl3-gnutls_7.88.1-10+deb12u14_amd64.deb ...
-Unpacking libcurl3-gnutls:amd64 (7.88.1-10+deb12u14) ...
-Selecting previously unselected package liberror-perl.
-Preparing to unpack .../21-liberror-perl_0.17029-2_all.deb ...
-Unpacking liberror-perl (0.17029-2) ...
-Selecting previously unselected package git-man.
-Preparing to unpack .../22-git-man_1%3a2.39.5-0+deb12u3_all.deb ...
-Unpacking git-man (1:2.39.5-0+deb12u3) ...
-Selecting previously unselected package git.
-Preparing to unpack .../23-git_1%3a2.39.5-0+deb12u3_amd64.deb ...
-Unpacking git (1:2.39.5-0+deb12u3) ...
-Selecting previously unselected package libldap-common.
-Preparing to unpack .../24-libldap-common_2.5.13+dfsg-5_all.deb ...
-Unpacking libldap-common (2.5.13+dfsg-5) ...
-Selecting previously unselected package libsasl2-modules:amd64.
-Preparing to unpack .../25-libsasl2-modules_2.1.28+dfsg-10_amd64.deb ...
-Unpacking libsasl2-modules:amd64 (2.1.28+dfsg-10) ...
-Selecting previously unselected package libxau6:amd64.
-Preparing to unpack .../26-libxau6_1%3a1.0.9-1_amd64.deb ...
-Unpacking libxau6:amd64 (1:1.0.9-1) ...
-Selecting previously unselected package libxdmcp6:amd64.
-Preparing to unpack .../27-libxdmcp6_1%3a1.1.2-3_amd64.deb ...
-Unpacking libxdmcp6:amd64 (1:1.1.2-3) ...
-Selecting previously unselected package libxcb1:amd64.
-Preparing to unpack .../28-libxcb1_1.15-1_amd64.deb ...
-Unpacking libxcb1:amd64 (1.15-1) ...
-Selecting previously unselected package libx11-data.
-Preparing to unpack .../29-libx11-data_2%3a1.8.4-2+deb12u2_all.deb ...
-Unpacking libx11-data (2:1.8.4-2+deb12u2) ...
-Selecting previously unselected package libx11-6:amd64.
-Preparing to unpack .../30-libx11-6_2%3a1.8.4-2+deb12u2_amd64.deb ...
-Unpacking libx11-6:amd64 (2:1.8.4-2+deb12u2) ...
-Selecting previously unselected package libxext6:amd64.
-Preparing to unpack .../31-libxext6_2%3a1.3.4-1+b1_amd64.deb ...
-Unpacking libxext6:amd64 (2:1.3.4-1+b1) ...
-Selecting previously unselected package libxmuu1:amd64.
-Preparing to unpack .../32-libxmuu1_2%3a1.1.3-3_amd64.deb ...
-Unpacking libxmuu1:amd64 (2:1.1.3-3) ...
-Selecting previously unselected package patch.
-Preparing to unpack .../33-patch_2.7.6-7_amd64.deb ...
-Unpacking patch (2.7.6-7) ...
-Selecting previously unselected package psmisc.
-Preparing to unpack .../34-psmisc_23.6-1_amd64.deb ...
-Unpacking psmisc (23.6-1) ...
-Selecting previously unselected package publicsuffix.
-Preparing to unpack .../35-publicsuffix_20230209.2326-1_all.deb ...
-Unpacking publicsuffix (20230209.2326-1) ...
-Selecting previously unselected package python3-lib2to3.
-Preparing to unpack .../36-python3-lib2to3_3.11.2-3_all.deb ...
-Unpacking python3-lib2to3 (3.11.2-3) ...
-Selecting previously unselected package python3-distutils.
-Preparing to unpack .../37-python3-distutils_3.11.2-3_all.deb ...
-Unpacking python3-distutils (3.11.2-3) ...
-Selecting previously unselected package python3-pip-whl.
-Preparing to unpack .../38-python3-pip-whl_23.0.1+dfsg-1_all.deb ...
-Unpacking python3-pip-whl (23.0.1+dfsg-1) ...
-Selecting previously unselected package python3-setuptools-whl.
-Preparing to unpack .../39-python3-setuptools-whl_66.1.1-1+deb12u2_all.deb ...
-Unpacking python3-setuptools-whl (66.1.1-1+deb12u2) ...
-Selecting previously unselected package python3.11-venv.
-Preparing to unpack .../40-python3.11-venv_3.11.2-6+deb12u6_amd64.deb ...
-Unpacking python3.11-venv (3.11.2-6+deb12u6) ...
-Selecting previously unselected package python3-venv.
-Preparing to unpack .../41-python3-venv_3.11.2-1+b1_amd64.deb ...
-Unpacking python3-venv (3.11.2-1+b1) ...
-Selecting previously unselected package xauth.
-Preparing to unpack .../42-xauth_1%3a1.1.2-1_amd64.deb ...
-Unpacking xauth (1:1.1.2-1) ...
-Setting up media-types (10.0.0) ...
-Setting up libxau6:amd64 (1:1.0.9-1) ...
-Setting up python3-setuptools-whl (66.1.1-1+deb12u2) ...
-Setting up libkeyutils1:amd64 (1.6.3-2) ...
-Setting up libpsl5:amd64 (0.21.2-1) ...
-Setting up python3-pip-whl (23.0.1+dfsg-1) ...
-Setting up psmisc (23.6-1) ...
-Setting up libtirpc-common (1.3.3+ds-1) ...
-Setting up libcbor0.8:amd64 (0.8.0-2+b1) ...
-Setting up libbrotli1:amd64 (1.0.9-2+b6) ...
-Setting up libsasl2-modules:amd64 (2.1.28+dfsg-10) ...
-Setting up libnghttp2-14:amd64 (1.52.0-1+deb12u2) ...
-Setting up less (590-2.1~deb12u2) ...
-Setting up krb5-locales (1.20.1-2+deb12u4) ...
-Setting up libldap-common (2.5.13+dfsg-5) ...
-Setting up libkrb5support0:amd64 (1.20.1-2+deb12u4) ...
-Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg-10) ...
-Setting up perl-modules-5.36 (5.36.0-7+deb12u3) ...
-Setting up libx11-data (2:1.8.4-2+deb12u2) ...
-Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b2) ...
-Setting up libproc2-0:amd64 (2:4.0.2-3) ...
-Setting up patch (2.7.6-7) ...
-Setting up libgdbm-compat4:amd64 (1.23-3) ...
-Setting up libk5crypto3:amd64 (1.20.1-2+deb12u4) ...
-Setting up libsasl2-2:amd64 (2.1.28+dfsg-10) ...
-Setting up procps (2:4.0.2-3) ...
-Setting up git-man (1:2.39.5-0+deb12u3) ...
-Setting up libssh2-1:amd64 (1.10.0-3+b1) ...
-Setting up libkrb5-3:amd64 (1.20.1-2+deb12u4) ...
-Setting up libfido2-1:amd64 (1.12.0-2+b1) ...
-Setting up libbsd0:amd64 (0.11.7-2) ...
-Setting up publicsuffix (20230209.2326-1) ...
-Setting up libperl5.36:amd64 (5.36.0-7+deb12u3) ...
-Setting up libxdmcp6:amd64 (1:1.1.2-3) ...
-Setting up libxcb1:amd64 (1.15-1) ...
-Setting up libedit2:amd64 (3.1-20221030-2) ...
-Setting up libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
-Setting up perl (5.36.0-7+deb12u3) ...
-Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u4) ...
-Setting up libcurl4:amd64 (7.88.1-10+deb12u14) ...
-Setting up libx11-6:amd64 (2:1.8.4-2+deb12u2) ...
-Setting up curl (7.88.1-10+deb12u14) ...
-Setting up libxmuu1:amd64 (2:1.1.3-3) ...
-Setting up libtirpc3:amd64 (1.3.3+ds-1) ...
-Setting up openssh-client (1:9.2p1-2+deb12u7) ...
-Setting up libxext6:amd64 (2:1.3.4-1+b1) ...
-Setting up libcurl3-gnutls:amd64 (7.88.1-10+deb12u14) ...
-Setting up liberror-perl (0.17029-2) ...
-Setting up git (1:2.39.5-0+deb12u3) ...
-Setting up xauth (1:1.1.2-1) ...
-Setting up libnsl2:amd64 (1.3.0-2) ...
-Setting up libpython3.11-stdlib:amd64 (3.11.2-6+deb12u6) ...
-Setting up libpython3-stdlib:amd64 (3.11.2-1+b1) ...
-Setting up python3.11 (3.11.2-6+deb12u6) ...
-Setting up python3 (3.11.2-1+b1) ...
-Setting up python3-lib2to3 (3.11.2-3) ...
-Setting up python3-distutils (3.11.2-3) ...
-Setting up python3.11-venv (3.11.2-6+deb12u6) ...
-Setting up python3-venv (3.11.2-1+b1) ...
-Processing triggers for libc-bin (2.36-9+deb12u10) ...
-downloading uv 0.10.4 x86_64-unknown-linux-gnu
-no checksums to verify
-installing to /root/.local/bin
-  uv
-  uvx
-everything's installed!
-
-To add $HOME/.local/bin to your PATH, either restart your shell or run:
-
-    source $HOME/.local/bin/env (sh, bash, zsh)
-    source $HOME/.local/bin/env.fish (fish)
-WARN: The following commands are shadowed by other commands in your PATH: uv uvx
-Using CPython 3.13.7 interpreter at: /usr/local/bin/python
-Creating virtual environment at: /opt/pydantic-deep-venv
-Activate with: source /opt/pydantic-deep-venv/bin/activate
-Using Python 3.13.7 environment at: /opt/pydantic-deep-venv
-   Updating https://github.com/vstorm-co/pydantic-deep.git (feat/cli)
-    Updated https://github.com/vstorm-co/pydantic-deep.git (572fbd776269a49e25f5edb37493711e12b8b6f2)
-Resolved 152 packages in 5.06s
-Downloading botocore (13.9MiB)
-Downloading pygments (1.2MiB)
-Downloading cryptography (4.3MiB)
-Downloading hf-xet (3.2MiB)
-Downloading pydantic-core (2.0MiB)
-Downloading fastavro (3.2MiB)
-Downloading temporalio (11.6MiB)
-Downloading tokenizers (3.1MiB)
-Downloading tiktoken (1.1MiB)
-Downloading openai (1.1MiB)
-Downloading aiohttp (1.7MiB)
-Downloading asyncpg (3.4MiB)
-Downloading grpcio (6.4MiB)
-Downloading beartype (1.3MiB)
-   Building pydantic-deep @ git+https://github.com/vstorm-co/pydantic-deep.git@572fbd776269a49e25f5edb37493711e12b8b6f2
- Downloaded tiktoken
- Downloaded aiohttp
- Downloaded pydantic-core
- Downloaded pygments
- Downloaded beartype
- Downloaded openai
-      Built pydantic-deep @ git+https://github.com/vstorm-co/pydantic-deep.git@572fbd776269a49e25f5edb37493711e12b8b6f2
- Downloaded tokenizers
- Downloaded hf-xet
- Downloaded fastavro
- Downloaded asyncpg
- Downloaded cryptography
- Downloaded grpcio
- Downloaded temporalio
- Downloaded botocore
-Prepared 152 packages in 57.87s
-Installed 152 packages in 1.94s
- + ag-ui-protocol==0.1.13
- + aiofile==3.9.0
- + aiohappyeyeballs==2.6.1
- + aiohttp==3.13.3
- + aiosignal==1.4.0
- + annotated-doc==0.0.4
- + annotated-types==0.7.0
- + anthropic==0.83.0
- + anyio==4.12.1
- + argcomplete==3.6.3
- + asyncpg==0.31.0
- + attrs==25.4.0
- + authlib==1.6.8
- + beartype==0.22.9
- + boto3==1.42.53
- + botocore==1.42.53
- + bracex==2.6
- + cachetools==7.0.1
- + caio==0.9.25
- + certifi==2026.1.4
- + cffi==2.0.0
- + chardet==5.2.0
- + charset-normalizer==3.4.4
- + click==8.3.1
- + cohere==5.20.6
- + cryptography==46.0.5
- + cyclopts==4.5.4
- + distro==1.9.0
- + dnspython==2.8.0
- + docstring-parser==0.17.0
- + docutils==0.22.4
- + email-validator==2.3.0
- + eval-type-backport==0.3.1
- + exceptiongroup==1.3.1
- + executing==2.2.1
- + fastavro==1.12.1
- + fastmcp==3.0.0
- + filelock==3.24.3
- + frozenlist==1.8.0
- + fsspec==2026.2.0
- + genai-prices==0.0.54
- + google-auth==2.48.0
- + google-genai==1.64.0
- + googleapis-common-protos==1.72.0
- + griffelib==2.0.0
- + groq==1.0.0
- + grpcio==1.78.1
- + h11==0.16.0
- + hf-xet==1.2.0
- + httpcore==1.0.9
- + httpx==0.28.1
- + httpx-sse==0.4.3
- + huggingface-hub==1.4.1
- + idna==3.11
- + importlib-metadata==8.7.1
- + invoke==2.2.1
- + jaraco-classes==3.4.0
- + jaraco-context==6.1.0
- + jaraco-functools==4.4.0
- + jeepney==0.9.0
- + jiter==0.13.0
- + jmespath==1.1.0
- + jsonref==1.1.0
- + jsonschema==4.26.0
- + jsonschema-path==0.4.1
- + jsonschema-specifications==2025.9.1
- + keyring==25.7.0
- + logfire==4.25.0
- + logfire-api==4.25.0
- + markdown-it-py==4.0.0
- + mcp==1.26.0
- + mdurl==0.1.2
- + mistralai==1.12.3
- + more-itertools==10.8.0
- + multidict==6.7.1
- + nexus-rpc==1.2.0
- + openai==2.21.0
- + openapi-pydantic==0.5.1
- + opentelemetry-api==1.39.1
- + opentelemetry-exporter-otlp-proto-common==1.39.1
- + opentelemetry-exporter-otlp-proto-http==1.39.1
- + opentelemetry-instrumentation==0.60b1
- + opentelemetry-instrumentation-httpx==0.60b1
- + opentelemetry-proto==1.39.1
- + opentelemetry-sdk==1.39.1
- + opentelemetry-semantic-conventions==0.60b1
- + opentelemetry-util-http==0.60b1
- + packaging==25.0
- + pathable==0.5.0
- + platformdirs==4.9.2
- + prompt-toolkit==3.0.52
- + propcache==0.4.1
- + protobuf==6.33.5
- + py-key-value-aio==0.4.4
- + pyasn1==0.6.2
- + pyasn1-modules==0.4.2
- + pycparser==3.0
- + pydantic==2.12.5
- + pydantic-ai==1.62.0
- + pydantic-ai-backend==0.1.10
- + pydantic-ai-middleware==0.2.1
- + pydantic-ai-slim==1.62.0
- + pydantic-ai-todo==0.1.8
- + pydantic-core==2.41.5
- + pydantic-deep==0.2.18 (from git+https://github.com/vstorm-co/pydantic-deep.git@572fbd776269a49e25f5edb37493711e12b8b6f2)
- + pydantic-evals==1.62.0
- + pydantic-graph==1.62.0
- + pydantic-settings==2.13.1
- + pygments==2.19.2
- + pyjwt==2.11.0
- + pyperclip==1.11.0
- + python-dateutil==2.9.0.post0
- + python-dotenv==1.2.1
- + python-multipart==0.0.22
- + pyyaml==6.0.3
- + referencing==0.37.0
- + regex==2026.2.19
- + requests==2.32.5
- + rich==14.3.3
- + rich-rst==1.3.2
- + rpds-py==0.30.0
- + rsa==4.9.1
- + s3transfer==0.16.0
- + secretstorage==3.5.0
- + shellingham==1.5.4
- + six==1.17.0
- + sniffio==1.3.1
- + sse-starlette==3.2.0
- + starlette==0.52.1
- + subagents-pydantic-ai==0.0.5
- + summarization-pydantic-ai==0.0.3
- + temporalio==1.20.0
- + tenacity==9.1.4
- + tiktoken==0.12.0
- + tokenizers==0.22.2
- + tqdm==4.67.3
- + typer==0.24.0
- + typer-slim==0.24.0
- + types-protobuf==6.32.1.20251210
- + types-requests==2.32.4.20260107
- + typing-extensions==4.15.0
- + typing-inspection==0.4.2
- + urllib3==2.6.3
- + uvicorn==0.41.0
- + watchfiles==1.1.1
- + wcmatch==10.1
- + wcwidth==0.6.0
- + websockets==15.0.1
- + wrapt==1.17.3
- + xai-sdk==1.7.0
- + yarl==1.22.0
- + zipp==3.23.0
-Using Python 3.13.7 environment at: /opt/pydantic-deep-venv
-Audited 1 package in 68ms
-                                                                                
- Usage: pydantic-deep [OPTIONS] COMMAND [ARGS]...                               
-                                                                                
- Deep Agent CLI — AI coding assistant powered by pydantic-ai.                   
-                                                                                
-╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --version             -V        Show version and exit.                       │
-│ --install-completion            Install completion for the current shell.    │
-│ --show-completion               Show completion for the current shell, to    │
-│                                 copy it or customize the installation.       │
-│ --help                          Show this message and exit.                  │
-╰──────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ run        Run a task non-interactively (benchmark mode).                    │
-│ chat       Start an interactive chat session.                                │
-│ config     Manage configuration.                                             │
-│ skills     Manage skills.                                                    │
-│ providers  Model provider information.                                       │
-│ threads    Manage conversation threads.                                      │
-╰──────────────────────────────────────────────────────────────────────────────╯
-

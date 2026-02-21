@@ -481,6 +481,10 @@ Instructions for this skill go here.
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
+from swebench_agent.cli import swebench_app
+
+app.add_typer(swebench_app)
+
 providers_app = typer.Typer(
     name="providers", help="Model provider information.", no_args_is_help=True
 )

@@ -68,14 +68,12 @@ class PydanticDeep(BaseInstalledAgent):
             ExecInput(
                 command=(
                     'export PATH="/opt/pydantic-deep-venv/bin:$HOME/.local/bin:$PATH"; '
-                    "cd /app 2>/dev/null || cd /root 2>/dev/null || true; "
                     f"pydantic-deep {logfire_flag}run {escaped_instruction} "
                     f"{model_flag} "
                     f"--temperature 0 "
                     f"2>&1 | tee /logs/agent/pydantic-deep.txt"
                 ),
                 env={k: v for k, v in env.items() if v},
-                cwd="/",
             ),
         ]
 

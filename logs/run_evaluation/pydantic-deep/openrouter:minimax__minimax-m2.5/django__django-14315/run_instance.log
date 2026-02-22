@@ -1,0 +1,50 @@
+2026-02-22 11:37:52,612 - INFO - Creating container for django__django-14315...
+2026-02-22 11:37:52,774 - INFO - Container for django__django-14315 created: 70c4457462df6a3f19f0d1154149e8396b43cf82d3e2b1f18743658e35f3477f
+2026-02-22 11:37:52,880 - INFO - Container for django__django-14315 started: 70c4457462df6a3f19f0d1154149e8396b43cf82d3e2b1f18743658e35f3477f
+2026-02-22 11:37:52,881 - INFO - Intermediate patch for django__django-14315 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14315/patch.diff, now applying to container...
+2026-02-22 11:37:53,069 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:37:53,144 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:37:53,205 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/postgresql/client.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 51 with fuzz 1.
+
+2026-02-22 11:37:53,835 - INFO - Git diff before:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 3effab65a8..2d5397306f 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -51,7 +51,7 @@ class DatabaseClient(BaseDatabaseClient):
+             env['PGSSLKEY'] = str(sslkey)
+         if passfile:
+             env['PGPASSFILE'] = str(passfile)
+-        return args, env
++        return args, env or None
+ 
+     def runshell(self, parameters):
+         sigint_handler = signal.getsignal(signal.SIGINT)
+2026-02-22 11:37:53,835 - INFO - Eval script for django__django-14315 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14315/eval.sh; copying to container...
+2026-02-22 11:38:00,171 - INFO - Test runtime: 6.28 seconds
+2026-02-22 11:38:00,171 - INFO - Test output for django__django-14315 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14315/test_output.txt
+2026-02-22 11:38:00,279 - INFO - Git diff after:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 3effab65a8..2d5397306f 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -51,7 +51,7 @@ class DatabaseClient(BaseDatabaseClient):
+             env['PGSSLKEY'] = str(sslkey)
+         if passfile:
+             env['PGPASSFILE'] = str(passfile)
+-        return args, env
++        return args, env or None
+ 
+     def runshell(self, parameters):
+         sigint_handler = signal.getsignal(signal.SIGINT)
+2026-02-22 11:38:00,279 - INFO - Grading answer for django__django-14315...
+2026-02-22 11:38:00,280 - INFO - report: {'django__django-14315': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_crash_password_does_not_leak (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_parameters (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_passfile (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_service (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_ssl_certificate (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)'], 'failure': ['test_runshell_use_environ (backends.base.test_client.SimpleDatabaseClientTests)', 'test_settings_to_cmd_args_env (backends.base.test_client.SimpleDatabaseClientTests)']}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14315: resolved: False
+2026-02-22 11:38:00,280 - INFO - Attempting to stop container sweb.eval.django__django-14315.pydantic-deep...
+2026-02-22 11:38:15,512 - INFO - Attempting to remove container sweb.eval.django__django-14315.pydantic-deep...
+2026-02-22 11:38:15,533 - INFO - Container sweb.eval.django__django-14315.pydantic-deep removed.
+2026-02-22 11:38:15,533 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14315:latest...
+2026-02-22 11:38:15,762 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14315:latest removed.

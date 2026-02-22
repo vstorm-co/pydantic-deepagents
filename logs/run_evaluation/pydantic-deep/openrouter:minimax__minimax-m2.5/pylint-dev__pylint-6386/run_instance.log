@@ -1,0 +1,68 @@
+2026-02-22 12:17:25,708 - INFO - Creating container for pylint-dev__pylint-6386...
+2026-02-22 12:17:26,229 - INFO - Container for pylint-dev__pylint-6386 created: 4514e73d20f9cf2ab3434046feb151b6077535dc3b981ce994fa2270a9d9c339
+2026-02-22 12:17:26,374 - INFO - Container for pylint-dev__pylint-6386 started: 4514e73d20f9cf2ab3434046feb151b6077535dc3b981ce994fa2270a9d9c339
+2026-02-22 12:17:26,375 - INFO - Intermediate patch for pylint-dev__pylint-6386 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6386/patch.diff, now applying to container...
+2026-02-22 12:17:26,532 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:17:26,611 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:17:26,695 - INFO - >>>>> Applied Patch:
+patching file pylint/config/utils.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 220 with fuzz 1.
+
+2026-02-22 12:17:26,943 - INFO - Git diff before:
+diff --git a/pylint/config/utils.py b/pylint/config/utils.py
+index 8c790416..fb627df4 100644
+--- a/pylint/config/utils.py
++++ b/pylint/config/utils.py
+@@ -207,6 +207,8 @@ PREPROCESSABLE_OPTIONS: dict[
+     "--output": (True, _set_output),
+     "--load-plugins": (True, _add_plugins),
+     "--verbose": (False, _set_verbose_mode),
++    "-v": (False, _set_verbose_mode),
++    "--enable-all-extensions": (False, _enable_all_extensions),
+     "--enable-all-extensions": (False, _enable_all_extensions),
+ }
+ 
+@@ -218,7 +220,7 @@ def _preprocess_options(run: Run, args: Sequence[str]) -> list[str]:
+     i = 0
+     while i < len(args):
+         argument = args[i]
+-        if not argument.startswith("--"):
++        if not argument.startswith("-"):
+             processed_args.append(argument)
+             i += 1
+             continue
+2026-02-22 12:17:26,944 - INFO - Eval script for pylint-dev__pylint-6386 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6386/eval.sh; copying to container...
+2026-02-22 12:17:31,945 - INFO - Test runtime: 4.93 seconds
+2026-02-22 12:17:31,946 - INFO - Test output for pylint-dev__pylint-6386 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6386/test_output.txt
+2026-02-22 12:17:32,042 - INFO - Git diff after:
+diff --git a/pylint/config/utils.py b/pylint/config/utils.py
+index 8c790416..fb627df4 100644
+--- a/pylint/config/utils.py
++++ b/pylint/config/utils.py
+@@ -207,6 +207,8 @@ PREPROCESSABLE_OPTIONS: dict[
+     "--output": (True, _set_output),
+     "--load-plugins": (True, _add_plugins),
+     "--verbose": (False, _set_verbose_mode),
++    "-v": (False, _set_verbose_mode),
++    "--enable-all-extensions": (False, _enable_all_extensions),
+     "--enable-all-extensions": (False, _enable_all_extensions),
+ }
+ 
+@@ -218,7 +220,7 @@ def _preprocess_options(run: Run, args: Sequence[str]) -> list[str]:
+     i = 0
+     while i < len(args):
+         argument = args[i]
+-        if not argument.startswith("--"):
++        if not argument.startswith("-"):
+             processed_args.append(argument)
+             i += 1
+             continue
+2026-02-22 12:17:32,042 - INFO - Grading answer for pylint-dev__pylint-6386...
+2026-02-22 12:17:32,043 - INFO - report: {'pylint-dev__pylint-6386': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/config/test_config.py::test_short_verbose'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/config/test_config.py::test_can_read_toml_env_variable', 'tests/config/test_config.py::test_unknown_message_id', 'tests/config/test_config.py::test_unknown_option_name', 'tests/config/test_config.py::test_unknown_short_option_name', 'tests/config/test_config.py::test_unknown_confidence', 'tests/config/test_config.py::test_unknown_yes_no', 'tests/config/test_config.py::test_unknown_py_version'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-6386: resolved: True
+2026-02-22 12:17:32,043 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-6386.pydantic-deep...
+2026-02-22 12:17:47,199 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-6386.pydantic-deep...
+2026-02-22 12:17:47,215 - INFO - Container sweb.eval.pylint-dev__pylint-6386.pydantic-deep removed.
+2026-02-22 12:17:47,215 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-6386:latest...
+2026-02-22 12:17:47,267 - INFO - Image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-6386:latest removed.

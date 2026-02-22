@@ -1,0 +1,80 @@
+# astropy__astropy-7166
+
+**Repository**: astropy/astropy
+**Duration**: 612.4s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 66 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/astropy/extern/configobj/configobj.py b/astropy/extern/configobj/configobj.py
+old mode 100755
+new mode 100644
+index 0c02b9b7ad..4d09e95a50
+--- a/astropy/extern/configobj/configobj.py
++++ b/astropy/extern/configobj/configobj.py
+@@ -17,6 +17,7 @@ import os
+ import re
+ import sys
+ import collections
++import collections.abc
+ 
+ from codecs import BOM_UTF8, BOM_UTF16, BOM_UTF16_BE, BOM_UTF16_LE
+ 
+@@ -594,7 +595,7 @@ class Section(dict):
+             if key not in self:
+                 self.sections.append(key)
+             dict.__setitem__(self, key, value)
+-        elif isinstance(value, collections.Mapping) and not unrepr:
++        elif isinstance(value, collections.abc.Mapping) and not unrepr:
+             # First create the new depth level,
+             # then create the section
+             if key not in self:
+@@ -801,8 +802,9 @@ class Section(dict):
+         ConfigObj({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
+         """
+         for key, val in list(indict.items()):
+-            if (key in self and isinstance(self[key], collections.Mapping) and
+-                                isinstance(val, collections.Mapping)):
++            if (key in self and isinstance(self[key], collections.abc.Mapping) and
++                                isinstance(val, collections.abc.Mapping)):
++                self[key].merge(val)
+                 self[key].merge(val)
+             else:
+                 self[key] = val
+@@ -2434,7 +2436,7 @@ def flatten_errors(cfg, res, levels=None, results=None):
+     for (key, val) in list(res.items()):
+         if val == True:
+             continue
+-        if isinstance(cfg.get(key), collections.Mapping):
++        if isinstance(cfg.get(key), collections.abc.Mapping):
+             # Go down one level
+             levels.append(key)
+             flatten_errors(cfg[key], val, levels, results)
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d18..30c20c859e 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,7 +528,7 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
++            if ((inspect.isfunction(val) or isinstance(val, property)) and
+                 is_public_member(key) and
+                 val.__doc__ is None):
+                 for base in cls.__mro__[1:]:
+@@ -539,6 +539,8 @@ class InheritDocstrings(type):
+ 
+         super().__init__(name, bases, dct)
+ 
++        super().__init__(name, bases, dct)
++
+ 
+ class OrderedDescriptor(metaclass=abc.ABCMeta):
+     """
+```

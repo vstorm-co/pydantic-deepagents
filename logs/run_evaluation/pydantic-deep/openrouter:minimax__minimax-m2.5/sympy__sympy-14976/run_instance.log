@@ -1,0 +1,74 @@
+2026-02-22 12:38:27,982 - INFO - Creating container for sympy__sympy-14976...
+2026-02-22 12:38:28,186 - INFO - Container for sympy__sympy-14976 created: 4291965e6b0118a19c226cb716f7dc0f39d4e039bb825c58d455e54513d5e0b9
+2026-02-22 12:38:28,397 - INFO - Container for sympy__sympy-14976 started: 4291965e6b0118a19c226cb716f7dc0f39d4e039bb825c58d455e54513d5e0b9
+2026-02-22 12:38:28,399 - INFO - Intermediate patch for sympy__sympy-14976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14976/patch.diff, now applying to container...
+2026-02-22 12:38:28,657 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:38:28,756 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:38:28,845 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/pycode.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 330 with fuzz 1.
+
+2026-02-22 12:38:29,377 - INFO - Git diff before:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index d06901425..e449437e1 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -330,7 +330,20 @@ def _print_Float(self, e):
+         # Remove 'mpz' if gmpy is installed.
+         args = str(tuple(map(int, e._mpf_)))
+         return '{func}({args})'.format(func=self._module_format('mpmath.mpf'), args=args)
++    def _print_Rational(self, e):
++        return '{0}("{1}/{2}")'.format(
++            self._module_format('mpmath.mpf'),
++            e.p,
++            e.q,
++        )
++
++    def _print_Integer(self, e):
++        return '{0}("{1}")'.format(
++            self._module_format('mpmath.mpf'),
++            e.p,
++        )
+ 
++    def _print_uppergamma(self, e):
+ 
+     def _print_uppergamma(self, e):
+         return "{0}({1}, {2}, {3})".format(
+2026-02-22 12:38:29,378 - INFO - Eval script for sympy__sympy-14976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14976/eval.sh; copying to container...
+2026-02-22 12:38:38,855 - INFO - Test runtime: 9.40 seconds
+2026-02-22 12:38:38,856 - INFO - Test output for sympy__sympy-14976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14976/test_output.txt
+2026-02-22 12:38:38,968 - INFO - Git diff after:
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index d06901425..e449437e1 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -330,7 +330,20 @@ def _print_Float(self, e):
+         # Remove 'mpz' if gmpy is installed.
+         args = str(tuple(map(int, e._mpf_)))
+         return '{func}({args})'.format(func=self._module_format('mpmath.mpf'), args=args)
++    def _print_Rational(self, e):
++        return '{0}("{1}/{2}")'.format(
++            self._module_format('mpmath.mpf'),
++            e.p,
++            e.q,
++        )
++
++    def _print_Integer(self, e):
++        return '{0}("{1}")'.format(
++            self._module_format('mpmath.mpf'),
++            e.p,
++        )
+ 
++    def _print_uppergamma(self, e):
+ 
+     def _print_uppergamma(self, e):
+         return "{0}({1}, {2}, {3})".format(
+2026-02-22 12:38:38,968 - INFO - Grading answer for sympy__sympy-14976...
+2026-02-22 12:38:38,970 - INFO - report: {'sympy__sympy-14976': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_MpmathPrinter']}, 'PASS_TO_PASS': {'success': [], 'failure': ['test_PythonCodePrinter', 'test_NumPyPrinter', 'test_SciPyPrinter', 'test_pycode_reserved_words', 'test_printmethod', 'test_codegen_ast_nodes', 'test_nsolve_denominator', 'test_nsolve', 'test_issue_6408', 'test_increased_dps', 'test_nsolve_precision', 'test_nsolve_complex', 'test_nsolve_dict_kwarg']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-14976: resolved: False
+2026-02-22 12:38:38,970 - INFO - Attempting to stop container sweb.eval.sympy__sympy-14976.pydantic-deep...
+2026-02-22 12:38:54,224 - INFO - Attempting to remove container sweb.eval.sympy__sympy-14976.pydantic-deep...
+2026-02-22 12:38:54,270 - INFO - Container sweb.eval.sympy__sympy-14976.pydantic-deep removed.
+2026-02-22 12:38:54,271 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-14976:latest...
+2026-02-22 12:38:54,369 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-14976:latest removed.

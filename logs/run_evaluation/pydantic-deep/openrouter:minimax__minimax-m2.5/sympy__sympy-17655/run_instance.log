@@ -1,0 +1,68 @@
+2026-02-22 12:40:27,599 - INFO - Creating container for sympy__sympy-17655...
+2026-02-22 12:40:27,718 - INFO - Container for sympy__sympy-17655 created: 26f8ea09d4ddb2ef44d10e365b54832298aa8c14e872d8778215b0faa7343e28
+2026-02-22 12:40:27,819 - INFO - Container for sympy__sympy-17655 started: 26f8ea09d4ddb2ef44d10e365b54832298aa8c14e872d8778215b0faa7343e28
+2026-02-22 12:40:27,819 - INFO - Intermediate patch for sympy__sympy-17655 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-17655/patch.diff, now applying to container...
+2026-02-22 12:40:27,946 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:40:28,031 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:40:28,100 - INFO - >>>>> Applied Patch:
+patching file sympy/geometry/point.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 855 with fuzz 2.
+
+2026-02-22 12:40:28,436 - INFO - Git diff before:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..3523b73f6c 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -104,6 +104,7 @@ class Point(GeometryEntity):
+     """
+ 
+     is_Point = True
++    _op_priority = 11.0
+ 
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+@@ -854,6 +855,10 @@ def unit(self):
+ 
+     __truediv__ = __div__
+ 
++    def __rmul__(self, factor):
++        """Multiply a factor by point's coordinates."""
++        return self.__mul__(factor)
++
+ class Point2D(Point):
+     """A point in a 2-dimensional Euclidean space.
+2026-02-22 12:40:28,436 - INFO - Eval script for sympy__sympy-17655 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-17655/eval.sh; copying to container...
+2026-02-22 12:40:41,871 - INFO - Test runtime: 13.37 seconds
+2026-02-22 12:40:41,872 - INFO - Test output for sympy__sympy-17655 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-17655/test_output.txt
+2026-02-22 12:40:41,954 - INFO - Git diff after:
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..3523b73f6c 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -104,6 +104,7 @@ class Point(GeometryEntity):
+     """
+ 
+     is_Point = True
++    _op_priority = 11.0
+ 
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+@@ -854,6 +855,10 @@ def unit(self):
+ 
+     __truediv__ = __div__
+ 
++    def __rmul__(self, factor):
++        """Multiply a factor by point's coordinates."""
++        return self.__mul__(factor)
++
+ class Point2D(Point):
+     """A point in a 2-dimensional Euclidean space.
+2026-02-22 12:40:41,954 - INFO - Grading answer for sympy__sympy-17655...
+2026-02-22 12:40:41,954 - INFO - report: {'sympy__sympy-17655': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_point', 'test_point3D'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Point2D', 'test_issue_9214', 'test_issue_11617', 'test_transform', 'test_concyclic_doctest_bug', 'test_arguments', 'test_unit', 'test_dot', 'test__normalize_dimension'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-17655: resolved: True
+2026-02-22 12:40:41,955 - INFO - Attempting to stop container sweb.eval.sympy__sympy-17655.pydantic-deep...
+2026-02-22 12:40:57,097 - INFO - Attempting to remove container sweb.eval.sympy__sympy-17655.pydantic-deep...
+2026-02-22 12:40:57,124 - INFO - Container sweb.eval.sympy__sympy-17655.pydantic-deep removed.
+2026-02-22 12:40:57,124 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-17655:latest...
+2026-02-22 12:40:57,204 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-17655:latest removed.

@@ -1,0 +1,133 @@
+2026-02-22 12:24:36,222 - INFO - Creating container for scikit-learn__scikit-learn-25102...
+2026-02-22 12:24:37,457 - INFO - Container for scikit-learn__scikit-learn-25102 created: 5247ddc3fcb91e161a5b0d5fe2862a2cd2375757fb8a372c5d91b8a0e580d92d
+2026-02-22 12:24:37,710 - INFO - Container for scikit-learn__scikit-learn-25102 started: 5247ddc3fcb91e161a5b0d5fe2862a2cd2375757fb8a372c5d91b8a0e580d92d
+2026-02-22 12:24:37,711 - INFO - Intermediate patch for scikit-learn__scikit-learn-25102 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25102/patch.diff, now applying to container...
+2026-02-22 12:24:37,967 - INFO - >>>>> Applied Patch:
+Checking patch sklearn/utils/_set_output.py...
+Applied patch sklearn/utils/_set_output.py cleanly.
+
+2026-02-22 12:24:38,479 - INFO - Git diff before:
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c6a..2faa868d6 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,11 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : dict, default=None
++        A dictionary mapping column names to dtypes. If provided, the dtypes
++        will be applied to the output DataFrame for columns that exist in both
++        the output and the dtypes dictionary.
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -59,7 +65,15 @@ def _wrap_in_pandas_container(
+             data_to_wrap.index = index
+         return data_to_wrap
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    df = pd.DataFrame(data_to_wrap, index=index, columns=columns)
++
++    if dtypes is not None:
++        # Apply dtypes for columns that exist in both the output and the dtypes dict
++        for col in df.columns:
++            if col in dtypes:
++                df[col] = df[col].astype(dtypes[col], copy=False)
++
++    return df
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -131,6 +145,7 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=getattr(original_input, "dtypes", None),
+     )
+ 
+ 
+@@ -276,4 +291,4 @@ def _safe_set_output(estimator, *, transform=None):
+             f"Unable to configure output for {estimator} because `set_output` "
+             "is not available."
+         )
+-    return estimator.set_output(transform=transform)
++    return estimator.set_output(transform=transform)
+\ No newline at end of file
+2026-02-22 12:24:38,480 - INFO - Eval script for scikit-learn__scikit-learn-25102 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25102/eval.sh; copying to container...
+2026-02-22 12:24:55,675 - INFO - Test runtime: 17.09 seconds
+2026-02-22 12:24:55,677 - INFO - Test output for scikit-learn__scikit-learn-25102 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25102/test_output.txt
+2026-02-22 12:24:55,787 - INFO - Git diff after:
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c6a..2faa868d6 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,11 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : dict, default=None
++        A dictionary mapping column names to dtypes. If provided, the dtypes
++        will be applied to the output DataFrame for columns that exist in both
++        the output and the dtypes dictionary.
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -59,7 +65,15 @@ def _wrap_in_pandas_container(
+             data_to_wrap.index = index
+         return data_to_wrap
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    df = pd.DataFrame(data_to_wrap, index=index, columns=columns)
++
++    if dtypes is not None:
++        # Apply dtypes for columns that exist in both the output and the dtypes dict
++        for col in df.columns:
++            if col in dtypes:
++                df[col] = df[col].astype(dtypes[col], copy=False)
++
++    return df
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -131,6 +145,7 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=getattr(original_input, "dtypes", None),
+     )
+ 
+ 
+@@ -276,4 +291,4 @@ def _safe_set_output(estimator, *, transform=None):
+             f"Unable to configure output for {estimator} because `set_output` "
+             "is not available."
+         )
+-    return estimator.set_output(transform=transform)
++    return estimator.set_output(transform=transform)
+\ No newline at end of file
+2026-02-22 12:24:55,787 - INFO - Grading answer for scikit-learn__scikit-learn-25102...
+2026-02-22 12:24:55,788 - INFO - report: {'scikit-learn__scikit-learn-25102': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/feature_selection/tests/test_base.py::test_output_dataframe', 'sklearn/feature_selection/tests/test_feature_select.py::test_dataframe_output_dtypes'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/feature_selection/tests/test_base.py::test_transform_dense', 'sklearn/feature_selection/tests/test_base.py::test_transform_sparse', 'sklearn/feature_selection/tests/test_base.py::test_inverse_transform_dense', 'sklearn/feature_selection/tests/test_base.py::test_inverse_transform_sparse', 'sklearn/feature_selection/tests/test_base.py::test_get_support', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_oneway_vs_scipy_stats', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_oneway_ints', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_classif', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression[True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression[False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_input_dtype', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_center', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression_force_finite[X0-y0-expected_corr_coef0-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression_force_finite[X1-y1-expected_corr_coef1-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression_force_finite[X2-y2-expected_corr_coef2-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_r_regression_force_finite[X3-y3-expected_corr_coef3-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X0-y0-expected_f_statistic0-expected_p_values0-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X1-y1-expected_f_statistic1-expected_p_values1-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X2-y2-expected_f_statistic2-expected_p_values2-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X3-y3-expected_f_statistic3-expected_p_values3-True]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X4-y4-expected_f_statistic4-expected_p_values4-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X5-y5-expected_f_statistic5-expected_p_values5-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X6-y6-expected_f_statistic6-expected_p_values6-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_regression_corner_case[X7-y7-expected_f_statistic7-expected_p_values7-False]', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_classif_multi_class', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_percentile_classif', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_percentile_classif_sparse', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_kbest_classif', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_kbest_all', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_kbest_zero[float32]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_kbest_zero[float64]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_heuristics_classif', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_percentile_regression', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_percentile_regression_full', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_kbest_regression', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_heuristics_regression', 'sklearn/feature_selection/tests/test_feature_select.py::test_boundary_case_ch2', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[1-0.001]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[1-0.01]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[1-0.1]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[5-0.001]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[5-0.01]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[5-0.1]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[10-0.001]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[10-0.01]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fdr_regression[10-0.1]', 'sklearn/feature_selection/tests/test_feature_select.py::test_select_fwe_regression', 'sklearn/feature_selection/tests/test_feature_select.py::test_selectkbest_tiebreaking', 'sklearn/feature_selection/tests/test_feature_select.py::test_selectpercentile_tiebreaking', 'sklearn/feature_selection/tests/test_feature_select.py::test_tied_pvalues', 'sklearn/feature_selection/tests/test_feature_select.py::test_scorefunc_multilabel', 'sklearn/feature_selection/tests/test_feature_select.py::test_tied_scores', 'sklearn/feature_selection/tests/test_feature_select.py::test_nans', 'sklearn/feature_selection/tests/test_feature_select.py::test_invalid_k', 'sklearn/feature_selection/tests/test_feature_select.py::test_f_classif_constant_feature', 'sklearn/feature_selection/tests/test_feature_select.py::test_no_feature_selected', 'sklearn/feature_selection/tests/test_feature_select.py::test_mutual_info_classif', 'sklearn/feature_selection/tests/test_feature_select.py::test_mutual_info_regression'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-25102: resolved: True
+2026-02-22 12:24:55,789 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-25102.pydantic-deep...
+2026-02-22 12:25:10,969 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-25102.pydantic-deep...
+2026-02-22 12:25:10,990 - INFO - Container sweb.eval.scikit-learn__scikit-learn-25102.pydantic-deep removed.
+2026-02-22 12:25:10,990 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25102:latest...
+2026-02-22 12:25:11,052 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25102:latest removed.

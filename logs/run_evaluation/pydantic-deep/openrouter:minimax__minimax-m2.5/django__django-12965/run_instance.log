@@ -1,0 +1,80 @@
+2026-02-22 11:28:30,301 - INFO - Creating container for django__django-12965...
+2026-02-22 11:28:30,468 - INFO - Container for django__django-12965 created: d45d50229fb253f78b98fa93ff8fe543a380bd3000799eb29a4bc866678fb623
+2026-02-22 11:28:30,604 - INFO - Container for django__django-12965 started: d45d50229fb253f78b98fa93ff8fe543a380bd3000799eb29a4bc866678fb623
+2026-02-22 11:28:30,605 - INFO - Intermediate patch for django__django-12965 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12965/patch.diff, now applying to container...
+2026-02-22 11:28:30,784 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:28:30,888 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:28:31,003 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/compiler.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 1428 with fuzz 1.
+
+2026-02-22 11:28:31,590 - INFO - Git diff before:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 29e33c075f..e394e77c72 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1410,8 +1410,13 @@ class SQLDeleteCompiler(SQLCompiler):
+         return sum(self.query.alias_refcount[t] > 0 for t in self.query.alias_map) == 1
+ 
+     def _as_sql(self, query):
++        # Get the base table - use the model's db_table if query.base_table is None
++        if query.base_table is None:
++            table_name = query.model._meta.db_table
++        else:
++            table_name = query.base_table
+         result = [
+-            'DELETE FROM %s' % self.quote_name_unless_alias(query.base_table)
++            'DELETE FROM %s' % self.quote_name_unless_alias(table_name)
+         ]
+         where, params = self.compile(query.where)
+         if where:
+@@ -1423,7 +1428,7 @@ class SQLDeleteCompiler(SQLCompiler):
+         Create the SQL for this query. Return the SQL string and list of
+         parameters.
+         """
+-        if self.single_alias:
++        if self.single_alias or not self.query.where:
+             return self._as_sql(self.query)
+         innerq = self.query.clone()
+         innerq.__class__ = Query
+2026-02-22 11:28:31,591 - INFO - Eval script for django__django-12965 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12965/eval.sh; copying to container...
+2026-02-22 11:28:45,921 - INFO - Test runtime: 14.27 seconds
+2026-02-22 11:28:45,921 - INFO - Test output for django__django-12965 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12965/test_output.txt
+2026-02-22 11:28:46,019 - INFO - Git diff after:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 29e33c075f..e394e77c72 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1410,8 +1410,13 @@ class SQLDeleteCompiler(SQLCompiler):
+         return sum(self.query.alias_refcount[t] > 0 for t in self.query.alias_map) == 1
+ 
+     def _as_sql(self, query):
++        # Get the base table - use the model's db_table if query.base_table is None
++        if query.base_table is None:
++            table_name = query.model._meta.db_table
++        else:
++            table_name = query.base_table
+         result = [
+-            'DELETE FROM %s' % self.quote_name_unless_alias(query.base_table)
++            'DELETE FROM %s' % self.quote_name_unless_alias(table_name)
+         ]
+         where, params = self.compile(query.where)
+         if where:
+@@ -1423,7 +1428,7 @@ class SQLDeleteCompiler(SQLCompiler):
+         Create the SQL for this query. Return the SQL string and list of
+         parameters.
+         """
+-        if self.single_alias:
++        if self.single_alias or not self.query.where:
+             return self._as_sql(self.query)
+         innerq = self.query.clone()
+         innerq.__class__ = Query
+2026-02-22 11:28:46,019 - INFO - Grading answer for django__django-12965...
+2026-02-22 11:28:46,020 - INFO - report: {'django__django-12965': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_fast_delete_all (delete.tests.FastDeleteTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_fast_delete_combined_relationships (delete.tests.FastDeleteTests)', 'test_fast_delete_empty_no_update_can_self_select (delete.tests.FastDeleteTests)', 'test_fast_delete_fk (delete.tests.FastDeleteTests)', 'test_fast_delete_inheritance (delete.tests.FastDeleteTests)', 'test_fast_delete_instance_set_pk_none (delete.tests.FastDeleteTests)', 'test_fast_delete_joined_qs (delete.tests.FastDeleteTests)', 'test_fast_delete_large_batch (delete.tests.FastDeleteTests)', 'test_fast_delete_m2m (delete.tests.FastDeleteTests)', 'test_fast_delete_qs (delete.tests.FastDeleteTests)', 'test_fast_delete_revm2m (delete.tests.FastDeleteTests)', 'test_auto (delete.tests.OnDeleteTests)', 'test_auto_nullable (delete.tests.OnDeleteTests)', 'test_cascade (delete.tests.OnDeleteTests)', 'test_cascade_from_child (delete.tests.OnDeleteTests)', 'test_cascade_from_parent (delete.tests.OnDeleteTests)', 'test_cascade_nullable (delete.tests.OnDeleteTests)', 'test_do_nothing (delete.tests.OnDeleteTests)', 'test_do_nothing_qscount (delete.tests.OnDeleteTests)', 'test_inheritance_cascade_down (delete.tests.OnDeleteTests)', 'test_inheritance_cascade_up (delete.tests.OnDeleteTests)', 'test_non_callable (delete.tests.OnDeleteTests)', 'test_o2o_setnull (delete.tests.OnDeleteTests)', 'test_protect (delete.tests.OnDeleteTests)', 'test_protect_multiple (delete.tests.OnDeleteTests)', 'test_protect_path (delete.tests.OnDeleteTests)', 'test_restrict (delete.tests.OnDeleteTests)', 'test_restrict_gfk_no_fast_delete (delete.tests.OnDeleteTests)', 'test_restrict_multiple (delete.tests.OnDeleteTests)', 'test_restrict_path_cascade_direct (delete.tests.OnDeleteTests)', 'test_restrict_path_cascade_indirect (delete.tests.OnDeleteTests)', 'test_restrict_path_cascade_indirect_diamond (delete.tests.OnDeleteTests)', 'test_setdefault (delete.tests.OnDeleteTests)', 'test_setdefault_none (delete.tests.OnDeleteTests)', 'test_setnull (delete.tests.OnDeleteTests)', 'test_setnull_from_child (delete.tests.OnDeleteTests)', 'test_setnull_from_parent (delete.tests.OnDeleteTests)', 'test_setvalue (delete.tests.OnDeleteTests)', 'test_bulk (delete.tests.DeletionTests)', 'test_can_defer_constraint_checks (delete.tests.DeletionTests)', 'test_delete_with_keeping_parents (delete.tests.DeletionTests)', 'test_delete_with_keeping_parents_relationships (delete.tests.DeletionTests)', 'test_deletion_order (delete.tests.DeletionTests)', 'test_hidden_related (delete.tests.DeletionTests)', 'test_instance_update (delete.tests.DeletionTests)', 'test_large_delete (delete.tests.DeletionTests)', 'test_large_delete_related (delete.tests.DeletionTests)', 'test_m2m (delete.tests.DeletionTests)', 'test_model_delete_returns_num_rows (delete.tests.DeletionTests)', 'test_only_referenced_fields_selected (delete.tests.DeletionTests)', 'test_proxied_model_duplicate_queries (delete.tests.DeletionTests)', 'test_queryset_delete_returns_num_rows (delete.tests.DeletionTests)', 'test_relational_post_delete_signals_happen_before_parent_object (delete.tests.DeletionTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12965: resolved: True
+2026-02-22 11:28:46,021 - INFO - Attempting to stop container sweb.eval.django__django-12965.pydantic-deep...
+2026-02-22 11:29:01,407 - INFO - Attempting to remove container sweb.eval.django__django-12965.pydantic-deep...
+2026-02-22 11:29:01,458 - INFO - Container sweb.eval.django__django-12965.pydantic-deep removed.
+2026-02-22 11:29:01,459 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-12965:latest...
+2026-02-22 11:29:01,715 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-12965:latest removed.

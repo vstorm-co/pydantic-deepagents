@@ -1,0 +1,70 @@
+2026-02-22 12:38:32,885 - INFO - Creating container for sympy__sympy-15345...
+2026-02-22 12:38:33,138 - INFO - Container for sympy__sympy-15345 created: 698b7f72e17cd4f67c1ddda3cae45763a15b7ae64806c5b86fd3840eba52750b
+2026-02-22 12:38:33,423 - INFO - Container for sympy__sympy-15345 started: 698b7f72e17cd4f67c1ddda3cae45763a15b7ae64806c5b86fd3840eba52750b
+2026-02-22 12:38:33,424 - INFO - Intermediate patch for sympy__sympy-15345 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15345/patch.diff, now applying to container...
+2026-02-22 12:38:34,046 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:38:34,325 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:38:34,465 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/mathematica.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 116 with fuzz 1.
+
+2026-02-22 12:38:35,131 - INFO - Git diff before:
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index ea7e3a2d9..273d7a4b6 100644
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -116,6 +116,18 @@ def _print_Derivative(self, expr):
+         dvars = [i[0] if i[1] == 1 else i for i in expr.variable_count]
+         return "Hold[D[" + ', '.join(self.doprint(a) for a in [dexpr] + dvars) + "]]"
+ 
++    def _print_Max(self, expr):
++        return "Max[{}]".format(", ".join(self.doprint(a) for a in expr.args))
++
++    def _print_Min(self, expr):
++        return "Min[{}]".format(", ".join(self.doprint(a) for a in expr.args))
++
++
++def mathematica_code(expr, **settings):
++        dexpr = expr.expr
++        dvars = [i[0] if i[1] == 1 else i for i in expr.variable_count]
++        return "Hold[D[" + ', '.join(self.doprint(a) for a in [dexpr] + dvars) + "]]"
++
+ 
+ def mathematica_code(expr, **settings):
+     r"""Converts an expr to a string of the Wolfram Mathematica code
+2026-02-22 12:38:35,132 - INFO - Eval script for sympy__sympy-15345 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15345/eval.sh; copying to container...
+2026-02-22 12:38:41,279 - INFO - Test runtime: 6.07 seconds
+2026-02-22 12:38:41,279 - INFO - Test output for sympy__sympy-15345 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15345/test_output.txt
+2026-02-22 12:38:41,359 - INFO - Git diff after:
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index ea7e3a2d9..273d7a4b6 100644
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -116,6 +116,18 @@ def _print_Derivative(self, expr):
+         dvars = [i[0] if i[1] == 1 else i for i in expr.variable_count]
+         return "Hold[D[" + ', '.join(self.doprint(a) for a in [dexpr] + dvars) + "]]"
+ 
++    def _print_Max(self, expr):
++        return "Max[{}]".format(", ".join(self.doprint(a) for a in expr.args))
++
++    def _print_Min(self, expr):
++        return "Min[{}]".format(", ".join(self.doprint(a) for a in expr.args))
++
++
++def mathematica_code(expr, **settings):
++        dexpr = expr.expr
++        dvars = [i[0] if i[1] == 1 else i for i in expr.variable_count]
++        return "Hold[D[" + ', '.join(self.doprint(a) for a in [dexpr] + dvars) + "]]"
++
+ 
+ def mathematica_code(expr, **settings):
+     r"""Converts an expr to a string of the Wolfram Mathematica code
+2026-02-22 12:38:41,360 - INFO - Grading answer for sympy__sympy-15345...
+2026-02-22 12:38:41,360 - INFO - report: {'sympy__sympy-15345': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Function'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Integer', 'test_Rational', 'test_Pow', 'test_Mul', 'test_constants', 'test_containers', 'test_Integral', 'test_Derivative'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15345: resolved: True
+2026-02-22 12:38:41,361 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15345.pydantic-deep...
+2026-02-22 12:38:56,493 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15345.pydantic-deep...
+2026-02-22 12:38:56,515 - INFO - Container sweb.eval.sympy__sympy-15345.pydantic-deep removed.
+2026-02-22 12:38:56,515 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-15345:latest...
+2026-02-22 12:38:56,559 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-15345:latest removed.

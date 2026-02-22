@@ -1,0 +1,54 @@
+2026-02-22 11:45:57,357 - INFO - Creating container for django__django-15851...
+2026-02-22 11:45:57,809 - INFO - Container for django__django-15851 created: ad407e2a4de8aacf23173aa8536a98ffb363eb0d2cf3b98745cec0a992a1349f
+2026-02-22 11:45:57,993 - INFO - Container for django__django-15851 started: ad407e2a4de8aacf23173aa8536a98ffb363eb0d2cf3b98745cec0a992a1349f
+2026-02-22 11:45:57,994 - INFO - Intermediate patch for django__django-15851 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15851/patch.diff, now applying to container...
+2026-02-22 11:45:58,188 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:45:58,305 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:45:58,405 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/postgresql/client.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 32 with fuzz 1.
+
+2026-02-22 11:45:59,403 - INFO - Git diff before:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 4c9bd63546..3b5ddafaca 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -32,9 +32,9 @@ class DatabaseClient(BaseDatabaseClient):
+             args += ["-h", host]
+         if port:
+             args += ["-p", str(port)]
++        args.extend(parameters)
+         if dbname:
+             args += [dbname]
+-        args.extend(parameters)
+ 
+         env = {}
+         if passwd:
+2026-02-22 11:45:59,404 - INFO - Eval script for django__django-15851 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15851/eval.sh; copying to container...
+2026-02-22 11:46:06,146 - INFO - Test runtime: 6.66 seconds
+2026-02-22 11:46:06,146 - INFO - Test output for django__django-15851 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15851/test_output.txt
+2026-02-22 11:46:06,254 - INFO - Git diff after:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 4c9bd63546..3b5ddafaca 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -32,9 +32,9 @@ class DatabaseClient(BaseDatabaseClient):
+             args += ["-h", host]
+         if port:
+             args += ["-p", str(port)]
++        args.extend(parameters)
+         if dbname:
+             args += [dbname]
+-        args.extend(parameters)
+ 
+         env = {}
+         if passwd:
+2026-02-22 11:46:06,254 - INFO - Grading answer for django__django-15851...
+2026-02-22 11:46:06,255 - INFO - report: {'django__django-15851': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_parameters (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_crash_password_does_not_leak (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_passfile (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_service (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_ssl_certificate (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-15851: resolved: True
+2026-02-22 11:46:06,255 - INFO - Attempting to stop container sweb.eval.django__django-15851.pydantic-deep...
+2026-02-22 11:46:21,466 - INFO - Attempting to remove container sweb.eval.django__django-15851.pydantic-deep...
+2026-02-22 11:46:21,487 - INFO - Container sweb.eval.django__django-15851.pydantic-deep removed.
+2026-02-22 11:46:21,487 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-15851:latest...
+2026-02-22 11:46:21,767 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-15851:latest removed.

@@ -1,0 +1,108 @@
+2026-02-22 12:39:25,967 - INFO - Creating container for sympy__sympy-15976...
+2026-02-22 12:39:26,059 - INFO - Container for sympy__sympy-15976 created: 24605136a420753e3534217addac98c96caf133c7a2cb4f17cf9e456c251ac28
+2026-02-22 12:39:26,155 - INFO - Container for sympy__sympy-15976 started: 24605136a420753e3534217addac98c96caf133c7a2cb4f17cf9e456c251ac28
+2026-02-22 12:39:26,156 - INFO - Intermediate patch for sympy__sympy-15976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15976/patch.diff, now applying to container...
+2026-02-22 12:39:26,292 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:39:26,366 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:39:26,431 - INFO - >>>>> Applied Patch:
+patching file sympy/printing/mathml.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 781 with fuzz 1.
+
+2026-02-22 12:39:26,802 - INFO - Git diff before:
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 3f8b8d49e..715f290c6 100644
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -781,25 +781,33 @@ def translate(s):
+         mname.appendChild(self.dom.createTextNode(name))
+         if len(supers) == 0:
+             if len(subs) == 0:
++                if style == 'bold':
++                    x.setAttribute('mathvariant', 'bold')
+                 x.appendChild(self.dom.createTextNode(name))
++                return x
+             else:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msub = self.dom.createElement('msub')
+                 msub.appendChild(mname)
+                 msub.appendChild(join(subs))
+-                x.appendChild(msub)
++                return msub
+         else:
+             if len(subs) == 0:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msup = self.dom.createElement('msup')
+                 msup.appendChild(mname)
+                 msup.appendChild(join(supers))
+-                x.appendChild(msup)
++                return msup
+             else:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msubsup = self.dom.createElement('msubsup')
+                 msubsup.appendChild(mname)
+                 msubsup.appendChild(join(subs))
+                 msubsup.appendChild(join(supers))
+-                x.appendChild(msubsup)
+-        return x
++                return msubsup
+ 
+     def _print_MatrixSymbol(self, sym):
+         return self._print_Symbol(sym, style=self._settings['mat_symbol_style'])
+2026-02-22 12:39:26,802 - INFO - Eval script for sympy__sympy-15976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15976/eval.sh; copying to container...
+2026-02-22 12:39:31,881 - INFO - Test runtime: 5.02 seconds
+2026-02-22 12:39:31,884 - INFO - Test output for sympy__sympy-15976 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15976/test_output.txt
+2026-02-22 12:39:31,997 - INFO - Git diff after:
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 3f8b8d49e..715f290c6 100644
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -781,25 +781,33 @@ def translate(s):
+         mname.appendChild(self.dom.createTextNode(name))
+         if len(supers) == 0:
+             if len(subs) == 0:
++                if style == 'bold':
++                    x.setAttribute('mathvariant', 'bold')
+                 x.appendChild(self.dom.createTextNode(name))
++                return x
+             else:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msub = self.dom.createElement('msub')
+                 msub.appendChild(mname)
+                 msub.appendChild(join(subs))
+-                x.appendChild(msub)
++                return msub
+         else:
+             if len(subs) == 0:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msup = self.dom.createElement('msup')
+                 msup.appendChild(mname)
+                 msup.appendChild(join(supers))
+-                x.appendChild(msup)
++                return msup
+             else:
++                if style == 'bold':
++                    mname.setAttribute('mathvariant', 'bold')
+                 msubsup = self.dom.createElement('msubsup')
+                 msubsup.appendChild(mname)
+                 msubsup.appendChild(join(subs))
+                 msubsup.appendChild(join(supers))
+-                x.appendChild(msubsup)
+-        return x
++                return msubsup
+ 
+     def _print_MatrixSymbol(self, sym):
+         return self._print_Symbol(sym, style=self._settings['mat_symbol_style'])
+2026-02-22 12:39:31,998 - INFO - Grading answer for sympy__sympy-15976...
+2026-02-22 12:39:31,998 - INFO - report: {'sympy__sympy-15976': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_presentation_symbol'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_mathml_printer', 'test_content_printmethod', 'test_content_mathml_core', 'test_content_mathml_functions', 'test_content_mathml_limits', 'test_content_mathml_integrals', 'test_content_mathml_matrices', 'test_content_mathml_sums', 'test_content_mathml_tuples', 'test_content_mathml_add', 'test_content_mathml_Rational', 'test_content_mathml_constants', 'test_content_mathml_trig', 'test_content_mathml_relational', 'test_content_symbol', 'test_content_mathml_greek', 'test_content_mathml_order', 'test_content_settings', 'test_presentation_printmethod', 'test_presentation_mathml_core', 'test_presentation_mathml_functions', 'test_presentation_mathml_limits', 'test_presentation_mathml_integrals', 'test_presentation_mathml_matrices', 'test_presentation_mathml_sums', 'test_presentation_mathml_add', 'test_presentation_mathml_Rational', 'test_presentation_mathml_constants', 'test_presentation_mathml_trig', 'test_presentation_mathml_relational', 'test_presentation_mathml_greek', 'test_presentation_mathml_order', 'test_presentation_settings', 'test_toprettyxml_hooking', 'test_print_basic', 'test_root_notation_print', 'test_print_matrix_symbol'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15976: resolved: True
+2026-02-22 12:39:31,999 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15976.pydantic-deep...
+2026-02-22 12:39:47,171 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15976.pydantic-deep...
+2026-02-22 12:39:47,195 - INFO - Container sweb.eval.sympy__sympy-15976.pydantic-deep removed.
+2026-02-22 12:39:47,195 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-15976:latest...
+2026-02-22 12:39:47,245 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-15976:latest removed.

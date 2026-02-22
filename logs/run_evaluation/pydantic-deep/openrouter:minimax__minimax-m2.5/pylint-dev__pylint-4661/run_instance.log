@@ -1,0 +1,84 @@
+2026-02-22 12:16:56,702 - INFO - Creating container for pylint-dev__pylint-4661...
+2026-02-22 12:16:56,906 - INFO - Container for pylint-dev__pylint-4661 created: db03e0dc55557ccb86fbcaeadd9d77b95c935a5b62e704ff17ab402871c0cfcd
+2026-02-22 12:16:57,024 - INFO - Container for pylint-dev__pylint-4661 started: db03e0dc55557ccb86fbcaeadd9d77b95c935a5b62e704ff17ab402871c0cfcd
+2026-02-22 12:16:57,025 - INFO - Intermediate patch for pylint-dev__pylint-4661 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-4661/patch.diff, now applying to container...
+2026-02-22 12:16:57,161 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:16:57,254 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:16:57,322 - INFO - >>>>> Applied Patch:
+patching file pylint/config/__init__.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 115 with fuzz 1.
+
+2026-02-22 12:16:57,475 - INFO - Git diff before:
+diff --git a/pylint/config/__init__.py b/pylint/config/__init__.py
+index 84774d0e..a16957ba 100644
+--- a/pylint/config/__init__.py
++++ b/pylint/config/__init__.py
+@@ -63,7 +63,12 @@ if "PYLINTHOME" in os.environ:
+ elif USER_HOME == "~":
+     PYLINT_HOME = ".pylint.d"
+ else:
+-    PYLINT_HOME = os.path.join(USER_HOME, ".pylint.d")
++    # XDG Base Directory Specification
++    # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
++    PYLINT_HOME = os.environ.get(
++        "XDG_DATA_HOME", os.path.join(USER_HOME, ".local", "share")
++    )
++    PYLINT_HOME = os.path.join(PYLINT_HOME, "pylint")
+ 
+ 
+ def _get_pdata_path(base_name, recurs):
+@@ -110,8 +115,9 @@ ENV_HELP = (
+ The following environment variables are used:
+     * PYLINTHOME
+     Path to the directory where persistent data for the run will be stored. If
+-not found, it defaults to ~/.pylint.d/ or .pylint.d (in the current working
+-directory).
++not found, it defaults to the XDG data directory ($XDG_DATA_HOME/pylint, or
++~/.local/share/pylint if XDG_DATA_HOME is not set), or .pylint.d (in the current
++working directory).
+     * PYLINTRC
+     Path to the configuration file. See the documentation for the method used
+ to search for configuration file.
+2026-02-22 12:16:57,475 - INFO - Eval script for pylint-dev__pylint-4661 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-4661/eval.sh; copying to container...
+2026-02-22 12:17:01,381 - INFO - Test runtime: 3.85 seconds
+2026-02-22 12:17:01,382 - INFO - Test output for pylint-dev__pylint-4661 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-4661/test_output.txt
+2026-02-22 12:17:01,459 - INFO - Git diff after:
+diff --git a/pylint/config/__init__.py b/pylint/config/__init__.py
+index 84774d0e..a16957ba 100644
+--- a/pylint/config/__init__.py
++++ b/pylint/config/__init__.py
+@@ -63,7 +63,12 @@ if "PYLINTHOME" in os.environ:
+ elif USER_HOME == "~":
+     PYLINT_HOME = ".pylint.d"
+ else:
+-    PYLINT_HOME = os.path.join(USER_HOME, ".pylint.d")
++    # XDG Base Directory Specification
++    # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
++    PYLINT_HOME = os.environ.get(
++        "XDG_DATA_HOME", os.path.join(USER_HOME, ".local", "share")
++    )
++    PYLINT_HOME = os.path.join(PYLINT_HOME, "pylint")
+ 
+ 
+ def _get_pdata_path(base_name, recurs):
+@@ -110,8 +115,9 @@ ENV_HELP = (
+ The following environment variables are used:
+     * PYLINTHOME
+     Path to the directory where persistent data for the run will be stored. If
+-not found, it defaults to ~/.pylint.d/ or .pylint.d (in the current working
+-directory).
++not found, it defaults to the XDG data directory ($XDG_DATA_HOME/pylint, or
++~/.local/share/pylint if XDG_DATA_HOME is not set), or .pylint.d (in the current
++working directory).
+     * PYLINTRC
+     Path to the configuration file. See the documentation for the method used
+ to search for configuration file.
+2026-02-22 12:17:01,459 - INFO - Grading answer for pylint-dev__pylint-4661...
+2026-02-22 12:17:01,459 - INFO - report: {'pylint-dev__pylint-4661': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/lint/unittest_lint.py::test_pylint_home']}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-4661: resolved: False
+2026-02-22 12:17:01,460 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-4661.pydantic-deep...
+2026-02-22 12:17:16,724 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-4661.pydantic-deep...
+2026-02-22 12:17:16,752 - INFO - Container sweb.eval.pylint-dev__pylint-4661.pydantic-deep removed.
+2026-02-22 12:17:16,752 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-4661:latest...
+2026-02-22 12:17:17,334 - INFO - Image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-4661:latest removed.

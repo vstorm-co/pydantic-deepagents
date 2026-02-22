@@ -1,0 +1,58 @@
+# django__django-16819
+
+**Repository**: django/django
+**Duration**: 604.1s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 44 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/db/migrations/operations/models.py b/django/db/migrations/operations/models.py
+index 967a91fdc8..e5e5e1b6e0 100644
+--- a/django/db/migrations/operations/models.py
++++ b/django/db/migrations/operations/models.py
+@@ -807,6 +807,26 @@ class IndexOperation(Operation):
+     def model_name_lower(self):
+         return self.model_name.lower()
+ 
++    def is_same_model_operation(self, operation):
++        return self.model_name_lower == operation.model_name_lower
++
++    def is_same_index_operation(self, operation):
++        return (
++            self.is_same_model_operation(operation)
++            and self.index.name.lower() == operation.index.name.lower()
++        )
++
++    def references_index(self, model_name, name, app_label):
++        return (
++            self.model_name_lower == model_name.lower()
++            and hasattr(self, "index")
++            and self.index.name.lower() == name.lower()
++        )
++
++    def reduce(self, operation, app_label):
++        return super().reduce(operation, app_label) or not operation.references_index(
++            self.model_name, self.index.name, app_label
++        )
+ 
+ class AddIndex(IndexOperation):
+     """Add an index on a model."""
+@@ -861,6 +881,12 @@ class AddIndex(IndexOperation):
+     def migration_name_fragment(self):
+         return "%s_%s" % (self.model_name_lower, self.index.name.lower())
+ 
++    def reduce(self, operation, app_label):
++        if isinstance(operation, RemoveIndex) and self.is_same_index_operation(
++            operation
++        ):
++            return []
++        return super().reduce(operation, app_label)
+ 
+ class RemoveIndex(IndexOperation):
+     """Remove an index from a model."""
+```

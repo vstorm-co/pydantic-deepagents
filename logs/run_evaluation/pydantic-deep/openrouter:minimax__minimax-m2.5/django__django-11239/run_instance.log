@@ -1,0 +1,64 @@
+2026-02-22 11:20:49,876 - INFO - Creating container for django__django-11239...
+2026-02-22 11:20:50,036 - INFO - Container for django__django-11239 created: 3b8964ea8ecdc932a441042ce14124af648422f83278b6a55d0d8b31d34ef25f
+2026-02-22 11:20:50,261 - INFO - Container for django__django-11239 started: 3b8964ea8ecdc932a441042ce14124af648422f83278b6a55d0d8b31d34ef25f
+2026-02-22 11:20:50,261 - INFO - Intermediate patch for django__django-11239 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11239/patch.diff, now applying to container...
+2026-02-22 11:20:50,527 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:20:50,664 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:20:50,817 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/postgresql/client.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 30 with fuzz 1.
+
+2026-02-22 11:20:51,981 - INFO - Git diff before:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index cf4df76882..583b57fd94 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -30,6 +30,15 @@ class DatabaseClient(BaseDatabaseClient):
+         subprocess_env = os.environ.copy()
+         if passwd:
+             subprocess_env['PGPASSWORD'] = str(passwd)
++        ssl_options = {
++            'sslmode': 'PGSSLMODE',
++            'sslrootcert': 'PGSSLROOTCERT',
++            'sslcert': 'PGSSLCERT',
++            'sslkey': 'PGSSLKEY',
++        }
++        for option, env_var in ssl_options.items():
++            if conn_params.get(option):
++                subprocess_env[env_var] = conn_params[option]
+         try:
+             # Allow SIGINT to pass to psql to abort queries.
+             signal.signal(signal.SIGINT, signal.SIG_IGN)
+2026-02-22 11:20:51,981 - INFO - Eval script for django__django-11239 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11239/eval.sh; copying to container...
+2026-02-22 11:21:04,680 - INFO - Test runtime: 12.61 seconds
+2026-02-22 11:21:04,683 - INFO - Test output for django__django-11239 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11239/test_output.txt
+2026-02-22 11:21:04,794 - INFO - Git diff after:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index cf4df76882..583b57fd94 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -30,6 +30,15 @@ class DatabaseClient(BaseDatabaseClient):
+         subprocess_env = os.environ.copy()
+         if passwd:
+             subprocess_env['PGPASSWORD'] = str(passwd)
++        ssl_options = {
++            'sslmode': 'PGSSLMODE',
++            'sslrootcert': 'PGSSLROOTCERT',
++            'sslcert': 'PGSSLCERT',
++            'sslkey': 'PGSSLKEY',
++        }
++        for option, env_var in ssl_options.items():
++            if conn_params.get(option):
++                subprocess_env[env_var] = conn_params[option]
+         try:
+             # Allow SIGINT to pass to psql to abort queries.
+             signal.signal(signal.SIGINT, signal.SIG_IGN)
+2026-02-22 11:21:04,794 - INFO - Grading answer for django__django-11239...
+2026-02-22 11:21:04,795 - INFO - report: {'django__django-11239': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_ssl_certificate (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'SIGINT is ignored in Python and passed to psql to abort quries.'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11239: resolved: True
+2026-02-22 11:21:04,795 - INFO - Attempting to stop container sweb.eval.django__django-11239.pydantic-deep...
+2026-02-22 11:21:20,022 - INFO - Attempting to remove container sweb.eval.django__django-11239.pydantic-deep...
+2026-02-22 11:21:20,367 - INFO - Container sweb.eval.django__django-11239.pydantic-deep removed.
+2026-02-22 11:21:20,367 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11239:latest...
+2026-02-22 11:21:20,676 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11239:latest removed.

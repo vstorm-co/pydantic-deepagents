@@ -1,0 +1,70 @@
+# scikit-learn__scikit-learn-25102
+
+**Repository**: scikit-learn/scikit-learn
+**Duration**: 654.7s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 56 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c6a..2faa868d6 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,11 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : dict, default=None
++        A dictionary mapping column names to dtypes. If provided, the dtypes
++        will be applied to the output DataFrame for columns that exist in both
++        the output and the dtypes dictionary.
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -59,7 +65,15 @@ def _wrap_in_pandas_container(
+             data_to_wrap.index = index
+         return data_to_wrap
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    df = pd.DataFrame(data_to_wrap, index=index, columns=columns)
++
++    if dtypes is not None:
++        # Apply dtypes for columns that exist in both the output and the dtypes dict
++        for col in df.columns:
++            if col in dtypes:
++                df[col] = df[col].astype(dtypes[col], copy=False)
++
++    return df
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -131,6 +145,7 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=getattr(original_input, "dtypes", None),
+     )
+ 
+ 
+@@ -276,4 +291,4 @@ def _safe_set_output(estimator, *, transform=None):
+             f"Unable to configure output for {estimator} because `set_output` "
+             "is not available."
+         )
+-    return estimator.set_output(transform=transform)
++    return estimator.set_output(transform=transform)
+\ No newline at end of file
+```

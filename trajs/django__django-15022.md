@@ -1,0 +1,67 @@
+# django__django-15022
+
+**Repository**: django/django
+**Duration**: 611.3s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 53 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 66f3396a6b..573ae6b171 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1031,18 +1031,39 @@ class ModelAdmin(BaseModelAdmin):
+         if search_fields and search_term:
+             orm_lookups = [construct_search(str(search_field))
+                            for search_field in search_fields]
+-            for bit in smart_split(search_term):
+-                if bit.startswith(('"', "'")) and bit[0] == bit[-1]:
+-                    bit = unescape_string_literal(bit)
+-                or_queries = models.Q(
+-                    *((orm_lookup, bit) for orm_lookup in orm_lookups),
+-                    _connector=models.Q.OR,
+-                )
+-                queryset = queryset.filter(or_queries)
+-            may_have_duplicates |= any(
++            # Check if any search field involves a ManyToMany relationship.
++            # If so, we need to use separate filter() calls to allow different
++            # search terms to match different related objects.
++            contains_duplicate_spawning_lookup = any(
+                 lookup_spawns_duplicates(self.opts, search_spec)
+                 for search_spec in orm_lookups
+             )
++            if not contains_duplicate_spawning_lookup:
++                # Optimization: combine all search terms into a single filter()
++                # to avoid creating duplicate JOINs for the same table.
++                all_queries = models.Q()
++                for bit in smart_split(search_term):
++                    if bit.startswith(('"', "'")) and bit[0] == bit[-1]:
++                        bit = unescape_string_literal(bit)
++                    or_queries = models.Q(
++                        *((orm_lookup, bit) for orm_lookup in orm_lookups),
++                        _connector=models.Q.OR,
++                    )
++                    all_queries &= or_queries
++                queryset = queryset.filter(all_queries)
++            else:
++                # Original behavior: use separate filter() calls for each search term.
++                # This is necessary for ManyToMany relationships where different
++                # search terms may match different related objects.
++                for bit in smart_split(search_term):
++                    if bit.startswith(('"', "'")) and bit[0] == bit[-1]:
++                        bit = unescape_string_literal(bit)
++                    or_queries = models.Q(
++                        *((orm_lookup, bit) for orm_lookup in orm_lookups),
++                        _connector=models.Q.OR,
++                    )
++                    queryset = queryset.filter(or_queries)
++            may_have_duplicates |= contains_duplicate_spawning_lookup
+         return queryset, may_have_duplicates
+ 
+     def get_preserved_filters(self, request):
+```

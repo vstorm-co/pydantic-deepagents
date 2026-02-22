@@ -1,0 +1,93 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 627630fea7..92677698c2 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,6 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping
++from collections.abc import Mapping
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+ from .cache import cacheit
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 593048464b..7edd7eb856 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -10,6 +10,8 @@
+ 
+ from __future__ import division, print_function
+ 
++from itertools import zip_longest
++
+ from sympy.core import S, sympify
+ from sympy.core.compatibility import iterable
+ from sympy.core.containers import Tuple
+@@ -266,6 +268,10 @@ def distance(self, p):
+         sqrt(x**2 + y**2)
+ 
+         """
++        s = self.args
++        p_args = p.args if isinstance(p, Point) else p
++        return sqrt(sum([(a - b)**2 for a, b in zip_longest(
++            s, p_args, fillvalue=0)]))
+         return sqrt(sum([(a - b)**2 for a, b in zip(
+             self.args, p.args if isinstance(p, Point) else p)]))
+ 
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index f458f7d1e7..5bb4c1a5ee 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,5 +1,8 @@
+ from __future__ import print_function, division
+ 
++import collections
++from collections.abc import Callable
++
+ import collections
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+@@ -386,7 +389,7 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+             cols = as_int(args[1])
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index 6a6a3818c3..34d7eee072 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -1,5 +1,9 @@
+ from __future__ import print_function, division
+ 
++import copy
++from collections import defaultdict
++from collections.abc import Callable
++
+ import copy
+ from collections import defaultdict
+ 
+@@ -51,7 +55,7 @@ def __init__(self, *args):
+             self.rows = as_int(args[0])
+             self.cols = as_int(args[1])
+ 
+-            if isinstance(args[2], collections.Callable):
++            if isinstance(args[2], Callable):
+                 op = args[2]
+                 for i in range(self.rows):
+                     for j in range(self.cols):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index b1ead153ef..f3dc7f60fe 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys

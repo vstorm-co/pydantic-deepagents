@@ -1,0 +1,737 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   sphinx/directives/other.py
+	modified:   sphinx/environment/__init__.py
+	modified:   sphinx/io.py
+	modified:   tox.ini
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	tox.ini.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit 7ebcb8ba30a0b2c6ac43d83b93a71c61e4a6f5a9
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 16:02:52 2025 +0000
+
+    SWE-bench
+
+diff --git a/tox.ini b/tox.ini
+index a3dc56211..c76147de3 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -24,7 +24,7 @@ setenv =
+     PYTHONWARNINGS = error
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
+ 
+ [testenv:docs]
+ basepython = python3
++ git -c core.fileMode=false diff 6cb783c0024a873722952a67ebb9f41771c8eb6d
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a8d..afc394ff0 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -374,9 +374,144 @@ class Include(BaseInclude, SphinxDirective):
+             # docutils "standard" includes, do not do path processing
+             return super().run()
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        if docname and docname not in self.env._source_cache:
++            # The source hasn't been read yet - read it and emit source-read event
++            from sphinx.util.osutil import os_path
++            filepath = os_path(filename)
++            try:
++                with open(filepath, 'r', encoding='utf-8') as f:
++                    content = f.read()
++            except OSError:
++                return super().run()
++            # Emit source-read event
++            arg = [content]
++            self.env.events.emit('source-read', docname, arg)
++            # Store in cache
++            self.env._source_cache[docname] = arg[0]
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
+         self.arguments[0] = filename
+         self.env.note_included(filename)
+         return super().run()
++        if self.arguments[0].startswith('<') and \
++           self.arguments[0].endswith('>'):
++            # docutils "standard" includes, do not do path processing
++            return super().run()
++        rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        print(f"DEBUG Include: filename={filename}, docname={docname}, cache keys={list(self.env._source_cache.keys())}")
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
++        self.arguments[0] = filename
++        self.env.note_included(filename)
++        return super().run()
++        if self.arguments[0].startswith('<') and \
++           self.arguments[0].endswith('>'):
++            # docutils "standard" includes, do not do path processing
++            return super().run()
++        rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
++        self.arguments[0] = filename
++        self.env.note_included(filename)
++        return super().run()
++
++    def _run_from_cache(self, filename: str, docname: str) -> list[Node]:
++        """Run the include directive using cached source content."""
++        from docutils import io, nodes, utils
++        from docutils.parsers.rst import states
++        from docutils.statemachine import string2lines
++
++        encoding = self.options.get('encoding', self.state.document.settings.input_encoding)
++        e_handler = self.state.document.settings.input_encoding_error_handler
++        tab_width = self.options.get('tab-width', self.state.document.settings.tab_width)
++
++        # Get the cached source
++        rawtext = self.env._source_cache[docname]
++
++        # Process start-line and end-line options
++        startline = self.options.get('start-line', None)
++        endline = self.options.get('end-line', None)
++        if startline or (endline is not None):
++            lines = rawtext.splitlines(True)
++            rawtext = ''.join(lines[startline:endline])
++
++        # Process start-after and end-before options
++        after_text = self.options.get('start-after', None)
++        if after_text:
++            after_index = rawtext.find(after_text)
++            if after_index < 0:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('Problem with "start-after" option of "%s" '
++                                  'directive:\nText not found.' % self.name)
++            rawtext = rawtext[after_index + len(after_text):]
++
++        before_text = self.options.get('end-before', None)
++        if before_text:
++            before_index = rawtext.find(before_text)
++            if before_index < 0:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('Problem with "end-before" option of "%s" '
++                                  'directive:\nText not found.' % self.name)
++            rawtext = rawtext[:before_index]
++
++        include_lines = string2lines(rawtext, tab_width, convert_whitespace=True)
++        for i, line in enumerate(include_lines):
++            if len(line) > self.state.document.settings.line_length_limit:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('"%s": line %d exceeds the'
++                                   ' line-length-limit.' % (filename, i + 1))
++
++        if 'literal' in self.options:
++            if tab_width >= 0:
++                text = rawtext.expandtabs(tab_width)
++            else:
++                text = rawtext
++            literal_block = nodes.literal_block(
++                rawtext, source=filename,
++                classes=self.options.get('class', []))
++            literal_block.line = 1
++            self.add_name(literal_block)
++            literal_block += nodes.Text(text)
++            return [literal_block]
++
++        if 'code' in self.options:
++            from sphinx.directives.code import CodeBlock
++            self.options['source'] = filename
++            if tab_width < 0:
++                include_lines = rawtext.splitlines()
++            codeblock = CodeBlock(self.name,
++                                  [self.options.pop('code')],  # arguments
++                                  self.options,
++                                  include_lines,  # content
++                                  self.lineno,
++                                  self.content_offset,
++                                  self.block_text,
++                                  self.state,
++                                  self.state_machine)
++            return codeblock.run()
++
++        # Include as rST source
++        include_lines += ['', '.. end of inclusion from "%s"' % filename]
++        self.state_machine.insert_input(include_lines, filename)
++        return []
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/sphinx/environment/__init__.py b/sphinx/environment/__init__.py
+index cf698ea6d..5edf54504 100644
+--- a/sphinx/environment/__init__.py
++++ b/sphinx/environment/__init__.py
+@@ -189,6 +189,11 @@ class BuildEnvironment:
+         # docname -> doctree
+         self._write_doc_doctree_cache: dict[str, nodes.document] = {}
+ 
++        # docname -> source content after source-read event
++        # This is used by the Include directive to use the processed source
++        self._source_cache: dict[str, str] = {}
++        self._write_doc_doctree_cache: dict[str, nodes.document] = {}
++
+         # File metadata
+         # docname -> dict of metadata items
+         self.metadata: dict[str, dict[str, Any]] = defaultdict(dict)
+diff --git a/sphinx/io.py b/sphinx/io.py
+index 4874fdf39..41bd6f055 100644
+--- a/sphinx/io.py
++++ b/sphinx/io.py
+@@ -112,6 +112,10 @@ class SphinxStandaloneReader(SphinxBaseReader):
+         # emit "source-read" event
+         arg = [content]
+         env.events.emit('source-read', env.docname, arg)
++
++        # Store the source content in the cache for use by the Include directive
++        env._source_cache[env.docname] = arg[0]
++
+         return arg[0]
+ 
+ 
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e '.[test]'
+Obtaining file:///testbed
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: sphinxcontrib-applehelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.0.0)
+Requirement already satisfied: sphinxcontrib-devhelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.0.0)
+Requirement already satisfied: sphinxcontrib-jsmath in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (1.0.1)
+Requirement already satisfied: sphinxcontrib-htmlhelp>=2.0.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.1.0)
+Requirement already satisfied: sphinxcontrib-serializinghtml>=1.1.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.0.0)
+Requirement already satisfied: sphinxcontrib-qthelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.0.0)
+Requirement already satisfied: Jinja2>=3.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (3.1.4)
+Requirement already satisfied: Pygments>=2.14 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.18.0)
+Requirement already satisfied: docutils<0.21,>=0.18.1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (0.20.1)
+Requirement already satisfied: snowballstemmer>=2.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.2.0)
+Requirement already satisfied: babel>=2.9 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.16.0)
+Requirement already satisfied: alabaster<0.8,>=0.7 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (0.7.16)
+Requirement already satisfied: imagesize>=1.3 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (1.4.1)
+Requirement already satisfied: requests>=2.25.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (2.32.3)
+Requirement already satisfied: packaging>=21.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (24.1)
+Requirement already satisfied: importlib-metadata>=4.8 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (8.5.0)
+Requirement already satisfied: pytest>=4.6 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (8.3.3)
+Requirement already satisfied: html5lib in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (1.1)
+Requirement already satisfied: cython>=3.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (3.0.11)
+Requirement already satisfied: setuptools>=67.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (75.1.0)
+Requirement already satisfied: filelock in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==7.2.0) (3.16.1)
+Requirement already satisfied: zipp>=3.20 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from importlib-metadata>=4.8->Sphinx==7.2.0) (3.20.2)
+Requirement already satisfied: MarkupSafe>=2.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Jinja2>=3.0->Sphinx==7.2.0) (3.0.2)
+Requirement already satisfied: iniconfig in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==7.2.0) (2.0.0)
+Requirement already satisfied: pluggy<2,>=1.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==7.2.0) (1.5.0)
+Requirement already satisfied: exceptiongroup>=1.0.0rc8 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==7.2.0) (1.2.2)
+Requirement already satisfied: tomli>=1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==7.2.0) (2.0.2)
+Requirement already satisfied: charset-normalizer<4,>=2 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.25.0->Sphinx==7.2.0) (3.4.0)
+Requirement already satisfied: idna<4,>=2.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.25.0->Sphinx==7.2.0) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.25.0->Sphinx==7.2.0) (2.2.3)
+Requirement already satisfied: certifi>=2017.4.17 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.25.0->Sphinx==7.2.0) (2024.8.30)
+Requirement already satisfied: six>=1.9 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from html5lib->Sphinx==7.2.0) (1.16.0)
+Requirement already satisfied: webencodings in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from html5lib->Sphinx==7.2.0) (0.5.1)
+Building wheels for collected packages: Sphinx
+  Building editable for Sphinx (pyproject.toml): started
+  Building editable for Sphinx (pyproject.toml): finished with status 'done'
+  Created wheel for Sphinx: filename=sphinx-7.2.0-py3-none-any.whl size=4406 sha256=ccf96d77c792bf2ef36b427892da68cd3a57d94e365582b99b9aea3a51dd0868
+  Stored in directory: /tmp/pip-ephem-wheel-cache-os2adt5c/wheels/7d/66/67/70d1ee2124ccf21d601c352e25cdca10f611f7c8b3f9ffb9e4
+Successfully built Sphinx
+Installing collected packages: Sphinx
+  Attempting uninstall: Sphinx
+    Found existing installation: Sphinx 7.2.0
+    Uninstalling Sphinx-7.2.0:
+      Successfully uninstalled Sphinx-7.2.0
+Successfully installed Sphinx-7.2.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ git checkout 6cb783c0024a873722952a67ebb9f41771c8eb6d tests/test_directive_other.py
+Updated 0 paths from 162eea2b8
++ git apply -v -
+Checking patch tests/roots/test-directive-include/baz/baz.rst...
+Checking patch tests/roots/test-directive-include/conf.py...
+Checking patch tests/roots/test-directive-include/foo.rst...
+Checking patch tests/roots/test-directive-include/text.txt...
+Checking patch tests/test_directive_other.py...
+Applied patch tests/roots/test-directive-include/baz/baz.rst cleanly.
+Applied patch tests/roots/test-directive-include/conf.py cleanly.
+Applied patch tests/roots/test-directive-include/foo.rst cleanly.
+Applied patch tests/roots/test-directive-include/text.txt cleanly.
+Applied patch tests/test_directive_other.py cleanly.
++ : '>>>>> Start Test Output'
++ tox --current-env -epy39 -v -- tests/roots/test-directive-include/baz/baz.rst tests/roots/test-directive-include/conf.py tests/roots/test-directive-include/foo.rst tests/test_directive_other.py
+py39: commands[0]> python -X dev -X warn_default_encoding -m pytest --durations 25 tests/roots/test-directive-include/baz/baz.rst tests/roots/test-directive-include/conf.py tests/roots/test-directive-include/foo.rst tests/test_directive_other.py
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.9.20, pytest-8.3.3, pluggy-1.5.0
+cachedir: .tox/py39/.pytest_cache
+libraries: Sphinx-7.2.0+/7ebcb8ba3, docutils-0.20.1
+base tmp_path: /tmp/pytest-of-root/pytest-0
+rootdir: /testbed
+configfile: pyproject.toml
+collected 9 items
+
+tests/test_directive_other.py [32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31mF[0m[31mF[0m[31m                                  [100%][0m
+
+=================================== FAILURES ===================================
+[31m[1m________________________ test_include_source_read_event ________________________[0m
+
+app = <SphinxTestApp buildername='html'>
+
+    [0m[37m@pytest[39;49;00m.mark.sphinx(testroot=[33m'[39;49;00m[33mdirective-include[39;49;00m[33m'[39;49;00m)[90m[39;49;00m
+    [94mdef[39;49;00m [92mtest_include_source_read_event[39;49;00m(app):[90m[39;49;00m
+        sources_reported = {}[90m[39;49;00m
+    [90m[39;49;00m
+        [94mdef[39;49;00m [92msource_read_handler[39;49;00m(app, doc, source):[90m[39;49;00m
+            sources_reported[doc] = source[[94m0[39;49;00m][90m[39;49;00m
+    [90m[39;49;00m
+        app.connect([33m"[39;49;00m[33msource-read[39;49;00m[33m"[39;49;00m, source_read_handler)[90m[39;49;00m
+        text = ([33m"[39;49;00m[33m.. include:: baz/baz.rst[39;49;00m[33m\n[39;49;00m[33m"[39;49;00m[90m[39;49;00m
+                [33m"[39;49;00m[33m   :start-line: 4[39;49;00m[33m\n[39;49;00m[33m\n[39;49;00m[33m"[39;49;00m[90m[39;49;00m
+                [33m"[39;49;00m[33m.. include:: text.txt[39;49;00m[33m\n[39;49;00m[33m"[39;49;00m[90m[39;49;00m
+                [33m"[39;49;00m[33m   :literal:    [39;49;00m[33m\n[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+        app.env.find_files(app.config, app.builder)[90m[39;49;00m
+>       restructuredtext.parse(app, text, [33m'[39;49;00m[33mindex[39;49;00m[33m'[39;49;00m)[90m[39;49;00m
+
+[1m[31mtests/test_directive_other.py[0m:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[1m[31msphinx/testing/restructuredtext.py[0m:21: in parse
+    [0m[94mreturn[39;49;00m publish_doctree([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:524: in publish_doctree
+    [0m_output, publisher = publish_programmatically([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:722: in publish_programmatically
+    [0moutput = publisher.publish(enable_exit_status=enable_exit_status)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:234: in publish
+    [0m[96mself[39;49;00m.document = [96mself[39;49;00m.reader.read([96mself[39;49;00m.source, [96mself[39;49;00m.parser,[90m[39;49;00m
+[1m[31msphinx/io.py[0m:105: in read
+    [0m[96mself[39;49;00m.parse()[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/readers/__init__.py[0m:76: in parse
+    [0m[96mself[39;49;00m.parser.parse([96mself[39;49;00m.input, document)[90m[39;49;00m
+[1m[31msphinx/parsers.py[0m:81: in parse
+    [0m[96mself[39;49;00m.statemachine.run(inputlines, document, inliner=[96mself[39;49;00m.inliner)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:169: in run
+    [0mresults = StateMachineWS.run([96mself[39;49;00m, input_lines, input_offset,[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:233: in run
+    [0mcontext, next_state, result = [96mself[39;49;00m.check_line([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:445: in check_line
+    [0m[94mreturn[39;49;00m method(match, context, next_state)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2355: in explicit_markup
+    [0mnodelist, blank_finish = [96mself[39;49;00m.explicit_construct(match)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2373: in explicit_construct
+    [0mnodelist, blank_finish = [96mself[39;49;00m.comment(match)[90m[39;49;00m
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <docutils.parsers.rst.states.Body object at 0x7ffffbf5c780>
+match = <re.Match object; span=(0, 3), match='.. '>
+
+    [0m[94mdef[39;49;00m [92mcomment[39;49;00m([96mself[39;49;00m, match):[90m[39;49;00m
+        [94mif[39;49;00m [96mself[39;49;00m.state_machine.is_next_line_blank():[90m[39;49;00m
+            first_comment_line = match.string[match.end():][90m[39;49;00m
+            [94mif[39;49;00m [95mnot[39;49;00m first_comment_line.strip():  [90m# empty comment[39;49;00m[90m[39;49;00m
+                [94mreturn[39;49;00m [nodes.comment()], [94mTrue[39;49;00m  [90m# "A tiny but practical wart."[39;49;00m[90m[39;49;00m
+            [94mif[39;49;00m first_comment_line.startswith([33m'[39;49;00m[33mend of inclusion from [39;49;00m[33m"[39;49;00m[33m'[39;49;00m):[90m[39;49;00m
+                [90m# cf. parsers.rst.directives.misc.Include[39;49;00m[90m[39;49;00m
+>               [96mself[39;49;00m.document.include_log.pop()[90m[39;49;00m
+[1m[31mE               IndexError: pop from empty list[0m
+
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2300: IndexError
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: html
+# srcdir: /tmp/pytest-of-root/pytest-0/directive-include
+# outdir: /tmp/pytest-of-root/pytest-0/directive-include/_build/html
+# status: 
+[01mRunning Sphinx v7.2.0+/7ebcb8ba3[39;49;00m
+
+# warning: 
+
+[31m[1m________________ test_include_source_read_event_nested_includes ________________[0m
+
+app = <SphinxTestApp buildername='html'>
+
+    [0m[37m@pytest[39;49;00m.mark.sphinx(testroot=[33m'[39;49;00m[33mdirective-include[39;49;00m[33m'[39;49;00m)[90m[39;49;00m
+    [94mdef[39;49;00m [92mtest_include_source_read_event_nested_includes[39;49;00m(app):[90m[39;49;00m
+    [90m[39;49;00m
+        [94mdef[39;49;00m [92msource_read_handler[39;49;00m(app, doc, source):[90m[39;49;00m
+            text = source[[94m0[39;49;00m].replace([33m"[39;49;00m[33m#magical[39;49;00m[33m"[39;49;00m, [33m"[39;49;00m[33mamazing[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+            source[[94m0[39;49;00m] = text[90m[39;49;00m
+    [90m[39;49;00m
+        app.connect([33m"[39;49;00m[33msource-read[39;49;00m[33m"[39;49;00m, source_read_handler)[90m[39;49;00m
+        text = ([33m"[39;49;00m[33m.. include:: baz/baz.rst[39;49;00m[33m\n[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+        app.env.find_files(app.config, app.builder)[90m[39;49;00m
+>       doctree = restructuredtext.parse(app, text, [33m'[39;49;00m[33mindex[39;49;00m[33m'[39;49;00m)[90m[39;49;00m
+
+[1m[31mtests/test_directive_other.py[0m:183: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[1m[31msphinx/testing/restructuredtext.py[0m:21: in parse
+    [0m[94mreturn[39;49;00m publish_doctree([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:524: in publish_doctree
+    [0m_output, publisher = publish_programmatically([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:722: in publish_programmatically
+    [0moutput = publisher.publish(enable_exit_status=enable_exit_status)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/core.py[0m:234: in publish
+    [0m[96mself[39;49;00m.document = [96mself[39;49;00m.reader.read([96mself[39;49;00m.source, [96mself[39;49;00m.parser,[90m[39;49;00m
+[1m[31msphinx/io.py[0m:105: in read
+    [0m[96mself[39;49;00m.parse()[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/readers/__init__.py[0m:76: in parse
+    [0m[96mself[39;49;00m.parser.parse([96mself[39;49;00m.input, document)[90m[39;49;00m
+[1m[31msphinx/parsers.py[0m:81: in parse
+    [0m[96mself[39;49;00m.statemachine.run(inputlines, document, inliner=[96mself[39;49;00m.inliner)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:169: in run
+    [0mresults = StateMachineWS.run([96mself[39;49;00m, input_lines, input_offset,[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:233: in run
+    [0mcontext, next_state, result = [96mself[39;49;00m.check_line([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:445: in check_line
+    [0m[94mreturn[39;49;00m method(match, context, next_state)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2785: in underline
+    [0m[96mself[39;49;00m.section(title, source, style, lineno - [94m1[39;49;00m, messages)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:325: in section
+    [0m[96mself[39;49;00m.new_subsection(title, lineno, messages)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:391: in new_subsection
+    [0mnewabsoffset = [96mself[39;49;00m.nested_parse([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:279: in nested_parse
+    [0mstate_machine.run(block, input_offset, memo=[96mself[39;49;00m.memo,[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:195: in run
+    [0mresults = StateMachineWS.run([96mself[39;49;00m, input_lines, input_offset)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:233: in run
+    [0mcontext, next_state, result = [96mself[39;49;00m.check_line([90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/statemachine.py[0m:445: in check_line
+    [0m[94mreturn[39;49;00m method(match, context, next_state)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2355: in explicit_markup
+    [0mnodelist, blank_finish = [96mself[39;49;00m.explicit_construct(match)[90m[39;49;00m
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2373: in explicit_construct
+    [0mnodelist, blank_finish = [96mself[39;49;00m.comment(match)[90m[39;49;00m
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <docutils.parsers.rst.states.Body object at 0x7ffffbcd3f50>
+match = <re.Match object; span=(0, 3), match='.. '>
+
+    [0m[94mdef[39;49;00m [92mcomment[39;49;00m([96mself[39;49;00m, match):[90m[39;49;00m
+        [94mif[39;49;00m [96mself[39;49;00m.state_machine.is_next_line_blank():[90m[39;49;00m
+            first_comment_line = match.string[match.end():][90m[39;49;00m
+            [94mif[39;49;00m [95mnot[39;49;00m first_comment_line.strip():  [90m# empty comment[39;49;00m[90m[39;49;00m
+                [94mreturn[39;49;00m [nodes.comment()], [94mTrue[39;49;00m  [90m# "A tiny but practical wart."[39;49;00m[90m[39;49;00m
+            [94mif[39;49;00m first_comment_line.startswith([33m'[39;49;00m[33mend of inclusion from [39;49;00m[33m"[39;49;00m[33m'[39;49;00m):[90m[39;49;00m
+                [90m# cf. parsers.rst.directives.misc.Include[39;49;00m[90m[39;49;00m
+>               [96mself[39;49;00m.document.include_log.pop()[90m[39;49;00m
+[1m[31mE               IndexError: pop from empty list[0m
+
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/docutils/parsers/rst/states.py[0m:2300: IndexError
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: html
+# srcdir: /tmp/pytest-of-root/pytest-0/directive-include
+# outdir: /tmp/pytest-of-root/pytest-0/directive-include/_build/html
+# status: 
+[01mRunning Sphinx v7.2.0+/7ebcb8ba3[39;49;00m
+
+# warning: 
+
+============================= slowest 25 durations =============================
+0.46s setup    tests/test_directive_other.py::test_toctree
+0.04s setup    tests/test_directive_other.py::test_reversed_toctree
+0.03s setup    tests/test_directive_other.py::test_toctree_glob
+0.02s call     tests/test_directive_other.py::test_toctree
+0.02s setup    tests/test_directive_other.py::test_toctree_twice
+0.02s call     tests/test_directive_other.py::test_toctree_glob
+0.02s setup    tests/test_directive_other.py::test_include_source_read_event
+0.01s setup    tests/test_directive_other.py::test_include_source_read_event_nested_includes
+0.01s setup    tests/test_directive_other.py::test_relative_toctree
+0.01s setup    tests/test_directive_other.py::test_toctree_glob_and_url
+0.01s call     tests/test_directive_other.py::test_include_source_read_event_nested_includes
+0.01s call     tests/test_directive_other.py::test_toctree_glob_and_url
+0.01s setup    tests/test_directive_other.py::test_toctree_urls_and_titles
+0.01s call     tests/test_directive_other.py::test_toctree_urls_and_titles
+0.01s call     tests/test_directive_other.py::test_toctree_twice
+
+(10 durations < 0.005s hidden.  Use -vv to show these durations.)
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/test_directive_other.py::[1mtest_include_source_read_event[0m - IndexError: pop from empty list
+[31mFAILED[0m tests/test_directive_other.py::[1mtest_include_source_read_event_nested_includes[0m - IndexError: pop from empty list
+[31m========================= [31m[1m2 failed[0m, [32m7 passed[0m[31m in 1.38s[0m[31m ==========================[0m
+py39: exit 1 (2.40 seconds) /testbed> python -X dev -X warn_default_encoding -m pytest --durations 25 tests/roots/test-directive-include/baz/baz.rst tests/roots/test-directive-include/conf.py tests/roots/test-directive-include/foo.rst tests/test_directive_other.py pid=99
+  py39: FAIL code 1 (2.42=setup[0.03]+cmd[2.40] seconds)
+  evaluation failed :( (2.56 seconds)
++ : '>>>>> End Test Output'
++ git checkout 6cb783c0024a873722952a67ebb9f41771c8eb6d tests/test_directive_other.py
+Updated 1 path from 162eea2b8

@@ -1,0 +1,193 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a8d..afc394ff0 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -374,9 +374,144 @@ class Include(BaseInclude, SphinxDirective):
+             # docutils "standard" includes, do not do path processing
+             return super().run()
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        if docname and docname not in self.env._source_cache:
++            # The source hasn't been read yet - read it and emit source-read event
++            from sphinx.util.osutil import os_path
++            filepath = os_path(filename)
++            try:
++                with open(filepath, 'r', encoding='utf-8') as f:
++                    content = f.read()
++            except OSError:
++                return super().run()
++            # Emit source-read event
++            arg = [content]
++            self.env.events.emit('source-read', docname, arg)
++            # Store in cache
++            self.env._source_cache[docname] = arg[0]
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
+         self.arguments[0] = filename
+         self.env.note_included(filename)
+         return super().run()
++        if self.arguments[0].startswith('<') and \
++           self.arguments[0].endswith('>'):
++            # docutils "standard" includes, do not do path processing
++            return super().run()
++        rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        print(f"DEBUG Include: filename={filename}, docname={docname}, cache keys={list(self.env._source_cache.keys())}")
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
++        self.arguments[0] = filename
++        self.env.note_included(filename)
++        return super().run()
++        if self.arguments[0].startswith('<') and \
++           self.arguments[0].endswith('>'):
++            # docutils "standard" includes, do not do path processing
++            return super().run()
++        rel_filename, filename = self.env.relfn2path(self.arguments[0])
++        # Check if the source has been processed and is in the cache
++        docname = self.env.path2doc(filename)
++        if docname and docname in self.env._source_cache:
++            # Use the cached source instead of reading from the filesystem
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++            # Read from cache instead of filesystem
++            return self._run_from_cache(filename, docname)
++        self.arguments[0] = filename
++        self.env.note_included(filename)
++        return super().run()
++
++    def _run_from_cache(self, filename: str, docname: str) -> list[Node]:
++        """Run the include directive using cached source content."""
++        from docutils import io, nodes, utils
++        from docutils.parsers.rst import states
++        from docutils.statemachine import string2lines
++
++        encoding = self.options.get('encoding', self.state.document.settings.input_encoding)
++        e_handler = self.state.document.settings.input_encoding_error_handler
++        tab_width = self.options.get('tab-width', self.state.document.settings.tab_width)
++
++        # Get the cached source
++        rawtext = self.env._source_cache[docname]
++
++        # Process start-line and end-line options
++        startline = self.options.get('start-line', None)
++        endline = self.options.get('end-line', None)
++        if startline or (endline is not None):
++            lines = rawtext.splitlines(True)
++            rawtext = ''.join(lines[startline:endline])
++
++        # Process start-after and end-before options
++        after_text = self.options.get('start-after', None)
++        if after_text:
++            after_index = rawtext.find(after_text)
++            if after_index < 0:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('Problem with "start-after" option of "%s" '
++                                  'directive:\nText not found.' % self.name)
++            rawtext = rawtext[after_index + len(after_text):]
++
++        before_text = self.options.get('end-before', None)
++        if before_text:
++            before_index = rawtext.find(before_text)
++            if before_index < 0:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('Problem with "end-before" option of "%s" '
++                                  'directive:\nText not found.' % self.name)
++            rawtext = rawtext[:before_index]
++
++        include_lines = string2lines(rawtext, tab_width, convert_whitespace=True)
++        for i, line in enumerate(include_lines):
++            if len(line) > self.state.document.settings.line_length_limit:
++                from docutils.utils.error_reporting import SevereError
++                raise SevereError('"%s": line %d exceeds the'
++                                   ' line-length-limit.' % (filename, i + 1))
++
++        if 'literal' in self.options:
++            if tab_width >= 0:
++                text = rawtext.expandtabs(tab_width)
++            else:
++                text = rawtext
++            literal_block = nodes.literal_block(
++                rawtext, source=filename,
++                classes=self.options.get('class', []))
++            literal_block.line = 1
++            self.add_name(literal_block)
++            literal_block += nodes.Text(text)
++            return [literal_block]
++
++        if 'code' in self.options:
++            from sphinx.directives.code import CodeBlock
++            self.options['source'] = filename
++            if tab_width < 0:
++                include_lines = rawtext.splitlines()
++            codeblock = CodeBlock(self.name,
++                                  [self.options.pop('code')],  # arguments
++                                  self.options,
++                                  include_lines,  # content
++                                  self.lineno,
++                                  self.content_offset,
++                                  self.block_text,
++                                  self.state,
++                                  self.state_machine)
++            return codeblock.run()
++
++        # Include as rST source
++        include_lines += ['', '.. end of inclusion from "%s"' % filename]
++        self.state_machine.insert_input(include_lines, filename)
++        return []
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/sphinx/environment/__init__.py b/sphinx/environment/__init__.py
+index cf698ea6d..5edf54504 100644
+--- a/sphinx/environment/__init__.py
++++ b/sphinx/environment/__init__.py
+@@ -189,6 +189,11 @@ class BuildEnvironment:
+         # docname -> doctree
+         self._write_doc_doctree_cache: dict[str, nodes.document] = {}
+ 
++        # docname -> source content after source-read event
++        # This is used by the Include directive to use the processed source
++        self._source_cache: dict[str, str] = {}
++        self._write_doc_doctree_cache: dict[str, nodes.document] = {}
++
+         # File metadata
+         # docname -> dict of metadata items
+         self.metadata: dict[str, dict[str, Any]] = defaultdict(dict)
+diff --git a/sphinx/io.py b/sphinx/io.py
+index 4874fdf39..41bd6f055 100644
+--- a/sphinx/io.py
++++ b/sphinx/io.py
+@@ -112,6 +112,10 @@ class SphinxStandaloneReader(SphinxBaseReader):
+         # emit "source-read" event
+         arg = [content]
+         env.events.emit('source-read', env.docname, arg)
++
++        # Store the source content in the cache for use by the Include directive
++        env._source_cache[env.docname] = arg[0]
++
+         return arg[0]
+ 
+ 
+diff --git a/tox.ini b/tox.ini
+index a3dc56211..c76147de3 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -24,7 +24,7 @@ setenv =
+     PYTHONWARNINGS = error
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
+ 
+ [testenv:docs]
+ basepython = python3

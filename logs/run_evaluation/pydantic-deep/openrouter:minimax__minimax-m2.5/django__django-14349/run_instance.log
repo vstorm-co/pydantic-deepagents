@@ -1,0 +1,60 @@
+2026-02-22 11:38:04,185 - INFO - Creating container for django__django-14349...
+2026-02-22 11:38:04,504 - INFO - Container for django__django-14349 created: 9719e64ec0c2c4dbfb0ec138df13c09880c6e9da3ed01bcb2e1f91a880e577b0
+2026-02-22 11:38:04,606 - INFO - Container for django__django-14349 started: 9719e64ec0c2c4dbfb0ec138df13c09880c6e9da3ed01bcb2e1f91a880e577b0
+2026-02-22 11:38:04,607 - INFO - Intermediate patch for django__django-14349 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14349/patch.diff, now applying to container...
+2026-02-22 11:38:04,818 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:38:04,895 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:38:04,972 - INFO - >>>>> Applied Patch:
+patching file django/core/validators.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 99 with fuzz 1.
+
+2026-02-22 11:38:05,662 - INFO - Git diff before:
+diff --git a/django/core/validators.py b/django/core/validators.py
+index a385819510..62dab2e5b6 100644
+--- a/django/core/validators.py
++++ b/django/core/validators.py
+@@ -99,6 +99,13 @@ class URLValidator(RegexValidator):
+             self.schemes = schemes
+ 
+     def __call__(self, value):
++        if not isinstance(value, str):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
++        # Check for forbidden characters that urlsplit silently strips (bpo-43882).
++        if any(c in value for c in '\n\r\t'):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
++        # Check if the scheme is valid.
++        scheme = value.split('://')[0].lower()
+         if not isinstance(value, str):
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+         # Check if the scheme is valid.
+2026-02-22 11:38:05,664 - INFO - Eval script for django__django-14349 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14349/eval.sh; copying to container...
+2026-02-22 11:38:13,876 - INFO - Test runtime: 8.17 seconds
+2026-02-22 11:38:13,877 - INFO - Test output for django__django-14349 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14349/test_output.txt
+2026-02-22 11:38:13,983 - INFO - Git diff after:
+diff --git a/django/core/validators.py b/django/core/validators.py
+index a385819510..62dab2e5b6 100644
+--- a/django/core/validators.py
++++ b/django/core/validators.py
+@@ -99,6 +99,13 @@ class URLValidator(RegexValidator):
+             self.schemes = schemes
+ 
+     def __call__(self, value):
++        if not isinstance(value, str):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
++        # Check for forbidden characters that urlsplit silently strips (bpo-43882).
++        if any(c in value for c in '\n\r\t'):
++            raise ValidationError(self.message, code=self.code, params={'value': value})
++        # Check if the scheme is valid.
++        scheme = value.split('://')[0].lower()
+         if not isinstance(value, str):
+             raise ValidationError(self.message, code=self.code, params={'value': value})
+         # Check if the scheme is valid.
+2026-02-22 11:38:13,984 - INFO - Grading answer for django__django-14349...
+2026-02-22 11:38:13,985 - INFO - report: {'django__django-14349': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_validators (validators.tests.TestValidators)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_domain_whitelist (validators.tests.DeprecationTests)', 'test_domain_whitelist_access_warning (validators.tests.DeprecationTests)', 'test_domain_whitelist_set_warning (validators.tests.DeprecationTests)', 'test_whitelist (validators.tests.DeprecationTests)', 'test_whitelist_warning (validators.tests.DeprecationTests)', 'test_basic_equality (validators.tests.TestValidatorEquality)', 'test_decimal_equality (validators.tests.TestValidatorEquality)', 'test_email_equality (validators.tests.TestValidatorEquality)', 'test_file_extension_equality (validators.tests.TestValidatorEquality)', 'test_prohibit_null_characters_validator_equality (validators.tests.TestValidatorEquality)', 'test_regex_equality (validators.tests.TestValidatorEquality)', 'test_regex_equality_blank (validators.tests.TestValidatorEquality)', 'test_regex_equality_nocache (validators.tests.TestValidatorEquality)', 'test_max_length_validator_message (validators.tests.TestValidators)', 'test_message_dict (validators.tests.TestValidators)', 'test_message_list (validators.tests.TestValidators)', 'test_regex_validator_flags (validators.tests.TestValidators)', 'test_single_message (validators.tests.TestValidators)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14349: resolved: True
+2026-02-22 11:38:13,985 - INFO - Attempting to stop container sweb.eval.django__django-14349.pydantic-deep...
+2026-02-22 11:38:29,208 - INFO - Attempting to remove container sweb.eval.django__django-14349.pydantic-deep...
+2026-02-22 11:38:29,236 - INFO - Container sweb.eval.django__django-14349.pydantic-deep removed.
+2026-02-22 11:38:29,237 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14349:latest...
+2026-02-22 11:38:29,498 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14349:latest removed.

@@ -1,0 +1,48 @@
+2026-02-22 11:21:40,635 - INFO - Creating container for django__django-11265...
+2026-02-22 11:21:41,565 - INFO - Container for django__django-11265 created: 2b84b98a1fdb748fd6af6c48d350f3a90aaa536d0f28b14f6052f63e4abc5727
+2026-02-22 11:21:41,707 - INFO - Container for django__django-11265 started: 2b84b98a1fdb748fd6af6c48d350f3a90aaa536d0f28b14f6052f63e4abc5727
+2026-02-22 11:21:41,708 - INFO - Intermediate patch for django__django-11265 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11265/patch.diff, now applying to container...
+2026-02-22 11:21:41,882 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:21:41,984 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:21:42,075 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/query.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1666 with fuzz 1.
+
+2026-02-22 11:21:42,820 - INFO - Git diff before:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d69c24419b..ba8b8278e0 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1666,6 +1666,7 @@ class Query(BaseExpression):
+             filter_expr = (filter_lhs, OuterRef(filter_rhs.name))
+         # Generate the inner query.
+         query = Query(self.model)
++        query._filtered_relations = self._filtered_relations.copy()
+         query.add_filter(filter_expr)
+         query.clear_ordering(True)
+         # Try to have as simple as possible subquery -> trim leading joins from
+2026-02-22 11:21:42,821 - INFO - Eval script for django__django-11265 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11265/eval.sh; copying to container...
+2026-02-22 11:21:57,244 - INFO - Test runtime: 14.33 seconds
+2026-02-22 11:21:57,245 - INFO - Test output for django__django-11265 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11265/test_output.txt
+2026-02-22 11:21:57,368 - INFO - Git diff after:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d69c24419b..ba8b8278e0 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1666,6 +1666,7 @@ class Query(BaseExpression):
+             filter_expr = (filter_lhs, OuterRef(filter_rhs.name))
+         # Generate the inner query.
+         query = Query(self.model)
++        query._filtered_relations = self._filtered_relations.copy()
+         query.add_filter(filter_expr)
+         query.clear_ordering(True)
+         # Try to have as simple as possible subquery -> trim leading joins from
+2026-02-22 11:21:57,368 - INFO - Grading answer for django__django-11265...
+2026-02-22 11:21:57,369 - INFO - report: {'django__django-11265': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_with_exclude (filtered_relation.tests.FilteredRelationTests)']}, 'PASS_TO_PASS': {'success': ['test_aggregate (filtered_relation.tests.FilteredRelationAggregationTests)', 'test_as_subquery (filtered_relation.tests.FilteredRelationTests)', 'test_defer (filtered_relation.tests.FilteredRelationTests)', 'test_difference (filtered_relation.tests.FilteredRelationTests)', 'test_exclude_relation_with_join (filtered_relation.tests.FilteredRelationTests)', 'test_extra (filtered_relation.tests.FilteredRelationTests)', 'test_internal_queryset_alias_mapping (filtered_relation.tests.FilteredRelationTests)', 'test_intersection (filtered_relation.tests.FilteredRelationTests)', 'test_multiple_times (filtered_relation.tests.FilteredRelationTests)', 'test_only_not_supported (filtered_relation.tests.FilteredRelationTests)', 'test_select_for_update (filtered_relation.tests.FilteredRelationTests)', 'test_select_related (filtered_relation.tests.FilteredRelationTests)', 'test_select_related_foreign_key (filtered_relation.tests.FilteredRelationTests)', 'test_select_related_with_empty_relation (filtered_relation.tests.FilteredRelationTests)', 'test_union (filtered_relation.tests.FilteredRelationTests)', 'test_values (filtered_relation.tests.FilteredRelationTests)', 'test_values_list (filtered_relation.tests.FilteredRelationTests)', 'test_with_condition_as_expression_error (filtered_relation.tests.FilteredRelationTests)', 'test_with_empty_relation_name_error (filtered_relation.tests.FilteredRelationTests)', 'test_with_foreign_key_error (filtered_relation.tests.FilteredRelationTests)', 'test_with_foreign_key_on_condition_error (filtered_relation.tests.FilteredRelationTests)', 'test_with_generic_foreign_key (filtered_relation.tests.FilteredRelationTests)', 'test_with_join (filtered_relation.tests.FilteredRelationTests)', 'test_with_join_and_complex_condition (filtered_relation.tests.FilteredRelationTests)', 'test_with_m2m (filtered_relation.tests.FilteredRelationTests)', 'test_with_m2m_deep (filtered_relation.tests.FilteredRelationTests)', 'test_with_m2m_multijoin (filtered_relation.tests.FilteredRelationTests)', 'test_with_multiple_filter (filtered_relation.tests.FilteredRelationTests)', 'test_with_prefetch_related (filtered_relation.tests.FilteredRelationTests)', 'test_without_join (filtered_relation.tests.FilteredRelationTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11265: resolved: False
+2026-02-22 11:21:57,370 - INFO - Attempting to stop container sweb.eval.django__django-11265.pydantic-deep...
+2026-02-22 11:22:12,690 - INFO - Attempting to remove container sweb.eval.django__django-11265.pydantic-deep...
+2026-02-22 11:22:12,723 - INFO - Container sweb.eval.django__django-11265.pydantic-deep removed.
+2026-02-22 11:22:12,723 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11265:latest...
+2026-02-22 11:22:12,958 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11265:latest removed.

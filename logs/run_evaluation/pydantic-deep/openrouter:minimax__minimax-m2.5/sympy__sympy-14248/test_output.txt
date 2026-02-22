@@ -1,0 +1,2263 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   sympy/core/basic.py
+	modified:   sympy/core/containers.py
+	modified:   sympy/core/expr.py
+	modified:   sympy/plotting/plot.py
+	modified:   sympy/printing/str.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	sympy/printing/str.py.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit 33c72dcc053ed8e905c999eefa4e9971aacdb61f
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 16:23:44 2025 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 9986b38181cdd556a3f3411e553864f11912244e
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index bdfebf24c..b9b882b09 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,7 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++from collections.abc import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 15abd93e3..a9b8948eb 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -14,6 +14,7 @@
+ from sympy.utilities.iterables import iterable
+ 
+ import collections
++from collections.abc import MutableSet
+ 
+ 
+ class Tuple(Basic):
+@@ -268,7 +269,7 @@ def _sorted_args(self):
+         return tuple(sorted(self.args, key=default_sort_key))
+ 
+ 
+-class OrderedSet(collections.MutableSet):
++class OrderedSet(MutableSet):
+     def __init__(self, iterable=None):
+         if iterable:
+             self.map = collections.OrderedDict((item, None) for item in iterable)
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 421e6cd8e..ae2d0c53d 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -9,7 +9,8 @@
+ from .compatibility import reduce, as_int, default_sort_key, range
+ from mpmath.libmp import mpf_log, prec_to_dps
+ 
+-from collections import defaultdict, Iterable
++from collections.abc import Iterable
++from collections import defaultdict
+ 
+ class Expr(Basic, EvalfMixin):
+     """
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index 18c6f7afe..d740983ee 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+ 
+diff --git a/sympy/printing/str.py b/sympy/printing/str.py
+index 0baefe0f7..a23bf4155 100644
+--- a/sympy/printing/str.py
++++ b/sympy/printing/str.py
+@@ -304,6 +304,16 @@ def _print_Mul(self, expr):
+             return sign + '*'.join(a_str) + "/(%s)" % '*'.join(b_str)
+ 
+     def _print_MatMul(self, expr):
++        from sympy import MatMul
++        coeff, matrices = expr.as_coeff_matrices()
++        if coeff.is_number and coeff < 0:
++            sign = "-"
++            coeff = -coeff
++        else:
++            sign = ""
++        matrices = [coeff] + matrices if coeff != 1 else matrices
++        return sign + '*'.join([self.parenthesize(arg, precedence(expr))
++            for arg in matrices])
+         return '*'.join([self.parenthesize(arg, precedence(expr))
+             for arg in expr.args])
+ 
+@@ -312,6 +322,24 @@ def _print_HadamardProduct(self, expr):
+             for arg in expr.args])
+ 
+     def _print_MatAdd(self, expr):
++        from sympy import Add
++        PREC = precedence(expr)
++        l = []
++        for term in expr.args:
++            t = self._print(term)
++            if t.startswith('-'):
++                sign = "-"
++                t = t[1:]
++            else:
++                sign = "+"
++            if precedence(term) < PREC:
++                l.extend([sign, "(%s)" % t])
++            else:
++                l.extend([sign, t])
++        sign = l.pop(0)
++        if sign == '+':
++            sign = ""
++        return sign + ' '.join(l)
+         return ' + '.join([self.parenthesize(arg, precedence(expr))
+             for arg in expr.args])
+ 
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: mpmath>=0.19 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from sympy==1.1.2.dev0) (1.3.0)
+Installing collected packages: sympy
+  Attempting uninstall: sympy
+    Found existing installation: sympy 1.1.2.dev0
+    Uninstalling sympy-1.1.2.dev0:
+      Successfully uninstalled sympy-1.1.2.dev0
+  DEPRECATION: Legacy editable install of sympy==1.1.2.dev0 from file:///testbed (setup.py develop) is deprecated. pip 25.0 will enforce this behaviour change. A possible replacement is to add a pyproject.toml or enable --use-pep517, and use setuptools >= 64. If the resulting installation is not behaving as expected, try using --config-settings editable_mode=compat. Please consult the setuptools documentation for more information. Discussion can be found at https://github.com/pypa/pip/issues/11457
+  Running setup.py develop for sympy
+Successfully installed sympy
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ git checkout 9986b38181cdd556a3f3411e553864f11912244e sympy/printing/pretty/tests/test_pretty.py sympy/printing/tests/test_ccode.py sympy/printing/tests/test_fcode.py sympy/printing/tests/test_jscode.py sympy/printing/tests/test_julia.py sympy/printing/tests/test_latex.py sympy/printing/tests/test_octave.py sympy/printing/tests/test_rcode.py sympy/printing/tests/test_str.py
+Updated 0 paths from 32dc0bcd6
++ git apply -v -
+Checking patch sympy/printing/pretty/tests/test_pretty.py...
+Checking patch sympy/printing/tests/test_ccode.py...
+Checking patch sympy/printing/tests/test_fcode.py...
+Checking patch sympy/printing/tests/test_jscode.py...
+Checking patch sympy/printing/tests/test_julia.py...
+Checking patch sympy/printing/tests/test_latex.py...
+Checking patch sympy/printing/tests/test_octave.py...
+Checking patch sympy/printing/tests/test_rcode.py...
+Checking patch sympy/printing/tests/test_str.py...
+Applied patch sympy/printing/pretty/tests/test_pretty.py cleanly.
+Applied patch sympy/printing/tests/test_ccode.py cleanly.
+Applied patch sympy/printing/tests/test_fcode.py cleanly.
+Applied patch sympy/printing/tests/test_jscode.py cleanly.
+Applied patch sympy/printing/tests/test_julia.py cleanly.
+Applied patch sympy/printing/tests/test_latex.py cleanly.
+Applied patch sympy/printing/tests/test_octave.py cleanly.
+Applied patch sympy/printing/tests/test_rcode.py cleanly.
+Applied patch sympy/printing/tests/test_str.py cleanly.
++ : '>>>>> Start Test Output'
++ PYTHONWARNINGS=ignore::UserWarning,ignore::SyntaxWarning
++ bin/test -C --verbose sympy/printing/pretty/tests/test_pretty.py sympy/printing/tests/test_ccode.py sympy/printing/tests/test_fcode.py sympy/printing/tests/test_jscode.py sympy/printing/tests/test_julia.py sympy/printing/tests/test_latex.py sympy/printing/tests/test_octave.py sympy/printing/tests/test_rcode.py sympy/printing/tests/test_str.py
+============================= test process starts ==============================
+executable:         /opt/miniconda3/envs/testbed/bin/python  (3.9.20-final-0) [CPython]
+architecture:       64-bit
+cache:              no
+ground types:       python 
+numpy:              None
+random seed:        66634148
+hash randomization: on (PYTHONHASHSEED=322472579)
+
+sympy/printing/pretty/tests/test_pretty.py[116] 
+test_pretty_ascii_str ok
+test_pretty_unicode_str ok
+test_upretty_greek ok
+test_upretty_multiindex ok
+test_upretty_sub_super ok
+test_upretty_subs_missing_in_24 ok
+test_missing_in_2X_issue_9047 X
+test_upretty_modifiers ok
+test_pretty_Cycle ok
+test_pretty_basic ok
+test_negative_fractions ok
+test_issue_5524 ok
+test_pretty_ordering E
+test_EulerGamma ok
+test_GoldenRatio ok
+test_pretty_relational ok
+test_Assignment ok
+test_AugmentedAssignment ok
+test_issue_7117 ok
+test_pretty_rational ok
+test_pretty_functions ok
+test_pretty_sqrt ok
+test_pretty_sqrt_char_knob ok
+test_pretty_sqrt_longsymbol_no_sqrt_char ok
+test_pretty_KroneckerDelta ok
+test_pretty_product ok
+test_pretty_lambda ok
+test_pretty_order E
+test_pretty_derivatives E
+test_pretty_integrals ok
+test_pretty_matrix E
+test_pretty_ndim_arrays E
+test_tensor_TensorProduct E
+test_diffgeom_print_WedgeProduct ok
+test_Adjoint ok
+test_pretty_Trace_issue_9044 ok
+test_MatrixExpressions ok
+test_pretty_dotproduct E
+test_pretty_piecewise ok
+test_pretty_ITE ok
+test_pretty_seq ok
+test_any_object_in_sequence ok
+test_print_builtin_set ok
+test_pretty_sets ok
+test_pretty_SetExpr ok
+test_pretty_ImageSet ok
+test_pretty_ConditionSet ok
+test_pretty_ComplexRegion ok
+test_pretty_Union_issue_10414 ok
+test_pretty_Intersection_issue_10414 ok
+test_ProductSet_paranthesis ok
+test_ProductSet_prod_char_issue_10413 ok
+test_pretty_sequences ok
+test_pretty_FourierSeries E
+test_pretty_FormalPowerSeries E
+test_pretty_limits ok
+test_pretty_ComplexRootOf ok
+test_pretty_RootSum ok
+test_GroebnerBasis ok
+test_pretty_Boolean ok
+test_pretty_Domain ok
+test_pretty_prec ok
+test_pprint ok
+test_pretty_class ok
+test_pretty_no_wrap_line ok
+test_settings ok
+test_pretty_sum ok
+test_units E
+test_pretty_Subs E
+test_gammas ok
+test_beta ok
+test_function_subclass_different_name ok
+test_SingularityFunction ok
+test_deltas ok
+test_hyper ok
+test_meijerg ok
+test_noncommutative ok
+test_pretty_special_functions ok
+test_pretty_geometry E
+test_expint ok
+test_elliptic_functions ok
+test_RandomDomain ok
+test_PrettyPoly ok
+test_issue_6285 ok
+test_issue_6359 E
+test_issue_6739 ok
+test_complicated_symbol_unchanged ok
+test_categories ok
+test_PrettyModules ok
+test_QuotientRing ok
+test_Homomorphism E
+test_Tr ok
+test_pretty_Add ok
+test_issue_7179 ok
+test_issue_7180 ok
+test_pretty_Complement ok
+test_pretty_SymmetricDifference ok
+test_pretty_Contains ok
+test_issue_8292 E
+test_issue_4335 E
+test_issue_8344 E
+test_issue_6324 ok
+test_issue_7927 ok
+test_issue_6134 ok
+test_issue_9877 ok
+test_issue_13651 ok
+test_pretty_primenu ok
+test_pretty_primeomega ok
+test_pretty_Mod ok
+test_issue_11801 ok
+test_pretty_UnevaluatedExpr ok
+test_issue_10472 ok
+test_MatrixElement_printing ok
+test_MatrixSymbol_printing F
+test_degree_printing ok
+test_vector_expr_pretty_printing E                                        [FAIL]
+
+sympy/printing/tests/test_ccode.py[46] 
+test_printmethod ok
+test_ccode_sqrt ok
+test_ccode_Pow ok
+test_ccode_Max ok
+test_ccode_constants_mathh ok
+test_ccode_constants_other ok
+test_ccode_Rational ok
+test_ccode_Integer ok
+test_ccode_functions ok
+test_ccode_inline_function E
+test_ccode_exceptions ok
+test_ccode_user_functions ok
+test_ccode_boolean ok
+test_ccode_Relational ok
+test_ccode_Piecewise ok
+test_ccode_sinc ok
+test_ccode_Piecewise_deep ok
+test_ccode_ITE ok
+test_ccode_settings ok
+test_ccode_Indexed E
+test_ccode_Indexed_without_looking_for_contraction E
+test_ccode_loops_matrix_vector E
+test_dummy_loops E
+test_ccode_loops_add E
+test_ccode_loops_multiple_contractions E
+test_ccode_loops_addfactor E
+test_ccode_loops_multiple_terms E
+test_dereference_printing ok
+test_Matrix_printing ok
+test_ccode_reserved_words ok
+test_ccode_sign ok
+test_ccode_Assignment ok
+test_ccode_For ok
+test_ccode_Max_Min ok
+test_ccode_standard ok
+test_CCodePrinter ok
+test_C89CodePrinter ok
+test_C99CodePrinter ok
+test_C99CodePrinter__precision_f80 f
+test_C99CodePrinter__precision ok
+test_get_math_macros ok
+test_ccode_Declaration ok
+test_C99CodePrinter_custom_type ok
+test_MatrixElement_printing ok
+test_subclass_CCodePrinter ok
+test_ccode_math_macros ok                                                 [FAIL]
+
+sympy/printing/tests/test_fcode.py[37] 
+test_printmethod ok
+test_fcode_sign ok
+test_fcode_Pow ok
+test_fcode_Rational ok
+test_fcode_Integer ok
+test_fcode_Float ok
+test_fcode_functions ok
+test_case E
+test_fcode_functions_with_integers ok
+test_fcode_NumberSymbol ok
+test_fcode_complex ok
+test_implicit ok
+test_not_fortran ok
+test_user_functions ok
+test_inline_function E
+test_assign_to ok
+test_line_wrapping ok
+test_fcode_precedence ok
+test_fcode_Logical ok
+test_fcode_Xlogical ok
+test_fcode_Relational ok
+test_fcode_Piecewise E
+test_wrap_fortran ok
+test_wrap_fortran_keep_d0 ok
+test_settings ok
+test_free_form_code_line ok
+test_free_form_continuation_line ok
+test_free_form_comment_line ok
+test_loops E
+test_dummy_loops E
+test_fcode_Indexed_without_looking_for_contraction E
+test_derived_classes ok
+test_indent ok
+test_Matrix_printing ok
+test_fcode_For ok
+test_fcode_Declaration ok
+test_MatrixElement_printing ok                                            [FAIL]
+
+sympy/printing/tests/test_jscode.py[23] 
+test_printmethod ok
+test_jscode_sqrt ok
+test_jscode_Pow ok
+test_jscode_constants_mathh ok
+test_jscode_constants_other ok
+test_jscode_Rational ok
+test_jscode_Integer ok
+test_jscode_functions ok
+test_jscode_inline_function E
+test_jscode_exceptions ok
+test_jscode_boolean ok
+test_jscode_Piecewise ok
+test_jscode_Piecewise_deep ok
+test_jscode_settings ok
+test_jscode_Indexed E
+test_jscode_loops_matrix_vector E
+test_dummy_loops E
+test_jscode_loops_add E
+test_jscode_loops_multiple_contractions E
+test_jscode_loops_addfactor E
+test_jscode_loops_multiple_terms E
+test_Matrix_printing ok
+test_MatrixElement_printing ok                                            [FAIL]
+
+sympy/printing/tests/test_julia.py[32] 
+test_Integer ok
+test_Rational ok
+test_Function ok
+test_Pow ok
+test_basic_ops ok
+test_1_over_x_and_sqrt ok
+test_mix_number_mult_symbols ok
+test_mix_number_pow_symbols ok
+test_imag ok
+test_constants ok
+test_constants_other ok
+test_boolean ok
+test_Matrices E
+test_vector_entries_hadamard E
+test_Matrices_entries_not_hadamard f
+test_MatrixSymbol ok
+test_special_matrices ok
+test_containers E
+test_julia_noninline ok
+test_julia_piecewise ok
+test_julia_piecewise_times_const ok
+test_julia_matrix_assign_to ok
+test_julia_matrix_assign_to_more ok
+test_julia_matrix_1x1 ok
+test_julia_matrix_elements ok
+test_julia_boolean ok
+test_julia_not_supported E
+test_trick_indent_with_end_else_words ok
+test_haramard ok
+test_sparse E
+test_specfun ok
+test_MatrixElement_printing ok                                            [FAIL]
+
+sympy/printing/tests/test_latex.py[122] 
+test_printmethod ok
+test_latex_basic ok
+test_latex_builtins ok
+test_latex_SingularityFunction ok
+test_latex_cycle ok
+test_latex_permutation ok
+test_latex_Float ok
+test_latex_vector_expressions E
+test_latex_symbols ok
+test_latex_symbols_failing f
+test_latex_functions ok
+test_function_subclass_different_name ok
+test_hyper_printing ok
+test_latex_bessel ok
+test_latex_fresnel ok
+test_latex_brackets ok
+test_latex_indexed E
+test_latex_derivatives E
+test_latex_subs ok
+test_latex_integrals ok
+test_latex_sets ok
+test_latex_SetExpr ok
+test_latex_Range ok
+test_latex_sequences ok
+test_latex_FourierSeries E
+test_latex_FormalPowerSeries E
+test_latex_intervals ok
+test_latex_AccumuBounds ok
+test_latex_emptyset ok
+test_latex_commutator ok
+test_latex_union ok
+test_latex_symmetric_difference ok
+test_latex_Complement ok
+test_latex_Complexes ok
+test_latex_productset ok
+test_latex_Naturals ok
+test_latex_Naturals0 ok
+test_latex_Integers ok
+test_latex_ImageSet ok
+test_latex_ConditionSet ok
+test_latex_ComplexRegion ok
+test_latex_Contains ok
+test_latex_sum ok
+test_latex_product ok
+test_latex_limits ok
+test_latex_log ok
+test_issue_3568 ok
+test_latex ok
+test_latex_dict ok
+test_latex_list ok
+test_latex_rational ok
+test_latex_inverse ok
+test_latex_DiracDelta ok
+test_latex_Heaviside ok
+test_latex_KroneckerDelta ok
+test_latex_LeviCivita ok
+test_mode ok
+test_latex_Piecewise ok
+test_latex_Matrix E
+test_latex_matrix_with_functions E
+test_latex_NDimArray E
+test_latex_mul_symbol ok
+test_latex_issue_4381 ok
+test_latex_issue_4576 ok
+test_latex_pow_fraction ok
+test_noncommutative ok
+test_latex_order ok
+test_latex_Lambda ok
+test_latex_PolyElement ok
+test_latex_FracElement ok
+test_latex_Poly ok
+test_latex_ComplexRootOf ok
+test_latex_RootSum ok
+test_settings ok
+test_latex_numbers ok
+test_latex_euler ok
+test_lamda ok
+test_custom_symbol_names ok
+test_matAdd ok
+test_matMul ok
+test_latex_MatrixSlice ok
+test_latex_RandomDomain ok
+test_PrettyPoly ok
+test_integral_transforms ok
+test_PolynomialRingBase ok
+test_categories ok
+test_Modules E
+test_QuotientRing ok
+test_Tr ok
+test_Adjoint ok
+test_Hadamard ok
+test_ZeroMatrix ok
+test_boolean_args_order ok
+test_imaginary ok
+test_builtins_without_args ok
+test_latex_greek_functions ok
+test_translate ok
+test_other_symbols ok
+test_modifiers ok
+test_greek_symbols ok
+test_builtin_without_args_mismatched_names f
+test_builtin_no_args ok
+test_issue_6853 ok
+test_Mul ok
+test_Pow ok
+test_issue_7180 ok
+test_issue_8409 ok
+test_issue_8470 E
+test_issue_7117 ok
+test_issue_2934 ok
+test_issue_10489 ok
+test_issue_12886 ok
+test_issue_13559 E
+test_issue_13651 ok
+test_latex_UnevaluatedExpr ok
+test_MatrixElement_printing F
+test_MatrixSymbol_printing F
+test_Quaternion_latex_printing ok
+test_TensorProduct_printing E
+test_WedgeProduct_printing ok
+test_units ok
+test_latex_degree ok                                                      [FAIL]
+
+sympy/printing/tests/test_octave.py[33] 
+test_Integer ok
+test_Rational ok
+test_Function ok
+test_Pow ok
+test_basic_ops ok
+test_1_over_x_and_sqrt ok
+test_mix_number_mult_symbols ok
+test_mix_number_pow_symbols ok
+test_imag ok
+test_constants ok
+test_constants_other ok
+test_boolean ok
+test_Matrices E
+test_vector_entries_hadamard E
+test_Matrices_entries_not_hadamard f
+test_MatrixSymbol ok
+test_special_matrices ok
+test_containers E
+test_octave_noninline ok
+test_octave_piecewise ok
+test_octave_piecewise_times_const ok
+test_octave_matrix_assign_to ok
+test_octave_matrix_assign_to_more ok
+test_octave_matrix_1x1 ok
+test_octave_matrix_elements ok
+test_octave_boolean ok
+test_octave_not_supported E
+test_trick_indent_with_end_else_words ok
+test_haramard ok
+test_sparse E
+test_sinc ok
+test_specfun ok
+test_MatrixElement_printing ok                                            [FAIL]
+
+sympy/printing/tests/test_rcode.py[33] 
+test_printmethod ok
+test_rcode_sqrt ok
+test_rcode_Pow ok
+test_rcode_Max ok
+test_rcode_constants_mathh ok
+test_rcode_constants_other ok
+test_rcode_Rational ok
+test_rcode_Integer ok
+test_rcode_functions ok
+test_rcode_inline_function E
+test_rcode_exceptions ok
+test_rcode_user_functions ok
+test_rcode_boolean ok
+test_rcode_Relational ok
+test_rcode_Piecewise ok
+test_rcode_sinc ok
+test_rcode_Piecewise_deep ok
+test_rcode_ITE ok
+test_rcode_settings ok
+test_rcode_Indexed E
+test_rcode_Indexed_without_looking_for_contraction E
+test_rcode_loops_matrix_vector E
+test_dummy_loops E
+test_rcode_loops_add E
+test_rcode_loops_multiple_contractions E
+test_rcode_loops_addfactor E
+test_rcode_loops_multiple_terms E
+test_dereference_printing ok
+test_Matrix_printing ok
+test_rcode_sgn ok
+test_rcode_Assignment ok
+test_rcode_For ok
+test_MatrixElement_printing ok                                            [FAIL]
+
+sympy/printing/tests/test_str.py[78] 
+test_printmethod ok
+test_Abs ok
+test_Add E
+test_Catalan ok
+test_ComplexInfinity ok
+test_Derivative ok
+test_dict ok
+test_Dict ok
+test_Dummy ok
+test_EulerGamma ok
+test_Exp ok
+test_factorial ok
+test_Function ok
+test_Geometry ok
+test_GoldenRatio ok
+test_ImaginaryUnit ok
+test_Infinity ok
+test_Integer ok
+test_Integral ok
+test_Interval ok
+test_AccumBounds ok
+test_Lambda ok
+test_Limit ok
+test_list ok
+test_Matrix_str E
+test_Mul ok
+test_NaN ok
+test_NegativeInfinity ok
+test_Order ok
+test_Permutation_Cycle ok
+test_Pi ok
+test_Poly ok
+test_PolyRing ok
+test_FracField ok
+test_PolyElement ok
+test_FracElement ok
+test_Pow ok
+test_sqrt ok
+test_Rational ok
+test_Float ok
+test_Relational ok
+test_CRootOf ok
+test_RootSum ok
+test_GroebnerBasis ok
+test_set ok
+test_SparseMatrix E
+test_Sum ok
+test_Symbol ok
+test_tuple ok
+test_Quaternion_str_printer ok
+test_Quantity_str ok
+test_wild_str ok
+test_zeta ok
+test_issue_3101 ok
+test_issue_3103 ok
+test_issue_4021 ok
+test_sstrrepr ok
+test_infinity ok
+test_full_prec ok
+test_noncommutative ok
+test_empty_printer ok
+test_settings ok
+test_RandomDomain ok
+test_FiniteSet ok
+test_PrettyPoly ok
+test_categories ok
+test_Tr ok
+test_issue_6387 ok
+test_MatMul_MatAdd ok
+test_MatrixSlice ok
+test_true_false ok
+test_Equivalent ok
+test_Xor ok
+test_Complement ok
+test_SymmetricDifference ok
+test_UnevaluatedExpr ok
+test_MatrixElement_printing ok
+test_MatrixSymbol_printing ok                                             [FAIL]
+
+
+________________________________ xpassed tests _________________________________
+sympy/printing/pretty/tests/test_pretty.py: test_missing_in_2X_issue_9047
+
+________________________________________________________________________________
+_______ sympy/printing/pretty/tests/test_pretty.py:test_pretty_ordering ________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 969, in test_pretty_ordering
+    expr = x - x**3/6 + x**5/120 + O(x**6)
+  File "/testbed/sympy/core/decorators.py", line 91, in __sympifyit_wrapper
+    return func(a, b)
+  File "/testbed/sympy/core/decorators.py", line 132, in binary_op_wrapper
+    return func(self, other)
+  File "/testbed/sympy/core/expr.py", line 121, in __add__
+    return Add(self, other)
+  File "/testbed/sympy/core/operations.py", line 45, in __new__
+    c_part, nc_part, order_symbols = cls.flatten(args)
+  File "/testbed/sympy/core/add.py", line 254, in flatten
+    if o.contains(t):
+  File "/testbed/sympy/series/order.py", line 410, in contains
+    return self.contains(obj)
+  File "/testbed/sympy/series/order.py", line 387, in contains
+    l = Limit(ratio, s, point).doit(heuristics=False)
+  File "/testbed/sympy/series/limits.py", line 209, in doit
+    r = gruntz(e, z, z0, dir)
+  File "/testbed/sympy/series/gruntz.py", line 658, in gruntz
+    r = limitinf(e0, z)
+  File "/testbed/sympy/series/gruntz.py", line 428, in limitinf
+    c0, e0 = mrv_leadterm(e, x)
+  File "/testbed/sympy/series/gruntz.py", line 487, in mrv_leadterm
+    Omega, exps = mrv(e, x)
+  File "/testbed/sympy/series/gruntz.py", line 246, in mrv
+    e = powsimp(e, deep=True, combine='exp')
+  File "/testbed/sympy/simplify/powsimp.py", line 121, in powsimp
+    return recurse(expr*_y, deep=False)/_y
+  File "/testbed/sympy/core/decorators.py", line 91, in __sympifyit_wrapper
+    return func(a, b)
+  File "/testbed/sympy/core/decorators.py", line 132, in binary_op_wrapper
+    return func(self, other)
+  File "/testbed/sympy/core/expr.py", line 178, in __div__
+    return Mul(self, Pow(other, S.NegativeOne))
+  File "/testbed/sympy/core/operations.py", line 45, in __new__
+    c_part, nc_part, order_symbols = cls.flatten(args)
+  File "/testbed/sympy/core/mul.py", line 184, in flatten
+    if not a.is_zero and a.is_Rational:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1370, in _eval_is_composite
+    if self.is_integer and self.is_positive:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1160, in _eval_is_integer
+    is_rational = self.is_rational
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1129, in _eval_is_rational
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/logic.py", line 78, in _fuzzy_group
+    for a in args:
+  File "/testbed/sympy/core/mul.py", line 1129, in <genexpr>
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  [Previous line repeated 3 more times]
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/power.py", line 1189, in _eval_is_algebraic
+    if self.base.is_zero or _is_one(self.base):
+  File "/testbed/sympy/core/power.py", line 1184, in _is_one
+    return (expr - 1).is_zero
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 645, in _eval_is_nonnegative
+    if s != self and s.is_nonnegative:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 648, in _eval_is_nonnegative
+    v = _monotonic_sign(self)
+  File "/testbed/sympy/core/exprtools.py", line 120, in _monotonic_sign
+    d = self.diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________ sympy/printing/pretty/tests/test_pretty.py:test_pretty_order _________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 2184, in test_pretty_order
+    expr = O(x**2 + y**2)
+  File "/testbed/sympy/series/order.py", line 213, in __new__
+    lst = expr.extract_leading_order(args)
+  File "/testbed/sympy/core/add.py", line 792, in extract_leading_order
+    if o.contains(of) and o != of:
+  File "/testbed/sympy/series/order.py", line 387, in contains
+    l = Limit(ratio, s, point).doit(heuristics=False)
+  File "/testbed/sympy/series/limits.py", line 209, in doit
+    r = gruntz(e, z, z0, dir)
+  File "/testbed/sympy/series/gruntz.py", line 658, in gruntz
+    r = limitinf(e0, z)
+  File "/testbed/sympy/series/gruntz.py", line 428, in limitinf
+    c0, e0 = mrv_leadterm(e, x)
+  File "/testbed/sympy/series/gruntz.py", line 487, in mrv_leadterm
+    Omega, exps = mrv(e, x)
+  File "/testbed/sympy/series/gruntz.py", line 246, in mrv
+    e = powsimp(e, deep=True, combine='exp')
+  File "/testbed/sympy/simplify/powsimp.py", line 118, in powsimp
+    expr = expr.func(*[recurse(w) for w in expr.args])
+  File "/testbed/sympy/simplify/powsimp.py", line 118, in <listcomp>
+    expr = expr.func(*[recurse(w) for w in expr.args])
+  File "/testbed/sympy/simplify/powsimp.py", line 109, in recurse
+    return powsimp(arg, _deep, _combine, _force, _measure)
+  File "/testbed/sympy/simplify/powsimp.py", line 121, in powsimp
+    return recurse(expr*_y, deep=False)/_y
+  File "/testbed/sympy/core/decorators.py", line 91, in __sympifyit_wrapper
+    return func(a, b)
+  File "/testbed/sympy/core/decorators.py", line 132, in binary_op_wrapper
+    return func(self, other)
+  File "/testbed/sympy/core/expr.py", line 178, in __div__
+    return Mul(self, Pow(other, S.NegativeOne))
+  File "/testbed/sympy/core/operations.py", line 45, in __new__
+    c_part, nc_part, order_symbols = cls.flatten(args)
+  File "/testbed/sympy/core/mul.py", line 184, in flatten
+    if not a.is_zero and a.is_Rational:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1129, in _eval_is_rational
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/logic.py", line 78, in _fuzzy_group
+    for a in args:
+  File "/testbed/sympy/core/mul.py", line 1129, in <genexpr>
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/power.py", line 1189, in _eval_is_algebraic
+    if self.base.is_zero or _is_one(self.base):
+  File "/testbed/sympy/core/power.py", line 1184, in _is_one
+    return (expr - 1).is_zero
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 645, in _eval_is_nonnegative
+    if s != self and s.is_nonnegative:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 648, in _eval_is_nonnegative
+    v = _monotonic_sign(self)
+  File "/testbed/sympy/core/exprtools.py", line 120, in _monotonic_sign
+    d = self.diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/pretty/tests/test_pretty.py:test_pretty_derivatives ______
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 2256, in test_pretty_derivatives
+    assert pretty(expr) == ascii_str
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 226, in pretty
+    return xpretty(expr, order=order, use_unicode=False, wrap_line=False)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 2283, in pretty
+    return pp.doprint(expr)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 62, in doprint
+    return self._print(expr).render(**self._settings)
+  File "/testbed/sympy/printing/printer.py", line 274, in _print
+    return getattr(self, printmethod)(expr, *args, **kwargs)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 321, in _print_Derivative
+    if requires_partial(deriv) and self._use_unicode:
+  File "/testbed/sympy/printing/conventions.py", line 80, in requires_partial
+    if not isinstance(expr.free_symbols, collections.Iterable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/pretty/tests/test_pretty.py:test_pretty_matrix _________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 2671, in test_pretty_matrix
+    expr = Matrix(2, 0, lambda i, j: 0)
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/pretty/tests/test_pretty.py:test_pretty_ndim_arrays ______
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 2741, in test_pretty_ndim_arrays
+    M = ArrayType(x)
+  File "/testbed/sympy/tensor/array/dense_ndim_array.py", line 138, in __new__
+    return cls._new(iterable, shape, **kwargs)
+  File "/testbed/sympy/tensor/array/dense_ndim_array.py", line 144, in _new
+    shape, flat_list = cls._handle_ndarray_creation_inputs(iterable, shape, **kwargs)
+  File "/testbed/sympy/tensor/array/ndim_array.py", line 138, in _handle_ndarray_creation_inputs
+    elif shape is None and isinstance(iterable, collections.Iterable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____ sympy/printing/pretty/tests/test_pretty.py:test_tensor_TensorProduct _____
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 2919, in test_tensor_TensorProduct
+    assert upretty(TensorProduct(A, B)) == "A\u2297B"
+  File "/testbed/sympy/tensor/functions.py", line 28, in __new__
+    if isinstance(arg, (collections.Iterable, MatrixBase, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/pretty/tests/test_pretty.py:test_pretty_dotproduct _______
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 3022, in test_pretty_dotproduct
+    C = Matrix(1, 3, [1, 2, 3])
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____ sympy/printing/pretty/tests/test_pretty.py:test_pretty_FourierSeries _____
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 3758, in test_pretty_FourierSeries
+    f = fourier_series(x, (x, -pi, pi))
+  File "/testbed/sympy/series/fourier.py", line 481, in fourier_series
+    bn = fourier_sin_seq(f, limits, n)
+  File "/testbed/sympy/series/fourier.py", line 35, in fourier_sin_seq
+    return SeqFormula(2 * sin_term * integrate(func * sin_term, limits)
+  File "/testbed/sympy/integrals/integrals.py", line 1389, in integrate
+    return integral.doit(deep=False, meijerg=meijerg, conds=conds,
+  File "/testbed/sympy/integrals/integrals.py", line 529, in doit
+    antideriv = self._eval_integral(
+  File "/testbed/sympy/integrals/integrals.py", line 977, in _eval_integral
+    h = heurisch_wrapper(g, x, hints=[])
+  File "/testbed/sympy/integrals/heurisch.py", line 129, in heurisch_wrapper
+    res = heurisch(f, x, rewrite, hints, mappings, retries, degree_offset,
+  File "/testbed/sympy/integrals/heurisch.py", line 439, in heurisch
+    terms |= components(dcache.get_diff(g), x)
+  File "/testbed/sympy/integrals/heurisch.py", line 258, in get_diff
+    cache[f] = cancel(f.diff(self.x))
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___ sympy/printing/pretty/tests/test_pretty.py:test_pretty_FormalPowerSeries ___
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 3779, in test_pretty_FormalPowerSeries
+    f = fps(log(1 + x))
+  File "/testbed/sympy/series/formal.py", line 1250, in fps
+    result = compute_fps(f, x, x0, dir, hyper, order, rational, full)
+  File "/testbed/sympy/series/formal.py", line 900, in compute_fps
+    return _compute_fps(f, x, x0, dir, hyper, order, rational, full)
+  File "/testbed/sympy/series/formal.py", line 817, in _compute_fps
+    result = rational_algorithm(f, x, k, order, full)
+  File "/testbed/sympy/series/formal.py", line 96, in rational_algorithm
+    diff = diff.diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+____________ sympy/printing/pretty/tests/test_pretty.py:test_units _____________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 4796, in test_units
+    assert upretty(expr.convert_to(kg*m**2/s**2)) == unicode_str1
+  File "/testbed/sympy/physics/units/quantities.py", line 203, in convert_to
+    return convert_to(self, other)
+  File "/testbed/sympy/physics/units/util.py", line 105, in convert_to
+    if not isinstance(target_units, (collections.Iterable, Tuple)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________ sympy/printing/pretty/tests/test_pretty.py:test_pretty_Subs __________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 4818, in test_pretty_Subs
+    expr = Subs(f(x).diff(x), x, 0)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/pretty/tests/test_pretty.py:test_pretty_geometry ________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5285, in test_pretty_geometry
+    e = Ray((1, 1), angle=4.02*pi)
+  File "/testbed/sympy/geometry/line.py", line 1275, in __new__
+    return Ray2D(p1, p2, **kwargs)
+  File "/testbed/sympy/geometry/line.py", line 2108, in __new__
+    p2 = p1 + Point(x, y)
+  File "/testbed/sympy/geometry/point.py", line 224, in __add__
+    coords = [simplify(a + b) for a, b in zip(s, o)]
+  File "/testbed/sympy/geometry/point.py", line 224, in <listcomp>
+    coords = [simplify(a + b) for a, b in zip(s, o)]
+  File "/testbed/sympy/simplify/simplify.py", line 600, in simplify
+    short = exptrigsimp(short)
+  File "/testbed/sympy/simplify/trigsimp.py", line 542, in exptrigsimp
+    newexpr = bottom_up(expr, exp_trig)
+  File "/testbed/sympy/simplify/simplify.py", line 1042, in bottom_up
+    args = tuple([bottom_up(a, F, atoms, nonbasic)
+  File "/testbed/sympy/simplify/simplify.py", line 1042, in <listcomp>
+    args = tuple([bottom_up(a, F, atoms, nonbasic)
+  File "/testbed/sympy/simplify/simplify.py", line 1046, in bottom_up
+    rv = F(rv)
+  File "/testbed/sympy/simplify/trigsimp.py", line 539, in exp_trig
+    choices.append(e.rewrite(exp))
+  File "/testbed/sympy/core/basic.py", line 1671, in rewrite
+    return self._eval_rewrite(None, rule, **hints)
+  File "/testbed/sympy/core/basic.py", line 1579, in _eval_rewrite
+    rewritten = getattr(self, rule)(*args)
+  File "/testbed/sympy/functions/elementary/trigonometric.py", line 1138, in _eval_rewrite_as_exp
+    neg_exp, pos_exp = exp(-arg*I), exp(arg*I)
+  File "/testbed/sympy/core/function.py", line 441, in __new__
+    result = super(Function, cls).__new__(cls, *args, **options)
+  File "/testbed/sympy/core/function.py", line 250, in __new__
+    evaluated = cls.eval(*args)
+  File "/testbed/sympy/functions/elementary/exponential.py", line 254, in eval
+    if ask(Q.integer(2*coeff)):
+  File "/testbed/sympy/assumptions/ask.py", line 1247, in ask
+    from sympy.assumptions.satask import satask
+  File "/testbed/sympy/assumptions/satask.py", line 9, in <module>
+    from sympy.assumptions.sathandlers import fact_registry
+  File "/testbed/sympy/assumptions/sathandlers.py", line 3, in <module>
+    from collections import MutableMapping, defaultdict
+  File "<frozen importlib._bootstrap>", line 1055, in _handle_fromlist
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________ sympy/printing/pretty/tests/test_pretty.py:test_issue_6359 __________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5507, in test_issue_6359
+    assert pretty(Derivative(f(x), x)**2) == \
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 226, in pretty
+    return xpretty(expr, order=order, use_unicode=False, wrap_line=False)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 2283, in pretty
+    return pp.doprint(expr)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 62, in doprint
+    return self._print(expr).render(**self._settings)
+  File "/testbed/sympy/printing/printer.py", line 274, in _print
+    return getattr(self, printmethod)(expr, *args, **kwargs)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 1600, in _print_Pow
+    return self._print(b)**self._print(e)
+  File "/testbed/sympy/printing/printer.py", line 274, in _print
+    return getattr(self, printmethod)(expr, *args, **kwargs)
+  File "/testbed/sympy/printing/pretty/pretty.py", line 321, in _print_Derivative
+    if requires_partial(deriv) and self._use_unicode:
+  File "/testbed/sympy/printing/conventions.py", line 80, in requires_partial
+    if not isinstance(expr.free_symbols, collections.Iterable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________ sympy/printing/pretty/tests/test_pretty.py:test_Homomorphism _________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5733, in test_Homomorphism
+    expr = homomorphism(R.free_module(1), R.free_module(1), [0])
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 663, in homomorphism
+    return FreeModuleHomomorphism(SF, TF, [c(x) for x in matrix]
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 220, in quotient_domain
+    if not self.kernel().is_submodule(sm):
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 88, in kernel
+    self._ker = self._kernel()
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 544, in _kernel
+    syz = self.image().syzygy_module()
+  File "/testbed/sympy/polys/agca/modules.py", line 822, in syzygy_module
+    return F.submodule(*[x for x in self._syzygies() if F.convert(x) != 0],
+  File "/testbed/sympy/polys/agca/modules.py", line 1095, in _syzygies
+    im = eye(k)
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________ sympy/printing/pretty/tests/test_pretty.py:test_issue_8292 __________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5835, in test_issue_8292
+    e = sympify('((x+x**4)/(x-1))-(2*(x-1)**4/(x-1)**4)', evaluate=False)
+  File "/testbed/sympy/core/sympify.py", line 368, in sympify
+    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)
+  File "/testbed/sympy/parsing/sympy_parser.py", line 948, in parse_expr
+    code = compile(evaluateFalse(code), '<string>', 'eval')
+ValueError: Name node can't be used with 'False' constant
+________________________________________________________________________________
+__________ sympy/printing/pretty/tests/test_pretty.py:test_issue_4335 __________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5857, in test_issue_4335
+    expr = -y(x).diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________ sympy/printing/pretty/tests/test_pretty.py:test_issue_8344 __________
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 5876, in test_issue_8344
+    e = sympify('2*x*y**2/1**2 + 1', evaluate=False)
+  File "/testbed/sympy/core/sympify.py", line 368, in sympify
+    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)
+  File "/testbed/sympy/parsing/sympy_parser.py", line 948, in parse_expr
+    code = compile(evaluateFalse(code), '<string>', 'eval')
+ValueError: Name node can't be used with 'False' constant
+________________________________________________________________________________
+_ sympy/printing/pretty/tests/test_pretty.py:test_vector_expr_pretty_printing __
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 6113, in test_vector_expr_pretty_printing
+    A = CoordSys3D('A')
+  File "/testbed/sympy/vector/coordsysrect.py", line 102, in __new__
+    rotation_matrix = ImmutableDenseMatrix(eye(3))
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/tests/test_ccode.py:test_ccode_inline_function _________
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 119, in test_ccode_inline_function
+    assert ccode(g(A[i]), assign_to=A[i]) == (
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+____________ sympy/printing/tests/test_ccode.py:test_ccode_Indexed _____________
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 277, in test_ccode_Indexed
+    x = IndexedBase('x')[j]
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+ sympy/printing/tests/test_ccode.py:test_ccode_Indexed_without_looking_for_contraction 
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 311, in test_ccode_Indexed_without_looking_for_contraction
+    e=Eq(Dy[i], (y[i+1]-y[i])/(x[i+1]-x[i]))
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/tests/test_ccode.py:test_ccode_loops_matrix_vector _______
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 334, in test_ccode_loops_matrix_vector
+    assert ccode(A[i, j]*x[j], assign_to=y[i]) == s
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_ccode.py:test_dummy_loops ______________
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 349, in test_dummy_loops
+    assert ccode(x[i], assign_to=y[i]) == expected
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_ccode.py:test_ccode_loops_add ____________
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 373, in test_ccode_loops_add
+    assert ccode(A[i, j]*x[j] + x[i] + z[i], assign_to=y[i]) == s
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__ sympy/printing/tests/test_ccode.py:test_ccode_loops_multiple_contractions ___
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 402, in test_ccode_loops_multiple_contractions
+    assert ccode(b[j, k, l]*a[i, j, k, l], assign_to=y[i]) == s
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/tests/test_ccode.py:test_ccode_loops_addfactor _________
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 432, in test_ccode_loops_addfactor
+    assert ccode((a[i, j, k, l] + b[i, j, k, l])*c[j, k, l], assign_to=y[i]) == s
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/tests/test_ccode.py:test_ccode_loops_multiple_terms ______
+  File "/testbed/sympy/printing/tests/test_ccode.py", line 475, in test_ccode_loops_multiple_terms
+    c = ccode(b[j]*a[i, j] + b[k]*a[i, k] + b[j]*b[k]*c[i, j, k], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________________ sympy/printing/tests/test_fcode.py:test_case _________________
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 98, in test_case
+    assert fcode(A[i, I]*x[I], assign_to=y[i], source_format='free') == (
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_fcode.py:test_inline_function ____________
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 202, in test_inline_function
+    assert fcode(g(A[i]), assign_to=A[i]) == (
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_fcode.py:test_fcode_Piecewise ____________
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 416, in test_fcode_Piecewise
+    a = diff(a, x)
+  File "/testbed/sympy/core/function.py", line 1975, in diff
+    return Derivative(f, *symbols, **kwargs)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________________ sympy/printing/tests/test_fcode.py:test_loops _________________
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 575, in test_loops
+    code = fcode(A[i, j]*x[j], assign_to=y[i], source_format='free')
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_fcode.py:test_dummy_loops ______________
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 593, in test_dummy_loops
+    code = fcode(x[i], assign_to=y[i], source_format='free')
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+ sympy/printing/tests/test_fcode.py:test_fcode_Indexed_without_looking_for_contraction 
+  File "/testbed/sympy/printing/tests/test_fcode.py", line 602, in test_fcode_Indexed_without_looking_for_contraction
+    e=Eq(Dy[i], (y[i+1]-y[i])/(x[i+1]-x[i]))
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_jscode.py:test_jscode_inline_function ________
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 79, in test_jscode_inline_function
+    assert jscode(g(A[i]), assign_to=A[i]) == (
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_jscode.py:test_jscode_Indexed ____________
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 152, in test_jscode_Indexed
+    x = IndexedBase('x')[j]
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____ sympy/printing/tests/test_jscode.py:test_jscode_loops_matrix_vector ______
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 180, in test_jscode_loops_matrix_vector
+    c = jscode(A[i, j]*x[j], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_jscode.py:test_dummy_loops _____________
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 195, in test_dummy_loops
+    code = jscode(x[i], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________ sympy/printing/tests/test_jscode.py:test_jscode_loops_add ___________
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 220, in test_jscode_loops_add
+    c = jscode(A[i, j]*x[j] + x[i] + z[i], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_ sympy/printing/tests/test_jscode.py:test_jscode_loops_multiple_contractions __
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 250, in test_jscode_loops_multiple_contractions
+    c = jscode(b[j, k, l]*a[i, j, k, l], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_jscode.py:test_jscode_loops_addfactor ________
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 281, in test_jscode_loops_addfactor
+    c = jscode((a[i, j, k, l] + b[i, j, k, l])*c[j, k, l], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____ sympy/printing/tests/test_jscode.py:test_jscode_loops_multiple_terms _____
+  File "/testbed/sympy/printing/tests/test_jscode.py", line 326, in test_jscode_loops_multiple_terms
+    b[j]*a[i, j] + b[k]*a[i, k] + b[j]*b[k]*c[i, j, k], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______________ sympy/printing/tests/test_julia.py:test_Matrices _______________
+  File "/testbed/sympy/printing/tests/test_julia.py", line 141, in test_Matrices
+    assert julia_code(Matrix(1, 1, [10])) == "[10]"
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_julia.py:test_vector_entries_hadamard ________
+  File "/testbed/sympy/printing/tests/test_julia.py", line 163, in test_vector_entries_hadamard
+    assert julia_code(A.T) == "[1, sin(2./x), 3*pi./(5*x)]"
+  File "/testbed/sympy/matrices/common.py", line 1857, in transpose
+    return self._eval_transpose()
+  File "/testbed/sympy/matrices/common.py", line 1520, in _eval_transpose
+    return self._new(self.cols, self.rows, lambda i, j: self[j, i])
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______________ sympy/printing/tests/test_julia.py:test_containers ______________
+  File "/testbed/sympy/printing/tests/test_julia.py", line 204, in test_containers
+    assert julia_code((1, eye(3), Matrix(0, 0, []), [])) == "(1, [1 0 0;\n0 1 0;\n0 0 1], zeros(0, 0), Any[])"
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________ sympy/printing/tests/test_julia.py:test_julia_not_supported __________
+  File "/testbed/sympy/printing/tests/test_julia.py", line 307, in test_julia_not_supported
+    assert julia_code(f(x).diff(x)) == (
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________________ sympy/printing/tests/test_julia.py:test_sparse ________________
+  File "/testbed/sympy/printing/tests/test_julia.py", line 344, in test_sparse
+    M = SparseMatrix(5, 6, {})
+  File "/testbed/sympy/matrices/sparse.py", line 56, in __new__
+    if isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_latex.py:test_latex_vector_expressions _______
+  File "/testbed/sympy/printing/tests/test_latex.py", line 185, in test_latex_vector_expressions
+    A = CoordSys3D('A')
+  File "/testbed/sympy/vector/coordsysrect.py", line 102, in __new__
+    rotation_matrix = ImmutableDenseMatrix(eye(3))
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+____________ sympy/printing/tests/test_latex.py:test_latex_indexed _____________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 519, in test_latex_indexed
+    indexed_latex = latex(Psi_indexed[0] * conjugate(Psi_indexed[0]))
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________ sympy/printing/tests/test_latex.py:test_latex_derivatives ___________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 532, in test_latex_derivatives
+    assert latex(diff(x**3, x, evaluate=False)) == \
+  File "/testbed/sympy/printing/latex.py", line 2276, in latex
+    return LatexPrinter(settings).doprint(expr)
+  File "/testbed/sympy/printing/latex.py", line 188, in doprint
+    tex = Printer.doprint(self, expr)
+  File "/testbed/sympy/printing/printer.py", line 236, in doprint
+    return self._str(self._print(expr))
+  File "/testbed/sympy/printing/printer.py", line 274, in _print
+    return getattr(self, printmethod)(expr, *args, **kwargs)
+  File "/testbed/sympy/printing/latex.py", line 621, in _print_Derivative
+    if requires_partial(expr):
+  File "/testbed/sympy/printing/conventions.py", line 80, in requires_partial
+    if not isinstance(expr.free_symbols, collections.Iterable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_________ sympy/printing/tests/test_latex.py:test_latex_FourierSeries __________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 693, in test_latex_FourierSeries
+    assert latex(fourier_series(x, (x, -pi, pi))) == latex_str
+  File "/testbed/sympy/series/fourier.py", line 481, in fourier_series
+    bn = fourier_sin_seq(f, limits, n)
+  File "/testbed/sympy/series/fourier.py", line 35, in fourier_sin_seq
+    return SeqFormula(2 * sin_term * integrate(func * sin_term, limits)
+  File "/testbed/sympy/integrals/integrals.py", line 1389, in integrate
+    return integral.doit(deep=False, meijerg=meijerg, conds=conds,
+  File "/testbed/sympy/integrals/integrals.py", line 529, in doit
+    antideriv = self._eval_integral(
+  File "/testbed/sympy/integrals/integrals.py", line 977, in _eval_integral
+    h = heurisch_wrapper(g, x, hints=[])
+  File "/testbed/sympy/integrals/heurisch.py", line 129, in heurisch_wrapper
+    res = heurisch(f, x, rewrite, hints, mappings, retries, degree_offset,
+  File "/testbed/sympy/integrals/heurisch.py", line 439, in heurisch
+    terms |= components(dcache.get_diff(g), x)
+  File "/testbed/sympy/integrals/heurisch.py", line 258, in get_diff
+    cache[f] = cancel(f.diff(self.x))
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_latex.py:test_latex_FormalPowerSeries ________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 698, in test_latex_FormalPowerSeries
+    assert latex(fps(log(1 + x))) == latex_str
+  File "/testbed/sympy/series/formal.py", line 1250, in fps
+    result = compute_fps(f, x, x0, dir, hyper, order, rational, full)
+  File "/testbed/sympy/series/formal.py", line 900, in compute_fps
+    return _compute_fps(f, x, x0, dir, hyper, order, rational, full)
+  File "/testbed/sympy/series/formal.py", line 817, in _compute_fps
+    result = rational_algorithm(f, x, k, order, full)
+  File "/testbed/sympy/series/formal.py", line 96, in rational_algorithm
+    diff = diff.diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_latex.py:test_latex_Matrix _____________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 963, in test_latex_Matrix
+    M2 = Matrix(1, 11, range(11))
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____ sympy/printing/tests/test_latex.py:test_latex_matrix_with_functions ______
+  File "/testbed/sympy/printing/tests/test_latex.py", line 974, in test_latex_matrix_with_functions
+    [cos(theta1(t).diff(t)), sin(theta1(t).diff(t))]])
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_latex.py:test_latex_NDimArray ____________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 992, in test_latex_NDimArray
+    M = ArrayType(x)
+  File "/testbed/sympy/tensor/array/dense_ndim_array.py", line 138, in __new__
+    return cls._new(iterable, shape, **kwargs)
+  File "/testbed/sympy/tensor/array/dense_ndim_array.py", line 144, in _new
+    shape, flat_list = cls._handle_ndarray_creation_inputs(iterable, shape, **kwargs)
+  File "/testbed/sympy/tensor/array/ndim_array.py", line 138, in _handle_ndarray_creation_inputs
+    elif shape is None and isinstance(iterable, collections.Iterable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______________ sympy/printing/tests/test_latex.py:test_Modules ________________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1360, in test_Modules
+    h = homomorphism(QQ.old_poly_ring(x).free_module(2), QQ.old_poly_ring(x).free_module(2), [0, 0])
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 663, in homomorphism
+    return FreeModuleHomomorphism(SF, TF, [c(x) for x in matrix]
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 220, in quotient_domain
+    if not self.kernel().is_submodule(sm):
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 88, in kernel
+    self._ker = self._kernel()
+  File "/testbed/sympy/polys/agca/homomorphisms.py", line 544, in _kernel
+    syz = self.image().syzygy_module()
+  File "/testbed/sympy/polys/agca/modules.py", line 822, in syzygy_module
+    return F.submodule(*[x for x in self._syzygies() if F.convert(x) != 0],
+  File "/testbed/sympy/polys/agca/modules.py", line 1095, in _syzygies
+    im = eye(k)
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______________ sympy/printing/tests/test_latex.py:test_issue_8470 ______________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1652, in test_issue_8470
+    e = parse_expr("-B*A", evaluate=False)
+  File "/testbed/sympy/parsing/sympy_parser.py", line 948, in parse_expr
+    code = compile(evaluateFalse(code), '<string>', 'eval')
+ValueError: Name node can't be used with 'False' constant
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_latex.py:test_issue_13559 ______________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1685, in test_issue_13559
+    expr = parse_expr('5/1', evaluate=False)
+  File "/testbed/sympy/parsing/sympy_parser.py", line 948, in parse_expr
+    code = compile(evaluateFalse(code), '<string>', 'eval')
+ValueError: Name node can't be used with 'False' constant
+________________________________________________________________________________
+________ sympy/printing/tests/test_latex.py:test_TensorProduct_printing ________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1740, in test_TensorProduct_printing
+    assert latex(TensorProduct(A, B)) == r"A \otimes B"
+  File "/testbed/sympy/tensor/functions.py", line 28, in __new__
+    if isinstance(arg, (collections.Iterable, MatrixBase, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______________ sympy/printing/tests/test_octave.py:test_Matrices _______________
+  File "/testbed/sympy/printing/tests/test_octave.py", line 151, in test_Matrices
+    assert mcode(Matrix(1, 1, [10])) == "10"
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______ sympy/printing/tests/test_octave.py:test_vector_entries_hadamard _______
+  File "/testbed/sympy/printing/tests/test_octave.py", line 171, in test_vector_entries_hadamard
+    assert mcode(A.T) == "[1; sin(2./x); 3*pi./(5*x)]"
+  File "/testbed/sympy/matrices/common.py", line 1857, in transpose
+    return self._eval_transpose()
+  File "/testbed/sympy/matrices/common.py", line 1520, in _eval_transpose
+    return self._new(self.cols, self.rows, lambda i, j: self[j, i])
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_octave.py:test_containers ______________
+  File "/testbed/sympy/printing/tests/test_octave.py", line 212, in test_containers
+    assert mcode((1, eye(3), Matrix(0, 0, []), [])) == "{1, [1 0 0; 0 1 0; 0 0 1], [], {}}"
+  File "/testbed/sympy/matrices/dense.py", line 1080, in eye
+    return Matrix.eye(*args, **kwargs)
+  File "/testbed/sympy/matrices/common.py", line 780, in eye
+    return klass._eval_eye(rows, cols)
+  File "/testbed/sympy/matrices/common.py", line 622, in _eval_eye
+    return cls._new(rows, cols, entry)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/tests/test_octave.py:test_octave_not_supported _________
+  File "/testbed/sympy/printing/tests/test_octave.py", line 315, in test_octave_not_supported
+    assert mcode(f(x).diff(x)) == (
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______________ sympy/printing/tests/test_octave.py:test_sparse ________________
+  File "/testbed/sympy/printing/tests/test_octave.py", line 352, in test_sparse
+    M = SparseMatrix(5, 6, {})
+  File "/testbed/sympy/matrices/sparse.py", line 56, in __new__
+    if isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/tests/test_rcode.py:test_rcode_inline_function _________
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 99, in test_rcode_inline_function
+    res=rcode(g(A[i]), assign_to=A[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+____________ sympy/printing/tests/test_rcode.py:test_rcode_Indexed _____________
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 211, in test_rcode_Indexed
+    x = IndexedBase('x')[j]
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+ sympy/printing/tests/test_rcode.py:test_rcode_Indexed_without_looking_for_contraction 
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 226, in test_rcode_Indexed_without_looking_for_contraction
+    e=Eq(Dy[i], (y[i+1]-y[i])/(x[i+1]-x[i]))
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/tests/test_rcode.py:test_rcode_loops_matrix_vector _______
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 249, in test_rcode_loops_matrix_vector
+    c = rcode(A[i, j]*x[j], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_____________ sympy/printing/tests/test_rcode.py:test_dummy_loops ______________
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 267, in test_dummy_loops
+    code = rcode(x[i], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+___________ sympy/printing/tests/test_rcode.py:test_rcode_loops_add ____________
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 292, in test_rcode_loops_add
+    c = rcode(A[i, j]*x[j] + x[i] + z[i], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__ sympy/printing/tests/test_rcode.py:test_rcode_loops_multiple_contractions ___
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 322, in test_rcode_loops_multiple_contractions
+    c = rcode(b[j, k, l]*a[i, j, k, l], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+________ sympy/printing/tests/test_rcode.py:test_rcode_loops_addfactor _________
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 353, in test_rcode_loops_addfactor
+    c = rcode((a[i, j, k, l] + b[i, j, k, l])*c[j, k, l], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 414, in __getitem__
+    return Indexed(self, *indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______ sympy/printing/tests/test_rcode.py:test_rcode_loops_multiple_terms ______
+  File "/testbed/sympy/printing/tests/test_rcode.py", line 398, in test_rcode_loops_multiple_terms
+    b[j]*a[i, j] + b[k]*a[i, k] + b[j]*b[k]*c[i, j, k], assign_to=y[i])
+  File "/testbed/sympy/tensor/indexed.py", line 418, in __getitem__
+    return Indexed(self, indices, **kw_args)
+  File "/testbed/sympy/tensor/indexed.py", line 155, in __new__
+    if isinstance(base, (NDimArray, collections.Iterable, Tuple, MatrixBase)) and all([i.is_number for i in args]):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+__________________ sympy/printing/tests/test_str.py:test_Add ___________________
+  File "/testbed/sympy/printing/tests/test_str.py", line 57, in test_Add
+    assert str(sin(x).series(x, 0, 15)) == "x - x**3/6 + x**5/120 - x**7/5040 + x**9/362880 - x**11/39916800 + x**13/6227020800 + O(x**15)"
+  File "/testbed/sympy/core/expr.py", line 2656, in series
+    rv = self.subs(x, xpos).series(xpos, x0, n, dir, logx=logx)
+  File "/testbed/sympy/core/expr.py", line 2663, in series
+    s1 = self._eval_nseries(x, n=n, logx=logx)
+  File "/testbed/sympy/core/function.py", line 701, in _eval_nseries
+    g = g.nseries(x, n=n, logx=logx)
+  File "/testbed/sympy/core/expr.py", line 2862, in nseries
+    return self._eval_nseries(x, n=n, logx=logx)
+  File "/testbed/sympy/core/mul.py", line 1652, in _eval_nseries
+    res = powsimp(self.func(*terms).expand(), combine='exp', deep=True)
+  File "/testbed/sympy/simplify/powsimp.py", line 118, in powsimp
+    expr = expr.func(*[recurse(w) for w in expr.args])
+  File "/testbed/sympy/simplify/powsimp.py", line 118, in <listcomp>
+    expr = expr.func(*[recurse(w) for w in expr.args])
+  File "/testbed/sympy/simplify/powsimp.py", line 109, in recurse
+    return powsimp(arg, _deep, _combine, _force, _measure)
+  File "/testbed/sympy/simplify/powsimp.py", line 121, in powsimp
+    return recurse(expr*_y, deep=False)/_y
+  File "/testbed/sympy/core/decorators.py", line 91, in __sympifyit_wrapper
+    return func(a, b)
+  File "/testbed/sympy/core/decorators.py", line 132, in binary_op_wrapper
+    return func(self, other)
+  File "/testbed/sympy/core/expr.py", line 178, in __div__
+    return Mul(self, Pow(other, S.NegativeOne))
+  File "/testbed/sympy/core/operations.py", line 45, in __new__
+    c_part, nc_part, order_symbols = cls.flatten(args)
+  File "/testbed/sympy/core/mul.py", line 184, in flatten
+    if not a.is_zero and a.is_Rational:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1361, in _eval_is_even
+    is_integer = self.is_integer
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1160, in _eval_is_integer
+    is_rational = self.is_rational
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1129, in _eval_is_rational
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/logic.py", line 78, in _fuzzy_group
+    for a in args:
+  File "/testbed/sympy/core/mul.py", line 1129, in <genexpr>
+    r = _fuzzy_group((a.is_rational for a in self.args), quick_exit=True)
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/power.py", line 1189, in _eval_is_algebraic
+    if self.base.is_zero or _is_one(self.base):
+  File "/testbed/sympy/core/power.py", line 1184, in _is_one
+    return (expr - 1).is_zero
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 303, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 676, in _eval_is_negative
+    if s != self and s.is_negative and a.is_nonpositive:
+  File "/testbed/sympy/core/assumptions.py", line 248, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 291, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/add.py", line 679, in _eval_is_negative
+    v = _monotonic_sign(self)
+  File "/testbed/sympy/core/exprtools.py", line 120, in _monotonic_sign
+    d = self.diff(x)
+  File "/testbed/sympy/core/expr.py", line 3022, in diff
+    return Derivative(self, *new_symbols, **assumptions)
+  File "/testbed/sympy/core/function.py", line 1245, in __new__
+    if isinstance(v, (collections.Iterable, Tuple, MatrixCommon, NDimArray)):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+_______________ sympy/printing/tests/test_str.py:test_Matrix_str _______________
+  File "/testbed/sympy/printing/tests/test_str.py", line 204, in test_Matrix_str
+    M = Matrix(0, 1, lambda i, j: 0)
+  File "/testbed/sympy/matrices/dense.py", line 411, in __new__
+    return cls._new(*args, **kwargs)
+  File "/testbed/sympy/matrices/dense.py", line 423, in _new
+    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)
+  File "/testbed/sympy/matrices/matrices.py", line 2074, in _handle_creation_inputs
+    if len(args) == 3 and isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+________________________________________________________________________________
+______________ sympy/printing/tests/test_str.py:test_SparseMatrix ______________
+  File "/testbed/sympy/printing/tests/test_str.py", line 562, in test_SparseMatrix
+    assert str(M) == "Matrix([[x, 1], [y, x + y]])"
+  File "/testbed/sympy/matrices/matrices.py", line 1936, in __str__
+    return "Matrix(%s)" % str(self.tolist())
+  File "/testbed/sympy/matrices/common.py", line 556, in tolist
+    return self._eval_tolist()
+  File "/testbed/sympy/matrices/common.py", line 161, in _eval_tolist
+    return [list(self[i,:]) for i in range(self.rows)]
+  File "/testbed/sympy/matrices/common.py", line 161, in <listcomp>
+    return [list(self[i,:]) for i in range(self.rows)]
+  File "/testbed/sympy/matrices/sparse.py", line 136, in __getitem__
+    return self.extract(i, j)
+  File "/testbed/sympy/matrices/common.py", line 335, in extract
+    return self._eval_extract(rowsList, colsList)
+  File "/testbed/sympy/matrices/sparse.py", line 307, in _eval_extract
+    rv = self._new(len(urow), len(ucol), smat)
+  File "/testbed/sympy/matrices/sparse.py", line 850, in _new
+    return cls(*args)
+  File "/testbed/sympy/matrices/sparse.py", line 56, in __new__
+    if isinstance(args[2], collections.Callable):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/collections/__init__.py", line 62, in __getattr__
+    warnings.warn("Using or importing the ABCs from 'collections' instead "
+DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+
+________________________________________________________________________________
+____ sympy/printing/pretty/tests/test_pretty.py:test_MatrixSymbol_printing _____
+  File "/testbed/sympy/printing/pretty/tests/test_pretty.py", line 6100, in test_MatrixSymbol_printing
+    assert pretty(A*B*C - A*B - B*C) == "-A*B -B*C + A*B*C"
+AssertionError
+________________________________________________________________________________
+________ sympy/printing/tests/test_latex.py:test_MatrixElement_printing ________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1713, in test_MatrixElement_printing
+    assert latex(F) == r"\left(-B + A\right)_{0, 0}"
+AssertionError
+________________________________________________________________________________
+________ sympy/printing/tests/test_latex.py:test_MatrixSymbol_printing _________
+  File "/testbed/sympy/printing/tests/test_latex.py", line 1722, in test_MatrixSymbol_printing
+    assert latex(-A) == r"-A"
+AssertionError
+
+ tests finished: 436 passed, 3 failed, 5 expected to fail, 
+1 expected to fail but passed, 75 exceptions, in 4.72 seconds 
+DO *NOT* COMMIT!
++ : '>>>>> End Test Output'
++ git checkout 9986b38181cdd556a3f3411e553864f11912244e sympy/printing/pretty/tests/test_pretty.py sympy/printing/tests/test_ccode.py sympy/printing/tests/test_fcode.py sympy/printing/tests/test_jscode.py sympy/printing/tests/test_julia.py sympy/printing/tests/test_latex.py sympy/printing/tests/test_octave.py sympy/printing/tests/test_rcode.py sympy/printing/tests/test_str.py
+Updated 9 paths from 32dc0bcd6

@@ -1,0 +1,1704 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   pyproject.toml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	pyproject.toml.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit fb8b12cefb47c89cf03e4ef15a2e2e4a8bcd5373
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 09:32:07 2025 +0000
+
+    SWE-bench
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 5b691556b..f24abc3b0 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools",
++requires = ["setuptools==68.0.0",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.30",
++ git -c core.fileMode=false diff fa4e8d1cd279acf9b24560813c8652494ccd5922
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e '.[test]' --verbose
+Using pip 24.2 from /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip (python 3.9)
+Obtaining file:///testbed
+  Installing build dependencies: started
+  Running command pip subprocess to install build dependencies
+  Using pip 24.2 from /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip (python 3.9)
+  Collecting setuptools
+    Obtaining dependency information for setuptools from https://files.pythonhosted.org/packages/e1/c6/76dc613121b793286a3f91621d7b75a2b493e0390ddca50f11993eadf192/setuptools-82.0.0-py3-none-any.whl.metadata
+    Downloading setuptools-82.0.0-py3-none-any.whl.metadata (6.6 kB)
+  Collecting setuptools_scm>=6.2
+    Obtaining dependency information for setuptools_scm>=6.2 from https://files.pythonhosted.org/packages/3d/ea/ac2bf868899d0d2e82ef72d350d97a846110c709bacf2d968431576ca915/setuptools_scm-9.2.2-py3-none-any.whl.metadata
+    Downloading setuptools_scm-9.2.2-py3-none-any.whl.metadata (7.7 kB)
+  Collecting wheel
+    Obtaining dependency information for wheel from https://files.pythonhosted.org/packages/87/22/b76d483683216dde3d67cba61fb2444be8d5be289bf628c13fc0fd90e5f9/wheel-0.46.3-py3-none-any.whl.metadata
+    Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+  Collecting cython==0.29.30
+    Obtaining dependency information for cython==0.29.30 from https://files.pythonhosted.org/packages/a7/c6/3af0df983ba8500831fdae19a515be6e532da7683ab98e031d803e6a8d03/Cython-0.29.30-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl.metadata
+    Using cached Cython-0.29.30-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl.metadata (2.8 kB)
+  Collecting oldest-supported-numpy
+    Obtaining dependency information for oldest-supported-numpy from https://files.pythonhosted.org/packages/dc/5c/e3c84cfdd488701aa074b22cf5bd227fb15d26e1d55a66d9088c39afa123/oldest_supported_numpy-2023.12.21-py3-none-any.whl.metadata
+    Using cached oldest_supported_numpy-2023.12.21-py3-none-any.whl.metadata (9.8 kB)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/88/ff/5a7cd8c9698628b3c04215ee3a96c69865477f451b4f096682e78d085bfc/extension_helpers-1.3.0-py3-none-any.whl (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/8e/b1/73ce2924fe46281faf31567e96fb9eee4eca02fd1cb852562bb2971e9df1/extension_helpers-1.3.0.tar.gz (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/f8/fb/f9a88ccea5377736d5d1e53c8a6c70207178cdc1ebbf305a50a610cbb751/extension_helpers-1.4.0-py3-none-any.whl (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/24/51/d03359b683ed288b34d713dea97d2aee87a9bd866af1652554d9f643b47d/extension_helpers-1.4.0.tar.gz (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+  Collecting extension-helpers
+    Obtaining dependency information for extension-helpers from https://files.pythonhosted.org/packages/b3/0e/22599eac9e50f4274e78e47cef7e760d7a1bb2f0d0fdfb0bb5b0d2da263a/extension_helpers-1.2.0-py3-none-any.whl.metadata
+    Using cached extension_helpers-1.2.0-py3-none-any.whl.metadata (2.2 kB)
+  Collecting packaging>=20 (from setuptools_scm>=6.2)
+    Obtaining dependency information for packaging>=20 from https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl.metadata
+    Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+  Collecting tomli>=1 (from setuptools_scm>=6.2)
+    Obtaining dependency information for tomli>=1 from https://files.pythonhosted.org/packages/23/d1/136eb2cb77520a31e1f64cbae9d33ec6df0d78bdf4160398e86eec8a8754/tomli-2.4.0-py3-none-any.whl.metadata
+    Downloading tomli-2.4.0-py3-none-any.whl.metadata (10 kB)
+  Collecting typing-extensions (from setuptools_scm>=6.2)
+    Obtaining dependency information for typing-extensions from https://files.pythonhosted.org/packages/18/67/36e9267722cc04a6b9f15c7f3441c2363321a3ea07da7ae0c0707beb2a9c/typing_extensions-4.15.0-py3-none-any.whl.metadata
+    Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/54/a4/f8188c4f3e07f7737683588210c073478abcb542048cf4ab6fedad0b458a/numpy-2.1.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/59/5f/9003bb3e632f2b58f5e3a3378902dcc73c5518070736c6740fe52454e8e1/numpy-2.1.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/4b/d1/8a730ea07f4a37d94f9172f4ce1d81064b7a64766b460378be278952de75/numpy-2.1.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/25/ca/1166b75c21abd1da445b97bf1fa2f14f423c6cfb4fc7c4ef31dccf9f6a94/numpy-2.1.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/47/1b/1d565e0f6e156e1522ab564176b8b29d71e13d8caf003a08768df3d5cec5/numpy-2.2.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/f2/a5/fdbf6a7871703df6160b5cf3dd774074b086d278172285c52c2758b76305/numpy-2.2.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/ec/d0/c12ddfd3a02274be06ffc71f3efc6d0e457b0409c4481596881e748cb264/numpy-2.2.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/fb/90/8956572f5c4ae52201fdec7ba2044b2c882832dcec7d5d0922c9e9acf2de/numpy-2.2.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/e1/78/31103410a57bc2c2b93a3597340a8119588571f6a4539067546cb9a0bfac/numpy-2.2.4.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/dc/b2/ce4b867d8cd9c0ee84938ae1e6a6f7926ebf928c9090d036fc3c6a04f946/numpy-2.2.5.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/76/21/7d2a95e4bba9dc13d043ee156a356c0a8f0c6309dff6b21b4d71a073b8a8/numpy-2.2.6.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/f3/db/8e12381333aea300890829a0a36bfa738cac95475d88982d538725143fd9/numpy-2.3.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/2e/19/d7c972dfe90a353dbd3efbbe1d14a5951de80c99c9dc1b93cd998d51dc0f/numpy-2.3.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/37/7d/3fec4199c5ffb892bed55cff901e4f39a58c81df9c44c280499e92cad264/numpy-2.3.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/d0/19/95b3d357407220ed24c139018d2518fab0a61a948e68286a25f1a4d049ff/numpy-2.3.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/b5/f4/098d2270d52b41f1bd7db9fc288aaa0400cb48c2a3e2af6fa365d9720947/numpy-2.3.4.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/76/65/21b3bc86aac7b8f2862db1e808f1ea22b028e30a225a34a5ede9bf8678f2/numpy-2.3.5.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/12/02/7111f298e24a44d6fa4b75b47d93eccf444e5afbcee5b04aac760ee48935/numpy-2.4.0rc1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/a4/7a/6a3d14e205d292b738db449d0de649b373a59edb0d0b4493821d0a3e8718/numpy-2.4.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/24/62/ae72ff66c0f1fd959925b4c11f8c2dea61f47f6acaea75a08512cdfe3fed/numpy-2.4.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/57/fd/0005efbd0af48e55eb3c7208af93f2862d4b1a56cd78e84309a2d959208d/numpy-2.4.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+  Collecting numpy==1.19.3 (from oldest-supported-numpy)
+    Obtaining dependency information for numpy==1.19.3 from https://files.pythonhosted.org/packages/c3/8d/2ae53d96a92a66b8daa3dfb2dd6cf4bfcb8e3d4148bdd713c8fc7de83141/numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl.metadata
+    Using cached numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl.metadata (2.0 kB)
+  Using cached Cython-0.29.30-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl (2.0 MB)
+  Downloading setuptools-82.0.0-py3-none-any.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 15.0 MB/s eta 0:00:00
+  Downloading setuptools_scm-9.2.2-py3-none-any.whl (62 kB)
+  Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+  Using cached oldest_supported_numpy-2023.12.21-py3-none-any.whl (4.9 kB)
+  Using cached numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl (14.9 MB)
+  Using cached extension_helpers-1.2.0-py3-none-any.whl (23 kB)
+  Downloading packaging-26.0-py3-none-any.whl (74 kB)
+  Downloading tomli-2.4.0-py3-none-any.whl (14 kB)
+  Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+  Installing collected packages: typing-extensions, tomli, setuptools, packaging, numpy, cython, wheel, setuptools_scm, oldest-supported-numpy, extension-helpers
+    Creating /tmp/pip-build-env-j36mh8pe/overlay/bin
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/f2py to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/f2py3 to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/f2py3.9 to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/cygdb to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/cython to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/cythonize to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/wheel to 755
+    changing mode of /tmp/pip-build-env-j36mh8pe/overlay/bin/setuptools-scm to 755
+  ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+  astropy 5.3.dev478+gfa4e8d1cd.d20250910 requires numpy>=1.21, but you have numpy 1.19.3 which is incompatible.
+  Successfully installed cython-0.29.30 extension-helpers-1.2.0 numpy-1.19.3 oldest-supported-numpy-2023.12.21 packaging-26.0 setuptools-82.0.0 setuptools_scm-9.2.2 tomli-2.4.0 typing-extensions-4.15.0 wheel-0.46.3
+  WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Running command Checking if build backend supports build_editable
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Running command Getting requirements to build editable
+  Traceback (most recent call last):
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 353, in <module>
+      main()
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 335, in main
+      json_out['return_val'] = hook(**hook_input['kwargs'])
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 132, in get_requires_for_build_editable
+      return hook(config_settings)
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 481, in get_requires_for_build_editable
+      return self.get_requires_for_build_wheel(config_settings)
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 333, in get_requires_for_build_wheel
+      return self._get_build_requires(config_settings, requirements=[])
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+      self.run_setup()
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 317, in run_setup
+      exec(code, locals())
+    File "<string>", line 69, in <module>
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/extension_helpers/_setup_helpers.py", line 63, in get_extensions
+      for setuppkg in iter_setup_packages(srcdir, packages):
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/extension_helpers/_setup_helpers.py", line 159, in iter_setup_packages
+      module = import_file(setup_package, name=packagename + ".setup_package")
+    File "/tmp/pip-build-env-j36mh8pe/overlay/lib/python3.9/site-packages/extension_helpers/_utils.py", line 138, in import_file
+      loader.exec_module(mod)
+    File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+    File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+    File "astropy/wcs/setup_package.py", line 13, in <module>
+      from setuptools.dep_util import newer_group
+  ModuleNotFoundError: No module named 'setuptools.dep_util'
+  error: subprocess-exited-with-error
+  
+  × Getting requirements to build editable did not run successfully.
+  │ exit code: 1
+  ╰─> See above for output.
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  full command: /opt/miniconda3/envs/testbed/bin/python /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py get_requires_for_build_editable /tmp/tmpobtyga33
+  cwd: /testbed
+  Getting requirements to build editable: finished with status 'error'
+error: subprocess-exited-with-error
+
+× Getting requirements to build editable did not run successfully.
+│ exit code: 1
+╰─> See above for output.
+
+note: This error originates from a subprocess, and is likely not a problem with pip.
++ git checkout fa4e8d1cd279acf9b24560813c8652494ccd5922 astropy/units/tests/test_format.py
+Updated 0 paths from 20f4185b8
++ git apply -v -
+Checking patch astropy/units/tests/test_format.py...
+Applied patch astropy/units/tests/test_format.py cleanly.
++ : '>>>>> Start Test Output'
++ pytest -rA astropy/units/tests/test_format.py
+<frozen importlib._bootstrap>:228: RuntimeWarning: numpy.ndarray size changed, may indicate binary incompatibility. Expected 80 from C header, got 96 from PyObject
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.9.20, pytest-7.4.0, pluggy-1.3.0
+
+Running tests with Astropy version 5.3.dev478+gfa4e8d1cd.d20250910.
+Running tests in astropy/units/tests/test_format.py.
+
+Date: 2026-02-22T10:15:09
+
+Platform: Linux-6.12.68-linuxkit-x86_64-with-glibc2.35
+
+Executable: /opt/miniconda3/envs/testbed/bin/python
+
+Full Python Version: 
+3.9.20 (main, Oct  3 2024, 07:27:41) 
+[GCC 11.2.0]
+
+encodings: sys: utf-8, locale: UTF-8, filesystem: utf-8
+byteorder: little
+float info: dig: 15, mant_dig: 15
+
+Package versions: 
+Numpy: 1.25.2
+Scipy: not available
+Matplotlib: not available
+h5py: not available
+Pandas: not available
+PyERFA: 2.0.0.3
+Cython: not available
+Scikit-image: not available
+asdf: not available
+pyarrow: not available
+
+Using Astropy options: remote_data: none.
+
+CI: undefined
+ARCH_ON_CI: undefined
+IS_CRON: undefined
+
+rootdir: /testbed
+configfile: setup.cfg
+plugins: xdist-3.3.1, hypothesis-6.82.6, openfiles-0.5.0, filter-subpackage-0.1.2, cov-4.1.0, remotedata-0.4.0, astropy-0.10.0, astropy-header-0.2.2, doctestplus-1.0.0, mock-3.11.1, arraydiff-0.5.0
+collected 738 items
+
+astropy/units/tests/test_format.py [32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31mF[0m[32m.[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [  5%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 14%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 24%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 34%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 44%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 53%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 63%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 73%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 83%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 92%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m                    [100%][0m
+
+=================================== FAILURES ===================================
+[31m[1m_______________________ test_cds_grammar[strings4-unit4] _______________________[0m
+
+strings = ['km/s/Mpc'], unit = Unit("km / (Mpc s)")
+
+    @pytest.mark.parametrize(
+        "strings, unit",
+        [
+            (["0.1nm"], u.AA),
+            (["mW/m2"], u.Unit(u.erg / u.cm**2 / u.s)),
+            (["mW/(m2)"], u.Unit(u.erg / u.cm**2 / u.s)),
+            (["km/s", "km.s-1"], u.km / u.s),
+            (["km/s/Mpc"], u.km / u.s / u.Mpc),
+            (["km/(s.Mpc)"], u.km / u.s / u.Mpc),
+            (["10+3J/m/s/kpc2"], u.Unit(1e3 * u.W / (u.m * u.kpc**2))),
+            (["10pix/nm"], u.Unit(10 * u.pix / u.nm)),
+            (["1.5x10+11m"], u.Unit(1.5e11 * u.m)),
+            (["1.5×10+11/m"], u.Unit(1.5e11 / u.m)),
+            (["/s"], u.s**-1),
+            (["m2"], u.m**2),
+            (["10+21m"], u.Unit(u.m * 1e21)),
+            (["2.54cm"], u.Unit(u.cm * 2.54)),
+            (["20%"], 0.20 * u.dimensionless_unscaled),
+            (["10+9"], 1.0e9 * u.dimensionless_unscaled),
+            (["2x10-9"], 2.0e-9 * u.dimensionless_unscaled),
+            (["---"], u.dimensionless_unscaled),
+            (["ma"], u.ma),
+            (["mAU"], u.mAU),
+            (["uarcmin"], u.uarcmin),
+            (["uarcsec"], u.uarcsec),
+            (["kbarn"], u.kbarn),
+            (["Gbit"], u.Gbit),
+            (["Gibit"], 2**30 * u.bit),
+            (["kbyte"], u.kbyte),
+            (["mRy"], 0.001 * u.Ry),
+            (["mmag"], u.mmag),
+            (["Mpc"], u.Mpc),
+            (["Gyr"], u.Gyr),
+            (["°"], u.degree),
+            (["°/s"], u.degree / u.s),
+            (["Å"], u.AA),
+            (["Å/s"], u.AA / u.s),
+            (["\\h"], si.h),
+            (["[cm/s2]"], dex(u.cm / u.s**2)),
+            (["[K]"], dex(u.K)),
+            (["[-]"], dex(u.dimensionless_unscaled)),
+        ],
+    )
+    def test_cds_grammar(strings, unit):
+        for s in strings:
+            print(s)
+            unit2 = u_format.CDS.parse(s)
+>           assert unit2 == unit
+[1m[31mE           assert Unit("km Mpc / s") == Unit("km / (Mpc s)")[0m
+
+[1m[31mastropy/units/tests/test_format.py[0m:103: AssertionError
+----------------------------- Captured stdout call -----------------------------
+km/s/Mpc
+[31m[1m_______________________ test_cds_grammar[strings6-unit6] _______________________[0m
+
+strings = ['10+3J/m/s/kpc2'], unit = Unit("1000 W / (kpc2 m)")
+
+    @pytest.mark.parametrize(
+        "strings, unit",
+        [
+            (["0.1nm"], u.AA),
+            (["mW/m2"], u.Unit(u.erg / u.cm**2 / u.s)),
+            (["mW/(m2)"], u.Unit(u.erg / u.cm**2 / u.s)),
+            (["km/s", "km.s-1"], u.km / u.s),
+            (["km/s/Mpc"], u.km / u.s / u.Mpc),
+            (["km/(s.Mpc)"], u.km / u.s / u.Mpc),
+            (["10+3J/m/s/kpc2"], u.Unit(1e3 * u.W / (u.m * u.kpc**2))),
+            (["10pix/nm"], u.Unit(10 * u.pix / u.nm)),
+            (["1.5x10+11m"], u.Unit(1.5e11 * u.m)),
+            (["1.5×10+11/m"], u.Unit(1.5e11 / u.m)),
+            (["/s"], u.s**-1),
+            (["m2"], u.m**2),
+            (["10+21m"], u.Unit(u.m * 1e21)),
+            (["2.54cm"], u.Unit(u.cm * 2.54)),
+            (["20%"], 0.20 * u.dimensionless_unscaled),
+            (["10+9"], 1.0e9 * u.dimensionless_unscaled),
+            (["2x10-9"], 2.0e-9 * u.dimensionless_unscaled),
+            (["---"], u.dimensionless_unscaled),
+            (["ma"], u.ma),
+            (["mAU"], u.mAU),
+            (["uarcmin"], u.uarcmin),
+            (["uarcsec"], u.uarcsec),
+            (["kbarn"], u.kbarn),
+            (["Gbit"], u.Gbit),
+            (["Gibit"], 2**30 * u.bit),
+            (["kbyte"], u.kbyte),
+            (["mRy"], 0.001 * u.Ry),
+            (["mmag"], u.mmag),
+            (["Mpc"], u.Mpc),
+            (["Gyr"], u.Gyr),
+            (["°"], u.degree),
+            (["°/s"], u.degree / u.s),
+            (["Å"], u.AA),
+            (["Å/s"], u.AA / u.s),
+            (["\\h"], si.h),
+            (["[cm/s2]"], dex(u.cm / u.s**2)),
+            (["[K]"], dex(u.K)),
+            (["[-]"], dex(u.dimensionless_unscaled)),
+        ],
+    )
+    def test_cds_grammar(strings, unit):
+        for s in strings:
+            print(s)
+            unit2 = u_format.CDS.parse(s)
+>           assert unit2 == unit
+[1m[31mE           assert Unit("1000 J s / (kpc2 m)") == Unit("1000 W / (kpc2 m)")[0m
+
+[1m[31mastropy/units/tests/test_format.py[0m:103: AssertionError
+----------------------------- Captured stdout call -----------------------------
+10+3J/m/s/kpc2
+[31m[1m______________________ test_cds_grammar_fail[km/s.Mpc-1] _______________________[0m
+
+string = 'km/s.Mpc-1'
+
+    @pytest.mark.parametrize(
+        "string",
+        [
+            "0.1 nm",
+            "solMass(3/2)",
+            "km / s",
+            "km s-1",
+            "km/s.Mpc-1",
+            "/s.Mpc",
+            "pix0.1nm",
+            "pix/(0.1nm)",
+            "km*s",
+            "km**2",
+            "5x8+3m",
+            "0.1---",
+            "---m",
+            "m---",
+            "--",
+            "0.1-",
+            "-m",
+            "m-",
+            "mag(s-1)",
+            "dB(mW)",
+            "dex(cm s-2)",
+            "[--]",
+        ],
+    )
+    def test_cds_grammar_fail(string):
+        with pytest.raises(ValueError):
+            print(string)
+>           u_format.CDS.parse(string)
+[1m[31mE           Failed: DID NOT RAISE <class 'ValueError'>[0m
+
+[1m[31mastropy/units/tests/test_format.py[0m:136: Failed
+----------------------------- Captured stdout call -----------------------------
+km/s.Mpc-1
+==================================== PASSES ====================================
+[32m[1m______________________ test_unit_grammar[strings0-unit0] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m s
+m*s
+m.s
+[32m[1m______________________ test_unit_grammar[strings1-unit1] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m/s
+m*s**-1
+m /s
+m / s
+m/ s
+[32m[1m______________________ test_unit_grammar[strings2-unit2] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m**2
+m2
+m**(2)
+m**+2
+m+2
+m^(+2)
+[32m[1m______________________ test_unit_grammar[strings3-unit3] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m**-3
+m-3
+m^(-3)
+/m3
+[32m[1m______________________ test_unit_grammar[strings4-unit4] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m**(1.5)
+m(3/2)
+m**(3/2)
+m^(3/2)
+[32m[1m______________________ test_unit_grammar[strings5-unit5] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+2.54 cm
+[32m[1m______________________ test_unit_grammar[strings6-unit6] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10+8m
+[32m[1m______________________ test_unit_grammar[strings7-unit7] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+sqrt(m)
+[32m[1m______________________ test_unit_grammar[strings8-unit8] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dB(mW)
+dB (mW)
+[32m[1m______________________ test_unit_grammar[strings9-unit9] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mag
+[32m[1m_____________________ test_unit_grammar[strings10-unit10] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mag(ct/s)
+[32m[1m_____________________ test_unit_grammar[strings11-unit11] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex
+[32m[1m_____________________ test_unit_grammar[strings12-unit12] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex(cm s**-2)
+dex(cm/s2)
+[32m[1m___________________ test_unit_grammar_fail[sin( /pixel /s)] ____________________[0m
+----------------------------- Captured stdout call -----------------------------
+sin( /pixel /s)
+[32m[1m_______________________ test_unit_grammar_fail[mag(mag)] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mag(mag)
+[32m[1m______________________ test_unit_grammar_fail[dB(dB(mW))] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dB(dB(mW))
+[32m[1m________________________ test_unit_grammar_fail[dex()] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex()
+[32m[1m_______________________ test_cds_grammar[strings0-unit0] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+0.1nm
+[32m[1m_______________________ test_cds_grammar[strings1-unit1] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mW/m2
+[32m[1m_______________________ test_cds_grammar[strings2-unit2] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mW/(m2)
+[32m[1m_______________________ test_cds_grammar[strings3-unit3] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+km/s
+km.s-1
+[32m[1m_______________________ test_cds_grammar[strings5-unit5] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+km/(s.Mpc)
+[32m[1m_______________________ test_cds_grammar[strings7-unit7] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10pix/nm
+[32m[1m_______________________ test_cds_grammar[strings8-unit8] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+1.5x10+11m
+[32m[1m_______________________ test_cds_grammar[strings9-unit9] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+1.5×10+11/m
+[32m[1m______________________ test_cds_grammar[strings10-unit10] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+/s
+[32m[1m______________________ test_cds_grammar[strings11-unit11] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+m2
+[32m[1m______________________ test_cds_grammar[strings12-unit12] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10+21m
+[32m[1m______________________ test_cds_grammar[strings13-unit13] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+2.54cm
+[32m[1m______________________ test_cds_grammar[strings14-unit14] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+20%
+[32m[1m______________________ test_cds_grammar[strings15-unit15] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10+9
+[32m[1m______________________ test_cds_grammar[strings16-unit16] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+2x10-9
+[32m[1m______________________ test_cds_grammar[strings17-unit17] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+---
+[32m[1m______________________ test_cds_grammar[strings18-unit18] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+ma
+[32m[1m______________________ test_cds_grammar[strings19-unit19] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mAU
+[32m[1m______________________ test_cds_grammar[strings20-unit20] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+uarcmin
+[32m[1m______________________ test_cds_grammar[strings21-unit21] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+uarcsec
+[32m[1m______________________ test_cds_grammar[strings22-unit22] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+kbarn
+[32m[1m______________________ test_cds_grammar[strings23-unit23] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Gbit
+[32m[1m______________________ test_cds_grammar[strings24-unit24] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Gibit
+[32m[1m______________________ test_cds_grammar[strings25-unit25] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+kbyte
+[32m[1m______________________ test_cds_grammar[strings26-unit26] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mRy
+[32m[1m______________________ test_cds_grammar[strings27-unit27] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+mmag
+[32m[1m______________________ test_cds_grammar[strings28-unit28] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Mpc
+[32m[1m______________________ test_cds_grammar[strings29-unit29] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Gyr
+[32m[1m______________________ test_cds_grammar[strings30-unit30] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+°
+[32m[1m______________________ test_cds_grammar[strings31-unit31] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+°/s
+[32m[1m______________________ test_cds_grammar[strings32-unit32] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Å
+[32m[1m______________________ test_cds_grammar[strings33-unit33] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+Å/s
+[32m[1m______________________ test_cds_grammar[strings34-unit34] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+\h
+[32m[1m______________________ test_cds_grammar[strings35-unit35] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+[cm/s2]
+[32m[1m______________________ test_cds_grammar[strings36-unit36] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+[K]
+[32m[1m______________________ test_cds_grammar[strings37-unit37] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+[-]
+[32m[1m________________________ test_cds_grammar_fail[0.1 nm] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+0.1 nm
+[32m[1m_____________________ test_cds_grammar_fail[solMass(3/2)] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+solMass(3/2)
+[32m[1m________________________ test_cds_grammar_fail[km / s] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+km / s
+[32m[1m________________________ test_cds_grammar_fail[km s-1] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+km s-1
+[32m[1m________________________ test_cds_grammar_fail[/s.Mpc] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+/s.Mpc
+[32m[1m_______________________ test_cds_grammar_fail[pix0.1nm] ________________________[0m
+----------------------------- Captured stdout call -----------------------------
+pix0.1nm
+[32m[1m______________________ test_cds_grammar_fail[pix/(0.1nm)] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+pix/(0.1nm)
+[32m[1m_________________________ test_cds_grammar_fail[km*s] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+km*s
+[32m[1m_________________________ test_cds_grammar_fail[km**2] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+km**2
+[32m[1m________________________ test_cds_grammar_fail[5x8+3m] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+5x8+3m
+[32m[1m________________________ test_cds_grammar_fail[0.1---] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+0.1---
+[32m[1m_________________________ test_cds_grammar_fail[---m] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+---m
+[32m[1m_________________________ test_cds_grammar_fail[m---] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+m---
+[32m[1m__________________________ test_cds_grammar_fail[--] ___________________________[0m
+----------------------------- Captured stdout call -----------------------------
+--
+[32m[1m_________________________ test_cds_grammar_fail[0.1-] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+0.1-
+[32m[1m__________________________ test_cds_grammar_fail[-m] ___________________________[0m
+----------------------------- Captured stdout call -----------------------------
+-m
+[32m[1m__________________________ test_cds_grammar_fail[m-] ___________________________[0m
+----------------------------- Captured stdout call -----------------------------
+m-
+[32m[1m_______________________ test_cds_grammar_fail[mag(s-1)] ________________________[0m
+----------------------------- Captured stdout call -----------------------------
+mag(s-1)
+[32m[1m________________________ test_cds_grammar_fail[dB(mW)] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+dB(mW)
+[32m[1m______________________ test_cds_grammar_fail[dex(cm s-2)] ______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex(cm s-2)
+[32m[1m_________________________ test_cds_grammar_fail[[--]] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+[--]
+[32m[1m______________________ test_ogip_grammar[strings0-unit0] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+count /s
+count/s
+count s**(-1)
+count / s
+count /s 
+[32m[1m______________________ test_ogip_grammar[strings1-unit1] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+/pixel /s
+/(pixel * s)
+[32m[1m______________________ test_ogip_grammar[strings2-unit2] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+count /m**2 /s /eV
+count m**(-2) * s**(-1) * eV**(-1)
+count /(m**2 * s * eV)
+[32m[1m______________________ test_ogip_grammar[strings3-unit3] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+erg /pixel /s /GHz
+erg /s /GHz /pixel
+erg /pixel /(s * GHz)
+[32m[1m______________________ test_ogip_grammar[strings4-unit4] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+keV**2 /yr /angstrom
+10**(10) keV**2 /yr /m
+[32m[1m______________________ test_ogip_grammar[strings5-unit5] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10**(46) erg /s
+10**46 erg /s
+10**(39) J /s
+10**(39) W
+10**(15) YW
+YJ /fs
+[32m[1m______________________ test_ogip_grammar[strings6-unit6] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+10**(-7) J /cm**2 /MeV
+10**(-9) J m**(-2) eV**(-1)
+nJ m**(-2) eV**(-1)
+nJ /m**2 /eV
+[32m[1m______________________ test_ogip_grammar[strings7-unit7] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+sqrt(erg /pixel /s /GHz)
+(erg /pixel /s /GHz)**(0.5)
+(erg /pixel /s /GHz)**(1/2)
+erg**(0.5) pixel**(-0.5) s**(-0.5) GHz**(-0.5)
+[32m[1m______________________ test_ogip_grammar[strings8-unit8] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+(count /s) (/pixel /s)
+(count /s) * (/pixel /s)
+count /pixel /s**2
+[32m[1m_______________ test_ogip_grammar_fail[log(photon /m**2 /s /Hz)] _______________[0m
+----------------------------- Captured stdout call -----------------------------
+log(photon /m**2 /s /Hz)
+[32m[1m___________________ test_ogip_grammar_fail[sin( /pixel /s)] ____________________[0m
+----------------------------- Captured stdout call -----------------------------
+sin( /pixel /s)
+[32m[1m_____ test_ogip_grammar_fail[log(photon /cm**2 /s /Hz) /(sin( /pixel /s))] _____[0m
+----------------------------- Captured stdout call -----------------------------
+log(photon /cm**2 /s /Hz) /(sin( /pixel /s))
+[32m[1m__ test_ogip_grammar_fail[log(photon /cm**2 /s /Hz) (sin( /pixel /s))**(-1)] ___[0m
+----------------------------- Captured stdout call -----------------------------
+log(photon /cm**2 /s /Hz) (sin( /pixel /s))**(-1)
+[32m[1m________________________ test_ogip_grammar_fail[dB(mW)] ________________________[0m
+----------------------------- Captured stdout call -----------------------------
+dB(mW)
+[32m[1m_____________________ test_ogip_grammar_fail[dex(cm/s**2)] _____________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex(cm/s**2)
+[32m[1m________________________ test_fits_function[mag(ct/s)] _________________________[0m
+----------------------------- Captured stdout call -----------------------------
+mag(ct/s)
+[32m[1m__________________________ test_fits_function[dB(mW)] __________________________[0m
+----------------------------- Captured stdout call -----------------------------
+dB(mW)
+[32m[1m______________________ test_fits_function[dex(cm s**-2)] _______________________[0m
+----------------------------- Captured stdout call -----------------------------
+dex(cm s**-2)
+[36m[1m=========================== short test summary info ============================[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings0-unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings1-unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings2-unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings3-unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings4-unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings5-unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings6-unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings7-unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings8-unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings9-unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings10-unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings11-unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar[strings12-unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar_fail[sin( /pixel /s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar_fail[mag(mag)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar_fail[dB(dB(mW))][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unit_grammar_fail[dex()][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings0-unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings1-unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings2-unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings3-unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings5-unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings7-unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings8-unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings9-unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings10-unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings11-unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings12-unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings13-unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings14-unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings15-unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings16-unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings17-unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings18-unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings19-unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings20-unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings21-unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings22-unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings23-unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings24-unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings25-unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings26-unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings27-unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings28-unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings29-unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings30-unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings31-unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings32-unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings33-unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings34-unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings35-unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings36-unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings37-unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[0.1 nm][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[solMass(3/2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[km / s][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[km s-1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[/s.Mpc][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[pix0.1nm][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[pix/(0.1nm)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[km*s][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[km**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[5x8+3m][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[0.1---][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[---m][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[m---][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[--][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[0.1-][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[-m][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[m-][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[mag(s-1)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[dB(mW)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[dex(cm s-2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[[--]][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_dimensionless[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_log10_dimensionless[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings0-unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings1-unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings2-unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings3-unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings4-unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings5-unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings6-unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings7-unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar[strings8-unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[log(photon /m**2 /s /Hz)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[sin( /pixel /s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[log(photon /cm**2 /s /Hz) /(sin( /pixel /s))][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[log(photon /cm**2 /s /Hz) (sin( /pixel /s))**(-1)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[dB(mW)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_ogip_grammar_fail[dex(cm/s**2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit38][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit39][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit40][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit41][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit42][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit43][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit44][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit45][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit46][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit47][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit48][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit49][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit50][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit51][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit52][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit53][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit54][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit55][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit56][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit57][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit58][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit59][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit60][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit61][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit62][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit63][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit64][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit65][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit66][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit67][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit68][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit69][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit70][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit71][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit72][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit73][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit74][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit75][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit76][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit77][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit78][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit79][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit80][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit81][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit82][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit83][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit84][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit85][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit86][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit87][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit88][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit89][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit90][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit91][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit92][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit93][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit94][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit95][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit96][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit97][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit98][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit99][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit100][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit101][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit102][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit103][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit104][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit105][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit106][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit107][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit108][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit109][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit110][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit111][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit112][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit113][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit114][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit115][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit116][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit117][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit118][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit119][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit120][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit121][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit122][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit123][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit124][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit125][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit126][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit127][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit128][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit129][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit130][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit131][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit132][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit133][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit134][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit135][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit136][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit137][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit138][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit139][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit140][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit141][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit142][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit143][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit144][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit145][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit146][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit147][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit148][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit149][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit150][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit151][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit152][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit153][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit154][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit155][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit156][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit157][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit158][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit159][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit160][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit161][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit162][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit163][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit164][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit165][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit166][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit167][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit168][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit169][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit170][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit171][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit172][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit173][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit174][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit175][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit176][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit177][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit178][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit179][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit180][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit181][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit182][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit183][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit184][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit185][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit186][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit187][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit188][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit189][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit190][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit191][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit192][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit193][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit194][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit195][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit196][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit197][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit198][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit199][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit200][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit201][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit202][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit203][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit204][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit205][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit206][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit207][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit208][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit209][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit210][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit211][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit212][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit213][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit214][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit215][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit216][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit217][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit218][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit219][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit220][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit221][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit222][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit223][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit224][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit225][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit226][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit227][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit228][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit229][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit230][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit231][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit232][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit233][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripGeneric::test_roundtrip[unit234][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit38][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit39][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit40][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit41][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit42][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit43][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit44][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit45][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit46][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit47][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit48][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit49][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit50][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit51][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit52][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit53][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit54][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit55][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit56][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit57][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit58][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit59][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit60][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit61][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit62][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit63][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit64][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit65][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit66][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit67][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit68][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripVOUnit::test_roundtrip[unit69][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit38][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit39][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit40][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit41][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit42][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit43][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit44][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit45][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit46][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit47][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit48][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit49][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit50][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit51][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit52][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit53][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit54][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit55][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit56][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit57][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit58][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit59][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit60][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit61][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit62][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit63][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit64][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit65][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit66][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit67][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit68][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripFITS::test_roundtrip[unit69][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit38][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit39][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit40][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit41][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit42][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit43][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit44][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit45][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit46][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit47][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit48][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit49][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit50][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit51][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit52][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit53][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit54][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit55][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit56][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit57][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit58][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit59][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit60][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit61][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit62][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit63][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit64][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit65][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit66][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit67][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit68][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit69][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit70][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit71][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit72][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit73][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit74][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit75][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit76][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit77][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit78][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit79][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit80][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit81][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit82][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit83][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit84][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit85][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit86][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit87][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit88][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit89][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit90][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit91][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit92][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit93][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit94][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit95][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit96][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit97][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit98][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit99][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit100][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit101][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit102][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit103][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit104][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip[unit105][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip_dex[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip_dex[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripCDS::test_roundtrip_dex[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit28][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit29][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit30][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit31][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit32][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit33][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit34][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit35][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit36][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit37][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit38][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit39][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit40][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit41][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit42][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit43][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit44][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit45][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit46][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit47][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit48][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit49][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit50][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mTestRoundtripOGIP::test_roundtrip[unit51][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_units_available[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vo_units_available[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_units_available[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_cds_non_ascii_unit[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_latex[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_new_style_latex[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_latex_scale[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_latex_inline_scale[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[generic-erg / (cm2 s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[s-erg / (cm2 s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[console-  erg  \n ------\n s cm^2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[latex-$\\mathrm{\\frac{erg}{s\\,cm^{2}}}$][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[latex_inline-$\\mathrm{erg\\,s^{-1}\\,cm^{-2}}$][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_format_styles[>20s-       erg / (cm2 s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_flatten_to_known[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_flatten_impossible[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_console_out[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_flexible_float[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_to_string_function_error[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fraction_repr[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_scale_effectively_unity[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_percent[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_scaled_dimensionless[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_deprecated_did_you_mean_units[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_function[mag(ct/s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_function[dB(mW)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_function[dex(cm s**-2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_function[mag(ct/s)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_function[dB(mW)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_function[dex(cm s**-2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_binary_prefix[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_unknown[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_details[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[nm-nm-0.1-10^-1-0.1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[fm-fm-100.0-10+2-100][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[m^2-m**2-100.0-100.0-100][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[cm-cm-2.54-2.54-2.54][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[kg-kg-1.898124597e+27-1.898124597E27-1.8981246e+27][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[m/s-m.s**-1-299792458.0-299792458-2.9979246e+08][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_scale_factor[cm2-cm**2-1e-20-10^(-20)-1e-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_custom[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_vounit_implicit_custom[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10+2-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10(+2)-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**+2-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**(+2)-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^+2-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^(+2)-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**2-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**(2)-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^2-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^(2)-100-10**2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10-20-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10(-20)-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**-20-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10**(-20)-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^-20-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor[10^(-20)-1e-20-10**-20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_fits_scale_factor_errors[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_double_superscript[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[1.0-m][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[2.0-m2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[-10-1 / m10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[1.5-m(3/2)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[0.6666666666666666-m(2/3)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[0.6363636363636364-m(7/11)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[-0.015625-1 / m(1/64)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[0.01-m(1/100)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[0.019801980198019802-m(0.019801980198019802)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_powers[power9-m(2/101)][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\xb5g-unit0][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u03bcg-unit1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[g\u22121-unit2][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\u207b\xb9-unit3][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m s\u207b\xb9-unit4][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\xb2-unit5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\u207a\xb2-unit6][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\xb3-unit7][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\xb9\u2070-unit8][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u03a9-unit9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u2126-unit10][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\xb5\u03a9-unit11][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u212b-unit12][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u212b \u2126-unit13][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\xc5-unit14][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[A\u030a-unit15][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[m\u212b-unit16][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\xb0C-unit17][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\xb0-unit18][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[M\u2299-unit19][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[L\u2609-unit20][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[M\u2295-unit21][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[M\u2641-unit22][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[R\u2643-unit23][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[\u2032-unit24][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[R\u221e-unit25][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode[M\u209a-unit26][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[g\xb5][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[g\u2212][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[m\u207b1][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[m+\xb9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[m\u2212\xb9][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unicode_failures[k\u212b][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_parse_error_message_for_output_only_format[unicode][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_parse_error_message_for_output_only_format[latex][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_parse_error_message_for_output_only_format[latex_inline][0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_unknown_parser[0m
+[32mPASSED[0m astropy/units/tests/test_format.py::[1mtest_celsius_fits[0m
+[31mFAILED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings4-unit4][0m - assert Unit("km Mpc / s") == Unit("km / (Mpc s)")
+[31mFAILED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar[strings6-unit6][0m - assert Unit("1000 J s / (kpc2 m)") == Unit("1000 W / (kpc2 m)")
+[31mFAILED[0m astropy/units/tests/test_format.py::[1mtest_cds_grammar_fail[km/s.Mpc-1][0m - Failed: DID NOT RAISE <class 'ValueError'>
+[31m======================== [31m[1m3 failed[0m, [32m735 passed[0m[31m in 0.96s[0m[31m =========================[0m
++ : '>>>>> End Test Output'
++ git checkout fa4e8d1cd279acf9b24560813c8652494ccd5922 astropy/units/tests/test_format.py
+Updated 1 path from 20f4185b8

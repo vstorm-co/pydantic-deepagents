@@ -1,0 +1,78 @@
+2026-02-22 11:14:51,755 - INFO - Creating container for astropy__astropy-14182...
+2026-02-22 11:14:51,903 - INFO - Container for astropy__astropy-14182 created: bda292bba3103a2963837203601e18bb184815d2b046268e98cede126405899a
+2026-02-22 11:14:52,037 - INFO - Container for astropy__astropy-14182 started: bda292bba3103a2963837203601e18bb184815d2b046268e98cede126405899a
+2026-02-22 11:14:52,037 - INFO - Intermediate patch for astropy__astropy-14182 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-14182/patch.diff, now applying to container...
+2026-02-22 11:14:52,188 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:14:52,303 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:14:52,388 - INFO - >>>>> Applied Patch:
+patching file astropy/io/ascii/rst.py
+patching file pyproject.toml
+patch unexpectedly ends in middle of line
+Reversed (or previously applied) patch detected!  Assuming -R.
+Hunk #1 succeeded at 1 with fuzz 1.
+
+2026-02-22 11:14:52,944 - INFO - Git diff before:
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8ef..78e42b7d6 100644
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -57,8 +57,8 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(self, header_rows=None):
++        super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+diff --git a/pyproject.toml b/pyproject.toml
+index ec234472e..0d1ee66ab 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools==68.0.0",
++requires = ["setuptools",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.30",
+2026-02-22 11:14:52,945 - INFO - Eval script for astropy__astropy-14182 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-14182/eval.sh; copying to container...
+2026-02-22 11:15:05,704 - INFO - Test runtime: 12.66 seconds
+2026-02-22 11:15:05,705 - INFO - Test output for astropy__astropy-14182 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-14182/test_output.txt
+2026-02-22 11:15:05,862 - INFO - Git diff after:
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8ef..78e42b7d6 100644
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -57,8 +57,8 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(self, header_rows=None):
++        super().__init__(delimiter_pad=None, bookend=False, header_rows=header_rows)
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+diff --git a/pyproject.toml b/pyproject.toml
+index ec234472e..0d1ee66ab 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools==68.0.0",
++requires = ["setuptools",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.30",
+2026-02-22 11:15:05,863 - INFO - Grading answer for astropy__astropy-14182...
+2026-02-22 11:15:05,864 - INFO - report: {'astropy__astropy-14182': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows']}, 'PASS_TO_PASS': {'success': ['astropy/io/ascii/tests/test_rst.py::test_read_normal', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_names', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_names_include', 'astropy/io/ascii/tests/test_rst.py::test_read_normal_exclude', 'astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column', 'astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column_header', 'astropy/io/ascii/tests/test_rst.py::test_read_right_indented_table', 'astropy/io/ascii/tests/test_rst.py::test_trailing_spaces_in_row_definition', 'astropy/io/ascii/tests/test_rst.py::test_write_normal'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-14182: resolved: False
+2026-02-22 11:15:05,865 - INFO - Attempting to stop container sweb.eval.astropy__astropy-14182.pydantic-deep...
+2026-02-22 11:15:21,139 - INFO - Attempting to remove container sweb.eval.astropy__astropy-14182.pydantic-deep...
+2026-02-22 11:15:21,164 - INFO - Container sweb.eval.astropy__astropy-14182.pydantic-deep removed.
+2026-02-22 11:15:21,164 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.astropy_1776_astropy-14182:latest...
+2026-02-22 11:15:21,234 - INFO - Image swebench/sweb.eval.x86_64.astropy_1776_astropy-14182:latest removed.

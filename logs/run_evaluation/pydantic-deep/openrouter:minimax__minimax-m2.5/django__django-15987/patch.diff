@@ -1,0 +1,13 @@
+diff --git a/django/core/management/commands/loaddata.py b/django/core/management/commands/loaddata.py
+index ac97f13161..0365aa6b29 100644
+--- a/django/core/management/commands/loaddata.py
++++ b/django/core/management/commands/loaddata.py
+@@ -362,6 +362,8 @@ class Command(BaseCommand):
+         """
+         dirs = []
+         fixture_dirs = settings.FIXTURE_DIRS
++        # Convert any Path instances to strings for comparison
++        fixture_dirs = [str(d) for d in fixture_dirs]
+         if len(fixture_dirs) != len(set(fixture_dirs)):
+             raise ImproperlyConfigured("settings.FIXTURE_DIRS contains duplicates.")
+         for app_config in apps.get_app_configs():

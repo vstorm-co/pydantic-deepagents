@@ -1,0 +1,83 @@
+# psf__requests-1142
+
+**Repository**: psf/requests
+**Duration**: 608.8s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 69 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/requests/cookies.py b/requests/cookies.py
+index bd7289ee..19e4ec13 100644
+--- a/requests/cookies.py
++++ b/requests/cookies.py
+@@ -7,6 +7,10 @@ requests.utils imports from here, so be careful with imports.
+ """
+ 
+ import collections
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from .compat import cookielib, urlparse, Morsel
+ 
+ try:
+@@ -133,7 +137,7 @@ class CookieConflictError(RuntimeError):
+     Use .get and .set and include domain and path args in order to be more specific."""
+ 
+ 
+-class RequestsCookieJar(cookielib.CookieJar, collections.MutableMapping):
++class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
+     """Compatibility class; is a cookielib.CookieJar, but exposes a dict interface.
+ 
+     This is the CookieJar we create by default for requests and sessions that
+diff --git a/requests/models.py b/requests/models.py
+index 99260453..9bd86d15 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -386,13 +386,17 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         self.body = body
+ 
+     def prepare_content_length(self, body):
+-        self.headers['Content-Length'] = '0'
+-        if hasattr(body, 'seek') and hasattr(body, 'tell'):
+-            body.seek(0, 2)
+-            self.headers['Content-Length'] = str(body.tell())
+-            body.seek(0, 0)
+-        elif body is not None:
+-            self.headers['Content-Length'] = str(len(body))
++        if body is not None:
++            length = super_len(body)
++            if length:
++                self.headers['Content-Length'] = str(length)
++            elif hasattr(body, 'seek') and hasattr(body, 'tell'):
++                body.seek(0, 2)
++                length = body.tell()
++                body.seek(0, 0)
++                self.headers['Content-Length'] = str(length)
++            else:
++                self.headers['Content-Length'] = str(len(body))
+ 
+     def prepare_auth(self, auth):
+         """Prepares the given HTTP auth data."""
+diff --git a/requests/packages/urllib3/_collections.py b/requests/packages/urllib3/_collections.py
+index a052b1da..2103bfa2 100644
+--- a/requests/packages/urllib3/_collections.py
++++ b/requests/packages/urllib3/_collections.py
+@@ -4,7 +4,10 @@
+ # This module is part of urllib3 and is released under
+ # the MIT License: http://www.opensource.org/licenses/mit-license.php
+ 
+-from collections import MutableMapping
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from threading import Lock
+ 
+ try: # Python 2.7+
+```

@@ -1,0 +1,76 @@
+2026-02-22 11:35:59,054 - INFO - Creating container for django__django-13964...
+2026-02-22 11:35:59,301 - INFO - Container for django__django-13964 created: 4982e7493faa4b512b045a7b078fa26c6f401a75ce34e6e7e57816b99beb987a
+2026-02-22 11:35:59,447 - INFO - Container for django__django-13964 started: 4982e7493faa4b512b045a7b078fa26c6f401a75ce34e6e7e57816b99beb987a
+2026-02-22 11:35:59,448 - INFO - Intermediate patch for django__django-13964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13964/patch.diff, now applying to container...
+2026-02-22 11:35:59,638 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:35:59,725 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:35:59,809 - INFO - >>>>> Applied Patch:
+patching file django/db/models/fields/related_descriptors.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 255 with fuzz 1.
+
+2026-02-22 11:36:00,545 - INFO - Git diff before:
+diff --git a/django/db/models/fields/related_descriptors.py b/django/db/models/fields/related_descriptors.py
+index 872a4c98dc..81769b63a4 100644
+--- a/django/db/models/fields/related_descriptors.py
++++ b/django/db/models/fields/related_descriptors.py
+@@ -70,6 +70,7 @@ from django.db.models.query import QuerySet
+ from django.db.models.query_utils import DeferredAttribute
+ from django.db.models.utils import resolve_callables
+ from django.utils.functional import cached_property
++from django.core import validators
+ 
+ 
+ class ForeignKeyDeferredAttribute(DeferredAttribute):
+@@ -254,7 +255,12 @@ class ForwardManyToOneDescriptor:
+         # Set the values of the related field.
+         else:
+             for lh_field, rh_field in self.field.related_fields:
+-                setattr(instance, lh_field.attname, getattr(value, rh_field.attname))
++                pk = getattr(value, rh_field.attname)
++                # If the related object's pk is empty (None or empty string),
++                # don't set the FK value yet. It will be resolved from the
++                # cached related object later.
++                if pk not in validators.EMPTY_VALUES:
++                    setattr(instance, lh_field.attname, pk)
+ 
+         # Set the related instance cache used by __get__ to avoid an SQL query
+         # when accessing the attribute we just set.
+2026-02-22 11:36:00,546 - INFO - Eval script for django__django-13964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13964/eval.sh; copying to container...
+2026-02-22 11:36:05,859 - INFO - Test runtime: 5.23 seconds
+2026-02-22 11:36:05,860 - INFO - Test output for django__django-13964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13964/test_output.txt
+2026-02-22 11:36:05,948 - INFO - Git diff after:
+diff --git a/django/db/models/fields/related_descriptors.py b/django/db/models/fields/related_descriptors.py
+index 872a4c98dc..81769b63a4 100644
+--- a/django/db/models/fields/related_descriptors.py
++++ b/django/db/models/fields/related_descriptors.py
+@@ -70,6 +70,7 @@ from django.db.models.query import QuerySet
+ from django.db.models.query_utils import DeferredAttribute
+ from django.db.models.utils import resolve_callables
+ from django.utils.functional import cached_property
++from django.core import validators
+ 
+ 
+ class ForeignKeyDeferredAttribute(DeferredAttribute):
+@@ -254,7 +255,12 @@ class ForwardManyToOneDescriptor:
+         # Set the values of the related field.
+         else:
+             for lh_field, rh_field in self.field.related_fields:
+-                setattr(instance, lh_field.attname, getattr(value, rh_field.attname))
++                pk = getattr(value, rh_field.attname)
++                # If the related object's pk is empty (None or empty string),
++                # don't set the FK value yet. It will be resolved from the
++                # cached related object later.
++                if pk not in validators.EMPTY_VALUES:
++                    setattr(instance, lh_field.attname, pk)
+ 
+         # Set the related instance cache used by __get__ to avoid an SQL query
+         # when accessing the attribute we just set.
+2026-02-22 11:36:05,948 - INFO - Grading answer for django__django-13964...
+2026-02-22 11:36:05,949 - INFO - report: {'django__django-13964': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_save_fk_after_parent_with_non_numeric_pk_set_on_child (many_to_one.tests.ManyToOneTests)']}, 'PASS_TO_PASS': {'success': ['test_add (many_to_one.tests.ManyToOneTests)', 'test_add_after_prefetch (many_to_one.tests.ManyToOneTests)', 'test_add_remove_set_by_pk_raises (many_to_one.tests.ManyToOneTests)', 'test_add_then_remove_after_prefetch (many_to_one.tests.ManyToOneTests)', 'test_assign (many_to_one.tests.ManyToOneTests)', 'test_assign_fk_id_none (many_to_one.tests.ManyToOneTests)', 'test_assign_fk_id_value (many_to_one.tests.ManyToOneTests)', 'test_cached_foreign_key_with_to_field_not_cleared_by_save (many_to_one.tests.ManyToOneTests)', 'Model.save() invalidates stale ForeignKey relations after a primary key', 'test_clear_after_prefetch (many_to_one.tests.ManyToOneTests)', 'test_create (many_to_one.tests.ManyToOneTests)', 'test_create_relation_with_gettext_lazy (many_to_one.tests.ManyToOneTests)', 'test_deepcopy_and_circular_references (many_to_one.tests.ManyToOneTests)', 'test_delete (many_to_one.tests.ManyToOneTests)', 'test_explicit_fk (many_to_one.tests.ManyToOneTests)', 'test_fk_assignment_and_related_object_cache (many_to_one.tests.ManyToOneTests)', 'test_fk_instantiation_outside_model (many_to_one.tests.ManyToOneTests)', 'test_fk_to_bigautofield (many_to_one.tests.ManyToOneTests)', 'test_fk_to_smallautofield (many_to_one.tests.ManyToOneTests)', 'test_get (many_to_one.tests.ManyToOneTests)', 'test_hasattr_related_object (many_to_one.tests.ManyToOneTests)', 'test_manager_class_caching (many_to_one.tests.ManyToOneTests)', 'test_multiple_foreignkeys (many_to_one.tests.ManyToOneTests)', 'test_related_object (many_to_one.tests.ManyToOneTests)', 'test_relation_unsaved (many_to_one.tests.ManyToOneTests)', 'test_remove_after_prefetch (many_to_one.tests.ManyToOneTests)', 'test_reverse_assignment_deprecation (many_to_one.tests.ManyToOneTests)', 'test_reverse_foreign_key_instance_to_field_caching (many_to_one.tests.ManyToOneTests)', 'test_reverse_selects (many_to_one.tests.ManyToOneTests)', 'test_save_nullable_fk_after_parent_with_to_field (many_to_one.tests.ManyToOneTests)', 'test_select_related (many_to_one.tests.ManyToOneTests)', 'test_selects (many_to_one.tests.ManyToOneTests)', 'test_set (many_to_one.tests.ManyToOneTests)', 'test_set_after_prefetch (many_to_one.tests.ManyToOneTests)', 'test_values_list_exception (many_to_one.tests.ManyToOneTests)'], 'failure': ['test_save_nullable_fk_after_parent (many_to_one.tests.ManyToOneTests)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13964: resolved: False
+2026-02-22 11:36:05,949 - INFO - Attempting to stop container sweb.eval.django__django-13964.pydantic-deep...
+2026-02-22 11:36:21,138 - INFO - Attempting to remove container sweb.eval.django__django-13964.pydantic-deep...
+2026-02-22 11:36:21,159 - INFO - Container sweb.eval.django__django-13964.pydantic-deep removed.
+2026-02-22 11:36:21,160 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-13964:latest...
+2026-02-22 11:36:21,326 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-13964:latest removed.

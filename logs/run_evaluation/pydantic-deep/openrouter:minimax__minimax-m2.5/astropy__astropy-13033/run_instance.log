@@ -1,0 +1,47 @@
+2026-02-22 11:13:49,920 - INFO - Creating container for astropy__astropy-13033...
+2026-02-22 11:13:50,512 - INFO - Container for astropy__astropy-13033 created: 983f4fc138db10ea0b261e298bdd8ec137afc179f6a6e92f7778f05084db6f0a
+2026-02-22 11:13:50,722 - INFO - Container for astropy__astropy-13033 started: 983f4fc138db10ea0b261e298bdd8ec137afc179f6a6e92f7778f05084db6f0a
+2026-02-22 11:13:50,723 - INFO - Intermediate patch for astropy__astropy-13033 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-13033/patch.diff, now applying to container...
+2026-02-22 11:13:51,008 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:13:51,180 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:13:51,317 - INFO - >>>>> Applied Patch:
+patching file pyproject.toml
+patch unexpectedly ends in middle of line
+Reversed (or previously applied) patch detected!  Assuming -R.
+Hunk #1 succeeded at 1 with fuzz 1.
+
+2026-02-22 11:13:51,900 - INFO - Git diff before:
+diff --git a/pyproject.toml b/pyproject.toml
+index 6ebe80c7a..32ebe645c 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools==68.0.0",
++requires = ["setuptools",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.22",
+2026-02-22 11:13:51,901 - INFO - Eval script for astropy__astropy-13033 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-13033/eval.sh; copying to container...
+2026-02-22 11:14:01,691 - INFO - Test runtime: 9.71 seconds
+2026-02-22 11:14:01,692 - INFO - Test output for astropy__astropy-13033 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-13033/test_output.txt
+2026-02-22 11:14:01,770 - INFO - Git diff after:
+diff --git a/pyproject.toml b/pyproject.toml
+index 6ebe80c7a..32ebe645c 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools==68.0.0",
++requires = ["setuptools",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.22",
+2026-02-22 11:14:01,770 - INFO - Grading answer for astropy__astropy-13033...
+2026-02-22 11:14:01,772 - INFO - report: {'astropy__astropy-13033': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['astropy/timeseries/tests/test_sampled.py::test_required_columns']}, 'PASS_TO_PASS': {'success': ['astropy/timeseries/tests/test_sampled.py::test_empty_initialization', 'astropy/timeseries/tests/test_sampled.py::test_empty_initialization_invalid', 'astropy/timeseries/tests/test_sampled.py::test_initialize_only_time', 'astropy/timeseries/tests/test_sampled.py::test_initialization_with_data', 'astropy/timeseries/tests/test_sampled.py::test_initialize_only_data', 'astropy/timeseries/tests/test_sampled.py::test_initialization_with_table', 'astropy/timeseries/tests/test_sampled.py::test_initialization_missing_time_delta', 'astropy/timeseries/tests/test_sampled.py::test_initialization_invalid_time_and_time_start', 'astropy/timeseries/tests/test_sampled.py::test_initialization_invalid_time_delta', 'astropy/timeseries/tests/test_sampled.py::test_initialization_with_time_in_data', 'astropy/timeseries/tests/test_sampled.py::test_initialization_n_samples', 'astropy/timeseries/tests/test_sampled.py::test_initialization_length_mismatch', 'astropy/timeseries/tests/test_sampled.py::test_initialization_invalid_both_time_and_time_delta', 'astropy/timeseries/tests/test_sampled.py::test_fold', 'astropy/timeseries/tests/test_sampled.py::test_fold_invalid_options', 'astropy/timeseries/tests/test_sampled.py::test_read_time_missing', 'astropy/timeseries/tests/test_sampled.py::test_read_time_wrong', 'astropy/timeseries/tests/test_sampled.py::test_read', 'astropy/timeseries/tests/test_sampled.py::test_periodogram[BoxLeastSquares]', 'astropy/timeseries/tests/test_sampled.py::test_periodogram[LombScargle]'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-13033: resolved: False
+2026-02-22 11:14:01,773 - INFO - Attempting to stop container sweb.eval.astropy__astropy-13033.pydantic-deep...
+2026-02-22 11:14:16,975 - INFO - Attempting to remove container sweb.eval.astropy__astropy-13033.pydantic-deep...
+2026-02-22 11:14:17,001 - INFO - Container sweb.eval.astropy__astropy-13033.pydantic-deep removed.
+2026-02-22 11:14:17,001 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.astropy_1776_astropy-13033:latest...
+2026-02-22 11:14:17,289 - INFO - Image swebench/sweb.eval.x86_64.astropy_1776_astropy-13033:latest removed.

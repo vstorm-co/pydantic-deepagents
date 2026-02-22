@@ -62,6 +62,14 @@ def swebench_run(
         bool,
         typer.Option("--verbose", "-v", help="Verbose per-instance output"),
     ] = False,
+    image: Annotated[
+        str | None,
+        typer.Option("--image", help="Docker image template (default: Epoch AI ghcr.io)"),
+    ] = None,
+    trajs_dir: Annotated[
+        str | None,
+        typer.Option("--trajs-dir", help="Directory for trajectory files (per-instance tool call logs)"),
+    ] = None,
     model_settings_json: Annotated[
         str | None,
         typer.Option("--model-settings", help="Model settings as JSON"),
@@ -95,9 +103,75 @@ def swebench_run(
         temperature=temperature,
         cost_budget_usd=cost_budget,
         model_settings=ms,
+        image_template=image,
+        trajs_dir=trajs_dir,
     )
 
     asyncio.run(run_swebench(run_config, verbose=verbose))
+
+
+@swebench_app.command("list")
+def swebench_list(
+    dataset: Annotated[
+        str,
+        typer.Option("--dataset", "-d", help="HuggingFace dataset name"),
+    ] = "princeton-nlp/SWE-bench_Verified",
+    split: Annotated[
+        str,
+        typer.Option("--split", help="Dataset split"),
+    ] = "test",
+    repo: Annotated[
+        str | None,
+        typer.Option("--repo", "-r", help="Filter by repo (e.g. django/django)"),
+    ] = None,
+) -> None:
+    """List available SWE-bench instances."""
+    from rich.console import Console
+    from rich.table import Table
+
+    from swebench_agent.runner import load_dataset
+    from swebench_agent.types import RunConfig
+
+    console = Console()
+    console.print(f"Loading dataset [cyan]{dataset}[/cyan]...")
+
+    config = RunConfig(dataset=dataset, split=split)
+    instances = load_dataset(config)
+
+    if repo:
+        instances = [i for i in instances if repo.lower() in i.repo.lower()]
+
+    if not instances:
+        console.print("[red]No instances found.[/red]")
+        raise typer.Exit(1)
+
+    # Group by repo
+    repos: dict[str, int] = {}
+    for inst in instances:
+        repos[inst.repo] = repos.get(inst.repo, 0) + 1
+
+    # Summary table
+    summary = Table(show_header=True, header_style="bold", title="Repos")
+    summary.add_column("Repo", style="cyan")
+    summary.add_column("Count", justify="right")
+    for r, count in sorted(repos.items(), key=lambda x: -x[1]):
+        summary.add_row(r, str(count))
+    summary.add_row("[bold]Total[/bold]", f"[bold]{len(instances)}[/bold]")
+    console.print(summary)
+
+    # Instance list (truncated if large)
+    if len(instances) <= 100 or repo:
+        console.print()
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Instance ID", style="cyan")
+        table.add_column("Repo")
+        table.add_column("Version")
+        for inst in instances:
+            table.add_row(inst.instance_id, inst.repo, inst.version)
+        console.print(table)
+    else:
+        console.print(f"\n[dim]Showing repos only ({len(instances)} instances). "
+                       f"Use --repo to filter.[/dim]")
 
 
 @swebench_app.command("evaluate")
@@ -106,6 +180,10 @@ def swebench_evaluate(
         str,
         typer.Argument(help="Path to predictions JSONL file"),
     ],
+    run_id: Annotated[
+        str,
+        typer.Option("--run-id", "-id", help="Unique run identifier"),
+    ] = "pydantic-deep",
     dataset: Annotated[
         str,
         typer.Option("--dataset", "-d", help="HuggingFace dataset name"),
@@ -118,6 +196,14 @@ def swebench_evaluate(
         int,
         typer.Option("--workers", "-w", help="Max parallel evaluation workers"),
     ] = 4,
+    timeout: Annotated[
+        int,
+        typer.Option("--timeout", help="Per-instance evaluation timeout in seconds"),
+    ] = 1800,
+    cache_level: Annotated[
+        str,
+        typer.Option("--cache-level", help="Docker cache level (none, base, env, instance)"),
+    ] = "env",
 ) -> None:
     """Evaluate predictions using the SWE-bench harness.
 
@@ -130,14 +216,20 @@ def swebench_evaluate(
         sys.executable,
         "-m",
         "swebench.harness.run_evaluation",
-        "--predictions_path",
+        "-p",
         predictions,
-        "--swe_bench_tasks",
+        "-d",
         dataset,
-        "--split",
+        "-s",
         split,
+        "-id",
+        run_id,
         "--max_workers",
         str(workers),
+        "-t",
+        str(timeout),
+        "--cache_level",
+        cache_level,
     ]
 
     typer.echo(f"Running: {' '.join(cmd)}")

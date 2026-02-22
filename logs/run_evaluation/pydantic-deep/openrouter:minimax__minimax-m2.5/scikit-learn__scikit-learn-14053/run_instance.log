@@ -1,0 +1,62 @@
+2026-02-22 12:23:13,687 - INFO - Creating container for scikit-learn__scikit-learn-14053...
+2026-02-22 12:23:14,517 - INFO - Container for scikit-learn__scikit-learn-14053 created: 43a9ad8ed2c92b3a67227bd014e6fe469a4baff05a789300fc1e89f6a327fa7d
+2026-02-22 12:23:14,885 - INFO - Container for scikit-learn__scikit-learn-14053 started: 43a9ad8ed2c92b3a67227bd014e6fe469a4baff05a789300fc1e89f6a327fa7d
+2026-02-22 12:23:14,886 - INFO - Intermediate patch for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14053/patch.diff, now applying to container...
+2026-02-22 12:23:15,117 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:23:15,238 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:23:15,391 - INFO - >>>>> Applied Patch:
+patching file sklearn/tree/export.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 890 with fuzz 1.
+
+2026-02-22 12:23:15,809 - INFO - Git diff before:
+diff --git a/sklearn/tree/export.py b/sklearn/tree/export.py
+index 1fe11e596..e7546196a 100644
+--- a/sklearn/tree/export.py
++++ b/sklearn/tree/export.py
+@@ -890,10 +890,11 @@ def export_text(decision_tree, feature_names=None, max_depth=10,
+         value_fmt = "{}{} value: {}\n"
+ 
+     if feature_names:
+-        feature_names_ = [feature_names[i] for i in tree_.feature]
++        feature_names_ = [feature_names[i] if i != _tree.TREE_UNDEFINED else None
++                         for i in tree_.feature]
+     else:
+-        feature_names_ = ["feature_{}".format(i) for i in tree_.feature]
+-
++        feature_names_ = ["feature_{}".format(i) if i != _tree.TREE_UNDEFINED else None
++                         for i in tree_.feature]
+     export_text.report = ""
+ 
+     def _add_leaf(value, class_name, indent):
+2026-02-22 12:23:15,810 - INFO - Eval script for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14053/eval.sh; copying to container...
+2026-02-22 12:23:22,102 - INFO - Test runtime: 6.20 seconds
+2026-02-22 12:23:22,103 - INFO - Test output for scikit-learn__scikit-learn-14053 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14053/test_output.txt
+2026-02-22 12:23:22,178 - INFO - Git diff after:
+diff --git a/sklearn/tree/export.py b/sklearn/tree/export.py
+index 1fe11e596..e7546196a 100644
+--- a/sklearn/tree/export.py
++++ b/sklearn/tree/export.py
+@@ -890,10 +890,11 @@ def export_text(decision_tree, feature_names=None, max_depth=10,
+         value_fmt = "{}{} value: {}\n"
+ 
+     if feature_names:
+-        feature_names_ = [feature_names[i] for i in tree_.feature]
++        feature_names_ = [feature_names[i] if i != _tree.TREE_UNDEFINED else None
++                         for i in tree_.feature]
+     else:
+-        feature_names_ = ["feature_{}".format(i) for i in tree_.feature]
+-
++        feature_names_ = ["feature_{}".format(i) if i != _tree.TREE_UNDEFINED else None
++                         for i in tree_.feature]
+     export_text.report = ""
+ 
+     def _add_leaf(value, class_name, indent):
+2026-02-22 12:23:22,179 - INFO - Grading answer for scikit-learn__scikit-learn-14053...
+2026-02-22 12:23:22,180 - INFO - report: {'scikit-learn__scikit-learn-14053': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/tree/tests/test_export.py::test_export_text'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/tree/tests/test_export.py::test_graphviz_toy', 'sklearn/tree/tests/test_export.py::test_graphviz_errors', 'sklearn/tree/tests/test_export.py::test_friedman_mse_in_graphviz', 'sklearn/tree/tests/test_export.py::test_precision', 'sklearn/tree/tests/test_export.py::test_export_text_errors'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-14053: resolved: True
+2026-02-22 12:23:22,180 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-14053.pydantic-deep...
+2026-02-22 12:23:37,414 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-14053.pydantic-deep...
+2026-02-22 12:23:37,443 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14053.pydantic-deep removed.
+2026-02-22 12:23:37,443 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14053:latest...
+2026-02-22 12:23:37,585 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14053:latest removed.

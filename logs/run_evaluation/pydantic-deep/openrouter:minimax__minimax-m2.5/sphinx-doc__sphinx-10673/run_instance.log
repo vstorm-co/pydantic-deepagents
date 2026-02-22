@@ -1,0 +1,51 @@
+2026-02-22 12:26:37,915 - INFO - Creating container for sphinx-doc__sphinx-10673...
+2026-02-22 12:26:38,251 - INFO - Container for sphinx-doc__sphinx-10673 created: 046d930d3b303c30774a439c558ba27257105c18abe8ab130d5994f4b739061a
+2026-02-22 12:26:38,392 - INFO - Container for sphinx-doc__sphinx-10673 started: 046d930d3b303c30774a439c558ba27257105c18abe8ab130d5994f4b739061a
+2026-02-22 12:26:38,393 - INFO - Intermediate patch for sphinx-doc__sphinx-10673 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10673/patch.diff, now applying to container...
+2026-02-22 12:26:38,571 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:26:38,681 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:26:38,786 - INFO - >>>>> Applied Patch:
+patching file tox.ini
+patch unexpectedly ends in middle of line
+Reversed (or previously applied) patch detected!  Assuming -R.
+Hunk #1 succeeded at 30 with fuzz 1.
+
+2026-02-22 12:26:39,204 - INFO - Git diff before:
+diff --git a/tox.ini b/tox.ini
+index a0708b02c..7ca990b56 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -30,7 +30,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
+2026-02-22 12:26:39,205 - INFO - Eval script for sphinx-doc__sphinx-10673 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10673/eval.sh; copying to container...
+2026-02-22 12:26:46,552 - INFO - Test runtime: 7.26 seconds
+2026-02-22 12:26:46,553 - INFO - Test output for sphinx-doc__sphinx-10673 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10673/test_output.txt
+2026-02-22 12:26:46,676 - INFO - Git diff after:
+diff --git a/tox.ini b/tox.ini
+index a0708b02c..7ca990b56 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -30,7 +30,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
+2026-02-22 12:26:46,677 - INFO - Grading answer for sphinx-doc__sphinx-10673...
+2026-02-22 12:26:46,680 - INFO - report: {'sphinx-doc__sphinx-10673': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/test_environment_toctree.py::test_toctree_index']}, 'PASS_TO_PASS': {'success': [], 'failure': ['tests/test_environment_toctree.py::test_process_doc', 'tests/test_environment_toctree.py::test_glob', 'tests/test_environment_toctree.py::test_get_toc_for', 'tests/test_environment_toctree.py::test_get_toc_for_only', 'tests/test_environment_toctree.py::test_get_toc_for_tocdepth', 'tests/test_environment_toctree.py::test_get_toctree_for', 'tests/test_environment_toctree.py::test_get_toctree_for_collapse', 'tests/test_environment_toctree.py::test_get_toctree_for_maxdepth', 'tests/test_environment_toctree.py::test_get_toctree_for_includehidden']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-10673: resolved: False
+2026-02-22 12:26:46,680 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-10673.pydantic-deep...
+2026-02-22 12:27:01,895 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-10673.pydantic-deep...
+2026-02-22 12:27:01,909 - INFO - Container sweb.eval.sphinx-doc__sphinx-10673.pydantic-deep removed.
+2026-02-22 12:27:01,909 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-10673:latest...
+2026-02-22 12:27:02,409 - INFO - Image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-10673:latest removed.

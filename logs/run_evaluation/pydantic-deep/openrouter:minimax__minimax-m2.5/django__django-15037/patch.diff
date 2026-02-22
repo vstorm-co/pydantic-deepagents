@@ -1,0 +1,16 @@
+diff --git a/django/core/management/commands/inspectdb.py b/django/core/management/commands/inspectdb.py
+index f9b4bfb477..e497d717cc 100644
+--- a/django/core/management/commands/inspectdb.py
++++ b/django/core/management/commands/inspectdb.py
+@@ -124,6 +124,11 @@ class Command(BaseCommand):
+                             "self" if relations[column_name][1] == table_name
+                             else table2model(relations[column_name][1])
+                         )
++                        # If the foreign key is to a non-primary key column,
++                        # add the to_field parameter.
++                        ref_pk_column = connection.introspection.get_primary_key_column(cursor, relations[column_name][1])
++                        if relations[column_name][0] != ref_pk_column:
++                            extra_params['to_field'] = relations[column_name][0]
+                         if rel_to in known_models:
+                             field_type = '%s(%s' % (rel_type, rel_to)
+                         else:

@@ -1,0 +1,110 @@
+2026-02-22 12:21:29,096 - INFO - Creating container for scikit-learn__scikit-learn-12973...
+2026-02-22 12:21:29,456 - INFO - Container for scikit-learn__scikit-learn-12973 created: 4d6b4ff362461810401923a0343c992206bcf3eb81bd6f6b7f7274aa95c20622
+2026-02-22 12:21:29,608 - INFO - Container for scikit-learn__scikit-learn-12973 started: 4d6b4ff362461810401923a0343c992206bcf3eb81bd6f6b7f7274aa95c20622
+2026-02-22 12:21:29,609 - INFO - Intermediate patch for scikit-learn__scikit-learn-12973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-12973/patch.diff, now applying to container...
+2026-02-22 12:21:29,794 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:21:29,870 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:21:29,940 - INFO - >>>>> Applied Patch:
+patching file sklearn/linear_model/least_angle.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 1510 with fuzz 1.
+
+2026-02-22 12:21:30,215 - INFO - Git diff before:
+diff --git a/sklearn/linear_model/least_angle.py b/sklearn/linear_model/least_angle.py
+index 03b34a0dc..1e1637ae0 100644
+--- a/sklearn/linear_model/least_angle.py
++++ b/sklearn/linear_model/least_angle.py
+@@ -1479,7 +1479,7 @@ class LassoLarsIC(LassoLars):
+         self.eps = eps
+         self.fit_path = True
+ 
+-    def fit(self, X, y, copy_X=True):
++    def fit(self, X, y, copy_X=None):
+         """Fit the model using X, y as training data.
+ 
+         Parameters
+@@ -1490,7 +1490,17 @@ class LassoLarsIC(LassoLars):
+         y : array-like, shape (n_samples,)
+             target values. Will be cast to X's dtype if necessary
+ 
+-        copy_X : boolean, optional, default True
++        copy_X : boolean, optional, default None
++            If ``True``, X will be copied; else, it may be overwritten.
++            If ``None``, the value of ``copy_X`` provided at construction
++            will be used.
++            will be used.
++
++        Returns
++        Returns
++            If ``True``, X will be copied; else, it may be overwritten.
++            If ``None``, the value of ``copy_X`` provided at construction
++            will be used.
+             If ``True``, X will be copied; else, it may be overwritten.
+ 
+         Returns
+@@ -1500,6 +1510,10 @@ class LassoLarsIC(LassoLars):
+         """
+         X, y = check_X_y(X, y, y_numeric=True)
+ 
++        if copy_X is None:
++            copy_X = self.copy_X
++
++
+         X, y, Xmean, ymean, Xstd = LinearModel._preprocess_data(
+             X, y, self.fit_intercept, self.normalize, self.copy_X)
+         max_iter = self.max_iter
+2026-02-22 12:21:30,216 - INFO - Eval script for scikit-learn__scikit-learn-12973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-12973/eval.sh; copying to container...
+2026-02-22 12:21:36,327 - INFO - Test runtime: 6.06 seconds
+2026-02-22 12:21:36,328 - INFO - Test output for scikit-learn__scikit-learn-12973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-12973/test_output.txt
+2026-02-22 12:21:36,408 - INFO - Git diff after:
+diff --git a/sklearn/linear_model/least_angle.py b/sklearn/linear_model/least_angle.py
+index 03b34a0dc..1e1637ae0 100644
+--- a/sklearn/linear_model/least_angle.py
++++ b/sklearn/linear_model/least_angle.py
+@@ -1479,7 +1479,7 @@ class LassoLarsIC(LassoLars):
+         self.eps = eps
+         self.fit_path = True
+ 
+-    def fit(self, X, y, copy_X=True):
++    def fit(self, X, y, copy_X=None):
+         """Fit the model using X, y as training data.
+ 
+         Parameters
+@@ -1490,7 +1490,17 @@ class LassoLarsIC(LassoLars):
+         y : array-like, shape (n_samples,)
+             target values. Will be cast to X's dtype if necessary
+ 
+-        copy_X : boolean, optional, default True
++        copy_X : boolean, optional, default None
++            If ``True``, X will be copied; else, it may be overwritten.
++            If ``None``, the value of ``copy_X`` provided at construction
++            will be used.
++            will be used.
++
++        Returns
++        Returns
++            If ``True``, X will be copied; else, it may be overwritten.
++            If ``None``, the value of ``copy_X`` provided at construction
++            will be used.
+             If ``True``, X will be copied; else, it may be overwritten.
+ 
+         Returns
+@@ -1500,6 +1510,10 @@ class LassoLarsIC(LassoLars):
+         """
+         X, y = check_X_y(X, y, y_numeric=True)
+ 
++        if copy_X is None:
++            copy_X = self.copy_X
++
++
+         X, y, Xmean, ymean, Xstd = LinearModel._preprocess_data(
+             X, y, self.fit_intercept, self.normalize, self.copy_X)
+         max_iter = self.max_iter
+2026-02-22 12:21:36,408 - INFO - Grading answer for scikit-learn__scikit-learn-12973...
+2026-02-22 12:21:36,410 - INFO - report: {'scikit-learn__scikit-learn-12973': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_fit_copyX_behaviour[False]']}, 'PASS_TO_PASS': {'success': ['sklearn/linear_model/tests/test_least_angle.py::test_simple', 'sklearn/linear_model/tests/test_least_angle.py::test_simple_precomputed', 'sklearn/linear_model/tests/test_least_angle.py::test_all_precomputed', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_lstsq', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_gives_lstsq_solution', 'sklearn/linear_model/tests/test_least_angle.py::test_collinearity', 'sklearn/linear_model/tests/test_least_angle.py::test_no_path', 'sklearn/linear_model/tests/test_least_angle.py::test_no_path_precomputed', 'sklearn/linear_model/tests/test_least_angle.py::test_no_path_all_precomputed', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[Lars]', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[LarsCV]', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[LassoLarsIC]', 'sklearn/linear_model/tests/test_least_angle.py::test_singular_matrix', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_early_stopping', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_path_length', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_ill_conditioned', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_ill_conditioned2', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_add_features', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_n_nonzero_coefs', 'sklearn/linear_model/tests/test_least_angle.py::test_multitarget', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_cv', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_cv_max_iter', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_ic', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_path_readonly_data', 'sklearn/linear_model/tests/test_least_angle.py::test_lars_path_positive_constraint', 'sklearn/linear_model/tests/test_least_angle.py::test_estimatorclasses_positive_constraint', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_positive', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_R_implementation', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_copyX_behaviour[True]', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_copyX_behaviour[False]', 'sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_fit_copyX_behaviour[True]'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-12973: resolved: False
+2026-02-22 12:21:36,410 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-12973.pydantic-deep...
+2026-02-22 12:21:51,578 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-12973.pydantic-deep...
+2026-02-22 12:21:51,592 - INFO - Container sweb.eval.scikit-learn__scikit-learn-12973.pydantic-deep removed.
+2026-02-22 12:21:51,592 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-12973:latest...
+2026-02-22 12:21:51,665 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-12973:latest removed.

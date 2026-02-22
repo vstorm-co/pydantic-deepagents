@@ -1,0 +1,50 @@
+2026-02-22 11:19:16,470 - INFO - Creating container for django__django-11119...
+2026-02-22 11:19:16,659 - INFO - Container for django__django-11119 created: be94c7b4d111d1a7982d28847daf2d646d996ea37a29e1151af9853b987cb5bc
+2026-02-22 11:19:16,812 - INFO - Container for django__django-11119 started: be94c7b4d111d1a7982d28847daf2d646d996ea37a29e1151af9853b987cb5bc
+2026-02-22 11:19:16,813 - INFO - Intermediate patch for django__django-11119 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11119/patch.diff, now applying to container...
+2026-02-22 11:19:17,024 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:19:17,132 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:19:17,221 - INFO - >>>>> Applied Patch:
+patching file django/template/engine.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 160 with fuzz 1.
+
+2026-02-22 11:19:17,929 - INFO - Git diff before:
+diff --git a/django/template/engine.py b/django/template/engine.py
+index dfaa67ba12..ff9ce58d59 100644
+--- a/django/template/engine.py
++++ b/django/template/engine.py
+@@ -160,7 +160,7 @@ class Engine:
+         if isinstance(context, Context):
+             return t.render(context)
+         else:
+-            return t.render(Context(context))
++            return t.render(Context(context, autoescape=self.autoescape))
+ 
+     def select_template(self, template_name_list):
+         """
+2026-02-22 11:19:17,930 - INFO - Eval script for django__django-11119 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11119/eval.sh; copying to container...
+2026-02-22 11:19:30,474 - INFO - Test runtime: 12.47 seconds
+2026-02-22 11:19:30,474 - INFO - Test output for django__django-11119 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11119/test_output.txt
+2026-02-22 11:19:30,569 - INFO - Git diff after:
+diff --git a/django/template/engine.py b/django/template/engine.py
+index dfaa67ba12..ff9ce58d59 100644
+--- a/django/template/engine.py
++++ b/django/template/engine.py
+@@ -160,7 +160,7 @@ class Engine:
+         if isinstance(context, Context):
+             return t.render(context)
+         else:
+-            return t.render(Context(context))
++            return t.render(Context(context, autoescape=self.autoescape))
+ 
+     def select_template(self, template_name_list):
+         """
+2026-02-22 11:19:30,569 - INFO - Grading answer for django__django-11119...
+2026-02-22 11:19:30,570 - INFO - report: {'django__django-11119': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_autoescape_off (template_tests.test_engine.RenderToStringTest)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_cached_loader_priority (template_tests.test_engine.LoaderTests)', 'test_loader_priority (template_tests.test_engine.LoaderTests)', 'test_origin (template_tests.test_engine.LoaderTests)', 'test_basic_context (template_tests.test_engine.RenderToStringTest)', 'test_multiple_engines_configured (template_tests.test_engine.GetDefaultTests)', 'test_no_engines_configured (template_tests.test_engine.GetDefaultTests)', 'test_single_engine_configured (template_tests.test_engine.GetDefaultTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11119: resolved: True
+2026-02-22 11:19:30,570 - INFO - Attempting to stop container sweb.eval.django__django-11119.pydantic-deep...
+2026-02-22 11:19:45,752 - INFO - Attempting to remove container sweb.eval.django__django-11119.pydantic-deep...
+2026-02-22 11:19:45,770 - INFO - Container sweb.eval.django__django-11119.pydantic-deep removed.
+2026-02-22 11:19:45,770 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11119:latest...
+2026-02-22 11:19:46,208 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11119:latest removed.

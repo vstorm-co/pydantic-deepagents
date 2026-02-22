@@ -1,0 +1,58 @@
+2026-02-22 12:10:46,714 - INFO - Creating container for pydata__xarray-3677...
+2026-02-22 12:10:46,750 - INFO - Container for pydata__xarray-3677 created: a73508f3e7dcc60b079c43728a3dcc756899ef413f829b5fcabc430838b6504e
+2026-02-22 12:10:46,837 - INFO - Container for pydata__xarray-3677 started: a73508f3e7dcc60b079c43728a3dcc756899ef413f829b5fcabc430838b6504e
+2026-02-22 12:10:46,837 - INFO - Intermediate patch for pydata__xarray-3677 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pydata__xarray-3677/patch.diff, now applying to container...
+2026-02-22 12:10:46,985 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:10:47,052 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:10:47,135 - INFO - >>>>> Applied Patch:
+patching file xarray/core/merge.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 809 with fuzz 1.
+
+2026-02-22 12:10:47,246 - INFO - Git diff before:
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804d..8acf430a 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -809,6 +809,12 @@ def dataset_merge_method(
+     # method due for backwards compatibility
+     # TODO: consider deprecating it?
+ 
++    from .dataarray import DataArray
++
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
++
++
+     if isinstance(overwrite_vars, Iterable) and not isinstance(overwrite_vars, str):
+         overwrite_vars = set(overwrite_vars)
+     else:
+2026-02-22 12:10:47,247 - INFO - Eval script for pydata__xarray-3677 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pydata__xarray-3677/eval.sh; copying to container...
+2026-02-22 12:10:54,638 - INFO - Test runtime: 7.32 seconds
+2026-02-22 12:10:54,639 - INFO - Test output for pydata__xarray-3677 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pydata__xarray-3677/test_output.txt
+2026-02-22 12:10:54,735 - INFO - Git diff after:
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804d..8acf430a 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -809,6 +809,12 @@ def dataset_merge_method(
+     # method due for backwards compatibility
+     # TODO: consider deprecating it?
+ 
++    from .dataarray import DataArray
++
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
++
++
+     if isinstance(overwrite_vars, Iterable) and not isinstance(overwrite_vars, str):
+         overwrite_vars = set(overwrite_vars)
+     else:
+2026-02-22 12:10:54,736 - INFO - Grading answer for pydata__xarray-3677...
+2026-02-22 12:10:54,737 - INFO - report: {'pydata__xarray-3677': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['xarray/tests/test_merge.py::TestMergeMethod::test_merge_dataarray'], 'failure': []}, 'PASS_TO_PASS': {'success': ['xarray/tests/test_merge.py::TestMergeInternals::test_broadcast_dimension_size', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_datasets', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_dataarray_unnamed', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_simple', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_dims', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_error', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_alignment_error', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_wrong_input_error', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_single_var', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_multi_var', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_preserve_attrs', 'xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_broadcast', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_broadcast_equals', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_compat', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_auto_align', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value0]', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2]', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2.0]', 'xarray/tests/test_merge.py::TestMergeMethod::test_merge_no_conflicts'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pydata__xarray-3677: resolved: True
+2026-02-22 12:10:54,738 - INFO - Attempting to stop container sweb.eval.pydata__xarray-3677.pydantic-deep...
+2026-02-22 12:11:09,880 - INFO - Attempting to remove container sweb.eval.pydata__xarray-3677.pydantic-deep...
+2026-02-22 12:11:09,895 - INFO - Container sweb.eval.pydata__xarray-3677.pydantic-deep removed.
+2026-02-22 12:11:09,896 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.pydata_1776_xarray-3677:latest...
+2026-02-22 12:11:09,920 - INFO - Image swebench/sweb.eval.x86_64.pydata_1776_xarray-3677:latest removed.

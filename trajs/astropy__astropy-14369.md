@@ -1,0 +1,25 @@
+# astropy__astropy-14369
+
+**Repository**: astropy/astropy
+**Duration**: 650.5s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 11 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/pyproject.toml b/pyproject.toml
+index 5b691556b8..f24abc3b05 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools",
++requires = ["setuptools==68.0.0",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.30",
+```

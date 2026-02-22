@@ -1,0 +1,106 @@
+2026-02-22 12:39:50,941 - INFO - Creating container for sympy__sympy-16792...
+2026-02-22 12:39:51,063 - INFO - Container for sympy__sympy-16792 created: 7c417962f8a587927712a7acba70ef60175aaa7dd8dd164ae27181892d30d237
+2026-02-22 12:39:51,185 - INFO - Container for sympy__sympy-16792 started: 7c417962f8a587927712a7acba70ef60175aaa7dd8dd164ae27181892d30d237
+2026-02-22 12:39:51,186 - INFO - Intermediate patch for sympy__sympy-16792 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-16792/patch.diff, now applying to container...
+2026-02-22 12:39:51,348 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:39:51,438 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:39:51,514 - INFO - >>>>> Applied Patch:
+patching file sympy/utilities/codegen.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 743 with fuzz 1.
+
+2026-02-22 12:39:51,859 - INFO - Git diff before:
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index f0befb2bd..b6f523379 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -719,11 +719,15 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+         if argument_sequence is not None:
+             # if the user has supplied IndexedBase instances, we'll accept that
+             new_sequence = []
++            # Keep a mapping from symbol name to original argument (for dimension lookup)
++            original_arg = {}
+             for arg in argument_sequence:
+                 if isinstance(arg, IndexedBase):
+                     new_sequence.append(arg.label)
++                    original_arg[arg.label] = arg
+                 else:
+                     new_sequence.append(arg)
++                    original_arg[arg] = arg
+             argument_sequence = new_sequence
+ 
+             missing = [x for x in arg_list if x.name not in argument_sequence]
+@@ -739,7 +743,19 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    # If the symbol is a MatrixSymbol or IndexedBase, we need to
++                    # include dimensions information even if it doesn't appear
++                    # in the expression.
++                    # Look up the original argument to check if it has dimensions.
++                    orig = original_arg.get(symbol, symbol)
++                    if isinstance(orig, MatrixSymbol):
++                        dims = [(S.Zero, dim - 1) for dim in orig.shape]
++                        new_args.append(InputArgument(symbol, dimensions=dims))
++                    elif isinstance(orig, IndexedBase):
++                        dims = [(S.Zero, dim - 1) for dim in orig.shape]
++                        new_args.append(InputArgument(symbol, dimensions=dims))
++                    else:
++                        new_args.append(InputArgument(symbol))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_val, local_vars, global_vars)
+2026-02-22 12:39:51,859 - INFO - Eval script for sympy__sympy-16792 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-16792/eval.sh; copying to container...
+2026-02-22 12:39:56,242 - INFO - Test runtime: 4.30 seconds
+2026-02-22 12:39:56,243 - INFO - Test output for sympy__sympy-16792 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-16792/test_output.txt
+2026-02-22 12:39:56,327 - INFO - Git diff after:
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index f0befb2bd..b6f523379 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -719,11 +719,15 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+         if argument_sequence is not None:
+             # if the user has supplied IndexedBase instances, we'll accept that
+             new_sequence = []
++            # Keep a mapping from symbol name to original argument (for dimension lookup)
++            original_arg = {}
+             for arg in argument_sequence:
+                 if isinstance(arg, IndexedBase):
+                     new_sequence.append(arg.label)
++                    original_arg[arg.label] = arg
+                 else:
+                     new_sequence.append(arg)
++                    original_arg[arg] = arg
+             argument_sequence = new_sequence
+ 
+             missing = [x for x in arg_list if x.name not in argument_sequence]
+@@ -739,7 +743,19 @@ def routine(self, name, expr, argument_sequence=None, global_vars=None):
+                 try:
+                     new_args.append(name_arg_dict[symbol])
+                 except KeyError:
+-                    new_args.append(InputArgument(symbol))
++                    # If the symbol is a MatrixSymbol or IndexedBase, we need to
++                    # include dimensions information even if it doesn't appear
++                    # in the expression.
++                    # Look up the original argument to check if it has dimensions.
++                    orig = original_arg.get(symbol, symbol)
++                    if isinstance(orig, MatrixSymbol):
++                        dims = [(S.Zero, dim - 1) for dim in orig.shape]
++                        new_args.append(InputArgument(symbol, dimensions=dims))
++                    elif isinstance(orig, IndexedBase):
++                        dims = [(S.Zero, dim - 1) for dim in orig.shape]
++                        new_args.append(InputArgument(symbol, dimensions=dims))
++                    else:
++                        new_args.append(InputArgument(symbol))
+             arg_list = new_args
+ 
+         return Routine(name, arg_list, return_val, local_vars, global_vars)
+2026-02-22 12:39:56,327 - INFO - Grading answer for sympy__sympy-16792...
+2026-02-22 12:39:56,328 - INFO - report: {'sympy__sympy-16792': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_ccode_unused_array_arg'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Routine_argument_order', 'test_empty_c_code', 'test_empty_c_code_with_comment', 'test_empty_c_header', 'test_simple_c_code', 'test_c_code_reserved_words', 'test_numbersymbol_c_code', 'test_c_code_argument_order', 'test_simple_c_header', 'test_simple_c_codegen', 'test_multiple_results_c', 'test_no_results_c', 'test_ansi_math1_codegen', 'test_ansi_math2_codegen', 'test_complicated_codegen', 'test_loops_c', 'test_dummy_loops_c', 'test_partial_loops_c', 'test_output_arg_c', 'test_output_arg_c_reserved_words', 'test_ccode_results_named_ordered', 'test_ccode_matrixsymbol_slice', 'test_ccode_cse', 'test_empty_f_code', 'test_empty_f_code_with_header', 'test_empty_f_header', 'test_simple_f_code', 'test_numbersymbol_f_code', 'test_erf_f_code', 'test_f_code_argument_order', 'test_simple_f_header', 'test_simple_f_codegen', 'test_multiple_results_f', 'test_no_results_f', 'test_intrinsic_math_codegen', 'test_intrinsic_math2_codegen', 'test_complicated_codegen_f95', 'test_loops', 'test_dummy_loops_f95', 'test_loops_InOut', 'test_partial_loops_f', 'test_output_arg_f', 'test_inline_function', 'test_f_code_call_signature_wrap', 'test_check_case', 'test_check_case_false_positive', 'test_c_fortran_omit_routine_name', 'test_fcode_matrix_output', 'test_fcode_results_named_ordered', 'test_fcode_matrixsymbol_slice', 'test_fcode_matrixsymbol_slice_autoname', 'test_global_vars', 'test_custom_codegen', 'test_c_with_printer'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-16792: resolved: True
+2026-02-22 12:39:56,328 - INFO - Attempting to stop container sweb.eval.sympy__sympy-16792.pydantic-deep...
+2026-02-22 12:40:11,453 - INFO - Attempting to remove container sweb.eval.sympy__sympy-16792.pydantic-deep...
+2026-02-22 12:40:11,490 - INFO - Container sweb.eval.sympy__sympy-16792.pydantic-deep removed.
+2026-02-22 12:40:11,490 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-16792:latest...
+2026-02-22 12:40:11,557 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-16792:latest removed.

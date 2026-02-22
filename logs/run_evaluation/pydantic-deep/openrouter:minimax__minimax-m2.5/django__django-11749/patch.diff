@@ -1,0 +1,33 @@
+diff --git a/django/core/management/__init__.py b/django/core/management/__init__.py
+index 5f2e64761e..96a44c9862 100644
+--- a/django/core/management/__init__.py
++++ b/django/core/management/__init__.py
+@@ -129,6 +129,15 @@ def call_command(command_name, *args, **options):
+             else:
+                 yield opt
+ 
++    def get_mutually_exclusive_groups(parser):
++        # Mutually exclusive groups from parser and sub-parsers.
++        for group in parser._mutually_exclusive_groups:
++            yield group
++        for opt in parser._actions:
++            if isinstance(opt, _SubParsersAction):
++                for sub_opt in opt.choices.values():
++                    yield from get_mutually_exclusive_groups(sub_opt)
++
+     parser_actions = list(get_actions(parser))
+     # Any required arguments which are passed in via **options must be passed
+     # to parse_args().
+@@ -136,6 +145,12 @@ def call_command(command_name, *args, **options):
+         '{}={}'.format(min(opt.option_strings), arg_options[opt.dest])
+         for opt in parser_actions if opt.required and opt.dest in options
+     ]
++    # Also handle options that are part of a required mutually exclusive group.
++    for group in get_mutually_exclusive_groups(parser):
++        if group.required:
++            for opt in group._group_actions:
++                if opt.dest in options:
++                    parse_args.append('{}={}'.format(min(opt.option_strings), arg_options[opt.dest]))
+     defaults = parser.parse_args(args=parse_args)
+     defaults = dict(defaults._get_kwargs(), **arg_options)
+     # Raise an error if any unknown options were passed.

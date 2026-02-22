@@ -1,0 +1,54 @@
+2026-02-22 11:51:52,508 - INFO - Creating container for django__django-9296...
+2026-02-22 11:51:52,994 - INFO - Container for django__django-9296 created: 30bb39b50bac329488d8c91eb48908df822baaa796ce4ffe79bdb34576b9a80f
+2026-02-22 11:51:53,131 - INFO - Container for django__django-9296 started: 30bb39b50bac329488d8c91eb48908df822baaa796ce4ffe79bdb34576b9a80f
+2026-02-22 11:51:53,133 - INFO - Intermediate patch for django__django-9296 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-9296/patch.diff, now applying to container...
+2026-02-22 11:51:53,291 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:51:53,364 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:51:53,432 - INFO - >>>>> Applied Patch:
+patching file django/core/paginator.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 106 with fuzz 1.
+
+2026-02-22 11:51:54,049 - INFO - Git diff before:
+diff --git a/django/core/paginator.py b/django/core/paginator.py
+index 1f92da5d4f..896535d89a 100644
+--- a/django/core/paginator.py
++++ b/django/core/paginator.py
+@@ -106,6 +106,10 @@ class Paginator:
+         """
+         return range(1, self.num_pages + 1)
+ 
++    def __iter__(self):
++        for page_num in self.page_range:
++            yield self.page(page_num)
++
+     def _check_object_list_is_ordered(self):
+         """
+         Warn if self.object_list is unordered (typically a QuerySet).
+2026-02-22 11:51:54,050 - INFO - Eval script for django__django-9296 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-9296/eval.sh; copying to container...
+2026-02-22 11:52:06,283 - INFO - Test runtime: 12.17 seconds
+2026-02-22 11:52:06,284 - INFO - Test output for django__django-9296 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-9296/test_output.txt
+2026-02-22 11:52:06,387 - INFO - Git diff after:
+diff --git a/django/core/paginator.py b/django/core/paginator.py
+index 1f92da5d4f..896535d89a 100644
+--- a/django/core/paginator.py
++++ b/django/core/paginator.py
+@@ -106,6 +106,10 @@ class Paginator:
+         """
+         return range(1, self.num_pages + 1)
+ 
++    def __iter__(self):
++        for page_num in self.page_range:
++            yield self.page(page_num)
++
+     def _check_object_list_is_ordered(self):
+         """
+         Warn if self.object_list is unordered (typically a QuerySet).
+2026-02-22 11:52:06,388 - INFO - Grading answer for django__django-9296...
+2026-02-22 11:52:06,388 - INFO - report: {'django__django-9296': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_paginator_iteration (pagination.tests.PaginationTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_count_does_not_silence_attribute_error (pagination.tests.PaginationTests)', 'test_count_does_not_silence_type_error (pagination.tests.PaginationTests)', 'test_float_integer_page (pagination.tests.PaginationTests)', 'test_get_page (pagination.tests.PaginationTests)', 'Paginator.get_page() with an empty object_list.', 'test_get_page_empty_object_list_and_allow_empty_first_page_false (pagination.tests.PaginationTests)', 'test_get_page_hook (pagination.tests.PaginationTests)', 'test_invalid_page_number (pagination.tests.PaginationTests)', 'test_no_content_allow_empty_first_page (pagination.tests.PaginationTests)', 'test_page_indexes (pagination.tests.PaginationTests)', 'test_page_range_iterator (pagination.tests.PaginationTests)', 'test_page_sequence (pagination.tests.PaginationTests)', 'test_paginate_misc_classes (pagination.tests.PaginationTests)', 'test_paginator (pagination.tests.PaginationTests)', 'test_first_page (pagination.tests.ModelPaginationTests)', 'test_last_page (pagination.tests.ModelPaginationTests)', 'test_page_getitem (pagination.tests.ModelPaginationTests)', 'test_paginating_empty_queryset_does_not_warn (pagination.tests.ModelPaginationTests)', 'test_paginating_unordered_object_list_raises_warning (pagination.tests.ModelPaginationTests)', 'test_paginating_unordered_queryset_raises_warning (pagination.tests.ModelPaginationTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-9296: resolved: True
+2026-02-22 11:52:06,389 - INFO - Attempting to stop container sweb.eval.django__django-9296.pydantic-deep...
+2026-02-22 11:52:21,816 - INFO - Attempting to remove container sweb.eval.django__django-9296.pydantic-deep...
+2026-02-22 11:52:21,848 - INFO - Container sweb.eval.django__django-9296.pydantic-deep removed.
+2026-02-22 11:52:21,848 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-9296:latest...
+2026-02-22 11:52:22,389 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-9296:latest removed.

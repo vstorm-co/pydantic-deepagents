@@ -1,0 +1,165 @@
+2026-02-22 11:37:33,257 - INFO - Creating container for django__django-14170...
+2026-02-22 11:37:33,628 - INFO - Container for django__django-14170 created: f97cd3efea3d339f58ee5eef79a0ec1bc615463011dc63a17b0a3a51488c7e6a
+2026-02-22 11:37:33,745 - INFO - Container for django__django-14170 started: f97cd3efea3d339f58ee5eef79a0ec1bc615463011dc63a17b0a3a51488c7e6a
+2026-02-22 11:37:33,746 - INFO - Intermediate patch for django__django-14170 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14170/patch.diff, now applying to container...
+2026-02-22 11:37:33,878 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:37:33,948 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:37:34,028 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/base/operations.py
+patching file django/db/models/lookups.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 540 with fuzz 1.
+
+2026-02-22 11:37:34,731 - INFO - Git diff before:
+diff --git a/django/db/backends/base/operations.py b/django/db/backends/base/operations.py
+index 0fcc607bcf..cb59b5b1bb 100644
+--- a/django/db/backends/base/operations.py
++++ b/django/db/backends/base/operations.py
+@@ -558,6 +558,47 @@ class BaseDatabaseOperations:
+         second = self.adapt_datetimefield_value(second)
+         return [first, second]
+ 
++    def iso_year_lookup_bounds_for_date_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.date(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.date(value, 12, 28)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        first = self.adapt_datefield_value(first)
++        second = self.adapt_datefield_value(second)
++        return [first, second]
++
++    def iso_year_lookup_bounds_for_datetime_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateTimeField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.datetime(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.datetime(value, 12, 28, 23, 59, 59, 999999)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        if settings.USE_TZ:
++            tz = timezone.get_current_timezone()
++            first = timezone.make_aware(first, tz)
++            second = timezone.make_aware(second, tz)
++        first = self.adapt_datetimefield_value(first)
++        second = self.adapt_datetimefield_value(second)
++        return [first, second]
++
++
+     def get_db_converters(self, expression):
+         """
+         Return a list of functions needed to convert field data.
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 916478d075..1479e83641 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -540,7 +540,12 @@ class IRegex(Regex):
+ class YearLookup(Lookup):
+     def year_lookup_bounds(self, connection, year):
+         output_field = self.lhs.lhs.output_field
+-        if isinstance(output_field, DateTimeField):
++        if self.lhs.lookup_name == 'iso_year':
++            if isinstance(output_field, DateTimeField):
++                bounds = connection.ops.iso_year_lookup_bounds_for_datetime_field(year)
++            else:
++                bounds = connection.ops.iso_year_lookup_bounds_for_date_field(year)
++        elif isinstance(output_field, DateTimeField):
+             bounds = connection.ops.year_lookup_bounds_for_datetime_field(year)
+         else:
+             bounds = connection.ops.year_lookup_bounds_for_date_field(year)
+2026-02-22 11:37:34,732 - INFO - Eval script for django__django-14170 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14170/eval.sh; copying to container...
+2026-02-22 11:37:43,336 - INFO - Test runtime: 8.54 seconds
+2026-02-22 11:37:43,337 - INFO - Test output for django__django-14170 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14170/test_output.txt
+2026-02-22 11:37:43,442 - INFO - Git diff after:
+diff --git a/django/db/backends/base/operations.py b/django/db/backends/base/operations.py
+index 0fcc607bcf..cb59b5b1bb 100644
+--- a/django/db/backends/base/operations.py
++++ b/django/db/backends/base/operations.py
+@@ -558,6 +558,47 @@ class BaseDatabaseOperations:
+         second = self.adapt_datetimefield_value(second)
+         return [first, second]
+ 
++    def iso_year_lookup_bounds_for_date_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.date(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.date(value, 12, 28)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        first = self.adapt_datefield_value(first)
++        second = self.adapt_datefield_value(second)
++        return [first, second]
++
++    def iso_year_lookup_bounds_for_datetime_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateTimeField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.datetime(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.datetime(value, 12, 28, 23, 59, 59, 999999)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        if settings.USE_TZ:
++            tz = timezone.get_current_timezone()
++            first = timezone.make_aware(first, tz)
++            second = timezone.make_aware(second, tz)
++        first = self.adapt_datetimefield_value(first)
++        second = self.adapt_datetimefield_value(second)
++        return [first, second]
++
++
+     def get_db_converters(self, expression):
+         """
+         Return a list of functions needed to convert field data.
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 916478d075..1479e83641 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -540,7 +540,12 @@ class IRegex(Regex):
+ class YearLookup(Lookup):
+     def year_lookup_bounds(self, connection, year):
+         output_field = self.lhs.lhs.output_field
+-        if isinstance(output_field, DateTimeField):
++        if self.lhs.lookup_name == 'iso_year':
++            if isinstance(output_field, DateTimeField):
++                bounds = connection.ops.iso_year_lookup_bounds_for_datetime_field(year)
++            else:
++                bounds = connection.ops.iso_year_lookup_bounds_for_date_field(year)
++        elif isinstance(output_field, DateTimeField):
+             bounds = connection.ops.year_lookup_bounds_for_datetime_field(year)
+         else:
+             bounds = connection.ops.year_lookup_bounds_for_date_field(year)
+2026-02-22 11:37:43,442 - INFO - Grading answer for django__django-14170...
+2026-02-22 11:37:43,444 - INFO - report: {'django__django-14170': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_extract_iso_year_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_iso_year_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_extract_day_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_duration_unsupported_lookups (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_duration_without_native_duration_field (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_hour_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_iso_weekday_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_iso_year_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_minute_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_month_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_none (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_quarter_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_quarter_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_second_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_week_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_week_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_weekday_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'Extract year uses a BETWEEN filter to compare the year to allow indexes', 'test_extract_year_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_year_greaterthan_lookup (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_year_lessthan_lookup (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_date_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_date_none (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_day_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_hour_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_minute_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_month_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_none (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_quarter_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_second_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_subquery_with_parameters (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_time_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_time_none (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_week_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_trunc_year_func (db_functions.datetime.test_extract_trunc.DateFunctionTests)', 'test_extract_day_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_duration_unsupported_lookups (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_duration_without_native_duration_field (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_func_explicit_timezone_priority (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_func_with_timezone (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_hour_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_invalid_field_with_timezone (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_iso_weekday_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_iso_year_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_minute_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_month_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_none (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_quarter_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_quarter_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_second_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_week_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_week_func_boundaries (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_weekday_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_year_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_year_greaterthan_lookup (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_extract_year_lessthan_lookup (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_ambiguous_and_invalid_times (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_date_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_date_none (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_day_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'If the truncated datetime transitions to a different offset (daylight', 'test_trunc_hour_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_invalid_field_with_timezone (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_minute_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_month_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_none (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_quarter_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_second_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_subquery_with_parameters (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_time_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_time_none (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_timezone_applied_before_truncation (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_week_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)', 'test_trunc_year_func (db_functions.datetime.test_extract_trunc.DateFunctionWithTimeZoneTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14170: resolved: True
+2026-02-22 11:37:43,445 - INFO - Attempting to stop container sweb.eval.django__django-14170.pydantic-deep...
+2026-02-22 11:37:58,625 - INFO - Attempting to remove container sweb.eval.django__django-14170.pydantic-deep...
+2026-02-22 11:37:58,656 - INFO - Container sweb.eval.django__django-14170.pydantic-deep removed.
+2026-02-22 11:37:58,656 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14170:latest...
+2026-02-22 11:37:58,841 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14170:latest removed.

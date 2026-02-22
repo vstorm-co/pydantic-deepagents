@@ -1,0 +1,66 @@
+2026-02-22 11:34:40,402 - INFO - Creating container for django__django-13794...
+2026-02-22 11:34:40,760 - INFO - Container for django__django-13794 created: d5264a33603f055854eaf72487d28cec9ccaf154b63e5b1cfe343b29504176c0
+2026-02-22 11:34:40,874 - INFO - Container for django__django-13794 started: d5264a33603f055854eaf72487d28cec9ccaf154b63e5b1cfe343b29504176c0
+2026-02-22 11:34:40,874 - INFO - Intermediate patch for django__django-13794 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13794/patch.diff, now applying to container...
+2026-02-22 11:34:41,041 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:34:41,129 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:34:41,191 - INFO - >>>>> Applied Patch:
+patching file django/template/defaultfilters.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 681 with fuzz 3.
+
+2026-02-22 11:34:41,883 - INFO - Git diff before:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 1c844580c6..89fefeaebe 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -10,7 +10,8 @@ from urllib.parse import quote
+ 
+ from django.utils import formats
+ from django.utils.dateformat import format, time_format
+-from django.utils.encoding import iri_to_uri
++from django.utils.encoding import force_str, iri_to_uri
++from django.utils.functional import Promise
+ from django.utils.html import (
+     avoid_wrapping, conditional_escape, escape, escapejs,
+     json_script as _json_script, linebreaks, strip_tags, urlize as _urlize,
+@@ -680,6 +681,8 @@ def add(value, arg):
+         try:
+             return value + arg
+         except Exception:
++            if isinstance(value, Promise) or isinstance(arg, Promise):
++                return force_str(value) + force_str(arg)
+             return ''
+2026-02-22 11:34:41,884 - INFO - Eval script for django__django-13794 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13794/eval.sh; copying to container...
+2026-02-22 11:34:58,005 - INFO - Test runtime: 16.07 seconds
+2026-02-22 11:34:58,006 - INFO - Test output for django__django-13794 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13794/test_output.txt
+2026-02-22 11:34:58,131 - INFO - Git diff after:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 1c844580c6..89fefeaebe 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -10,7 +10,8 @@ from urllib.parse import quote
+ 
+ from django.utils import formats
+ from django.utils.dateformat import format, time_format
+-from django.utils.encoding import iri_to_uri
++from django.utils.encoding import force_str, iri_to_uri
++from django.utils.functional import Promise
+ from django.utils.html import (
+     avoid_wrapping, conditional_escape, escape, escapejs,
+     json_script as _json_script, linebreaks, strip_tags, urlize as _urlize,
+@@ -680,6 +681,8 @@ def add(value, arg):
+         try:
+             return value + arg
+         except Exception:
++            if isinstance(value, Promise) or isinstance(arg, Promise):
++                return force_str(value) + force_str(arg)
+             return ''
+2026-02-22 11:34:58,131 - INFO - Grading answer for django__django-13794...
+2026-02-22 11:34:58,133 - INFO - report: {'django__django-13794': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_add08 (template_tests.filter_tests.test_add.AddTests)', 'test_add09 (template_tests.filter_tests.test_add.AddTests)'], 'failure': ['test_lazy_add (utils_tests.test_functional.FunctionalTests)']}, 'PASS_TO_PASS': {'success': ['test_add (template_tests.filter_tests.test_add.FunctionTests)', 'cached_property caches its value and behaves like a property.', 'test_cached_property_auto_name (utils_tests.test_functional.FunctionalTests)', "Disallow this case because the decorated function wouldn't be cached.", 'test_cached_property_reuse_same_name (utils_tests.test_functional.FunctionalTests)', 'test_cached_property_set_name_not_called (utils_tests.test_functional.FunctionalTests)', 'test_classproperty_getter (utils_tests.test_functional.FunctionalTests)', 'test_classproperty_override_getter (utils_tests.test_functional.FunctionalTests)', 'test_lazy (utils_tests.test_functional.FunctionalTests)', 'lazy also finds base class methods in the proxy object', 'lazy finds the correct (overridden) method implementation', 'test_lazy_class_preparation_caching (utils_tests.test_functional.FunctionalTests)', 'test_lazy_equality (utils_tests.test_functional.FunctionalTests)', 'test_lazy_object_to_string (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_bytes (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_int (utils_tests.test_functional.FunctionalTests)', 'test_lazy_repr_text (utils_tests.test_functional.FunctionalTests)', 'test_add01 (template_tests.filter_tests.test_add.AddTests)', 'test_add02 (template_tests.filter_tests.test_add.AddTests)', 'test_add03 (template_tests.filter_tests.test_add.AddTests)', 'test_add04 (template_tests.filter_tests.test_add.AddTests)', 'test_add05 (template_tests.filter_tests.test_add.AddTests)', 'test_add06 (template_tests.filter_tests.test_add.AddTests)', 'test_add07 (template_tests.filter_tests.test_add.AddTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13794: resolved: False
+2026-02-22 11:34:58,134 - INFO - Attempting to stop container sweb.eval.django__django-13794.pydantic-deep...
+2026-02-22 11:35:13,375 - INFO - Attempting to remove container sweb.eval.django__django-13794.pydantic-deep...
+2026-02-22 11:35:13,420 - INFO - Container sweb.eval.django__django-13794.pydantic-deep removed.
+2026-02-22 11:35:13,420 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-13794:latest...
+2026-02-22 11:35:13,695 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-13794:latest removed.

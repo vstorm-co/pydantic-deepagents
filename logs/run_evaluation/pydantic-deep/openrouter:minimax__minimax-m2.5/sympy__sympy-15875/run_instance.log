@@ -1,0 +1,66 @@
+2026-02-22 12:39:02,688 - INFO - Creating container for sympy__sympy-15875...
+2026-02-22 12:39:02,852 - INFO - Container for sympy__sympy-15875 created: 6e6bb32367907af9adef582f65eee43c69aa7ec55cf267f8f8661bd1fee4bdda
+2026-02-22 12:39:02,982 - INFO - Container for sympy__sympy-15875 started: 6e6bb32367907af9adef582f65eee43c69aa7ec55cf267f8f8661bd1fee4bdda
+2026-02-22 12:39:02,982 - INFO - Intermediate patch for sympy__sympy-15875 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15875/patch.diff, now applying to container...
+2026-02-22 12:39:03,163 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:39:03,245 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:39:03,339 - INFO - >>>>> Applied Patch:
+patching file sympy/core/add.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 563 with fuzz 2.
+
+2026-02-22 12:39:03,657 - INFO - Git diff before:
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 83a5f2aed..bcb3d60ea 100644
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -548,6 +548,8 @@ def _eval_is_zero(self):
+                     return
+             elif a.is_imaginary:
+                 im = True
++                if (S.ImaginaryUnit*a).is_real:
++                    im_or_z = True
+             elif (S.ImaginaryUnit*a).is_real:
+                 im_or_z = True
+             else:
+@@ -561,7 +563,7 @@ def _eval_is_zero(self):
+             if not im_or_z and not im:
+                 return True
+             if im and not im_or_z:
+-                return False
++                return
+         if b.is_zero is False:
+             return False
+2026-02-22 12:39:03,658 - INFO - Eval script for sympy__sympy-15875 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15875/eval.sh; copying to container...
+2026-02-22 12:39:12,665 - INFO - Test runtime: 8.93 seconds
+2026-02-22 12:39:12,665 - INFO - Test output for sympy__sympy-15875 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-15875/test_output.txt
+2026-02-22 12:39:12,748 - INFO - Git diff after:
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 83a5f2aed..bcb3d60ea 100644
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -548,6 +548,8 @@ def _eval_is_zero(self):
+                     return
+             elif a.is_imaginary:
+                 im = True
++                if (S.ImaginaryUnit*a).is_real:
++                    im_or_z = True
+             elif (S.ImaginaryUnit*a).is_real:
+                 im_or_z = True
+             else:
+@@ -561,7 +563,7 @@ def _eval_is_zero(self):
+             if not im_or_z and not im:
+                 return True
+             if im and not im_or_z:
+-                return False
++                return
+         if b.is_zero is False:
+             return False
+2026-02-22 12:39:12,748 - INFO - Grading answer for sympy__sympy-15875...
+2026-02-22 12:39:12,748 - INFO - report: {'sympy__sympy-15875': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Add_is_zero'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_bug1', 'test_Symbol', 'test_arit0', 'test_div', 'test_pow', 'test_pow2', 'test_pow3', 'test_mod_pow', 'test_pow_E', 'test_pow_issue_3516', 'test_pow_im', 'test_real_mul', 'test_ncmul', 'test_ncpow', 'test_powerbug', 'test_Mul_doesnt_expand_exp', 'test_Add_Mul_is_integer', 'test_Add_Mul_is_finite', 'test_Mul_is_even_odd', 'test_evenness_in_ternary_integer_product_with_even', 'test_oddness_in_ternary_integer_product_with_even', 'test_Mul_is_rational', 'test_Add_is_rational', 'test_Add_is_even_odd', 'test_Mul_is_negative_positive', 'test_Mul_is_negative_positive_2', 'test_Mul_is_nonpositive_nonnegative', 'test_Add_is_negative_positive', 'test_Add_is_nonpositive_nonnegative', 'test_Pow_is_integer', 'test_Pow_is_real', 'test_real_Pow', 'test_Pow_is_finite', 'test_Pow_is_even_odd', 'test_Pow_is_negative_positive', 'test_Pow_is_zero', 'test_Pow_is_nonpositive_nonnegative', 'test_Mul_is_imaginary_real', 'test_Mul_hermitian_antihermitian', 'test_Add_is_comparable', 'test_Mul_is_comparable', 'test_Pow_is_comparable', 'test_Add_is_positive_2', 'test_Add_is_irrational', 'test_issue_3531b', 'test_bug3', 'test_suppressed_evaluation', 'test_Add_as_coeff_mul', 'test_Pow_as_coeff_mul_doesnt_expand', 'test_issue_3514', 'test_make_args', 'test_issue_5126', 'test_Rational_as_content_primitive', 'test_Add_as_content_primitive', 'test_Mul_as_content_primitive', 'test_Pow_as_content_primitive', 'test_issue_5460', 'test_product_irrational', 'test_issue_5919', 'test_Mod', 'test_Mod_is_integer', 'test_Mod_is_nonposneg', 'test_issue_6001', 'test_polar', 'test_issue_6040', 'test_issue_6082', 'test_issue_6077', 'test_mul_flatten_oo', 'test_add_flatten', 'test_issue_5160_6087_6089_6090', 'test_float_int', 'test_issue_6611a', 'test_denest_add_mul', 'test_mul_coeff', 'test_mul_zero_detection', 'test_Mul_with_zero_infinite', 'test_Mul_does_not_cancel_infinities', 'test_Mul_does_not_distribute_infinity', 'test_issue_8247_8354', 'test_issue_14392'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-15875: resolved: True
+2026-02-22 12:39:12,749 - INFO - Attempting to stop container sweb.eval.sympy__sympy-15875.pydantic-deep...
+2026-02-22 12:39:27,929 - INFO - Attempting to remove container sweb.eval.sympy__sympy-15875.pydantic-deep...
+2026-02-22 12:39:27,957 - INFO - Container sweb.eval.sympy__sympy-15875.pydantic-deep removed.
+2026-02-22 12:39:27,957 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-15875:latest...
+2026-02-22 12:39:28,021 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-15875:latest removed.

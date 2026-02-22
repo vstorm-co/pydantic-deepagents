@@ -1,0 +1,126 @@
+2026-02-22 11:47:06,502 - INFO - Creating container for django__django-16100...
+2026-02-22 11:47:06,699 - INFO - Container for django__django-16100 created: 665b286b409a7199176a40dd3cabccd98c2c85f8248a94a044fc02ee23d53b99
+2026-02-22 11:47:06,801 - INFO - Container for django__django-16100 started: 665b286b409a7199176a40dd3cabccd98c2c85f8248a94a044fc02ee23d53b99
+2026-02-22 11:47:06,802 - INFO - Intermediate patch for django__django-16100 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16100/patch.diff, now applying to container...
+2026-02-22 11:47:06,977 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:47:07,058 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:47:07,143 - INFO - >>>>> Applied Patch:
+patching file django/contrib/admin/options.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 2010 with fuzz 2.
+
+2026-02-22 11:47:07,846 - INFO - Git diff before:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 5f07a4208a..62e443bf43 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -2010,26 +2010,27 @@ class ModelAdmin(BaseModelAdmin):
+                 request.POST, request.FILES, queryset=modified_objects
+             )
+             if formset.is_valid():
+-                changecount = 0
+-                for form in formset.forms:
+-                    if form.has_changed():
+-                        obj = self.save_form(request, form, change=True)
+-                        self.save_model(request, obj, form, change=True)
+-                        self.save_related(request, form, formsets=[], change=True)
+-                        change_msg = self.construct_change_message(request, form, None)
+-                        self.log_change(request, obj, change_msg)
+-                        changecount += 1
+-
+-                if changecount:
+-                    msg = ngettext(
+-                        "%(count)s %(name)s was changed successfully.",
+-                        "%(count)s %(name)s were changed successfully.",
+-                        changecount,
+-                    ) % {
+-                        "count": changecount,
+-                        "name": model_ngettext(self.opts, changecount),
+-                    }
+-                    self.message_user(request, msg, messages.SUCCESS)
++                with transaction.atomic(using=router.db_for_write(self.model)):
++                    changecount = 0
++                    for form in formset.forms:
++                        if form.has_changed():
++                            obj = self.save_form(request, form, change=True)
++                            self.save_model(request, obj, form, change=True)
++                            self.save_related(request, form, formsets=[], change=True)
++                            change_msg = self.construct_change_message(request, form, None)
++                            self.log_change(request, obj, change_msg)
++                            changecount += 1
++
++                    if changecount:
++                        msg = ngettext(
++                            "%(count)s %(name)s was changed successfully.",
++                            "%(count)s %(name)s were changed successfully.",
++                            changecount,
++                        ) % {
++                            "count": changecount,
++                            "name": model_ngettext(self.opts, changecount),
++                        }
++                        self.message_user(request, msg, messages.SUCCESS)
+ 
+                 return HttpResponseRedirect(request.get_full_path())
+2026-02-22 11:47:07,847 - INFO - Eval script for django__django-16100 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16100/eval.sh; copying to container...
+2026-02-22 11:47:14,684 - INFO - Test runtime: 6.78 seconds
+2026-02-22 11:47:14,684 - INFO - Test output for django__django-16100 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16100/test_output.txt
+2026-02-22 11:47:14,780 - INFO - Git diff after:
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 5f07a4208a..62e443bf43 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -2010,26 +2010,27 @@ class ModelAdmin(BaseModelAdmin):
+                 request.POST, request.FILES, queryset=modified_objects
+             )
+             if formset.is_valid():
+-                changecount = 0
+-                for form in formset.forms:
+-                    if form.has_changed():
+-                        obj = self.save_form(request, form, change=True)
+-                        self.save_model(request, obj, form, change=True)
+-                        self.save_related(request, form, formsets=[], change=True)
+-                        change_msg = self.construct_change_message(request, form, None)
+-                        self.log_change(request, obj, change_msg)
+-                        changecount += 1
+-
+-                if changecount:
+-                    msg = ngettext(
+-                        "%(count)s %(name)s was changed successfully.",
+-                        "%(count)s %(name)s were changed successfully.",
+-                        changecount,
+-                    ) % {
+-                        "count": changecount,
+-                        "name": model_ngettext(self.opts, changecount),
+-                    }
+-                    self.message_user(request, msg, messages.SUCCESS)
++                with transaction.atomic(using=router.db_for_write(self.model)):
++                    changecount = 0
++                    for form in formset.forms:
++                        if form.has_changed():
++                            obj = self.save_form(request, form, change=True)
++                            self.save_model(request, obj, form, change=True)
++                            self.save_related(request, form, formsets=[], change=True)
++                            change_msg = self.construct_change_message(request, form, None)
++                            self.log_change(request, obj, change_msg)
++                            changecount += 1
++
++                    if changecount:
++                        msg = ngettext(
++                            "%(count)s %(name)s was changed successfully.",
++                            "%(count)s %(name)s were changed successfully.",
++                            changecount,
++                        ) % {
++                            "count": changecount,
++                            "name": model_ngettext(self.opts, changecount),
++                        }
++                        self.message_user(request, msg, messages.SUCCESS)
+ 
+                 return HttpResponseRedirect(request.get_full_path())
+2026-02-22 11:47:14,780 - INFO - Grading answer for django__django-16100...
+2026-02-22 11:47:14,782 - INFO - report: {'django__django-16100': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_list_editable_atomicity (admin_changelist.tests.ChangeListTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ["{% get_admin_log %} works if the user model's primary key isn't named", 'test_missing_args (admin_changelist.tests.GetAdminLogTests)', '{% get_admin_log %} works without specifying a user.', 'test_non_integer_limit (admin_changelist.tests.GetAdminLogTests)', 'test_without_as (admin_changelist.tests.GetAdminLogTests)', 'test_without_for_user (admin_changelist.tests.GetAdminLogTests)', 'test_builtin_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_changelist_search_form_validation (admin_changelist.tests.ChangeListTests)', 'list_editable edits use a filtered queryset to limit memory usage.', 'test_clear_all_filters_link (admin_changelist.tests.ChangeListTests)', 'test_clear_all_filters_link_callable_filter (admin_changelist.tests.ChangeListTests)', 'Regression test for #13196: output of functions should be  localized', 'test_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_custom_lookup_with_pk_shortcut (admin_changelist.tests.ChangeListTests)', 'test_custom_paginator (admin_changelist.tests.ChangeListTests)', "The primary key is used in the ordering of the changelist's results to", 'Regression tests for #14206: dynamic list_display support.', 'Regression tests for #16257: dynamic list_display_links support.', 'Regression tests for ticket #17646: dynamic list_filter support.', 'test_dynamic_search_fields (admin_changelist.tests.ChangeListTests)', 'test_get_edited_object_ids (admin_changelist.tests.ChangeListTests)', 'test_get_list_editable_queryset (admin_changelist.tests.ChangeListTests)', 'test_get_list_editable_queryset_with_regex_chars_in_prefix (admin_changelist.tests.ChangeListTests)', 'test_get_select_related_custom_method (admin_changelist.tests.ChangeListTests)', 'test_many_search_terms (admin_changelist.tests.ChangeListTests)', 'All rows containing each of the searched words are returned, where each', 'Simultaneous edits of list_editable fields on the changelist by', 'test_no_clear_all_filters_link (admin_changelist.tests.ChangeListTests)', 'Regression test for #13902: When using a ManyToMany in list_filter,', 'When using a ManyToMany in search_fields at the second level behind a', 'Regressions tests for #15819: If a field listed in list_filters is a', 'Regressions tests for #15819: If a field listed in search_fields', 'When using a ManyToMany in list_filter at the second level behind a', "If a ManyToManyField is in list_filter but isn't in any lookup params,", "#15185 -- Allow no links from the 'change list' view grid.", 'When ModelAdmin.has_add_permission() returns False, the object-tools', "Regression tests for #12893: Pagination in admins changelist doesn't", 'Regression tests for ticket #15653: ensure the number of pages', 'test_pk_in_search_fields (admin_changelist.tests.ChangeListTests)', 'Searches over multi-valued relationships return rows from related', 'test_repr (admin_changelist.tests.ChangeListTests)', 'Regression test for #14312: list_editable with pagination', 'Regression tests for #11791: Inclusion tag result_list generates a', 'Regression test for #14982: EMPTY_CHANGELIST_VALUE should be honored', 'Inclusion tag result_list generates a table when with default', 'Empty value display can be set in ModelAdmin or individual fields.', 'Empty value display can be set on AdminSite.', 'test_search_help_text (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_empty_tuple (admin_changelist.tests.ChangeListTests)', 'test_select_related_as_tuple (admin_changelist.tests.ChangeListTests)', "Regression test for #10348: ChangeList.get_queryset() shouldn't", 'test_select_related_preserved_when_multi_valued_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_show_all (admin_changelist.tests.ChangeListTests)', 'test_spanning_relations_with_custom_lookup_in_search_fields (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression (admin_changelist.tests.ChangeListTests)', 'test_specified_ordering_by_f_expression_without_asc_desc (admin_changelist.tests.ChangeListTests)', 'test_total_ordering_optimization (admin_changelist.tests.ChangeListTests)', 'test_total_ordering_optimization_meta_constraints (admin_changelist.tests.ChangeListTests)', 'test_tuple_list_display (admin_changelist.tests.ChangeListTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16100: resolved: True
+2026-02-22 11:47:14,782 - INFO - Attempting to stop container sweb.eval.django__django-16100.pydantic-deep...
+2026-02-22 11:47:30,046 - INFO - Attempting to remove container sweb.eval.django__django-16100.pydantic-deep...
+2026-02-22 11:47:30,070 - INFO - Container sweb.eval.django__django-16100.pydantic-deep removed.
+2026-02-22 11:47:30,070 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-16100:latest...
+2026-02-22 11:47:30,309 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-16100:latest removed.

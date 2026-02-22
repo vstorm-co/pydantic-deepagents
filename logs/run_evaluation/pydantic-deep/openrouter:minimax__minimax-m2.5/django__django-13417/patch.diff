@@ -1,0 +1,15 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 85cd8311a7..c4b690620a 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1225,6 +1225,10 @@ class QuerySet:
+         if self.query.extra_order_by or self.query.order_by:
+             return True
+         elif self.query.default_ordering and self.query.get_meta().ordering:
++            # When there is a GROUP BY clause and the query would use the
++            # model's Meta.ordering, the ordering is ignored.
++            if self.query.group_by is not None:
++                return False
+             return True
+         else:
+             return False

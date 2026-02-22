@@ -1,0 +1,289 @@
+2026-02-22 11:39:43,701 - INFO - Creating container for django__django-14631...
+2026-02-22 11:39:44,030 - INFO - Container for django__django-14631 created: ceec1fa7abd2aff8209440b7cb3dd1ab57ef3b463cd6a43760a66df1235ac151
+2026-02-22 11:39:44,253 - INFO - Container for django__django-14631 started: ceec1fa7abd2aff8209440b7cb3dd1ab57ef3b463cd6a43760a66df1235ac151
+2026-02-22 11:39:44,253 - INFO - Intermediate patch for django__django-14631 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14631/patch.diff, now applying to container...
+2026-02-22 11:39:44,471 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:39:44,593 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:39:44,710 - INFO - >>>>> Applied Patch:
+patching file django/forms/boundfield.py
+patching file django/forms/forms.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 475 with fuzz 1.
+
+2026-02-22 11:39:45,570 - INFO - Git diff before:
+diff --git a/django/forms/boundfield.py b/django/forms/boundfield.py
+index 88adadb37d..ed56727f43 100644
+--- a/django/forms/boundfield.py
++++ b/django/forms/boundfield.py
+@@ -1,6 +1,10 @@
+ import datetime
+ import re
+ 
++from django.core.exceptions import ValidationError
++from django.forms.utils import flatatt, pretty_name
++import re
++
+ from django.forms.utils import flatatt, pretty_name
+ from django.forms.widgets import Textarea, TextInput
+ from django.utils.functional import cached_property
+@@ -232,6 +236,30 @@ class BoundField:
+     def widget_type(self):
+         return re.sub(r'widget$|input$', '', self.field.widget.__class__.__name__.lower())
+ 
++    def _did_change(self):
++        """
++        Return True if data differs from initial.
++        """
++        field = self.field
++        if field.show_hidden_initial:
++            hidden_widget = field.hidden_widget()
++            hidden_initial_prefixed_name = self.form.add_initial_prefix(
++                self.form.add_initial_prefix(self.name)
++            )
++            try:
++                initial_value = field.to_python(
++                    self.form._widget_data_value(hidden_widget, hidden_initial_prefixed_name)
++                )
++            except ValidationError:
++                # Always assume data has changed if validation fails.
++                return True
++        else:
++            initial_value = self.initial
++        return field.has_changed(initial_value, self.data)
++
++    def widget_type(self):
++        return re.sub(r'widget$|input$', '', self.field.widget.__class__.__name__.lower())
++
+ 
+ @html_safe
+ class BoundWidget:
+diff --git a/django/forms/forms.py b/django/forms/forms.py
+index d14037bfe9..52fb940a86 100644
+--- a/django/forms/forms.py
++++ b/django/forms/forms.py
+@@ -167,6 +167,30 @@ class BaseForm:
+         self._bound_fields_cache[name] = bound_field
+         return bound_field
+ 
++    def _bound_items(self):
++        """Yield (name, bf) pairs, where bf is a BoundField object."""
++        for name in self.fields:
++            yield name, self[name]
++
++        """Return a BoundField with the given name."""
++        try:
++            return self._bound_fields_cache[name]
++        except KeyError:
++            pass
++        try:
++            field = self.fields[name]
++        except KeyError:
++            raise KeyError(
++                "Key '%s' not found in '%s'. Choices are: %s." % (
++                    name,
++                    self.__class__.__name__,
++                    ', '.join(sorted(self.fields)),
++                )
++            )
++        bound_field = field.get_bound_field(self, name)
++        self._bound_fields_cache[name] = bound_field
++        return bound_field
++
+     @property
+     def errors(self):
+         """Return an ErrorDict for the data provided for the form."""
+@@ -387,6 +411,21 @@ class BaseForm:
+         self._post_clean()
+ 
+     def _clean_fields(self):
++        for name, bf in self._bound_items():
++            field = bf.field
++            value = bf.initial if field.disabled else bf.data
++            try:
++                if isinstance(field, FileField):
++                    value = field.clean(value, bf.initial)
++                else:
++                    value = field.clean(value)
++                self.cleaned_data[name] = value
++                if hasattr(self, 'clean_%s' % name):
++                    value = getattr(self, 'clean_%s' % name)()
++                    self.cleaned_data[name] = value
++            except ValidationError as e:
++                self.add_error(name, e)
++
+         for name, field in self.fields.items():
+             if field.disabled:
+                 value = self.get_initial_for_field(field, name)
+@@ -436,27 +475,7 @@ class BaseForm:
+ 
+     @cached_property
+     def changed_data(self):
+-        data = []
+-        for name, field in self.fields.items():
+-            data_value = self._field_data_value(field, self.add_prefix(name))
+-            if not field.show_hidden_initial:
+-                # Use the BoundField's initial as this is the value passed to
+-                # the widget.
+-                initial_value = self[name].initial
+-            else:
+-                initial_prefixed_name = self.add_initial_prefix(name)
+-                hidden_widget = field.hidden_widget()
+-                try:
+-                    initial_value = field.to_python(
+-                        self._widget_data_value(hidden_widget, initial_prefixed_name)
+-                    )
+-                except ValidationError:
+-                    # Always assume data has changed if validation fails.
+-                    data.append(name)
+-                    continue
+-            if field.has_changed(initial_value, data_value):
+-                data.append(name)
+-        return data
++        return [name for name, bf in self._bound_items() if bf._did_change()]
+ 
+     @property
+     def media(self):
+2026-02-22 11:39:45,572 - INFO - Eval script for django__django-14631 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14631/eval.sh; copying to container...
+2026-02-22 11:39:53,683 - INFO - Test runtime: 8.04 seconds
+2026-02-22 11:39:53,684 - INFO - Test output for django__django-14631 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14631/test_output.txt
+2026-02-22 11:39:53,786 - INFO - Git diff after:
+diff --git a/django/forms/boundfield.py b/django/forms/boundfield.py
+index 88adadb37d..ed56727f43 100644
+--- a/django/forms/boundfield.py
++++ b/django/forms/boundfield.py
+@@ -1,6 +1,10 @@
+ import datetime
+ import re
+ 
++from django.core.exceptions import ValidationError
++from django.forms.utils import flatatt, pretty_name
++import re
++
+ from django.forms.utils import flatatt, pretty_name
+ from django.forms.widgets import Textarea, TextInput
+ from django.utils.functional import cached_property
+@@ -232,6 +236,30 @@ class BoundField:
+     def widget_type(self):
+         return re.sub(r'widget$|input$', '', self.field.widget.__class__.__name__.lower())
+ 
++    def _did_change(self):
++        """
++        Return True if data differs from initial.
++        """
++        field = self.field
++        if field.show_hidden_initial:
++            hidden_widget = field.hidden_widget()
++            hidden_initial_prefixed_name = self.form.add_initial_prefix(
++                self.form.add_initial_prefix(self.name)
++            )
++            try:
++                initial_value = field.to_python(
++                    self.form._widget_data_value(hidden_widget, hidden_initial_prefixed_name)
++                )
++            except ValidationError:
++                # Always assume data has changed if validation fails.
++                return True
++        else:
++            initial_value = self.initial
++        return field.has_changed(initial_value, self.data)
++
++    def widget_type(self):
++        return re.sub(r'widget$|input$', '', self.field.widget.__class__.__name__.lower())
++
+ 
+ @html_safe
+ class BoundWidget:
+diff --git a/django/forms/forms.py b/django/forms/forms.py
+index d14037bfe9..52fb940a86 100644
+--- a/django/forms/forms.py
++++ b/django/forms/forms.py
+@@ -167,6 +167,30 @@ class BaseForm:
+         self._bound_fields_cache[name] = bound_field
+         return bound_field
+ 
++    def _bound_items(self):
++        """Yield (name, bf) pairs, where bf is a BoundField object."""
++        for name in self.fields:
++            yield name, self[name]
++
++        """Return a BoundField with the given name."""
++        try:
++            return self._bound_fields_cache[name]
++        except KeyError:
++            pass
++        try:
++            field = self.fields[name]
++        except KeyError:
++            raise KeyError(
++                "Key '%s' not found in '%s'. Choices are: %s." % (
++                    name,
++                    self.__class__.__name__,
++                    ', '.join(sorted(self.fields)),
++                )
++            )
++        bound_field = field.get_bound_field(self, name)
++        self._bound_fields_cache[name] = bound_field
++        return bound_field
++
+     @property
+     def errors(self):
+         """Return an ErrorDict for the data provided for the form."""
+@@ -387,6 +411,21 @@ class BaseForm:
+         self._post_clean()
+ 
+     def _clean_fields(self):
++        for name, bf in self._bound_items():
++            field = bf.field
++            value = bf.initial if field.disabled else bf.data
++            try:
++                if isinstance(field, FileField):
++                    value = field.clean(value, bf.initial)
++                else:
++                    value = field.clean(value)
++                self.cleaned_data[name] = value
++                if hasattr(self, 'clean_%s' % name):
++                    value = getattr(self, 'clean_%s' % name)()
++                    self.cleaned_data[name] = value
++            except ValidationError as e:
++                self.add_error(name, e)
++
+         for name, field in self.fields.items():
+             if field.disabled:
+                 value = self.get_initial_for_field(field, name)
+@@ -436,27 +475,7 @@ class BaseForm:
+ 
+     @cached_property
+     def changed_data(self):
+-        data = []
+-        for name, field in self.fields.items():
+-            data_value = self._field_data_value(field, self.add_prefix(name))
+-            if not field.show_hidden_initial:
+-                # Use the BoundField's initial as this is the value passed to
+-                # the widget.
+-                initial_value = self[name].initial
+-            else:
+-                initial_prefixed_name = self.add_initial_prefix(name)
+-                hidden_widget = field.hidden_widget()
+-                try:
+-                    initial_value = field.to_python(
+-                        self._widget_data_value(hidden_widget, initial_prefixed_name)
+-                    )
+-                except ValidationError:
+-                    # Always assume data has changed if validation fails.
+-                    data.append(name)
+-                    continue
+-            if field.has_changed(initial_value, data_value):
+-                data.append(name)
+-        return data
++        return [name for name, bf in self._bound_items() if bf._did_change()]
+ 
+     @property
+     def media(self):
+2026-02-22 11:39:53,786 - INFO - Grading answer for django__django-14631...
+2026-02-22 11:39:53,790 - INFO - report: {'django__django-14631': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['The cleaned value for a form with a disabled DateTimeField and callable', 'Cleaning a form with a disabled DateTimeField and callable initial']}, 'PASS_TO_PASS': {'success': ['test_attribute_class (forms_tests.tests.test_forms.RendererTests)', 'test_attribute_instance (forms_tests.tests.test_forms.RendererTests)', 'test_attribute_override (forms_tests.tests.test_forms.RendererTests)', 'test_default (forms_tests.tests.test_forms.RendererTests)', 'test_kwarg_class (forms_tests.tests.test_forms.RendererTests)', 'test_kwarg_instance (forms_tests.tests.test_forms.RendererTests)', 'test_accessing_clean (forms_tests.tests.test_forms.FormsTestCase)', 'test_auto_id (forms_tests.tests.test_forms.FormsTestCase)', 'test_auto_id_false (forms_tests.tests.test_forms.FormsTestCase)', 'test_auto_id_on_form_and_field (forms_tests.tests.test_forms.FormsTestCase)', 'test_auto_id_true (forms_tests.tests.test_forms.FormsTestCase)', 'BaseForm.__repr__() should contain some basic information about the', "BaseForm.__repr__() shouldn't trigger the form validation.", 'BoundField without any choices (subwidgets) evaluates to True.', 'test_boundfield_css_classes (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_empty_label (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_id_for_label (forms_tests.tests.test_forms.FormsTestCase)', 'If an id is provided in `Widget.attrs`, it overrides the generated ID,', 'Multiple calls to BoundField().value() in an unbound form should return', 'test_boundfield_invalid_index (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_label_tag (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_label_tag_custom_widget_id_for_label (forms_tests.tests.test_forms.FormsTestCase)', 'If a widget has no id, label_tag just returns the text with no', 'test_boundfield_slice (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_value_disabled_callable_initial (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_values (forms_tests.tests.test_forms.FormsTestCase)', 'test_changed_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_changing_cleaned_data_in_clean (forms_tests.tests.test_forms.FormsTestCase)', 'test_changing_cleaned_data_nothing_returned (forms_tests.tests.test_forms.FormsTestCase)', 'test_checkbox_auto_id (forms_tests.tests.test_forms.FormsTestCase)', 'test_class_prefix (forms_tests.tests.test_forms.FormsTestCase)', 'test_cleaned_data_only_fields (forms_tests.tests.test_forms.FormsTestCase)', 'test_custom_boundfield (forms_tests.tests.test_forms.FormsTestCase)', 'Form fields can customize what is considered as an empty value', 'test_datetime_changed_data_callable_with_microseconds (forms_tests.tests.test_forms.FormsTestCase)', 'test_dynamic_construction (forms_tests.tests.test_forms.FormsTestCase)', 'test_empty_data_files_multi_value_dict (forms_tests.tests.test_forms.FormsTestCase)', 'test_empty_permitted_and_use_required_attribute (forms_tests.tests.test_forms.FormsTestCase)', 'test_empty_querydict_args (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_list (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_list_class_has_one_class_specified (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_list_class_not_specified (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_list_with_non_field_errors_has_correct_class (forms_tests.tests.test_forms.FormsTestCase)', 'test_explicit_field_order (forms_tests.tests.test_forms.FormsTestCase)', 'test_extracting_hidden_and_visible (forms_tests.tests.test_forms.FormsTestCase)', 'test_field_deep_copy_error_messages (forms_tests.tests.test_forms.FormsTestCase)', '#5749 - `field_name` may be used as a key in _html_output().', 'BaseForm._html_output() should merge all the hidden input fields and', 'test_field_named_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_field_order (forms_tests.tests.test_forms.FormsTestCase)', '`css_classes` may be used as a key in _html_output() (class comes', '`css_classes` may be used as a key in _html_output() (empty classes).', 'test_filefield_initial_callable (forms_tests.tests.test_forms.FormsTestCase)', 'test_filefield_with_fileinput_required (forms_tests.tests.test_forms.FormsTestCase)', 'test_form (forms_tests.tests.test_forms.FormsTestCase)', 'test_form_html_attributes (forms_tests.tests.test_forms.FormsTestCase)', 'test_form_with_disabled_fields (forms_tests.tests.test_forms.FormsTestCase)', 'test_form_with_iterable_boundfield (forms_tests.tests.test_forms.FormsTestCase)', 'test_form_with_iterable_boundfield_id (forms_tests.tests.test_forms.FormsTestCase)', 'test_form_with_noniterable_boundfield (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_choices (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_multiple_choice (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_null_boolean (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_radio (forms_tests.tests.test_forms.FormsTestCase)', 'test_get_initial_for_field (forms_tests.tests.test_forms.FormsTestCase)', 'test_has_error (forms_tests.tests.test_forms.FormsTestCase)', 'test_hidden_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_hidden_initial_gets_id (forms_tests.tests.test_forms.FormsTestCase)', 'test_html_safe (forms_tests.tests.test_forms.FormsTestCase)', 'test_id_on_field (forms_tests.tests.test_forms.FormsTestCase)', 'test_initial_datetime_values (forms_tests.tests.test_forms.FormsTestCase)', 'test_iterable_boundfield_select (forms_tests.tests.test_forms.FormsTestCase)', '#17922 - required_css_class is added to the label_tag() of required fields.', 'test_label_split_datetime_not_displayed (forms_tests.tests.test_forms.FormsTestCase)', 'test_label_suffix (forms_tests.tests.test_forms.FormsTestCase)', 'BoundField label_suffix (if provided) overrides Form label_suffix', 'test_multipart_encoded_form (forms_tests.tests.test_forms.FormsTestCase)', 'test_multiple_choice_checkbox (forms_tests.tests.test_forms.FormsTestCase)', 'test_multiple_choice_list_data (forms_tests.tests.test_forms.FormsTestCase)', '#19298 -- MultiValueField needs to override the default as it needs', '#23674 -- invalid initial data should not break form.changed_data()', 'test_multivalue_optional_subfields (forms_tests.tests.test_forms.FormsTestCase)', 'test_optional_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_specifying_labels (forms_tests.tests.test_forms.FormsTestCase)', 'test_subclassing_forms (forms_tests.tests.test_forms.FormsTestCase)', 'test_unbound_form (forms_tests.tests.test_forms.FormsTestCase)', 'test_update_error_dict (forms_tests.tests.test_forms.FormsTestCase)', 'test_use_required_attribute_false (forms_tests.tests.test_forms.FormsTestCase)', 'test_use_required_attribute_true (forms_tests.tests.test_forms.FormsTestCase)', 'The list of form field validators can be modified without polluting', 'test_various_boolean_values (forms_tests.tests.test_forms.FormsTestCase)', 'test_widget_output (forms_tests.tests.test_forms.FormsTestCase)'], 'failure': ['test_basic_processing_in_view (forms_tests.tests.test_forms.FormsTestCase)', 'test_boundfield_widget_type (forms_tests.tests.test_forms.FormsTestCase)', 'test_callable_initial_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_dynamic_initial_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_empty_dict (forms_tests.tests.test_forms.FormsTestCase)', 'test_empty_permitted (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_dict (forms_tests.tests.test_forms.FormsTestCase)', '#21962 - adding html escape flag to ErrorDict', 'test_error_escaping (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_html_required_html_classes (forms_tests.tests.test_forms.FormsTestCase)', 'test_error_list_with_hidden_field_errors_has_correct_class (forms_tests.tests.test_forms.FormsTestCase)', 'test_errorlist_override (forms_tests.tests.test_forms.FormsTestCase)', 'test_escaping (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_file_fields (forms_tests.tests.test_forms.FormsTestCase)', 'test_forms_with_prefixes (forms_tests.tests.test_forms.FormsTestCase)', 'test_help_text (forms_tests.tests.test_forms.FormsTestCase)', 'test_hidden_widget (forms_tests.tests.test_forms.FormsTestCase)', 'test_html_output_with_hidden_input_field_errors (forms_tests.tests.test_forms.FormsTestCase)', 'test_initial_data (forms_tests.tests.test_forms.FormsTestCase)', 'test_multiple_hidden (forms_tests.tests.test_forms.FormsTestCase)', 'test_multivalue_field_validation (forms_tests.tests.test_forms.FormsTestCase)', 'test_only_hidden_fields (forms_tests.tests.test_forms.FormsTestCase)', 'test_templates_with_forms (forms_tests.tests.test_forms.FormsTestCase)', 'test_unicode_values (forms_tests.tests.test_forms.FormsTestCase)', 'test_validating_multiple_fields (forms_tests.tests.test_forms.FormsTestCase)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14631: resolved: False
+2026-02-22 11:39:53,792 - INFO - Attempting to stop container sweb.eval.django__django-14631.pydantic-deep...
+2026-02-22 11:40:08,993 - INFO - Attempting to remove container sweb.eval.django__django-14631.pydantic-deep...
+2026-02-22 11:40:09,015 - INFO - Container sweb.eval.django__django-14631.pydantic-deep removed.
+2026-02-22 11:40:09,015 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14631:latest...
+2026-02-22 11:40:09,217 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14631:latest removed.

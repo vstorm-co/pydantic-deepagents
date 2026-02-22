@@ -52,8 +52,8 @@ def format_task_message(instance: SWEBenchInstance) -> str:
         f"\n### Problem Statement\n\n{instance.problem_statement}",
     ]
 
-    if instance.hints_text:
-        parts.append(f"\n### Hints\n\n{instance.hints_text}")
+    # NOTE: hints_text is intentionally NOT included here.
+    # SWE-bench rules forbid using hints_text for official submissions.
 
     parts.append(
         "\n---\n"

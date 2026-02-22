@@ -1,0 +1,44 @@
+# django__django-15863
+
+**Repository**: django/django
+**Duration**: 603.7s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 30 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 7a5b28d159..1ce4315164 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -150,14 +150,18 @@ def floatformat(text, arg=-1):
+         elif last_char == "u":
+             use_l10n = False
+             arg = arg[:-1] or -1
+-    try:
+-        input_val = repr(text)
+-        d = Decimal(input_val)
+-    except InvalidOperation:
++    if isinstance(text, Decimal):
++        d = text
++        input_val = str(d)
++    else:
+         try:
+-            d = Decimal(str(float(text)))
+-        except (ValueError, InvalidOperation, TypeError):
+-            return ""
++            input_val = repr(text)
++            d = Decimal(input_val)
++        except InvalidOperation:
++            try:
++                d = Decimal(str(float(text)))
++            except (ValueError, InvalidOperation, TypeError):
++                return ""
+     try:
+         p = int(arg)
+     except ValueError:
+```

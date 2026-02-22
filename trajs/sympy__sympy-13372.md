@@ -1,0 +1,90 @@
+# sympy__sympy-13372
+
+**Repository**: sympy/sympy
+**Duration**: 602.5s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 76 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 2ad720d35a..f1fc986cf9 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,10 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++try:
++    from collections.abc import Mapping
++except ImportError:
++    from collections import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 15abd93e3a..db25b47319 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -14,6 +14,10 @@
+ from sympy.utilities.iterables import iterable
+ 
+ import collections
++try:
++    from collections.abc import MutableSet
++except ImportError:
++    from collections import MutableSet
+ 
+ 
+ class Tuple(Basic):
+@@ -268,7 +272,7 @@ def _sorted_args(self):
+         return tuple(sorted(self.args, key=default_sort_key))
+ 
+ 
+-class OrderedSet(collections.MutableSet):
++class OrderedSet(MutableSet):
+     def __init__(self, iterable=None):
+         if iterable:
+             self.map = collections.OrderedDict((item, None) for item in iterable)
+diff --git a/sympy/core/evalf.py b/sympy/core/evalf.py
+index 72a5fbae52..f34908710a 100644
+--- a/sympy/core/evalf.py
++++ b/sympy/core/evalf.py
+@@ -1301,12 +1301,16 @@ def evalf(x, prec, options):
+             elif re.is_number:
+                 re = re._to_mpmath(prec, allow_ints=False)._mpf_
+                 reprec = prec
++            else:
++                raise NotImplementedError
+             if im == 0:
+                 im = None
+                 imprec = None
+             elif im.is_number:
+                 im = im._to_mpmath(prec, allow_ints=False)._mpf_
+                 imprec = prec
++            else:
++                raise NotImplementedError
+             r = re, im, reprec, imprec
+         except AttributeError:
+             raise NotImplementedError
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index d5abe84da9..f424df5b70 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,10 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
+ import warnings
+ import sys
+```

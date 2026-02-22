@@ -1,0 +1,27 @@
+diff --git a/django/contrib/admin/filters.py b/django/contrib/admin/filters.py
+index d65e01d5e2..29a9435495 100644
+--- a/django/contrib/admin/filters.py
++++ b/django/contrib/admin/filters.py
+@@ -198,7 +198,7 @@ class RelatedFieldListFilter(FieldListFilter):
+         related_admin = model_admin.admin_site._registry.get(field.remote_field.model)
+         if related_admin is not None:
+             ordering = related_admin.get_ordering(request)
+-        return field.get_choices(include_blank=False, ordering=ordering)
++        return field.get_choices(include_blank=False, ordering=ordering or field.remote_field.model._meta.ordering)
+ 
+     def choices(self, changelist):
+         yield {
+@@ -419,4 +419,12 @@ FieldListFilter.register(lambda f: True, AllValuesFieldListFilter)
+ class RelatedOnlyFieldListFilter(RelatedFieldListFilter):
+     def field_choices(self, field, request, model_admin):
+         pk_qs = model_admin.get_queryset(request).distinct().values_list('%s__pk' % self.field_path, flat=True)
+-        return field.get_choices(include_blank=False, limit_choices_to={'pk__in': pk_qs})
++        ordering = ()
++        related_admin = model_admin.admin_site._registry.get(field.remote_field.model)
++        if related_admin is not None:
++            ordering = related_admin.get_ordering(request)
++        return field.get_choices(
++            include_blank=False,
++            limit_choices_to={'pk__in': pk_qs},
++            ordering=ordering or field.remote_field.model._meta.ordering,
++        )

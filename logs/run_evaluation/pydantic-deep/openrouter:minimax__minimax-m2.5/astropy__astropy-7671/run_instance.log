@@ -1,0 +1,74 @@
+2026-02-22 11:16:14,744 - INFO - Creating container for astropy__astropy-7671...
+2026-02-22 11:16:15,322 - INFO - Container for astropy__astropy-7671 created: 597688fe629e96136154e96e57cdc2f1e2fda0b17cc388402c1cebb49e032ddc
+2026-02-22 11:16:15,494 - INFO - Container for astropy__astropy-7671 started: 597688fe629e96136154e96e57cdc2f1e2fda0b17cc388402c1cebb49e032ddc
+2026-02-22 11:16:15,495 - INFO - Intermediate patch for astropy__astropy-7671 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7671/patch.diff, now applying to container...
+2026-02-22 11:16:15,851 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:16:15,988 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:16:16,119 - INFO - >>>>> Applied Patch:
+patching file astropy/utils/introspection.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 140 with fuzz 1.
+
+2026-02-22 11:16:16,900 - INFO - Git diff before:
+diff --git a/astropy/utils/introspection.py b/astropy/utils/introspection.py
+index 3e784f9fc..e0a36b8e2 100644
+--- a/astropy/utils/introspection.py
++++ b/astropy/utils/introspection.py
+@@ -6,7 +6,7 @@
+ import inspect
+ import types
+ import importlib
+-from distutils.version import LooseVersion
++from packaging.version import parse as parse_version
+ 
+ 
+ __all__ = ['resolve_name', 'minversion', 'find_current_module',
+@@ -140,9 +140,9 @@ def minversion(module, version, inclusive=True, version_path='__version__'):
+         have_version = resolve_name(module.__name__, version_path)
+ 
+     if inclusive:
+-        return LooseVersion(have_version) >= LooseVersion(version)
++        return parse_version(have_version) >= parse_version(version)
+     else:
+-        return LooseVersion(have_version) > LooseVersion(version)
++        return parse_version(have_version) > parse_version(version)
+ 
+ 
+ def find_current_module(depth=1, finddiff=False):
+2026-02-22 11:16:16,900 - INFO - Eval script for astropy__astropy-7671 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7671/eval.sh; copying to container...
+2026-02-22 11:16:25,428 - INFO - Test runtime: 8.42 seconds
+2026-02-22 11:16:25,428 - INFO - Test output for astropy__astropy-7671 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7671/test_output.txt
+2026-02-22 11:16:25,543 - INFO - Git diff after:
+diff --git a/astropy/utils/introspection.py b/astropy/utils/introspection.py
+index 3e784f9fc..e0a36b8e2 100644
+--- a/astropy/utils/introspection.py
++++ b/astropy/utils/introspection.py
+@@ -6,7 +6,7 @@
+ import inspect
+ import types
+ import importlib
+-from distutils.version import LooseVersion
++from packaging.version import parse as parse_version
+ 
+ 
+ __all__ = ['resolve_name', 'minversion', 'find_current_module',
+@@ -140,9 +140,9 @@ def minversion(module, version, inclusive=True, version_path='__version__'):
+         have_version = resolve_name(module.__name__, version_path)
+ 
+     if inclusive:
+-        return LooseVersion(have_version) >= LooseVersion(version)
++        return parse_version(have_version) >= parse_version(version)
+     else:
+-        return LooseVersion(have_version) > LooseVersion(version)
++        return parse_version(have_version) > parse_version(version)
+ 
+ 
+ def find_current_module(depth=1, finddiff=False):
+2026-02-22 11:16:25,543 - INFO - Grading answer for astropy__astropy-7671...
+2026-02-22 11:16:25,543 - INFO - report: {'astropy__astropy-7671': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/utils/tests/test_introspection.py::test_minversion'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/utils/tests/test_introspection.py::test_pkg_finder', 'astropy/utils/tests/test_introspection.py::test_find_current_mod', 'astropy/utils/tests/test_introspection.py::test_find_mod_objs'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-7671: resolved: True
+2026-02-22 11:16:25,544 - INFO - Attempting to stop container sweb.eval.astropy__astropy-7671.pydantic-deep...
+2026-02-22 11:16:40,774 - INFO - Attempting to remove container sweb.eval.astropy__astropy-7671.pydantic-deep...
+2026-02-22 11:16:40,913 - INFO - Container sweb.eval.astropy__astropy-7671.pydantic-deep removed.
+2026-02-22 11:16:40,913 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.astropy_1776_astropy-7671:latest...
+2026-02-22 11:16:41,009 - INFO - Image swebench/sweb.eval.x86_64.astropy_1776_astropy-7671:latest removed.

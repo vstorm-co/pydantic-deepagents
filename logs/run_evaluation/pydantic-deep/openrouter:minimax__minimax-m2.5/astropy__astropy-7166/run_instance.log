@@ -1,0 +1,153 @@
+2026-02-22 11:16:14,327 - INFO - Creating container for astropy__astropy-7166...
+2026-02-22 11:16:15,289 - INFO - Container for astropy__astropy-7166 created: 6fe7d6ec20365f7cf079a93198e9ade72b83b69e18c612e4c93aaec7ed1b0bbd
+2026-02-22 11:16:15,514 - INFO - Container for astropy__astropy-7166 started: 6fe7d6ec20365f7cf079a93198e9ade72b83b69e18c612e4c93aaec7ed1b0bbd
+2026-02-22 11:16:15,514 - INFO - Intermediate patch for astropy__astropy-7166 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7166/patch.diff, now applying to container...
+2026-02-22 11:16:15,793 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:16:15,981 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:16:16,121 - INFO - >>>>> Applied Patch:
+patching file astropy/extern/configobj/configobj.py
+patching file astropy/utils/misc.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 539 with fuzz 1.
+
+2026-02-22 11:16:16,831 - INFO - Git diff before:
+diff --git a/astropy/extern/configobj/configobj.py b/astropy/extern/configobj/configobj.py
+index 0c02b9b7a..4d09e95a5 100755
+--- a/astropy/extern/configobj/configobj.py
++++ b/astropy/extern/configobj/configobj.py
+@@ -17,6 +17,7 @@ import os
+ import re
+ import sys
+ import collections
++import collections.abc
+ 
+ from codecs import BOM_UTF8, BOM_UTF16, BOM_UTF16_BE, BOM_UTF16_LE
+ 
+@@ -594,7 +595,7 @@ class Section(dict):
+             if key not in self:
+                 self.sections.append(key)
+             dict.__setitem__(self, key, value)
+-        elif isinstance(value, collections.Mapping) and not unrepr:
++        elif isinstance(value, collections.abc.Mapping) and not unrepr:
+             # First create the new depth level,
+             # then create the section
+             if key not in self:
+@@ -801,8 +802,9 @@ class Section(dict):
+         ConfigObj({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
+         """
+         for key, val in list(indict.items()):
+-            if (key in self and isinstance(self[key], collections.Mapping) and
+-                                isinstance(val, collections.Mapping)):
++            if (key in self and isinstance(self[key], collections.abc.Mapping) and
++                                isinstance(val, collections.abc.Mapping)):
++                self[key].merge(val)
+                 self[key].merge(val)
+             else:
+                 self[key] = val
+@@ -2434,7 +2436,7 @@ def flatten_errors(cfg, res, levels=None, results=None):
+     for (key, val) in list(res.items()):
+         if val == True:
+             continue
+-        if isinstance(cfg.get(key), collections.Mapping):
++        if isinstance(cfg.get(key), collections.abc.Mapping):
+             # Go down one level
+             levels.append(key)
+             flatten_errors(cfg[key], val, levels, results)
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..30c20c859 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,7 +528,7 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
++            if ((inspect.isfunction(val) or isinstance(val, property)) and
+                 is_public_member(key) and
+                 val.__doc__ is None):
+                 for base in cls.__mro__[1:]:
+@@ -539,6 +539,8 @@ class InheritDocstrings(type):
+ 
+         super().__init__(name, bases, dct)
+ 
++        super().__init__(name, bases, dct)
++
+ 
+ class OrderedDescriptor(metaclass=abc.ABCMeta):
+     """
+2026-02-22 11:16:16,832 - INFO - Eval script for astropy__astropy-7166 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7166/eval.sh; copying to container...
+2026-02-22 11:16:25,402 - INFO - Test runtime: 8.46 seconds
+2026-02-22 11:16:25,402 - INFO - Test output for astropy__astropy-7166 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-7166/test_output.txt
+2026-02-22 11:16:25,536 - INFO - Git diff after:
+diff --git a/astropy/extern/configobj/configobj.py b/astropy/extern/configobj/configobj.py
+index 0c02b9b7a..4d09e95a5 100755
+--- a/astropy/extern/configobj/configobj.py
++++ b/astropy/extern/configobj/configobj.py
+@@ -17,6 +17,7 @@ import os
+ import re
+ import sys
+ import collections
++import collections.abc
+ 
+ from codecs import BOM_UTF8, BOM_UTF16, BOM_UTF16_BE, BOM_UTF16_LE
+ 
+@@ -594,7 +595,7 @@ class Section(dict):
+             if key not in self:
+                 self.sections.append(key)
+             dict.__setitem__(self, key, value)
+-        elif isinstance(value, collections.Mapping) and not unrepr:
++        elif isinstance(value, collections.abc.Mapping) and not unrepr:
+             # First create the new depth level,
+             # then create the section
+             if key not in self:
+@@ -801,8 +802,9 @@ class Section(dict):
+         ConfigObj({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
+         """
+         for key, val in list(indict.items()):
+-            if (key in self and isinstance(self[key], collections.Mapping) and
+-                                isinstance(val, collections.Mapping)):
++            if (key in self and isinstance(self[key], collections.abc.Mapping) and
++                                isinstance(val, collections.abc.Mapping)):
++                self[key].merge(val)
+                 self[key].merge(val)
+             else:
+                 self[key] = val
+@@ -2434,7 +2436,7 @@ def flatten_errors(cfg, res, levels=None, results=None):
+     for (key, val) in list(res.items()):
+         if val == True:
+             continue
+-        if isinstance(cfg.get(key), collections.Mapping):
++        if isinstance(cfg.get(key), collections.abc.Mapping):
+             # Go down one level
+             levels.append(key)
+             flatten_errors(cfg[key], val, levels, results)
+diff --git a/astropy/utils/misc.py b/astropy/utils/misc.py
+index de3fb01d1..30c20c859 100644
+--- a/astropy/utils/misc.py
++++ b/astropy/utils/misc.py
+@@ -528,7 +528,7 @@ class InheritDocstrings(type):
+                 not key.startswith('_'))
+ 
+         for key, val in dct.items():
+-            if (inspect.isfunction(val) and
++            if ((inspect.isfunction(val) or isinstance(val, property)) and
+                 is_public_member(key) and
+                 val.__doc__ is None):
+                 for base in cls.__mro__[1:]:
+@@ -539,6 +539,8 @@ class InheritDocstrings(type):
+ 
+         super().__init__(name, bases, dct)
+ 
++        super().__init__(name, bases, dct)
++
+ 
+ class OrderedDescriptor(metaclass=abc.ABCMeta):
+     """
+2026-02-22 11:16:25,536 - INFO - Grading answer for astropy__astropy-7166...
+2026-02-22 11:16:25,537 - INFO - report: {'astropy__astropy-7166': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['astropy/utils/tests/test_misc.py::test_inherit_docstrings'], 'failure': []}, 'PASS_TO_PASS': {'success': ['astropy/utils/tests/test_misc.py::test_isiterable', 'astropy/utils/tests/test_misc.py::test_signal_number_to_name_no_failure', 'astropy/utils/tests/test_misc.py::test_skip_hidden', 'astropy/utils/tests/test_misc.py::test_JsonCustomEncoder', 'astropy/utils/tests/test_misc.py::test_check_broadcast', 'astropy/utils/tests/test_misc.py::test_dtype_bytes_or_chars'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-7166: resolved: True
+2026-02-22 11:16:25,537 - INFO - Attempting to stop container sweb.eval.astropy__astropy-7166.pydantic-deep...
+2026-02-22 11:16:40,737 - INFO - Attempting to remove container sweb.eval.astropy__astropy-7166.pydantic-deep...
+2026-02-22 11:16:40,760 - INFO - Container sweb.eval.astropy__astropy-7166.pydantic-deep removed.
+2026-02-22 11:16:40,760 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.astropy_1776_astropy-7166:latest...
+2026-02-22 11:16:40,897 - INFO - Image swebench/sweb.eval.x86_64.astropy_1776_astropy-7166:latest removed.

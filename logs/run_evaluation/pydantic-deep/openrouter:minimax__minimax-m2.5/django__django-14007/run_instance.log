@@ -1,0 +1,82 @@
+2026-02-22 11:36:01,466 - INFO - Creating container for django__django-14007...
+2026-02-22 11:36:01,675 - INFO - Container for django__django-14007 created: 2d799a7fbefda86248c831a0a9cc1fd7aa07ab9c43015b8ee58d3ece5342fd4c
+2026-02-22 11:36:01,840 - INFO - Container for django__django-14007 started: 2d799a7fbefda86248c831a0a9cc1fd7aa07ab9c43015b8ee58d3ece5342fd4c
+2026-02-22 11:36:01,841 - INFO - Intermediate patch for django__django-14007 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14007/patch.diff, now applying to container...
+2026-02-22 11:36:02,100 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:36:02,203 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:36:02,291 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/compiler.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1412 with fuzz 1.
+
+2026-02-22 11:36:03,203 - INFO - Git diff before:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index f02199d97c..a298e6de55 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1412,13 +1412,18 @@ class SQLInsertCompiler(SQLCompiler):
+             if not self.returning_fields:
+                 return []
+             if self.connection.features.can_return_rows_from_bulk_insert and len(self.query.objs) > 1:
+-                return self.connection.ops.fetch_returned_insert_rows(cursor)
+-            if self.connection.features.can_return_columns_from_insert:
++                rows = self.connection.ops.fetch_returned_insert_rows(cursor)
++            elif self.connection.features.can_return_columns_from_insert:
+                 assert len(self.query.objs) == 1
+-                return [self.connection.ops.fetch_returned_insert_columns(cursor, self.returning_params)]
+-            return [(self.connection.ops.last_insert_id(
+-                cursor, self.query.get_meta().db_table, self.query.get_meta().pk.column
+-            ),)]
++                rows = [self.connection.ops.fetch_returned_insert_columns(cursor, self.returning_params)]
++            else:
++                rows = [(self.connection.ops.last_insert_id(
++                    cursor, self.query.get_meta().db_table, self.query.get_meta().pk.column
++                ),)]
++            converters = self.get_converters(self.returning_fields)
++            if converters:
++                rows = list(self.apply_converters(rows, converters))
++            return rows
+ 
+ 
+ class SQLDeleteCompiler(SQLCompiler):
+2026-02-22 11:36:03,204 - INFO - Eval script for django__django-14007 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14007/eval.sh; copying to container...
+2026-02-22 11:36:09,110 - INFO - Test runtime: 5.82 seconds
+2026-02-22 11:36:09,111 - INFO - Test output for django__django-14007 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14007/test_output.txt
+2026-02-22 11:36:09,202 - INFO - Git diff after:
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index f02199d97c..a298e6de55 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1412,13 +1412,18 @@ class SQLInsertCompiler(SQLCompiler):
+             if not self.returning_fields:
+                 return []
+             if self.connection.features.can_return_rows_from_bulk_insert and len(self.query.objs) > 1:
+-                return self.connection.ops.fetch_returned_insert_rows(cursor)
+-            if self.connection.features.can_return_columns_from_insert:
++                rows = self.connection.ops.fetch_returned_insert_rows(cursor)
++            elif self.connection.features.can_return_columns_from_insert:
+                 assert len(self.query.objs) == 1
+-                return [self.connection.ops.fetch_returned_insert_columns(cursor, self.returning_params)]
+-            return [(self.connection.ops.last_insert_id(
+-                cursor, self.query.get_meta().db_table, self.query.get_meta().pk.column
+-            ),)]
++                rows = [self.connection.ops.fetch_returned_insert_columns(cursor, self.returning_params)]
++            else:
++                rows = [(self.connection.ops.last_insert_id(
++                    cursor, self.query.get_meta().db_table, self.query.get_meta().pk.column
++                ),)]
++            converters = self.get_converters(self.returning_fields)
++            if converters:
++                rows = list(self.apply_converters(rows, converters))
++            return rows
+ 
+ 
+ class SQLDeleteCompiler(SQLCompiler):
+2026-02-22 11:36:09,202 - INFO - Grading answer for django__django-14007...
+2026-02-22 11:36:09,207 - INFO - report: {'django__django-14007': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_auto_field_subclass_create (custom_pk.tests.CustomPKTests)']}, 'PASS_TO_PASS': {'success': [], 'failure': ['Get can accept pk or the real attribute name', 'Custom pks work with in_bulk, both for integer and non-integer types', 'pk and attribute name are available on the model', 'Both pk and custom attribute_name can be used in filter and friends', "Custom pk doesn't affect related_name based lookups", 'Queries across tables, involving primary key', 'custom pks do not affect save', 'test_custom_field_pk (custom_pk.tests.CustomPKTests)', 'New objects can be created both with pk and the custom name', 'test_unicode_pk (custom_pk.tests.CustomPKTests)', 'test_unique_pk (custom_pk.tests.CustomPKTests)', 'test_zero_non_autoincrement_pk (custom_pk.tests.CustomPKTests)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14007: resolved: False
+2026-02-22 11:36:09,207 - INFO - Attempting to stop container sweb.eval.django__django-14007.pydantic-deep...
+2026-02-22 11:36:24,468 - INFO - Attempting to remove container sweb.eval.django__django-14007.pydantic-deep...
+2026-02-22 11:36:24,512 - INFO - Container sweb.eval.django__django-14007.pydantic-deep removed.
+2026-02-22 11:36:24,512 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14007:latest...
+2026-02-22 11:36:24,754 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14007:latest removed.

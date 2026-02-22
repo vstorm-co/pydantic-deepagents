@@ -1,0 +1,48 @@
+2026-02-22 12:38:21,616 - INFO - Creating container for sympy__sympy-14711...
+2026-02-22 12:38:21,852 - INFO - Container for sympy__sympy-14711 created: edb2376a1cdb83b2ca47b9e00df3db51552a654291fffc3312f9ad6628ca1c7f
+2026-02-22 12:38:22,192 - INFO - Container for sympy__sympy-14711 started: edb2376a1cdb83b2ca47b9e00df3db51552a654291fffc3312f9ad6628ca1c7f
+2026-02-22 12:38:22,204 - INFO - Intermediate patch for sympy__sympy-14711 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14711/patch.diff, now applying to container...
+2026-02-22 12:38:22,640 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:38:22,721 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:38:22,817 - INFO - >>>>> Applied Patch:
+patching file sympy/physics/vector/vector.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 57 with fuzz 2.
+
+2026-02-22 12:38:23,352 - INFO - Git diff before:
+diff --git a/sympy/physics/vector/vector.py b/sympy/physics/vector/vector.py
+index a048ee57f..884911921 100644
+--- a/sympy/physics/vector/vector.py
++++ b/sympy/physics/vector/vector.py
+@@ -57,6 +57,8 @@ def __hash__(self):
+ 
+     def __add__(self, other):
+         """The add operator for Vector. """
++        if other == 0:
++            return self
+         other = _check_vector(other)
+         return Vector(self.args + other.args)
+2026-02-22 12:38:23,353 - INFO - Eval script for sympy__sympy-14711 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14711/eval.sh; copying to container...
+2026-02-22 12:38:38,725 - INFO - Test runtime: 15.29 seconds
+2026-02-22 12:38:38,727 - INFO - Test output for sympy__sympy-14711 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-14711/test_output.txt
+2026-02-22 12:38:38,873 - INFO - Git diff after:
+diff --git a/sympy/physics/vector/vector.py b/sympy/physics/vector/vector.py
+index a048ee57f..884911921 100644
+--- a/sympy/physics/vector/vector.py
++++ b/sympy/physics/vector/vector.py
+@@ -57,6 +57,8 @@ def __hash__(self):
+ 
+     def __add__(self, other):
+         """The add operator for Vector. """
++        if other == 0:
++            return self
+         other = _check_vector(other)
+         return Vector(self.args + other.args)
+2026-02-22 12:38:38,873 - INFO - Grading answer for sympy__sympy-14711...
+2026-02-22 12:38:38,874 - INFO - report: {'sympy__sympy-14711': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Vector'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_Vector_diffs', 'test_vector_var_in_dcm'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-14711: resolved: True
+2026-02-22 12:38:38,874 - INFO - Attempting to stop container sweb.eval.sympy__sympy-14711.pydantic-deep...
+2026-02-22 12:38:54,124 - INFO - Attempting to remove container sweb.eval.sympy__sympy-14711.pydantic-deep...
+2026-02-22 12:38:54,153 - INFO - Container sweb.eval.sympy__sympy-14711.pydantic-deep removed.
+2026-02-22 12:38:54,153 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-14711:latest...
+2026-02-22 12:38:54,255 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-14711:latest removed.

@@ -1,0 +1,23 @@
+diff --git a/django/core/servers/basehttp.py b/django/core/servers/basehttp.py
+index fef5532e58..1a56a32931 100644
+--- a/django/core/servers/basehttp.py
++++ b/django/core/servers/basehttp.py
+@@ -147,6 +147,18 @@ class ServerHandler(simple_server.ServerHandler):
+         self.get_stdin().read()
+         super().close()
+ 
++    def write(self, data):
++        # The original wsgiref.simple_server.ServerHandler.write() sends the
++        # response body to the client. For HEAD requests, we don't want to
++        # send the body as per RFC 2616 section 4.3.
++        if self.environ["REQUEST_METHOD"] == "HEAD":
++            if not self.headers_sent:
++                self.bytes_sent = len(data)
++                self.send_headers()
++            else:
++                self.bytes_sent += len(data)
++        else:
++            super().write(data)
+ 
+ class WSGIRequestHandler(simple_server.WSGIRequestHandler):
+     protocol_version = "HTTP/1.1"

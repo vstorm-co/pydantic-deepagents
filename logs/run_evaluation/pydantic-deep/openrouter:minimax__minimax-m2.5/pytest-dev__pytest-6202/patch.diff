@@ -1,0 +1,13 @@
+diff --git a/src/_pytest/python.py b/src/_pytest/python.py
+index b8b365ad3..5f2af31e2 100644
+--- a/src/_pytest/python.py
++++ b/src/_pytest/python.py
+@@ -286,7 +286,7 @@ class PyobjMixin(PyobjContext):
+             parts.append(name)
+         parts.reverse()
+         s = ".".join(parts)
+-        return s.replace(".[", "[")
++        return s
+ 
+     def reportinfo(self):
+         # XXX caching?

@@ -1,0 +1,32 @@
+# scikit-learn__scikit-learn-25931
+
+**Repository**: scikit-learn/scikit-learn
+**Duration**: 791.5s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 18 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..2d79e4d79 100644
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -344,8 +344,12 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             self.offset_ = -0.5
+             return self
+ 
+-        # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++c5|        # Else, define offset_ wrt contamination parameter.
++        # Use _compute_chunked_score_samples to avoid redundant validation
++        # (X is already validated at this point).
++        self.offset_ = np.percentile(
++            -self._compute_chunked_score_samples(X), 100.0 * self.contamination
++        )
+ 
+         return self
+```

@@ -1,0 +1,179 @@
+2026-02-22 12:36:18,534 - INFO - Creating container for sympy__sympy-13372...
+2026-02-22 12:36:18,589 - INFO - Container for sympy__sympy-13372 created: 0ad4069cf8077d67b40ba6e8c7ecc05eb5e269c62f075d55c653610e5133ec86
+2026-02-22 12:36:18,850 - INFO - Container for sympy__sympy-13372 started: 0ad4069cf8077d67b40ba6e8c7ecc05eb5e269c62f075d55c653610e5133ec86
+2026-02-22 12:36:18,851 - INFO - Intermediate patch for sympy__sympy-13372 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13372/patch.diff, now applying to container...
+2026-02-22 12:36:19,040 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:36:19,194 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:36:19,350 - INFO - >>>>> Applied Patch:
+patching file sympy/core/basic.py
+patching file sympy/core/containers.py
+patching file sympy/core/evalf.py
+patching file sympy/plotting/plot.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 25 with fuzz 2.
+
+2026-02-22 12:36:19,895 - INFO - Git diff before:
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 2ad720d35..f1fc986cf 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,10 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++try:
++    from collections.abc import Mapping
++except ImportError:
++    from collections import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 15abd93e3..db25b4731 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -14,6 +14,10 @@
+ from sympy.utilities.iterables import iterable
+ 
+ import collections
++try:
++    from collections.abc import MutableSet
++except ImportError:
++    from collections import MutableSet
+ 
+ 
+ class Tuple(Basic):
+@@ -268,7 +272,7 @@ def _sorted_args(self):
+         return tuple(sorted(self.args, key=default_sort_key))
+ 
+ 
+-class OrderedSet(collections.MutableSet):
++class OrderedSet(MutableSet):
+     def __init__(self, iterable=None):
+         if iterable:
+             self.map = collections.OrderedDict((item, None) for item in iterable)
+diff --git a/sympy/core/evalf.py b/sympy/core/evalf.py
+index 72a5fbae5..f34908710 100644
+--- a/sympy/core/evalf.py
++++ b/sympy/core/evalf.py
+@@ -1301,12 +1301,16 @@ def evalf(x, prec, options):
+             elif re.is_number:
+                 re = re._to_mpmath(prec, allow_ints=False)._mpf_
+                 reprec = prec
++            else:
++                raise NotImplementedError
+             if im == 0:
+                 im = None
+                 imprec = None
+             elif im.is_number:
+                 im = im._to_mpmath(prec, allow_ints=False)._mpf_
+                 imprec = prec
++            else:
++                raise NotImplementedError
+             r = re, im, reprec, imprec
+         except AttributeError:
+             raise NotImplementedError
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index d5abe84da..f424df5b7 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,10 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
+ import warnings
+ import sys
+2026-02-22 12:36:19,895 - INFO - Eval script for sympy__sympy-13372 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13372/eval.sh; copying to container...
+2026-02-22 12:36:35,039 - INFO - Test runtime: 14.97 seconds
+2026-02-22 12:36:35,040 - INFO - Test output for sympy__sympy-13372 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13372/test_output.txt
+2026-02-22 12:36:35,126 - INFO - Git diff after:
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 2ad720d35..f1fc986cf 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,10 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++try:
++    from collections.abc import Mapping
++except ImportError:
++    from collections import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 15abd93e3..db25b4731 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -14,6 +14,10 @@
+ from sympy.utilities.iterables import iterable
+ 
+ import collections
++try:
++    from collections.abc import MutableSet
++except ImportError:
++    from collections import MutableSet
+ 
+ 
+ class Tuple(Basic):
+@@ -268,7 +272,7 @@ def _sorted_args(self):
+         return tuple(sorted(self.args, key=default_sort_key))
+ 
+ 
+-class OrderedSet(collections.MutableSet):
++class OrderedSet(MutableSet):
+     def __init__(self, iterable=None):
+         if iterable:
+             self.map = collections.OrderedDict((item, None) for item in iterable)
+diff --git a/sympy/core/evalf.py b/sympy/core/evalf.py
+index 72a5fbae5..f34908710 100644
+--- a/sympy/core/evalf.py
++++ b/sympy/core/evalf.py
+@@ -1301,12 +1301,16 @@ def evalf(x, prec, options):
+             elif re.is_number:
+                 re = re._to_mpmath(prec, allow_ints=False)._mpf_
+                 reprec = prec
++            else:
++                raise NotImplementedError
+             if im == 0:
+                 im = None
+                 imprec = None
+             elif im.is_number:
+                 im = im._to_mpmath(prec, allow_ints=False)._mpf_
+                 imprec = prec
++            else:
++                raise NotImplementedError
+             r = re, im, reprec, imprec
+         except AttributeError:
+             raise NotImplementedError
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index d5abe84da..f424df5b7 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,10 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
+ import warnings
+ import sys
+2026-02-22 12:36:35,126 - INFO - Grading answer for sympy__sympy-13372...
+2026-02-22 12:36:35,127 - INFO - report: {'sympy__sympy-13372': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_evalf_bugs'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_evalf_helpers', 'test_evalf_basic', 'test_cancellation', 'test_evalf_powers', 'test_evalf_rump', 'test_evalf_complex', 'test_evalf_complex_powers', 'test_evalf_exponentiation', 'test_evalf_complex_cancellation', 'test_evalf_logs', 'test_evalf_trig', 'test_evalf_near_integers', 'test_evalf_ramanujan', 'test_evalf_integer_parts', 'test_evalf_trig_zero_detection', 'test_evalf_sum', 'test_evalf_divergent_series', 'test_evalf_product', 'test_evalf_py_methods', 'test_evalf_power_subs_bugs', 'test_evalf_arguments', 'test_implemented_function_evalf', 'test_evaluate_false', 'test_evalf_relational', 'test_issue_5486', 'test_issue_5486_bug', 'test_bugs', 'test_subs', 'test_issue_4956_5204', 'test_old_docstring', 'test_evalf_mul', 'test_scaled_zero', 'test_chop_value', 'test_infinities', 'test_to_mpmath', 'test_issue_6632_evalf', 'test_issue_4945', 'test_evalf_integral', 'test_issue_8821_highprec_from_str', 'test_issue_8853', 'test_issue_9326', 'test_issue_10323', 'test_AssocOp_Function'], 'failure': ['test_issue_4806']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-13372: resolved: False
+2026-02-22 12:36:35,127 - INFO - Attempting to stop container sweb.eval.sympy__sympy-13372.pydantic-deep...
+2026-02-22 12:36:50,262 - INFO - Attempting to remove container sweb.eval.sympy__sympy-13372.pydantic-deep...
+2026-02-22 12:36:50,342 - INFO - Container sweb.eval.sympy__sympy-13372.pydantic-deep removed.
+2026-02-22 12:36:50,343 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-13372:latest...
+2026-02-22 12:36:51,411 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-13372:latest removed.

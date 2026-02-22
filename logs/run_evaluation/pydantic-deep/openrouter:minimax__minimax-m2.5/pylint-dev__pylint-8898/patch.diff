@@ -1,0 +1,73 @@
+diff --git a/pylint/config/argument.py b/pylint/config/argument.py
+index 30a5fd175..fc31e8f84 100644
+--- a/pylint/config/argument.py
++++ b/pylint/config/argument.py
+@@ -114,15 +114,66 @@ def _regex_transformer(value: str) -> Pattern[str]:
+ def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
+     """Transforms a comma separated list of regular expressions."""
+     patterns: list[Pattern[str]] = []
+-    for pattern in _csv_transformer(value):
++    for pattern in _parse_regex_csv(value):
+         patterns.append(_regex_transformer(pattern))
+     return patterns
+ 
+ 
++def _parse_regex_csv(value: str) -> list[str]:
++    """Split a comma-separated string of regular expressions.
++
++    This handles commas inside regex quantifiers (e.g., {1,3}) and
++    character classes (e.g., [a,b]) correctly.
++    """
++    result: list[str] = []
++    current = ""
++    in_character_class = False
++    in_quantifier = False
++    i = 0
++
++    while i < len(value):
++        char = value[i]
++
++        if char == "\\" and i + 1 < len(value):
++            # Escape sequence - include both the backslash and the next character
++            next_char = value[i + 1]
++            current += char + next_char
++            
++            # If the escaped character is [ or {, don't enter special mode later
++            # We handle this by advancing i past both characters
++            i += 2
++            continue
++
++        if char == "[" and not in_character_class:
++            in_character_class = True
++        elif char == "]" and in_character_class:
++            in_character_class = False
++        elif char == "{" and not in_character_class:
++            in_quantifier = True
++        elif char == "}" and in_quantifier:
++            in_quantifier = False
++        elif char == "," and not in_character_class and not in_quantifier:
++            # Split here
++            if current.strip():
++                result.append(current.strip())
++            current = ""
++            i += 1
++            continue
++
++        current += char
++        i += 1
++
++    # Add the last element
++    if current.strip():
++        result.append(current.strip())
++
++    return result
++
++
+ def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
+     """Transforms a comma separated list of regular expressions paths."""
+     patterns: list[Pattern[str]] = []
+-    for pattern in _csv_transformer(value):
++    for pattern in _parse_regex_csv(value):
+         patterns.append(
+             re.compile(
+                 str(pathlib.PureWindowsPath(pattern)).replace("\\", "\\\\")

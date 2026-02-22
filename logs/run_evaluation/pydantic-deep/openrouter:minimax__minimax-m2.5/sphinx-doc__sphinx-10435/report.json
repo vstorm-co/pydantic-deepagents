@@ -1,0 +1,103 @@
+{
+    "sphinx-doc__sphinx-10435": {
+        "patch_is_None": false,
+        "patch_exists": true,
+        "patch_successfully_applied": true,
+        "resolved": false,
+        "tests_status": {
+            "FAIL_TO_PASS": {
+                "success": [],
+                "failure": [
+                    "tests/test_build_latex.py::test_latex_code_role"
+                ]
+            },
+            "PASS_TO_PASS": {
+                "success": [],
+                "failure": [
+                    "tests/test_build_latex.py::test_writer",
+                    "tests/test_build_latex.py::test_latex_warnings",
+                    "tests/test_build_latex.py::test_latex_basic",
+                    "tests/test_build_latex.py::test_latex_basic_manual",
+                    "tests/test_build_latex.py::test_latex_basic_howto",
+                    "tests/test_build_latex.py::test_latex_basic_manual_ja",
+                    "tests/test_build_latex.py::test_latex_basic_howto_ja",
+                    "tests/test_build_latex.py::test_latex_theme",
+                    "tests/test_build_latex.py::test_latex_theme_papersize",
+                    "tests/test_build_latex.py::test_latex_theme_options",
+                    "tests/test_build_latex.py::test_latex_additional_settings_for_language_code",
+                    "tests/test_build_latex.py::test_latex_additional_settings_for_greek",
+                    "tests/test_build_latex.py::test_latex_title_after_admonitions",
+                    "tests/test_build_latex.py::test_latex_release",
+                    "tests/test_build_latex.py::test_numref",
+                    "tests/test_build_latex.py::test_numref_with_prefix1",
+                    "tests/test_build_latex.py::test_numref_with_prefix2",
+                    "tests/test_build_latex.py::test_numref_with_language_ja",
+                    "tests/test_build_latex.py::test_latex_obey_numfig_is_false",
+                    "tests/test_build_latex.py::test_latex_obey_numfig_secnum_depth_is_zero",
+                    "tests/test_build_latex.py::test_latex_obey_numfig_secnum_depth_is_two",
+                    "tests/test_build_latex.py::test_latex_obey_numfig_but_math_numfig_false",
+                    "tests/test_build_latex.py::test_latex_add_latex_package",
+                    "tests/test_build_latex.py::test_babel_with_no_language_settings",
+                    "tests/test_build_latex.py::test_babel_with_language_de",
+                    "tests/test_build_latex.py::test_babel_with_language_ru",
+                    "tests/test_build_latex.py::test_babel_with_language_tr",
+                    "tests/test_build_latex.py::test_babel_with_language_ja",
+                    "tests/test_build_latex.py::test_babel_with_unknown_language",
+                    "tests/test_build_latex.py::test_polyglossia_with_language_de",
+                    "tests/test_build_latex.py::test_polyglossia_with_language_de_1901",
+                    "tests/test_build_latex.py::test_footnote",
+                    "tests/test_build_latex.py::test_reference_in_caption_and_codeblock_in_footnote",
+                    "tests/test_build_latex.py::test_footnote_referred_multiple_times",
+                    "tests/test_build_latex.py::test_latex_show_urls_is_inline",
+                    "tests/test_build_latex.py::test_latex_show_urls_is_footnote",
+                    "tests/test_build_latex.py::test_latex_show_urls_is_no",
+                    "tests/test_build_latex.py::test_latex_show_urls_footnote_and_substitutions",
+                    "tests/test_build_latex.py::test_image_in_section",
+                    "tests/test_build_latex.py::test_latex_logo_if_not_found",
+                    "tests/test_build_latex.py::test_toctree_maxdepth_manual",
+                    "tests/test_build_latex.py::test_toctree_maxdepth_howto",
+                    "tests/test_build_latex.py::test_toctree_not_found",
+                    "tests/test_build_latex.py::test_toctree_without_maxdepth",
+                    "tests/test_build_latex.py::test_toctree_with_deeper_maxdepth",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_None",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_part",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_part_with_howto",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_chapter",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_chapter_with_howto",
+                    "tests/test_build_latex.py::test_latex_toplevel_sectioning_is_section",
+                    "tests/test_build_latex.py::test_latex_table_tabulars",
+                    "tests/test_build_latex.py::test_latex_table_longtable",
+                    "tests/test_build_latex.py::test_latex_table_complex_tables",
+                    "tests/test_build_latex.py::test_latex_table_custom_template_caseA",
+                    "tests/test_build_latex.py::test_latex_table_custom_template_caseB",
+                    "tests/test_build_latex.py::test_latex_table_custom_template_caseC",
+                    "tests/test_build_latex.py::test_latex_raw_directive",
+                    "tests/test_build_latex.py::test_latex_images",
+                    "tests/test_build_latex.py::test_latex_index",
+                    "tests/test_build_latex.py::test_latex_equations",
+                    "tests/test_build_latex.py::test_latex_image_in_parsed_literal",
+                    "tests/test_build_latex.py::test_latex_nested_enumerated_list",
+                    "tests/test_build_latex.py::test_latex_thebibliography",
+                    "tests/test_build_latex.py::test_latex_glossary",
+                    "tests/test_build_latex.py::test_latex_labels",
+                    "tests/test_build_latex.py::test_latex_figure_in_admonition",
+                    "tests/test_build_latex.py::test_default_latex_documents",
+                    "tests/test_build_latex.py::test_index_on_title",
+                    "tests/test_build_latex.py::test_texescape_for_non_unicode_supported_engine",
+                    "tests/test_build_latex.py::test_texescape_for_unicode_supported_engine",
+                    "tests/test_build_latex.py::test_latex_elements_extrapackages",
+                    "tests/test_build_latex.py::test_latex_nested_tables",
+                    "tests/test_build_latex.py::test_latex_container"
+                ]
+            },
+            "FAIL_TO_FAIL": {
+                "success": [],
+                "failure": []
+            },
+            "PASS_TO_FAIL": {
+                "success": [],
+                "failure": []
+            }
+        }
+    }
+}

@@ -1,0 +1,58 @@
+2026-02-22 11:40:16,592 - INFO - Creating container for django__django-14765...
+2026-02-22 11:40:16,739 - INFO - Container for django__django-14765 created: fe81c3767deb1783fe8814a53601e6b50148b6859fc9f68b2815be34e2555267
+2026-02-22 11:40:16,890 - INFO - Container for django__django-14765 started: fe81c3767deb1783fe8814a53601e6b50148b6859fc9f68b2815be34e2555267
+2026-02-22 11:40:16,891 - INFO - Intermediate patch for django__django-14765 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14765/patch.diff, now applying to container...
+2026-02-22 11:40:17,041 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:40:17,129 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:40:17,202 - INFO - >>>>> Applied Patch:
+patching file django/db/migrations/state.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 91 with fuzz 1.
+
+2026-02-22 11:40:17,924 - INFO - Git diff before:
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 088f5c41f0..37685fa6d9 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -91,10 +91,8 @@ class ProjectState:
+     def __init__(self, models=None, real_apps=None):
+         self.models = models or {}
+         # Apps to include from main registry, usually unmigrated ones
+-        if real_apps:
+-            self.real_apps = real_apps if isinstance(real_apps, set) else set(real_apps)
+-        else:
+-            self.real_apps = set()
++        assert real_apps is None or isinstance(real_apps, set)
++        self.real_apps = real_apps if real_apps else set()
+         self.is_delayed = False
+         # {remote_model_key: {model_key: [(field_name, field)]}}
+         self.relations = None
+2026-02-22 11:40:17,925 - INFO - Eval script for django__django-14765 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14765/eval.sh; copying to container...
+2026-02-22 11:40:23,939 - INFO - Test runtime: 5.93 seconds
+2026-02-22 11:40:23,940 - INFO - Test output for django__django-14765 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14765/test_output.txt
+2026-02-22 11:40:24,032 - INFO - Git diff after:
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 088f5c41f0..37685fa6d9 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -91,10 +91,8 @@ class ProjectState:
+     def __init__(self, models=None, real_apps=None):
+         self.models = models or {}
+         # Apps to include from main registry, usually unmigrated ones
+-        if real_apps:
+-            self.real_apps = real_apps if isinstance(real_apps, set) else set(real_apps)
+-        else:
+-            self.real_apps = set()
++        assert real_apps is None or isinstance(real_apps, set)
++        self.real_apps = real_apps if real_apps else set()
+         self.is_delayed = False
+         # {remote_model_key: {model_key: [(field_name, field)]}}
+         self.relations = None
+2026-02-22 11:40:24,032 - INFO - Grading answer for django__django-14765...
+2026-02-22 11:40:24,034 - INFO - report: {'django__django-14765': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_real_apps_non_set (migrations.test_state.StateTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_abstract_model_children_inherit_indexes (migrations.test_state.ModelStateTests)', 'test_bound_field_sanity_check (migrations.test_state.ModelStateTests)', 'Tests making a ProjectState from an Apps with a swappable model', 'A swappable model inheriting from a hierarchy:', 'Tests making a ProjectState from unused models with custom managers', 'test_custom_model_base (migrations.test_state.ModelStateTests)', 'test_explicit_index_name (migrations.test_state.ModelStateTests)', "Rendering a model state doesn't alter its internal fields.", 'test_fields_ordering_equality (migrations.test_state.ModelStateTests)', 'test_from_model_constraints (migrations.test_state.ModelStateTests)', 'test_order_with_respect_to_private_field (migrations.test_state.ModelStateTests)', 'test_repr (migrations.test_state.ModelStateTests)', 'test_sanity_check_through (migrations.test_state.ModelStateTests)', 'test_sanity_check_to (migrations.test_state.ModelStateTests)', 'test_sanity_index_name (migrations.test_state.ModelStateTests)', '#24573 - Adding relations to existing models should reload the', 'StateApps.bulk_update() should update apps.ready to False and reset', '#24483 - ProjectState.from_apps should not destructively consume', 'Tests making a ProjectState from an Apps', 'test_custom_base_manager (migrations.test_state.StateTests)', 'test_custom_default_manager (migrations.test_state.StateTests)', 'When the default manager of the model is a custom manager,', "When a manager is added with a name of 'objects' but it does not", 'test_dangling_references_throw_error (migrations.test_state.StateTests)', '== and != are implemented correctly.', "Makes sure ProjectState doesn't include OrderWrt fields when", '#24147 - Managers refer to the correct version of a', 'When a manager is added with `use_in_migrations = True` and a parent', 'Including real apps can resolve dangling FK errors.', 'test_reference_mixed_case_app_label (migrations.test_state.StateTests)', 'test_reload_model_relationship_consistency (migrations.test_state.StateTests)', 'The model is reloaded even on changes that are not involved in', '#24225 - Relations between models are updated while', 'Tests rendering a ProjectState into an Apps.', 'test_render_model_inheritance (migrations.test_state.StateTests)', 'test_render_model_with_multiple_inheritance (migrations.test_state.StateTests)', 'The ProjectState render method correctly renders models', "The ProjectState render method doesn't raise an", '#24513 - Modifying an object pointing to itself would cause it to be', 'test_abstract_base (migrations.test_state.RelatedModelsTests)', 'test_base (migrations.test_state.RelatedModelsTests)', 'test_base_to_base_fk (migrations.test_state.RelatedModelsTests)', 'test_base_to_subclass_fk (migrations.test_state.RelatedModelsTests)', 'test_circle (migrations.test_state.RelatedModelsTests)', 'test_direct_fk (migrations.test_state.RelatedModelsTests)', 'test_direct_hidden_fk (migrations.test_state.RelatedModelsTests)', 'test_direct_m2m (migrations.test_state.RelatedModelsTests)', 'test_direct_m2m_self (migrations.test_state.RelatedModelsTests)', 'test_fk_through_proxy (migrations.test_state.RelatedModelsTests)', 'test_generic_fk (migrations.test_state.RelatedModelsTests)', 'test_intermediate_m2m (migrations.test_state.RelatedModelsTests)', 'test_intermediate_m2m_base (migrations.test_state.RelatedModelsTests)', 'test_intermediate_m2m_extern_fk (migrations.test_state.RelatedModelsTests)', 'test_intermediate_m2m_self (migrations.test_state.RelatedModelsTests)', 'test_multiple_bases (migrations.test_state.RelatedModelsTests)', 'test_multiple_mixed_bases (migrations.test_state.RelatedModelsTests)', 'test_multiple_nested_bases (migrations.test_state.RelatedModelsTests)', 'test_nested_abstract_base (migrations.test_state.RelatedModelsTests)', 'test_nested_base (migrations.test_state.RelatedModelsTests)', 'test_nested_fk (migrations.test_state.RelatedModelsTests)', 'test_nested_proxy_base (migrations.test_state.RelatedModelsTests)', 'test_proxy_base (migrations.test_state.RelatedModelsTests)', 'test_two_sided (migrations.test_state.RelatedModelsTests)', 'test_unrelated (migrations.test_state.RelatedModelsTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14765: resolved: True
+2026-02-22 11:40:24,035 - INFO - Attempting to stop container sweb.eval.django__django-14765.pydantic-deep...
+2026-02-22 11:40:39,281 - INFO - Attempting to remove container sweb.eval.django__django-14765.pydantic-deep...
+2026-02-22 11:40:39,300 - INFO - Container sweb.eval.django__django-14765.pydantic-deep removed.
+2026-02-22 11:40:39,301 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14765:latest...
+2026-02-22 11:40:39,904 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14765:latest removed.

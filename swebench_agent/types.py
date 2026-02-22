@@ -55,6 +55,7 @@ class InstanceResult:
     duration_seconds: float = 0.0
     error: str | None = None
     tokens_used: int = 0
+    trajectory: str = ""  # Markdown trajectory of tool calls
 
 
 @dataclass
@@ -71,3 +72,5 @@ class RunConfig:
     temperature: float = 0.0
     cost_budget_usd: float | None = None
     model_settings: dict[str, Any] | None = None
+    image_template: str | None = None  # Docker image template, None = auto-detect
+    trajs_dir: str | None = None  # Directory for trajectory files (None = no saving)

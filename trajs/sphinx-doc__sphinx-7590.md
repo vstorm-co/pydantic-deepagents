@@ -1,0 +1,113 @@
+# sphinx-doc__sphinx-7590
+
+**Repository**: sphinx-doc/sphinx
+**Duration**: 607.2s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 99 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/setup.py b/setup.py
+index a427d5493..978e3d8e0 100644
+--- a/setup.py
++++ b/setup.py
+@@ -15,22 +15,22 @@ if sys.version_info < (3, 5):
+     sys.exit(1)
+ 
+ install_requires = [
+-    'sphinxcontrib-applehelp',
+-    'sphinxcontrib-devhelp',
++    'sphinxcontrib-applehelp<=1.0.7',
++    'sphinxcontrib-devhelp<=1.0.5',
+     'sphinxcontrib-jsmath',
+-    'sphinxcontrib-htmlhelp',
+-    'sphinxcontrib-serializinghtml',
+-    'sphinxcontrib-qthelp',
+-    'Jinja2>=2.3',
++    'sphinxcontrib-htmlhelp<=2.0.4',
++    'sphinxcontrib-serializinghtml<=1.1.9',
++    'sphinxcontrib-qthelp<=1.0.6',
++    'Jinja2<3.0',
+     'Pygments>=2.0',
+     'docutils>=0.12',
+     'snowballstemmer>=1.1',
+     'babel>=1.3',
+-    'alabaster>=0.7,<0.8',
++    'alabaster>=0.7,<0.7.12',
+     'imagesize',
+     'requests>=2.5.0',
+     'setuptools',
+-    'packaging',
++    'packaging', 'markupsafe<=2.0.1',
+ ]
+ 
+ extras_require = {
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d881d..6bfedec10 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -4664,12 +4664,19 @@ class DefinitionParser(BaseParser):
+             if self.match(regex):
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
+-                return ASTNumberLiteral(self.definition[pos:self.pos])
++                # Check for user-defined literal suffix
++                ud_suffix = ''
++                if self.match(identifier_re):
++                    ud_suffix = self.last_match.group(0)
++                return ASTNumberLiteral(self.definition[pos:self.pos] + ud_suffix)
+ 
+         string = self._parse_string()
+         if string is not None:
+-            return ASTStringLiteral(string)
+-
++            # Check for user-defined literal suffix
++            ud_suffix = ''
++            if self.match(identifier_re):
++                ud_suffix = self.last_match.group(0)
++            return ASTStringLiteral(string + ud_suffix)
+         # character-literal
+         if self.match(char_literal_re):
+             prefix = self.last_match.group(1)  # may be None when no prefix
+@@ -4681,8 +4688,22 @@ class DefinitionParser(BaseParser):
+             except UnsupportedMultiCharacterCharLiteral:
+                 self.fail("Can not handle character literal"
+                           " resulting in multiple decoded characters.")
++        if self.match(char_literal_re):
++            prefix = self.last_match.group(1)  # may be None when no prefix
++            data = self.last_match.group(2)
++            # Check for user-defined literal suffix
++            ud_suffix = ''
++            if self.match(identifier_re):
++                ud_suffix = self.last_match.group(0)
++            try:
++                return ASTCharLiteral(prefix, data + ud_suffix)
++            except UnicodeDecodeError as e:
++                self.fail("Can not handle character literal. Internal error was: %s" % e)
++            except UnsupportedMultiCharacterCharLiteral:
++                self.fail("Can not handle character literal"
++                          " resulting in multiple decoded characters.")
+ 
+-        # TODO: user-defined lit
++        return None
+         return None
+ 
+     def _parse_fold_or_paren_expression(self) -> ASTExpression:
+diff --git a/tox.ini b/tox.ini
+index d9f040544..bf39854b6 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -28,7 +28,7 @@ extras =
+ setenv =
+     PYTHONWARNINGS = all,ignore::ImportWarning:importlib._bootstrap_external,ignore::DeprecationWarning:site,ignore::DeprecationWarning:distutils
+ commands=
+-    pytest --durations 25 {posargs}
++    pytest -rA --durations 25 {posargs}
+ 
+ [testenv:flake8]
+ basepython = python3
+```

@@ -1,0 +1,48 @@
+2026-02-22 12:23:13,751 - INFO - Creating container for scikit-learn__scikit-learn-14141...
+2026-02-22 12:23:14,518 - INFO - Container for scikit-learn__scikit-learn-14141 created: 4c213e1a3aad26f6377188a1a62f8270662f9fb11d0df0161cc6a4cb2e7fce69
+2026-02-22 12:23:14,800 - INFO - Container for scikit-learn__scikit-learn-14141 started: 4c213e1a3aad26f6377188a1a62f8270662f9fb11d0df0161cc6a4cb2e7fce69
+2026-02-22 12:23:14,801 - INFO - Intermediate patch for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14141/patch.diff, now applying to container...
+2026-02-22 12:23:15,060 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:23:15,163 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:23:15,303 - INFO - >>>>> Applied Patch:
+patching file sklearn/utils/_show_versions.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 48 with fuzz 1.
+
+2026-02-22 12:23:15,708 - INFO - Git diff before:
+diff --git a/sklearn/utils/_show_versions.py b/sklearn/utils/_show_versions.py
+index e5d3141bf..ecba9ec68 100644
+--- a/sklearn/utils/_show_versions.py
++++ b/sklearn/utils/_show_versions.py
+@@ -48,6 +48,7 @@ def _get_deps_info():
+         "Cython",
+         "pandas",
+         "matplotlib",
++        "joblib",
+     ]
+ 
+     def get_version(module):
+2026-02-22 12:23:15,710 - INFO - Eval script for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14141/eval.sh; copying to container...
+2026-02-22 12:23:22,362 - INFO - Test runtime: 6.56 seconds
+2026-02-22 12:23:22,363 - INFO - Test output for scikit-learn__scikit-learn-14141 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-14141/test_output.txt
+2026-02-22 12:23:22,500 - INFO - Git diff after:
+diff --git a/sklearn/utils/_show_versions.py b/sklearn/utils/_show_versions.py
+index e5d3141bf..ecba9ec68 100644
+--- a/sklearn/utils/_show_versions.py
++++ b/sklearn/utils/_show_versions.py
+@@ -48,6 +48,7 @@ def _get_deps_info():
+         "Cython",
+         "pandas",
+         "matplotlib",
++        "joblib",
+     ]
+ 
+     def get_version(module):
+2026-02-22 12:23:22,500 - INFO - Grading answer for scikit-learn__scikit-learn-14141...
+2026-02-22 12:23:22,501 - INFO - report: {'scikit-learn__scikit-learn-14141': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['sklearn/utils/tests/test_show_versions.py::test_get_deps_info'], 'failure': []}, 'PASS_TO_PASS': {'success': ['sklearn/utils/tests/test_show_versions.py::test_get_sys_info', 'sklearn/utils/tests/test_show_versions.py::test_show_versions_with_blas'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-14141: resolved: True
+2026-02-22 12:23:22,502 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-14141.pydantic-deep...
+2026-02-22 12:23:37,724 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-14141.pydantic-deep...
+2026-02-22 12:23:37,743 - INFO - Container sweb.eval.scikit-learn__scikit-learn-14141.pydantic-deep removed.
+2026-02-22 12:23:37,743 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14141:latest...
+2026-02-22 12:23:37,844 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-14141:latest removed.

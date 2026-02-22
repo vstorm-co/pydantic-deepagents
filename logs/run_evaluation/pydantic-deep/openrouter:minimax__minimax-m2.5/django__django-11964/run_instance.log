@@ -1,0 +1,100 @@
+2026-02-22 11:25:19,831 - INFO - Creating container for django__django-11964...
+2026-02-22 11:25:20,063 - INFO - Container for django__django-11964 created: 1d70736f5f51171029d2430a00f01f4efad5a485dc30cac2c2fc4b6bb51e5db9
+2026-02-22 11:25:20,180 - INFO - Container for django__django-11964 started: 1d70736f5f51171029d2430a00f01f4efad5a485dc30cac2c2fc4b6bb51e5db9
+2026-02-22 11:25:20,180 - INFO - Intermediate patch for django__django-11964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11964/patch.diff, now applying to container...
+2026-02-22 11:25:20,354 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:25:20,439 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:25:20,521 - INFO - >>>>> Applied Patch:
+patching file django/db/models/fields/__init__.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 791 with fuzz 2.
+
+2026-02-22 11:25:21,127 - INFO - Git diff before:
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index d610dc86f0..6b057a5150 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -2,6 +2,12 @@ import collections.abc
+ import copy
+ import datetime
+ import decimal
++import enum
++import operator
++import uuid
++import copy
++import datetime
++import decimal
+ import operator
+ import uuid
+ import warnings
+@@ -785,12 +791,20 @@ class Field(RegisterLookupMixin):
+         return self.__class__.__name__
+ 
+     def pre_save(self, model_instance, add):
++        """Return field's value just before saving."""
++        value = getattr(model_instance, self.attname)
++        if isinstance(value, enum.Enum):
++            value = value.value
++            setattr(model_instance, self.attname, value)
++        return value
+         """Return field's value just before saving."""
+         return getattr(model_instance, self.attname)
+ 
+     def get_prep_value(self, value):
+         """Perform preliminary non-db specific value checks and conversions."""
+-        if isinstance(value, Promise):
++        if isinstance(value, enum.Enum):
++            value = value.value
++        elif isinstance(value, Promise):
+             value = value._proxy____cast()
+         return value
+2026-02-22 11:25:21,127 - INFO - Eval script for django__django-11964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11964/eval.sh; copying to container...
+2026-02-22 11:25:36,189 - INFO - Test runtime: 15.01 seconds
+2026-02-22 11:25:36,190 - INFO - Test output for django__django-11964 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11964/test_output.txt
+2026-02-22 11:25:36,289 - INFO - Git diff after:
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index d610dc86f0..6b057a5150 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -2,6 +2,12 @@ import collections.abc
+ import copy
+ import datetime
+ import decimal
++import enum
++import operator
++import uuid
++import copy
++import datetime
++import decimal
+ import operator
+ import uuid
+ import warnings
+@@ -785,12 +791,20 @@ class Field(RegisterLookupMixin):
+         return self.__class__.__name__
+ 
+     def pre_save(self, model_instance, add):
++        """Return field's value just before saving."""
++        value = getattr(model_instance, self.attname)
++        if isinstance(value, enum.Enum):
++            value = value.value
++            setattr(model_instance, self.attname, value)
++        return value
+         """Return field's value just before saving."""
+         return getattr(model_instance, self.attname)
+ 
+     def get_prep_value(self, value):
+         """Perform preliminary non-db specific value checks and conversions."""
+-        if isinstance(value, Promise):
++        if isinstance(value, enum.Enum):
++            value = value.value
++        elif isinstance(value, Promise):
+             value = value._proxy____cast()
+         return value
+2026-02-22 11:25:36,289 - INFO - Grading answer for django__django-11964...
+2026-02-22 11:25:36,290 - INFO - report: {'django__django-11964': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_str (model_enums.tests.ChoicesTests)', 'test_textchoices (model_enums.tests.ChoicesTests)']}, 'PASS_TO_PASS': {'success': ['test_integerchoices (model_enums.tests.ChoicesTests)', 'test_integerchoices_auto_label (model_enums.tests.ChoicesTests)', 'test_integerchoices_containment (model_enums.tests.ChoicesTests)', 'test_integerchoices_empty_label (model_enums.tests.ChoicesTests)', 'test_integerchoices_functional_api (model_enums.tests.ChoicesTests)', 'test_invalid_definition (model_enums.tests.ChoicesTests)', 'test_textchoices_auto_label (model_enums.tests.ChoicesTests)', 'test_textchoices_blank_value (model_enums.tests.ChoicesTests)', 'test_textchoices_containment (model_enums.tests.ChoicesTests)', 'test_textchoices_empty_label (model_enums.tests.ChoicesTests)', 'test_textchoices_functional_api (model_enums.tests.ChoicesTests)', 'test_bool_unsupported (model_enums.tests.CustomChoicesTests)', 'test_labels_valid (model_enums.tests.CustomChoicesTests)', 'test_timezone_unsupported (model_enums.tests.CustomChoicesTests)', 'test_uuid_unsupported (model_enums.tests.CustomChoicesTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11964: resolved: False
+2026-02-22 11:25:36,291 - INFO - Attempting to stop container sweb.eval.django__django-11964.pydantic-deep...
+2026-02-22 11:25:51,514 - INFO - Attempting to remove container sweb.eval.django__django-11964.pydantic-deep...
+2026-02-22 11:25:51,538 - INFO - Container sweb.eval.django__django-11964.pydantic-deep removed.
+2026-02-22 11:25:51,539 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11964:latest...
+2026-02-22 11:25:51,688 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11964:latest removed.

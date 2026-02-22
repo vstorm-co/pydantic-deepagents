@@ -1,0 +1,50 @@
+2026-02-22 11:26:36,430 - INFO - Creating container for django__django-12262...
+2026-02-22 11:26:36,526 - INFO - Container for django__django-12262 created: 4c976d83559666c9f89a2d01f145e848b7d7807ea6853494bc672353ff94c1ed
+2026-02-22 11:26:36,676 - INFO - Container for django__django-12262 started: 4c976d83559666c9f89a2d01f145e848b7d7807ea6853494bc672353ff94c1ed
+2026-02-22 11:26:36,676 - INFO - Intermediate patch for django__django-12262 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12262/patch.diff, now applying to container...
+2026-02-22 11:26:36,909 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:26:37,022 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:26:37,108 - INFO - >>>>> Applied Patch:
+patching file django/template/library.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 261 with fuzz 1.
+
+2026-02-22 11:26:37,822 - INFO - Git diff before:
+diff --git a/django/template/library.py b/django/template/library.py
+index 20bc86dac8..2f74556268 100644
+--- a/django/template/library.py
++++ b/django/template/library.py
+@@ -261,7 +261,7 @@ def parse_bits(parser, bits, params, varargs, varkw, defaults,
+         if kwarg:
+             # The kwarg was successfully extracted
+             param, value = kwarg.popitem()
+-            if param not in params and param not in unhandled_kwargs and varkw is None:
++            if param not in params and param not in kwonly and varkw is None:
+                 # An unexpected keyword argument was supplied
+                 raise TemplateSyntaxError(
+                     "'%s' received unexpected keyword argument '%s'" %
+2026-02-22 11:26:37,823 - INFO - Eval script for django__django-12262 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12262/eval.sh; copying to container...
+2026-02-22 11:26:51,273 - INFO - Test runtime: 13.38 seconds
+2026-02-22 11:26:51,274 - INFO - Test output for django__django-12262 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12262/test_output.txt
+2026-02-22 11:26:51,372 - INFO - Git diff after:
+diff --git a/django/template/library.py b/django/template/library.py
+index 20bc86dac8..2f74556268 100644
+--- a/django/template/library.py
++++ b/django/template/library.py
+@@ -261,7 +261,7 @@ def parse_bits(parser, bits, params, varargs, varkw, defaults,
+         if kwarg:
+             # The kwarg was successfully extracted
+             param, value = kwarg.popitem()
+-            if param not in params and param not in unhandled_kwargs and varkw is None:
++            if param not in params and param not in kwonly and varkw is None:
+                 # An unexpected keyword argument was supplied
+                 raise TemplateSyntaxError(
+                     "'%s' received unexpected keyword argument '%s'" %
+2026-02-22 11:26:51,372 - INFO - Grading answer for django__django-12262...
+2026-02-22 11:26:51,372 - INFO - report: {'django__django-12262': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_inclusion_tag_errors (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tags (template_tests.test_custom.InclusionTagTests)', 'test_simple_tag_errors (template_tests.test_custom.SimpleTagTests)', 'test_simple_tags (template_tests.test_custom.SimpleTagTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_decorated_filter (template_tests.test_custom.CustomFilterTests)', 'test_filter (template_tests.test_custom.CustomFilterTests)', 'test_15070_use_l10n (template_tests.test_custom.InclusionTagTests)', 'test_include_tag_missing_context (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tag_registration (template_tests.test_custom.InclusionTagTests)', 'test_inclusion_tags_from_template (template_tests.test_custom.InclusionTagTests)', 'test_no_render_side_effect (template_tests.test_custom.InclusionTagTests)', 'test_render_context_is_cleared (template_tests.test_custom.InclusionTagTests)', 'test_simple_tag_escaping_autoescape_off (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_explicit_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_format_html_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_missing_context (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_naive_escaping (template_tests.test_custom.SimpleTagTests)', 'test_simple_tag_registration (template_tests.test_custom.SimpleTagTests)', 'test_load_annotated_function (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_error (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_error_egg (template_tests.test_custom.TemplateTagLoadingTests)', 'test_load_working_egg (template_tests.test_custom.TemplateTagLoadingTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12262: resolved: True
+2026-02-22 11:26:51,373 - INFO - Attempting to stop container sweb.eval.django__django-12262.pydantic-deep...
+2026-02-22 11:27:06,585 - INFO - Attempting to remove container sweb.eval.django__django-12262.pydantic-deep...
+2026-02-22 11:27:06,604 - INFO - Container sweb.eval.django__django-12262.pydantic-deep removed.
+2026-02-22 11:27:06,604 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-12262:latest...
+2026-02-22 11:27:06,765 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-12262:latest removed.

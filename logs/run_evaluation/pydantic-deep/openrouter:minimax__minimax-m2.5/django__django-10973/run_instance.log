@@ -1,0 +1,174 @@
+2026-02-22 11:17:58,052 - INFO - Creating container for django__django-10973...
+2026-02-22 11:17:58,534 - INFO - Container for django__django-10973 created: 5136ea8dadcdc48e7bd9b53282a6f38d5f19073fbda44456d1a7b8942431a855
+2026-02-22 11:17:58,710 - INFO - Container for django__django-10973 started: 5136ea8dadcdc48e7bd9b53282a6f38d5f19073fbda44456d1a7b8942431a855
+2026-02-22 11:17:58,711 - INFO - Intermediate patch for django__django-10973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10973/patch.diff, now applying to container...
+2026-02-22 11:17:58,969 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:17:59,051 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:17:59,256 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/postgresql/client.py
+patch unexpectedly ends in middle of line
+Hunk #3 succeeded at 25 with fuzz 1.
+
+2026-02-22 11:18:00,596 - INFO - Git diff before:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 7fca6eff30..0e22355b69 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -2,17 +2,9 @@ import os
+ import signal
+ import subprocess
+ 
+-from django.core.files.temp import NamedTemporaryFile
+ from django.db.backends.base.client import BaseDatabaseClient
+ 
+ 
+-def _escape_pgpass(txt):
+-    """
+-    Escape a fragment of a PostgreSQL .pgpass file.
+-    """
+-    return txt.replace('\\', '\\\\').replace(':', '\\:')
+-
+-
+ class DatabaseClient(BaseDatabaseClient):
+     executable_name = 'psql'
+ 
+@@ -24,7 +16,6 @@ class DatabaseClient(BaseDatabaseClient):
+         port = conn_params.get('port', '')
+         dbname = conn_params.get('database', '')
+         user = conn_params.get('user', '')
+-        passwd = conn_params.get('password', '')
+ 
+         if user:
+             args += ['-U', user]
+@@ -34,38 +25,19 @@ class DatabaseClient(BaseDatabaseClient):
+             args += ['-p', str(port)]
+         args += [dbname]
+ 
+-        temp_pgpass = None
++        env = os.environ.copy()
++        password = conn_params.get('password', '')
++        if password:
++            env['PGPASSWORD'] = str(password)
++
+         sigint_handler = signal.getsignal(signal.SIGINT)
+         try:
+-            if passwd:
+-                # Create temporary .pgpass file.
+-                temp_pgpass = NamedTemporaryFile(mode='w+')
+-                try:
+-                    print(
+-                        _escape_pgpass(host) or '*',
+-                        str(port) or '*',
+-                        _escape_pgpass(dbname) or '*',
+-                        _escape_pgpass(user) or '*',
+-                        _escape_pgpass(passwd),
+-                        file=temp_pgpass,
+-                        sep=':',
+-                        flush=True,
+-                    )
+-                    os.environ['PGPASSFILE'] = temp_pgpass.name
+-                except UnicodeEncodeError:
+-                    # If the current locale can't encode the data, let the
+-                    # user input the password manually.
+-                    pass
+             # Allow SIGINT to pass to psql to abort queries.
+             signal.signal(signal.SIGINT, signal.SIG_IGN)
+-            subprocess.check_call(args)
++            subprocess.run(args, env=env)
+         finally:
+             # Restore the original SIGINT handler.
+             signal.signal(signal.SIGINT, sigint_handler)
+-            if temp_pgpass:
+-                temp_pgpass.close()
+-                if 'PGPASSFILE' in os.environ:  # unit tests need cleanup
+-                    del os.environ['PGPASSFILE']
+ 
+     def runshell(self):
+         DatabaseClient.runshell_db(self.connection.get_connection_params())
+2026-02-22 11:18:00,597 - INFO - Eval script for django__django-10973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10973/eval.sh; copying to container...
+2026-02-22 11:18:15,473 - INFO - Test runtime: 14.78 seconds
+2026-02-22 11:18:15,473 - INFO - Test output for django__django-10973 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10973/test_output.txt
+2026-02-22 11:18:15,603 - INFO - Git diff after:
+diff --git a/django/db/backends/postgresql/client.py b/django/db/backends/postgresql/client.py
+index 7fca6eff30..0e22355b69 100644
+--- a/django/db/backends/postgresql/client.py
++++ b/django/db/backends/postgresql/client.py
+@@ -2,17 +2,9 @@ import os
+ import signal
+ import subprocess
+ 
+-from django.core.files.temp import NamedTemporaryFile
+ from django.db.backends.base.client import BaseDatabaseClient
+ 
+ 
+-def _escape_pgpass(txt):
+-    """
+-    Escape a fragment of a PostgreSQL .pgpass file.
+-    """
+-    return txt.replace('\\', '\\\\').replace(':', '\\:')
+-
+-
+ class DatabaseClient(BaseDatabaseClient):
+     executable_name = 'psql'
+ 
+@@ -24,7 +16,6 @@ class DatabaseClient(BaseDatabaseClient):
+         port = conn_params.get('port', '')
+         dbname = conn_params.get('database', '')
+         user = conn_params.get('user', '')
+-        passwd = conn_params.get('password', '')
+ 
+         if user:
+             args += ['-U', user]
+@@ -34,38 +25,19 @@ class DatabaseClient(BaseDatabaseClient):
+             args += ['-p', str(port)]
+         args += [dbname]
+ 
+-        temp_pgpass = None
++        env = os.environ.copy()
++        password = conn_params.get('password', '')
++        if password:
++            env['PGPASSWORD'] = str(password)
++
+         sigint_handler = signal.getsignal(signal.SIGINT)
+         try:
+-            if passwd:
+-                # Create temporary .pgpass file.
+-                temp_pgpass = NamedTemporaryFile(mode='w+')
+-                try:
+-                    print(
+-                        _escape_pgpass(host) or '*',
+-                        str(port) or '*',
+-                        _escape_pgpass(dbname) or '*',
+-                        _escape_pgpass(user) or '*',
+-                        _escape_pgpass(passwd),
+-                        file=temp_pgpass,
+-                        sep=':',
+-                        flush=True,
+-                    )
+-                    os.environ['PGPASSFILE'] = temp_pgpass.name
+-                except UnicodeEncodeError:
+-                    # If the current locale can't encode the data, let the
+-                    # user input the password manually.
+-                    pass
+             # Allow SIGINT to pass to psql to abort queries.
+             signal.signal(signal.SIGINT, signal.SIG_IGN)
+-            subprocess.check_call(args)
++            subprocess.run(args, env=env)
+         finally:
+             # Restore the original SIGINT handler.
+             signal.signal(signal.SIGINT, sigint_handler)
+-            if temp_pgpass:
+-                temp_pgpass.close()
+-                if 'PGPASSFILE' in os.environ:  # unit tests need cleanup
+-                    del os.environ['PGPASSFILE']
+ 
+     def runshell(self):
+         DatabaseClient.runshell_db(self.connection.get_connection_params())
+2026-02-22 11:18:15,604 - INFO - Grading answer for django__django-10973...
+2026-02-22 11:18:15,604 - INFO - report: {'django__django-10973': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)', 'SIGINT is ignored in Python and passed to psql to abort quries.'], 'failure': []}, 'PASS_TO_PASS': {'success': [], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-10973: resolved: True
+2026-02-22 11:18:15,604 - INFO - Attempting to stop container sweb.eval.django__django-10973.pydantic-deep...
+2026-02-22 11:18:30,955 - INFO - Attempting to remove container sweb.eval.django__django-10973.pydantic-deep...
+2026-02-22 11:18:31,007 - INFO - Container sweb.eval.django__django-10973.pydantic-deep removed.
+2026-02-22 11:18:31,007 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-10973:latest...
+2026-02-22 11:18:31,295 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-10973:latest removed.

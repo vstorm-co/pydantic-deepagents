@@ -1,0 +1,16 @@
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index ae0f886107..48a4a56f67 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -87,7 +87,10 @@ class Q(tree.Node):
+         args, kwargs = (), {}
+         if len(self.children) == 1 and not isinstance(self.children[0], Q):
+             child = self.children[0]
+-            kwargs = {child[0]: child[1]}
++            if isinstance(child, tuple) and len(child) == 2:
++                kwargs = {child[0]: child[1]}
++            else:
++                args = (child,)
+         else:
+             args = tuple(self.children)
+             if self.connector != self.default:

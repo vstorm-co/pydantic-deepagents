@@ -1,0 +1,78 @@
+2026-02-22 12:41:24,829 - INFO - Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 275, in _raise_for_status
+    response.raise_for_status()
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http+docker://localhost/v1.53/images/swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest/json
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/swebench/harness/docker_build.py", line 496, in build_container
+    client.images.get(test_spec.instance_image_key)
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/models/images.py", line 333, in get
+    return self.prepare_model(self.client.api.inspect_image(name))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/utils/decorators.py", line 19, in wrapped
+    return f(self, resource_id, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/image.py", line 251, in inspect_image
+    return self._result(
+           ^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 281, in _result
+    self._raise_for_status(response)
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 277, in _raise_for_status
+    raise create_api_error_from_http_exception(e) from e
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/errors.py", line 39, in create_api_error_from_http_exception
+    raise cls(e, response=response, explanation=explanation) from e
+docker.errors.ImageNotFound: 404 Client Error for http+docker://localhost/v1.53/images/swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest/json: Not Found ("No such image: swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest")
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 275, in _raise_for_status
+    response.raise_for_status()
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http+docker://localhost/v1.53/images/swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest/json
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/swebench/harness/docker_build.py", line 499, in build_container
+    client.images.pull(test_spec.instance_image_key)
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/models/images.py", line 474, in pull
+    return self.get(f'{repository}{sep}{tag}')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/models/images.py", line 333, in get
+    return self.prepare_model(self.client.api.inspect_image(name))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/utils/decorators.py", line 19, in wrapped
+    return f(self, resource_id, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/image.py", line 251, in inspect_image
+    return self._result(
+           ^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 281, in _result
+    self._raise_for_status(response)
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/api/client.py", line 277, in _raise_for_status
+    raise create_api_error_from_http_exception(e) from e
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/docker/errors.py", line 39, in create_api_error_from_http_exception
+    raise cls(e, response=response, explanation=explanation) from e
+docker.errors.ImageNotFound: 404 Client Error for http+docker://localhost/v1.53/images/swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest/json: Not Found ("No such image: swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/swebench/harness/run_evaluation.py", line 152, in run_instance
+    container = build_container(
+                ^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/swebench/harness/docker_build.py", line 501, in build_container
+    raise BuildImageError(test_spec.instance_id, str(e), logger) from e
+swebench.harness.docker_build.BuildImageError: Error building image sympy__sympy-24213: 404 Client Error for http+docker://localhost/v1.53/images/swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest/json: Not Found ("No such image: swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest")
+Check (logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-24213/run_instance.log) for more information.
+
+2026-02-22 12:41:24,830 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest...
+2026-02-22 12:41:24,836 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-24213:latest not found, removing has no effect.

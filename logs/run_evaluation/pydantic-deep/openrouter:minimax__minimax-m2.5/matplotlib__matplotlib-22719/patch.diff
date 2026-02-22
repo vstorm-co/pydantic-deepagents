@@ -1,0 +1,15 @@
+diff --git a/lib/matplotlib/category.py b/lib/matplotlib/category.py
+index c823b68fd9..8e75eb67b3 100644
+--- a/lib/matplotlib/category.py
++++ b/lib/matplotlib/category.py
+@@ -53,6 +53,10 @@ class StrCategoryConverter(units.ConversionInterface):
+         StrCategoryConverter._validate_unit(unit)
+         # dtype = object preserves numerical pass throughs
+         values = np.atleast_1d(np.array(value, dtype=object))
++        # Only check for numlike values if there are values to check;
++        # empty arrays are not "numlike".
++        if values.size == 0:
++            return np.array([], dtype=float)
+         # pass through sequence of non binary numbers
+         with _api.suppress_matplotlib_deprecation_warning():
+             is_numlike = all(units.ConversionInterface.is_numlike(v)

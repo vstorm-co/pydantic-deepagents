@@ -1,0 +1,50 @@
+2026-02-22 11:32:50,240 - INFO - Creating container for django__django-13512...
+2026-02-22 11:32:50,526 - INFO - Container for django__django-13512 created: a0185e0d4a5ffbf3e2782e88753d5182bfd60d9435b9292d56d0d057152dca24
+2026-02-22 11:32:50,630 - INFO - Container for django__django-13512 started: a0185e0d4a5ffbf3e2782e88753d5182bfd60d9435b9292d56d0d057152dca24
+2026-02-22 11:32:50,630 - INFO - Intermediate patch for django__django-13512 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13512/patch.diff, now applying to container...
+2026-02-22 11:32:50,755 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:32:50,823 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:32:50,896 - INFO - >>>>> Applied Patch:
+patching file django/forms/fields.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1258 with fuzz 1.
+
+2026-02-22 11:32:51,706 - INFO - Git diff before:
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index 9de2c60b35..8235aaac01 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -1258,7 +1258,7 @@ class JSONField(CharField):
+     def prepare_value(self, value):
+         if isinstance(value, InvalidJSONInput):
+             return value
+-        return json.dumps(value, cls=self.encoder)
++        return json.dumps(value, cls=self.encoder, ensure_ascii=False)
+ 
+     def has_changed(self, initial, data):
+         if super().has_changed(initial, data):
+2026-02-22 11:32:51,707 - INFO - Eval script for django__django-13512 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13512/eval.sh; copying to container...
+2026-02-22 11:33:05,674 - INFO - Test runtime: 13.90 seconds
+2026-02-22 11:33:05,675 - INFO - Test output for django__django-13512 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13512/test_output.txt
+2026-02-22 11:33:05,781 - INFO - Git diff after:
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index 9de2c60b35..8235aaac01 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -1258,7 +1258,7 @@ class JSONField(CharField):
+     def prepare_value(self, value):
+         if isinstance(value, InvalidJSONInput):
+             return value
+-        return json.dumps(value, cls=self.encoder)
++        return json.dumps(value, cls=self.encoder, ensure_ascii=False)
+ 
+     def has_changed(self, initial, data):
+         if super().has_changed(initial, data):
+2026-02-22 11:33:05,782 - INFO - Grading answer for django__django-13512...
+2026-02-22 11:33:05,783 - INFO - report: {'django__django-13512': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_prepare_value (forms_tests.field_tests.test_jsonfield.JSONFieldTest)'], 'failure': ['test_json_display_for_field (admin_utils.tests.UtilsTests)', 'test_label_for_field (admin_utils.tests.UtilsTests)']}, 'PASS_TO_PASS': {'success': ['test_cyclic (admin_utils.tests.NestedObjectsTests)', 'test_non_added_parent (admin_utils.tests.NestedObjectsTests)', 'test_on_delete_do_nothing (admin_utils.tests.NestedObjectsTests)', 'test_queries (admin_utils.tests.NestedObjectsTests)', 'test_relation_on_abstract (admin_utils.tests.NestedObjectsTests)', 'test_siblings (admin_utils.tests.NestedObjectsTests)', 'test_unrelated_roots (admin_utils.tests.NestedObjectsTests)', 'test_converted_value (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_custom_encoder_decoder (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'The widget can be overridden with an attribute.', 'test_custom_widget_kwarg (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_formfield_disabled (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_has_changed (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_invalid (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_redisplay_wrong_input (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_valid (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_valid_empty (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_widget (forms_tests.field_tests.test_jsonfield.JSONFieldTest)', 'test_flatten (admin_utils.tests.UtilsTests)', 'test_flatten_fieldsets (admin_utils.tests.UtilsTests)', 'test_help_text_for_field (admin_utils.tests.UtilsTests)', 'test_label_for_field_form_argument (admin_utils.tests.UtilsTests)', 'test_label_for_property (admin_utils.tests.UtilsTests)', 'test_list_display_for_value (admin_utils.tests.UtilsTests)', 'test_list_display_for_value_boolean (admin_utils.tests.UtilsTests)', 'test_null_display_for_field (admin_utils.tests.UtilsTests)', 'test_number_formats_display_for_field (admin_utils.tests.UtilsTests)', 'test_number_formats_with_thousand_separator_display_for_field (admin_utils.tests.UtilsTests)', 'test_quote (admin_utils.tests.UtilsTests)', 'test_related_name (admin_utils.tests.UtilsTests)', 'test_safestring_in_field_label (admin_utils.tests.UtilsTests)', 'test_values_from_lookup_field (admin_utils.tests.UtilsTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13512: resolved: False
+2026-02-22 11:33:05,783 - INFO - Attempting to stop container sweb.eval.django__django-13512.pydantic-deep...
+2026-02-22 11:33:20,970 - INFO - Attempting to remove container sweb.eval.django__django-13512.pydantic-deep...
+2026-02-22 11:33:20,996 - INFO - Container sweb.eval.django__django-13512.pydantic-deep removed.
+2026-02-22 11:33:20,996 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-13512:latest...
+2026-02-22 11:33:21,157 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-13512:latest removed.

@@ -1,0 +1,1356 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   pyproject.toml
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	pyproject.toml.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit efa06c664faea88365125c121dcf38766b7c79d4
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 09:26:14 2025 +0000
+
+    SWE-bench
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 4e84dd196..3c3d00c32 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools",
++requires = ["setuptools==68.0.0",
+             "setuptools_scm>=6.2",
+             "wheel",
+             "cython==0.29.22",
++ git -c core.fileMode=false diff 6ed769d58d89380ebaa1ef52b300691eefda8928
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e '.[test]' --verbose
+Using pip 24.2 from /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip (python 3.9)
+Obtaining file:///testbed
+  Installing build dependencies: started
+  Running command pip subprocess to install build dependencies
+  Using pip 24.2 from /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip (python 3.9)
+  Collecting setuptools
+    Obtaining dependency information for setuptools from https://files.pythonhosted.org/packages/e1/c6/76dc613121b793286a3f91621d7b75a2b493e0390ddca50f11993eadf192/setuptools-82.0.0-py3-none-any.whl.metadata
+    Downloading setuptools-82.0.0-py3-none-any.whl.metadata (6.6 kB)
+  Collecting setuptools_scm>=6.2
+    Obtaining dependency information for setuptools_scm>=6.2 from https://files.pythonhosted.org/packages/3d/ea/ac2bf868899d0d2e82ef72d350d97a846110c709bacf2d968431576ca915/setuptools_scm-9.2.2-py3-none-any.whl.metadata
+    Downloading setuptools_scm-9.2.2-py3-none-any.whl.metadata (7.7 kB)
+  Collecting wheel
+    Obtaining dependency information for wheel from https://files.pythonhosted.org/packages/87/22/b76d483683216dde3d67cba61fb2444be8d5be289bf628c13fc0fd90e5f9/wheel-0.46.3-py3-none-any.whl.metadata
+    Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+  Collecting cython==0.29.22
+    Obtaining dependency information for cython==0.29.22 from https://files.pythonhosted.org/packages/08/3b/7697d21e325f27946ee41ef1c78648b6009b609ff22d8614270a758706a1/Cython-0.29.22-cp39-cp39-manylinux1_x86_64.whl.metadata
+    Using cached Cython-0.29.22-cp39-cp39-manylinux1_x86_64.whl.metadata (2.6 kB)
+  Collecting oldest-supported-numpy
+    Obtaining dependency information for oldest-supported-numpy from https://files.pythonhosted.org/packages/dc/5c/e3c84cfdd488701aa074b22cf5bd227fb15d26e1d55a66d9088c39afa123/oldest_supported_numpy-2023.12.21-py3-none-any.whl.metadata
+    Using cached oldest_supported_numpy-2023.12.21-py3-none-any.whl.metadata (9.8 kB)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/88/ff/5a7cd8c9698628b3c04215ee3a96c69865477f451b4f096682e78d085bfc/extension_helpers-1.3.0-py3-none-any.whl (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/8e/b1/73ce2924fe46281faf31567e96fb9eee4eca02fd1cb852562bb2971e9df1/extension_helpers-1.3.0.tar.gz (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/f8/fb/f9a88ccea5377736d5d1e53c8a6c70207178cdc1ebbf305a50a610cbb751/extension_helpers-1.4.0-py3-none-any.whl (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/24/51/d03359b683ed288b34d713dea97d2aee87a9bd866af1652554d9f643b47d/extension_helpers-1.4.0.tar.gz (from https://pypi.org/simple/extension-helpers/) (requires-python:>=3.10)
+  Collecting extension-helpers
+    Obtaining dependency information for extension-helpers from https://files.pythonhosted.org/packages/b3/0e/22599eac9e50f4274e78e47cef7e760d7a1bb2f0d0fdfb0bb5b0d2da263a/extension_helpers-1.2.0-py3-none-any.whl.metadata
+    Using cached extension_helpers-1.2.0-py3-none-any.whl.metadata (2.2 kB)
+  Collecting packaging>=20 (from setuptools_scm>=6.2)
+    Obtaining dependency information for packaging>=20 from https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl.metadata
+    Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+  Collecting tomli>=1 (from setuptools_scm>=6.2)
+    Obtaining dependency information for tomli>=1 from https://files.pythonhosted.org/packages/23/d1/136eb2cb77520a31e1f64cbae9d33ec6df0d78bdf4160398e86eec8a8754/tomli-2.4.0-py3-none-any.whl.metadata
+    Downloading tomli-2.4.0-py3-none-any.whl.metadata (10 kB)
+  Collecting typing-extensions (from setuptools_scm>=6.2)
+    Obtaining dependency information for typing-extensions from https://files.pythonhosted.org/packages/18/67/36e9267722cc04a6b9f15c7f3441c2363321a3ea07da7ae0c0707beb2a9c/typing_extensions-4.15.0-py3-none-any.whl.metadata
+    Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/54/a4/f8188c4f3e07f7737683588210c073478abcb542048cf4ab6fedad0b458a/numpy-2.1.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/59/5f/9003bb3e632f2b58f5e3a3378902dcc73c5518070736c6740fe52454e8e1/numpy-2.1.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/4b/d1/8a730ea07f4a37d94f9172f4ce1d81064b7a64766b460378be278952de75/numpy-2.1.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/25/ca/1166b75c21abd1da445b97bf1fa2f14f423c6cfb4fc7c4ef31dccf9f6a94/numpy-2.1.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/47/1b/1d565e0f6e156e1522ab564176b8b29d71e13d8caf003a08768df3d5cec5/numpy-2.2.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/f2/a5/fdbf6a7871703df6160b5cf3dd774074b086d278172285c52c2758b76305/numpy-2.2.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/ec/d0/c12ddfd3a02274be06ffc71f3efc6d0e457b0409c4481596881e748cb264/numpy-2.2.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/fb/90/8956572f5c4ae52201fdec7ba2044b2c882832dcec7d5d0922c9e9acf2de/numpy-2.2.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/e1/78/31103410a57bc2c2b93a3597340a8119588571f6a4539067546cb9a0bfac/numpy-2.2.4.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/dc/b2/ce4b867d8cd9c0ee84938ae1e6a6f7926ebf928c9090d036fc3c6a04f946/numpy-2.2.5.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.10'): https://files.pythonhosted.org/packages/76/21/7d2a95e4bba9dc13d043ee156a356c0a8f0c6309dff6b21b4d71a073b8a8/numpy-2.2.6.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.10)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/f3/db/8e12381333aea300890829a0a36bfa738cac95475d88982d538725143fd9/numpy-2.3.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/2e/19/d7c972dfe90a353dbd3efbbe1d14a5951de80c99c9dc1b93cd998d51dc0f/numpy-2.3.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/37/7d/3fec4199c5ffb892bed55cff901e4f39a58c81df9c44c280499e92cad264/numpy-2.3.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/d0/19/95b3d357407220ed24c139018d2518fab0a61a948e68286a25f1a4d049ff/numpy-2.3.3.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/b5/f4/098d2270d52b41f1bd7db9fc288aaa0400cb48c2a3e2af6fa365d9720947/numpy-2.3.4.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/76/65/21b3bc86aac7b8f2862db1e808f1ea22b028e30a225a34a5ede9bf8678f2/numpy-2.3.5.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/12/02/7111f298e24a44d6fa4b75b47d93eccf444e5afbcee5b04aac760ee48935/numpy-2.4.0rc1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/a4/7a/6a3d14e205d292b738db449d0de649b373a59edb0d0b4493821d0a3e8718/numpy-2.4.0.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/24/62/ae72ff66c0f1fd959925b4c11f8c2dea61f47f6acaea75a08512cdfe3fed/numpy-2.4.1.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+    Link requires a different Python (3.9.20 not in: '>=3.11'): https://files.pythonhosted.org/packages/57/fd/0005efbd0af48e55eb3c7208af93f2862d4b1a56cd78e84309a2d959208d/numpy-2.4.2.tar.gz (from https://pypi.org/simple/numpy/) (requires-python:>=3.11)
+  Collecting numpy==1.19.3 (from oldest-supported-numpy)
+    Obtaining dependency information for numpy==1.19.3 from https://files.pythonhosted.org/packages/c3/8d/2ae53d96a92a66b8daa3dfb2dd6cf4bfcb8e3d4148bdd713c8fc7de83141/numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl.metadata
+    Using cached numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl.metadata (2.0 kB)
+  Using cached Cython-0.29.22-cp39-cp39-manylinux1_x86_64.whl (1.9 MB)
+  Downloading setuptools-82.0.0-py3-none-any.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 13.8 MB/s eta 0:00:00
+  Downloading setuptools_scm-9.2.2-py3-none-any.whl (62 kB)
+  Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+  Using cached oldest_supported_numpy-2023.12.21-py3-none-any.whl (4.9 kB)
+  Using cached numpy-1.19.3-cp39-cp39-manylinux2010_x86_64.whl (14.9 MB)
+  Using cached extension_helpers-1.2.0-py3-none-any.whl (23 kB)
+  Downloading packaging-26.0-py3-none-any.whl (74 kB)
+  Downloading tomli-2.4.0-py3-none-any.whl (14 kB)
+  Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+  Installing collected packages: typing-extensions, tomli, setuptools, packaging, numpy, cython, wheel, setuptools_scm, oldest-supported-numpy, extension-helpers
+    Creating /tmp/pip-build-env-s2gp8oov/overlay/bin
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/f2py to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/f2py3 to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/f2py3.9 to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/cygdb to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/cython to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/cythonize to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/wheel to 755
+    changing mode of /tmp/pip-build-env-s2gp8oov/overlay/bin/setuptools-scm to 755
+  Successfully installed cython-0.29.22 extension-helpers-1.2.0 numpy-1.19.3 oldest-supported-numpy-2023.12.21 packaging-26.0 setuptools-82.0.0 setuptools_scm-9.2.2 tomli-2.4.0 typing-extensions-4.15.0 wheel-0.46.3
+  WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Running command Checking if build backend supports build_editable
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Running command Getting requirements to build editable
+  Traceback (most recent call last):
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 353, in <module>
+      main()
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 335, in main
+      json_out['return_val'] = hook(**hook_input['kwargs'])
+    File "/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 132, in get_requires_for_build_editable
+      return hook(config_settings)
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 481, in get_requires_for_build_editable
+      return self.get_requires_for_build_wheel(config_settings)
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 333, in get_requires_for_build_wheel
+      return self._get_build_requires(config_settings, requirements=[])
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+      self.run_setup()
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 317, in run_setup
+      exec(code, locals())
+    File "<string>", line 68, in <module>
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/extension_helpers/_setup_helpers.py", line 63, in get_extensions
+      for setuppkg in iter_setup_packages(srcdir, packages):
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/extension_helpers/_setup_helpers.py", line 159, in iter_setup_packages
+      module = import_file(setup_package, name=packagename + ".setup_package")
+    File "/tmp/pip-build-env-s2gp8oov/overlay/lib/python3.9/site-packages/extension_helpers/_utils.py", line 138, in import_file
+      loader.exec_module(mod)
+    File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+    File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+    File "astropy/wcs/setup_package.py", line 12, in <module>
+      from setuptools.dep_util import newer_group
+  ModuleNotFoundError: No module named 'setuptools.dep_util'
+  error: subprocess-exited-with-error
+  
+  × Getting requirements to build editable did not run successfully.
+  │ exit code: 1
+  ╰─> See above for output.
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  full command: /opt/miniconda3/envs/testbed/bin/python /opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py get_requires_for_build_editable /tmp/tmpvc_pz9sc
+  cwd: /testbed
+  Getting requirements to build editable: finished with status 'error'
+error: subprocess-exited-with-error
+
+× Getting requirements to build editable did not run successfully.
+│ exit code: 1
+╰─> See above for output.
+
+note: This error originates from a subprocess, and is likely not a problem with pip.
++ git checkout 6ed769d58d89380ebaa1ef52b300691eefda8928 astropy/table/tests/test_mixin.py astropy/table/tests/test_table.py
+Updated 0 paths from 297e87811
++ git apply -v -
+Checking patch astropy/table/tests/test_mixin.py...
+Checking patch astropy/table/tests/test_table.py...
+Applied patch astropy/table/tests/test_mixin.py cleanly.
+Applied patch astropy/table/tests/test_table.py cleanly.
++ : '>>>>> Start Test Output'
++ pytest -rA astropy/table/tests/test_mixin.py astropy/table/tests/test_table.py
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-7.4.0, pluggy-1.3.0
+
+Running tests with Astropy version 5.2.dev64+g6ed769d58.d20250910.
+Running tests in astropy/table/tests/test_mixin.py astropy/table/tests/test_table.py.
+
+Date: 2026-02-22T10:14:01
+
+Platform: Linux-6.12.68-linuxkit-x86_64-with-glibc2.35
+
+Executable: /opt/miniconda3/envs/testbed/bin/python
+
+Full Python Version: 
+3.9.20 (main, Oct  3 2024, 07:27:41) 
+[GCC 11.2.0]
+
+encodings: sys: utf-8, locale: UTF-8, filesystem: utf-8
+byteorder: little
+float info: dig: 15, mant_dig: 15
+
+Package versions: 
+Numpy: 1.25.2
+Scipy: not available
+Matplotlib: not available
+h5py: not available
+Pandas: not available
+PyERFA: 2.0.0.3
+Cython: not available
+Scikit-image: not available
+asdf: not available
+pyarrow: not available
+
+Using Astropy options: remote_data: none.
+
+ARCH_ON_CI: undefined
+IS_CRON: undefined
+
+rootdir: /testbed
+configfile: setup.cfg
+plugins: xdist-3.3.1, hypothesis-6.82.6, openfiles-0.5.0, filter-subpackage-0.1.2, cov-4.1.0, remotedata-0.4.0, astropy-0.10.0, astropy-header-0.2.2, doctestplus-1.0.0, mock-3.11.1, arraydiff-0.5.0
+collected 674 items
+
+astropy/table/tests/test_mixin.py ...................................... [  5%]
+........................ss.....sss..s................................... [ 16%]
+...........................................................F.F.......... [ 27%]
+............                                                             [ 28%]
+astropy/table/tests/test_table.py ...................................... [ 34%]
+........................................................................ [ 45%]
+........................................................................ [ 55%]
+........................................................................ [ 66%]
+........................................................................ [ 77%]
+.........................................F..x........................... [ 87%]
+sssssssssssssssssss...................................................F. [ 98%]
+..........                                                               [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_skycoord_representation _________________________
+
+    def test_skycoord_representation():
+        """
+        Test that skycoord representation works, both in the way that the
+        values are output and in changing the frame representation.
+        """
+        # With no unit we get "None" in the unit row
+        c = coordinates.SkyCoord([0], [1], [0], representation_type='cartesian')
+        t = Table([c])
+        assert t.pformat() == ['     col0     ',
+                               'None,None,None',
+                               '--------------',
+                               '   0.0,1.0,0.0']
+    
+        # Test that info works with a dynamically changed representation
+        c = coordinates.SkyCoord([0], [1], [0], unit='m', representation_type='cartesian')
+        t = Table([c])
+        assert t.pformat() == ['    col0   ',
+                               '   m,m,m   ',
+                               '-----------',
+                               '0.0,1.0,0.0']
+    
+        t['col0'].representation_type = 'unitspherical'
+>       assert t.pformat() == ['  col0  ',
+                               'deg,deg ',
+                               '--------',
+                               '90.0,0.0']
+
+astropy/table/tests/test_mixin.py:688: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+astropy/table/table.py:1806: in pformat
+    lines, outs = self.formatter._pformat_table(
+astropy/table/pprint.py:563: in _pformat_table
+    show_unit = any(col.info.unit for col in table.columns.values())
+astropy/table/pprint.py:563: in <genexpr>
+    show_unit = any(col.info.unit for col in table.columns.values())
+astropy/coordinates/sky_coordinate.py:52: in unit
+    repr_data = self._repr_data
+astropy/coordinates/sky_coordinate.py:67: in _repr_data
+    repr_data = sc.represent_as(sc.representation_type,
+astropy/coordinates/baseframe.py:1078: in represent_as
+    data = self.data.represent_as(representation_cls)
+astropy/coordinates/representation.py:873: in represent_as
+    new_rep = other_class.from_cartesian(self.to_cartesian())
+astropy/coordinates/representation.py:1606: in from_cartesian
+    p = cart.get_xyz(xyz_axis=-1)
+astropy/coordinates/representation.py:1351: in get_xyz
+    return np.stack([self._x, self._y, self._z], axis=xyz_axis)
+astropy/units/quantity.py:1683: in __array_function__
+    return super().__array_function__(function, types, args, kwargs)
+/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/numpy/core/shape_base.py:456: in stack
+    return _nx.concatenate(expanded_arrays, axis=axis, out=out,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Quantity [[0.]] m>, function = <function concatenate at 0x7ffffd832a30>
+types = (<class 'astropy.units.quantity.Quantity'>,)
+args = ([<Quantity [[0.]] m>, <Quantity [[1.]] m>, <Quantity [[0.]] m>],)
+kwargs = {'axis': 1, 'casting': 'same_kind', 'dtype': None, 'out': None}
+
+    def __array_function__(self, function, types, args, kwargs):
+        """Wrap numpy functions, taking care of units.
+    
+        Parameters
+        ----------
+        function : callable
+            Numpy function to wrap
+        types : iterable of classes
+            Classes that provide an ``__array_function__`` override. Can
+            in principle be used to interact with other classes. Below,
+            mostly passed on to `~numpy.ndarray`, which can only interact
+            with subclasses.
+        args : tuple
+            Positional arguments provided in the function call.
+        kwargs : dict
+            Keyword arguments provided in the function call.
+    
+        Returns
+        -------
+        result: `~astropy.units.Quantity`, `~numpy.ndarray`
+            As appropriate for the function.  If the function is not
+            supported, `NotImplemented` is returned, which will lead to
+            a `TypeError` unless another argument overrode the function.
+    
+        Raises
+        ------
+        ~astropy.units.UnitsError
+            If operands have incompatible units.
+        """
+        # A function should be in one of the following sets or dicts:
+        # 1. SUBCLASS_SAFE_FUNCTIONS (set), if the numpy implementation
+        #    supports Quantity; we pass on to ndarray.__array_function__.
+        # 2. FUNCTION_HELPERS (dict), if the numpy implementation is usable
+        #    after converting quantities to arrays with suitable units,
+        #    and possibly setting units on the result.
+        # 3. DISPATCHED_FUNCTIONS (dict), if the function makes sense but
+        #    requires a Quantity-specific implementation.
+        # 4. UNSUPPORTED_FUNCTIONS (set), if the function does not make sense.
+        # For now, since we may not yet have complete coverage, if a
+        # function is in none of the above, we simply call the numpy
+        # implementation.
+        if function in SUBCLASS_SAFE_FUNCTIONS:
+            return super().__array_function__(function, types, args, kwargs)
+    
+        elif function in FUNCTION_HELPERS:
+            function_helper = FUNCTION_HELPERS[function]
+            try:
+>               args, kwargs, unit, out = function_helper(*args, **kwargs)
+E               TypeError: concatenate() got an unexpected keyword argument 'dtype'
+
+astropy/units/quantity.py:1688: TypeError
+__________________________ test_ndarray_mixin[False] ___________________________
+
+as_ndarray_mixin = False
+
+    @pytest.mark.parametrize('as_ndarray_mixin', [True, False])
+    def test_ndarray_mixin(as_ndarray_mixin):
+        """
+        Test directly adding various forms of structured ndarray columns to a table.
+        Adding as NdarrayMixin is expected to be somewhat unusual after #12644
+        (which provides full support for structured array Column's). This test shows
+        that the end behavior is the same in both cases.
+        """
+        a = np.array([(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd')],
+                     dtype='<i4,' + ('|U1'))
+        b = np.array([(10, 'aa'), (20, 'bb'), (30, 'cc'), (40, 'dd')],
+                     dtype=[('x', 'i4'), ('y', ('U2'))])
+        c = np.rec.fromrecords([(100., 'raa'), (200., 'rbb'), (300., 'rcc'), (400., 'rdd')],
+                               names=['rx', 'ry'])
+        d = np.arange(8, dtype='i8').reshape(4, 2)
+    
+        if as_ndarray_mixin:
+            a = a.view(NdarrayMixin)
+            b = b.view(NdarrayMixin)
+            c = c.view(NdarrayMixin)
+            d = d.view(NdarrayMixin)
+            class_exp = NdarrayMixin
+        else:
+            class_exp = Column
+    
+        # Add one during initialization and the next as a new column.
+        t = Table([a], names=['a'])
+        t['b'] = b
+        t['c'] = c
+        t['d'] = d
+    
+>       assert isinstance(t['a'], class_exp)
+E       AssertionError: assert False
+E        +  where False = isinstance(NdarrayMixin([(1, 'a'), (2, 'b'), (3, 'c'), (4, 'd')],\n             dtype=[('f0', '<i4'), ('f1', '<U1')]), <class 'astropy.table.column.Column'>)
+
+astropy/table/tests/test_mixin.py:731: AssertionError
+___________________________ test_values_equal_part1 ____________________________
+
+    def test_values_equal_part1():
+    
+        col1 = [1, 2]
+        col2 = [1.0, 2.0]
+        col3 = ['a', 'b']
+        t1 = table.Table([col1, col2, col3], names=['a', 'b', 'c'])
+        t2 = table.Table([col1, col2], names=['a', 'b'])
+        t3 = table.table_helpers.simple_table()
+        tm = t1.copy()
+        tm['time'] = Time([1, 2], format='cxcsec')
+        tm1 = tm.copy()
+        tm1['time'][0] = np.ma.masked
+    
+        tq = table.table_helpers.simple_table()
+        tq['quantity'] = [1., 2., 3.] * u.m
+    
+        tsk = table.table_helpers.simple_table()
+        tsk['sk'] = SkyCoord(1, 2, unit='deg')
+        eqsk = tsk.values_equal(tsk)
+        for col in eqsk.itercols():
+            assert np.all(col)
+    
+        with pytest.raises(ValueError, match='cannot compare tables with different column names'):
+            t2.values_equal(t1)
+    
+        with pytest.raises(ValueError, match='unable to compare column a'):
+            # Shape mismatch
+            t3.values_equal(t1)
+    
+        with pytest.raises(ValueError, match='unable to compare column c'):
+            # Type mismatch in column c causes FutureWarning
+>           t1.values_equal(2)
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+astropy/table/tests/test_table.py:1497: Failed
+________________________ test_structured_masked_column _________________________
+
+    def test_structured_masked_column():
+        """Test that adding a masked ndarray with a structured dtype works"""
+        dtype = np.dtype([('z', 'f8'), ('x', 'f8'), ('y', 'i4')])
+        t = Table()
+        t['a'] = np.ma.array([(1, 2, 3),
+                              (4, 5, 6)],
+                             mask=[(False, False, True),
+                                   (False, True, False)],
+                             dtype=dtype)
+>       assert np.all(t['a']['z'].mask == [False, False])
+E       AttributeError: 'NdarrayMixin' object has no attribute 'mask'
+
+astropy/table/tests/test_table.py:2928: AttributeError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED astropy/table/tests/test_mixin.py::test_attributes[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[time]
+PASSED astropy/table/tests/test_mixin.py::test_attributes[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-latitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-longitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-quantity]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-time]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[unmasked-timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-latitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-longitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-quantity]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-time]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[masked-timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-latitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-longitude]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-quantity]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-time]
+PASSED astropy/table/tests/test_mixin.py::test_make_table[subclass-timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_io_ascii_write
+PASSED astropy/table/tests/test_mixin.py::test_votable_quantity_write
+PASSED astropy/table/tests/test_mixin.py::test_io_time_write_fits_local[Table]
+PASSED astropy/table/tests/test_mixin.py::test_io_time_write_fits_local[QTable]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[time]
+PASSED astropy/table/tests/test_mixin.py::test_votable_mixin_write_fail[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_join[unmasked]
+PASSED astropy/table/tests/test_mixin.py::test_join[masked]
+PASSED astropy/table/tests/test_mixin.py::test_join[subclass]
+PASSED astropy/table/tests/test_mixin.py::test_hstack[unmasked]
+PASSED astropy/table/tests/test_mixin.py::test_hstack[masked]
+PASSED astropy/table/tests/test_mixin.py::test_hstack[subclass]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[time]
+PASSED astropy/table/tests/test_mixin.py::test_get_items[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[time]
+PASSED astropy/table/tests/test_mixin.py::test_info_preserved_pickle_copy_init[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[time]
+PASSED astropy/table/tests/test_mixin.py::test_add_column[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_vstack
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[time]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_insert_row_bad_unit
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[time]
+PASSED astropy/table/tests/test_mixin.py::test_convert_np_array[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_assignment_and_copy
+PASSED astropy/table/tests/test_mixin.py::test_conversion_qtable_table
+PASSED astropy/table/tests/test_mixin.py::test_setitem_as_column_name
+PASSED astropy/table/tests/test_mixin.py::test_quantity_representation
+PASSED astropy/table/tests/test_mixin.py::test_representation_representation
+PASSED astropy/table/tests/test_mixin.py::test_ndarray_mixin[True]
+PASSED astropy/table/tests/test_mixin.py::test_possible_string_format_functions
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[arrayswap]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[arraywrap]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[cartesianrep]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[earthlocation]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[latitude]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[longitude]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[ndarraybig]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[ndarraylil]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[quantity]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[skycoord]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[sphericaldiff]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[sphericalrep]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[sphericalrepdiff]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[time]
+PASSED astropy/table/tests/test_mixin.py::test_rename_mixin_columns[timedelta]
+PASSED astropy/table/tests/test_mixin.py::test_represent_mixins_as_columns_unit_fix
+PASSED astropy/table/tests/test_mixin.py::test_primary_data_column_gets_description
+PASSED astropy/table/tests/test_mixin.py::test_skycoord_with_velocity
+PASSED astropy/table/tests/test_mixin.py::test_ensure_input_info_is_unchanged[Table]
+PASSED astropy/table/tests/test_mixin.py::test_ensure_input_info_is_unchanged[QTable]
+PASSED astropy/table/tests/test_mixin.py::test_bad_info_class
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_existing[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_existing[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_existing[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_1[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_2[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_row_fail_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table_quantity[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table_quantity[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_new_table_quantity[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_unmasked_col_existing_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_unmasked_col_existing_table[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_unmasked_col_existing_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_masked_col_existing_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_masked_col_existing_table[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_masked_col_existing_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table_fail[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table_fail[masked]
+PASSED astropy/table/tests/test_table.py::TestSetTableColumn::test_set_new_col_existing_table_fail[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_3[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_3[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_3[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_4[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_4[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_4[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_5[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_5[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_5[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_scalar[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_scalar[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_scalar[subclass]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_add_via_setitem_and_slice[unmasked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_add_via_setitem_and_slice[masked]
+PASSED astropy/table/tests/test_table.py::TestEmptyData::test_add_via_setitem_and_slice[subclass]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_simple[unmasked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_simple[masked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_simple[subclass]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_from_np_array[unmasked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_from_np_array[masked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_from_np_array[subclass]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_size_mismatch[unmasked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_size_mismatch[masked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_size_mismatch[subclass]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_name_none[unmasked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_name_none[masked]
+PASSED astropy/table/tests/test_table.py::TestNewFromColumns::test_name_none[subclass]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse[masked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse[subclass]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_big[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_big[masked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_big[subclass]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_mixin[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_mixin[masked]
+PASSED astropy/table/tests/test_table.py::TestReverse::test_reverse_mixin[subclass]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_int[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_int[masked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_int[subclass]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_dict[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_dict[masked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_dict[subclass]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_invalid[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_invalid[masked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_invalid[subclass]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_kind[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_kind[masked]
+PASSED astropy/table/tests/test_table.py::TestRound::test_round_kind[subclass]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_itercols[unmasked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_itercols[masked]
+PASSED astropy/table/tests/test_table.py::TestColumnAccess::test_itercols[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_right_length[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_right_length[masked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_right_length[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_long[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_long[masked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_long[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_short[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_short[masked]
+PASSED astropy/table/tests/test_table.py::TestAddLength::test_too_short[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_3[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_3[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_3[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_5[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_5[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_5[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_6[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_6[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_6[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_7[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_7[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_7[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_8[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_8[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_8[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_9[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_9[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_9[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_10[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_10[masked]
+PASSED astropy/table/tests/test_table.py::TestAddPosition::test_10[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_override_name[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_override_name[masked]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_override_name[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_default_name[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_default_name[masked]
+PASSED astropy/table/tests/test_table.py::TestAddName::test_default_name[subclass]
+PASSED astropy/table/tests/test_table.py::TestInitFromTable::test_from_table_cols[unmasked]
+PASSED astropy/table/tests/test_table.py::TestInitFromTable::test_from_table_cols[masked]
+PASSED astropy/table/tests/test_table.py::TestInitFromTable::test_from_table_cols[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns1[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns1[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns2[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns2[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns3[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns3[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns3[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns4[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns4[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns4[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns5[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns5[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns5[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns6[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns6[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns6[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns7[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns7[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_columns7[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_column[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_column[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_column[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_columns[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_columns[masked]
+PASSED astropy/table/tests/test_table.py::TestAddColumns::test_add_duplicate_columns[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_none_to_empty_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_none_to_empty_table[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_none_to_empty_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_stuff_to_empty_table[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_stuff_to_empty_table[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_stuff_to_empty_table[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row_obj[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row_obj[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_table_row_obj[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_qtable_row_multidimensional[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_qtable_row_multidimensional[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_qtable_row_multidimensional[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_tuple[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_tuple[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_tuple[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_list[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_list[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_list[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_dict[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_dict[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_dict[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_none[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_none[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_with_none[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_missing_column[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_missing_column[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_missing_column[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_size_tuple[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_size_tuple[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_size_tuple[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_vals_type[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_vals_type[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_wrong_vals_type[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_row_failures[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_row_failures[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_add_row_failures[subclass]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_insert_table_row[unmasked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_insert_table_row[masked]
+PASSED astropy/table/tests/test_table.py::TestAddRow::test_insert_table_row[subclass]
+PASSED astropy/table/tests/test_table.py::TestTableColumn::test_column_view[unmasked]
+PASSED astropy/table/tests/test_table.py::TestTableColumn::test_column_view[masked]
+PASSED astropy/table/tests/test_table.py::TestTableColumn::test_column_view[subclass]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_1d[unmasked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_1d[masked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_1d[subclass]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_2d[unmasked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_2d[masked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_2d[subclass]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_3d[unmasked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_3d[masked]
+PASSED astropy/table/tests/test_table.py::TestArrayColumns::test_3d[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_3[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_3[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_3[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_nonexistent_row[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_nonexistent_row[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_nonexistent_row[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_0[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_0[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_0[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_1[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_2[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_slice[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_slice[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_slice[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_list[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_list[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_list[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_preserves_meta[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_preserves_meta[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_remove_row_preserves_meta[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[unmasked-idx0]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[unmasked-idx1]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[masked-idx0]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[masked-idx1]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[subclass-idx0]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_list[subclass-idx1]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_slice[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_slice[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_slice[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_fail[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_fail[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_fail[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_float[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_float[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_row_float[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem1[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem1[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem2[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem2[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitems[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitems[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitems[subclass]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_fail[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_fail[masked]
+PASSED astropy/table/tests/test_table.py::TestRemove::test_delitem_fail[subclass]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestKeep::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestRename::test_1[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_1[masked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_1[subclass]
+PASSED astropy/table/tests/test_table.py::TestRename::test_2[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_2[masked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_2[subclass]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_by_attr[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_by_attr[masked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_by_attr[subclass]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_columns[unmasked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_columns[masked]
+PASSED astropy/table/tests/test_table.py::TestRename::test_rename_columns[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[unmasked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[unmasked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[masked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[masked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[subclass-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_reverse[subclass-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_big[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_big[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_single_big[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[unmasked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[unmasked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[masked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[masked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[subclass-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_empty_reverse[subclass-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_reverse[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_reverse[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_reverse[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_bytes[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_bytes[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_bytes[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_unicode[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_unicode[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_multiple_with_unicode[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[unmasked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[unmasked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[masked-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[masked-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[subclass-False]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_reverse[subclass-True]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_bytes[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_bytes[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_bytes[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_unicode[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_unicode[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_argsort_unicode[subclass]
+PASSED astropy/table/tests/test_table.py::TestSort::test_rebuild_column_view_then_rename[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_rebuild_column_view_then_rename[masked]
+PASSED astropy/table/tests/test_table.py::TestSort::test_rebuild_column_view_then_rename[subclass]
+PASSED astropy/table/tests/test_table.py::test_sort_kind[kwargs0]
+PASSED astropy/table/tests/test_table.py::test_sort_kind[kwargs1]
+PASSED astropy/table/tests/test_table.py::test_sort_kind[kwargs2]
+PASSED astropy/table/tests/test_table.py::TestIterator::test_iterator[unmasked]
+PASSED astropy/table/tests/test_table.py::TestIterator::test_iterator[masked]
+PASSED astropy/table/tests/test_table.py::TestIterator::test_iterator[subclass]
+PASSED astropy/table/tests/test_table.py::TestSetMeta::test_set_meta[unmasked]
+PASSED astropy/table/tests/test_table.py::TestSetMeta::test_set_meta[masked]
+PASSED astropy/table/tests/test_table.py::TestSetMeta::test_set_meta[subclass]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_convert_numpy_array[unmasked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_convert_numpy_array[masked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_convert_numpy_array[subclass]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_as_array_byteswap[unmasked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_as_array_byteswap[masked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_as_array_byteswap[subclass]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_byteswap_fits_array[unmasked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_byteswap_fits_array[masked]
+PASSED astropy/table/tests/test_table.py::TestConvertNumpyArray::test_byteswap_fits_array[subclass]
+PASSED astropy/table/tests/test_table.py::test_copy
+PASSED astropy/table/tests/test_table.py::test_copy_masked
+PASSED astropy/table/tests/test_table.py::test_copy_protocol
+PASSED astropy/table/tests/test_table.py::test_disallow_inequality_comparisons
+PASSED astropy/table/tests/test_table.py::test_rows_equal
+PASSED astropy/table/tests/test_table.py::test_equality_masked
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_none
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_init[meta0]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_init[meta1]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_init[meta2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_init[ceci n'est pas un meta]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_init[1.2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_init[meta2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_set[meta0]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_set[meta1]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_mapping_set[meta2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_set[ceci n'est pas un meta]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_set[1.2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_non_mapping_set[meta2]
+PASSED astropy/table/tests/test_table.py::TestMetaTable::test_meta_fits_header
+PASSED astropy/table/tests/test_table.py::test_unicode_content
+PASSED astropy/table/tests/test_table.py::test_unicode_policy
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[unmasked-\u043f\u0438\u0442\u043e\u043d\u0430]
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[unmasked-ascii]
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[masked-\u043f\u0438\u0442\u043e\u043d\u0430]
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[masked-ascii]
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[subclass-\u043f\u0438\u0442\u043e\u043d\u0430]
+PASSED astropy/table/tests/test_table.py::test_unicode_bytestring_conversion[subclass-ascii]
+PASSED astropy/table/tests/test_table.py::test_table_deletion
+PASSED astropy/table/tests/test_table.py::test_nested_iteration
+PASSED astropy/table/tests/test_table.py::test_table_init_from_degenerate_arrays[unmasked]
+PASSED astropy/table/tests/test_table.py::test_table_init_from_degenerate_arrays[masked]
+PASSED astropy/table/tests/test_table.py::test_table_init_from_degenerate_arrays[subclass]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_fail_replace_column[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_fail_replace_column[masked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_fail_replace_column[subclass]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column[masked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column[subclass]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_index_column[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_index_column[masked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_index_column[subclass]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column_no_copy[unmasked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column_no_copy[masked]
+PASSED astropy/table/tests/test_table.py::TestReplaceColumn::test_replace_column_no_copy[subclass]
+PASSED astropy/table/tests/test_table.py::TestQTableColumnConversionCornerCases::test_replace_with_masked_col_with_units_in_qtable
+PASSED astropy/table/tests/test_table.py::TestQTableColumnConversionCornerCases::test_do_not_replace_string_column_with_units_in_qtable
+PASSED astropy/table/tests/test_table.py::Test__Astropy_Table__::test_simple_1
+PASSED astropy/table/tests/test_table.py::Test__Astropy_Table__::test_simple_2
+PASSED astropy/table/tests/test_table.py::Test__Astropy_Table__::test_kwargs_exception
+PASSED astropy/table/tests/test_table.py::TestUpdate::test_different_lengths
+PASSED astropy/table/tests/test_table.py::TestUpdate::test_invalid_inputs
+PASSED astropy/table/tests/test_table.py::TestUpdate::test_metadata_conflict
+PASSED astropy/table/tests/test_table.py::TestUpdate::test_update
+PASSED astropy/table/tests/test_table.py::TestUpdate::test_update_without_copy
+PASSED astropy/table/tests/test_table.py::test_table_meta_copy
+PASSED astropy/table/tests/test_table.py::test_table_meta_copy_with_meta_arg
+PASSED astropy/table/tests/test_table.py::test_replace_column_qtable
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_warnings_normal
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_warnings_slice
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_warnings_attributes
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_warnings_refcount
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_warnings_always
+PASSED astropy/table/tests/test_table.py::test_replace_update_column_via_setitem_replace_inplace
+PASSED astropy/table/tests/test_table.py::test_primary_key_is_inherited
+PASSED astropy/table/tests/test_table.py::test_qtable_read_for_ipac_table_with_char_columns
+PASSED astropy/table/tests/test_table.py::test_create_table_from_final_row
+PASSED astropy/table/tests/test_table.py::test_key_values_in_as_array
+PASSED astropy/table/tests/test_table.py::test_tolist
+PASSED astropy/table/tests/test_table.py::test_table_attribute
+PASSED astropy/table/tests/test_table.py::test_table_attribute_ecsv
+PASSED astropy/table/tests/test_table.py::test_table_attribute_fail
+PASSED astropy/table/tests/test_table.py::test_set_units_fail
+PASSED astropy/table/tests/test_table.py::test_set_units
+PASSED astropy/table/tests/test_table.py::test_set_descriptions
+PASSED astropy/table/tests/test_table.py::test_set_units_from_row
+PASSED astropy/table/tests/test_table.py::test_set_units_descriptions_read
+PASSED astropy/table/tests/test_table.py::test_broadcasting_8933
+PASSED astropy/table/tests/test_table.py::test_custom_masked_column_in_nonmasked_table
+PASSED astropy/table/tests/test_table.py::test_sort_with_mutable_skycoord
+PASSED astropy/table/tests/test_table.py::test_sort_with_non_mutable
+PASSED astropy/table/tests/test_table.py::test_init_with_list_of_masked_arrays
+PASSED astropy/table/tests/test_table.py::test_data_to_col_convert_strategy
+PASSED astropy/table/tests/test_table.py::test_rows_with_mixins
+PASSED astropy/table/tests/test_table.py::test_iterrows
+PASSED astropy/table/tests/test_table.py::test_values_and_types
+PASSED astropy/table/tests/test_table.py::test_items
+PASSED astropy/table/tests/test_table.py::test_read_write_not_replaceable
+PASSED astropy/table/tests/test_table.py::test_keep_columns_with_generator
+PASSED astropy/table/tests/test_table.py::test_remove_columns_with_generator
+PASSED astropy/table/tests/test_table.py::test_keep_columns_invalid_names_messages
+PASSED astropy/table/tests/test_table.py::test_remove_columns_invalid_names_messages
+PASSED astropy/table/tests/test_table.py::test_read_write_tilde_path[str]
+PASSED astropy/table/tests/test_table.py::test_read_write_tilde_path[Path]
+SKIPPED [2] ../opt/miniconda3/envs/testbed/lib/python3.9/site-packages/pytest_remotedata/plugin.py:85: need --remote-data option to run
+SKIPPED [4] astropy/table/tests/test_mixin.py:282: no unsupported column types
+SKIPPED [1] astropy/table/tests/test_table.py:1817: condition: not HAS_PANDAS
+SKIPPED [8] astropy/table/tests/test_table.py:1869: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:1883: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:1893: condition: not HAS_PANDAS
+SKIPPED [2] astropy/table/tests/test_table.py:1927: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:1974: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:1993: condition: not HAS_PANDAS
+SKIPPED [2] astropy/table/tests/test_table.py:2006: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:2057: condition: not HAS_PANDAS
+SKIPPED [1] astropy/table/tests/test_table.py:2077: condition: not HAS_PANDAS
+XFAIL astropy/table/tests/test_table.py::test_equality_masked_bug
+FAILED astropy/table/tests/test_mixin.py::test_skycoord_representation - Type...
+FAILED astropy/table/tests/test_mixin.py::test_ndarray_mixin[False] - Asserti...
+FAILED astropy/table/tests/test_table.py::test_values_equal_part1 - Failed: D...
+FAILED astropy/table/tests/test_table.py::test_structured_masked_column - Att...
+============= 4 failed, 644 passed, 25 skipped, 1 xfailed in 2.32s =============
++ : '>>>>> End Test Output'
++ git checkout 6ed769d58d89380ebaa1ef52b300691eefda8928 astropy/table/tests/test_mixin.py astropy/table/tests/test_table.py
+Updated 2 paths from 297e87811

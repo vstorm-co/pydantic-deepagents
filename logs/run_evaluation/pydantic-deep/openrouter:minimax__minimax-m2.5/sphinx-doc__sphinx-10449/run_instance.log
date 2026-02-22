@@ -1,0 +1,78 @@
+2026-02-22 12:25:48,793 - INFO - Creating container for sphinx-doc__sphinx-10449...
+2026-02-22 12:25:49,053 - INFO - Container for sphinx-doc__sphinx-10449 created: c4ccc8528a4409405072b0c9d023447b7ea6eb63ccfb8417f46d79e8274a90ba
+2026-02-22 12:25:49,296 - INFO - Container for sphinx-doc__sphinx-10449 started: c4ccc8528a4409405072b0c9d023447b7ea6eb63ccfb8417f46d79e8274a90ba
+2026-02-22 12:25:49,297 - INFO - Intermediate patch for sphinx-doc__sphinx-10449 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10449/patch.diff, now applying to container...
+2026-02-22 12:25:49,568 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:25:49,698 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:25:49,870 - INFO - >>>>> Applied Patch:
+patching file sphinx/ext/autodoc/typehints.py
+patching file tox.ini
+patch unexpectedly ends in middle of line
+Reversed (or previously applied) patch detected!  Assuming -R.
+Hunk #1 succeeded at 29 with fuzz 1.
+
+2026-02-22 12:25:50,622 - INFO - Git diff before:
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 06768168e..4491e1ce2 100644
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -28,7 +28,7 @@ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+             for param in sig.parameters.values():
+                 if param.annotation is not param.empty:
+                     annotation[param.name] = typing.stringify(param.annotation, mode)
+-            if sig.return_annotation is not sig.empty:
++            if sig.return_annotation is not sig.empty and objtype != 'class':
+                 annotation['return'] = typing.stringify(sig.return_annotation, mode)
+     except (TypeError, ValueError):
+         pass
+diff --git a/tox.ini b/tox.ini
+index 90ada0821..105a02597 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -29,7 +29,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
+2026-02-22 12:25:50,625 - INFO - Eval script for sphinx-doc__sphinx-10449 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10449/eval.sh; copying to container...
+2026-02-22 12:25:57,852 - INFO - Test runtime: 7.13 seconds
+2026-02-22 12:25:57,853 - INFO - Test output for sphinx-doc__sphinx-10449 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-10449/test_output.txt
+2026-02-22 12:25:57,954 - INFO - Git diff after:
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 06768168e..4491e1ce2 100644
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -28,7 +28,7 @@ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+             for param in sig.parameters.values():
+                 if param.annotation is not param.empty:
+                     annotation[param.name] = typing.stringify(param.annotation, mode)
+-            if sig.return_annotation is not sig.empty:
++            if sig.return_annotation is not sig.empty and objtype != 'class':
+                 annotation['return'] = typing.stringify(sig.return_annotation, mode)
+     except (TypeError, ValueError):
+         pass
+diff --git a/tox.ini b/tox.ini
+index 90ada0821..105a02597 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -29,7 +29,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
+2026-02-22 12:25:57,954 - INFO - Grading answer for sphinx-doc__sphinx-10449...
+2026-02-22 12:25:57,959 - INFO - report: {'sphinx-doc__sphinx-10449': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init']}, 'PASS_TO_PASS': {'success': [], 'failure': ['tests/test_ext_autodoc_configs.py::test_autoclass_content_class', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_init', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_mixed', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_separated_init', 'tests/test_ext_autodoc_configs.py::test_autodoc_class_signature_separated_new', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_both', 'tests/test_ext_autodoc_configs.py::test_autodoc_inherit_docstrings', 'tests/test_ext_autodoc_configs.py::test_autodoc_docstring_signature', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_class', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_init', 'tests/test_ext_autodoc_configs.py::test_autoclass_content_and_docstring_signature_both', 'tests/test_ext_autodoc_configs.py::test_mocked_module_imports', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_signature', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_none_for_overload', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_no_undoc', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_no_undoc_doc_rtype', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init_no_undoc', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_with_documented_init_no_undoc_doc_rtype', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_for_invalid_node', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_both', 'tests/test_ext_autodoc_configs.py::test_autodoc_type_aliases', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_description_and_type_aliases', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_class_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_generic_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_typehints_format_fully_qualified_for_newtype_alias', 'tests/test_ext_autodoc_configs.py::test_autodoc_default_options', 'tests/test_ext_autodoc_configs.py::test_autodoc_default_options_with_values']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-10449: resolved: False
+2026-02-22 12:25:57,959 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-10449.pydantic-deep...
+2026-02-22 12:26:13,546 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-10449.pydantic-deep...
+2026-02-22 12:26:13,701 - INFO - Container sweb.eval.sphinx-doc__sphinx-10449.pydantic-deep removed.
+2026-02-22 12:26:13,701 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-10449:latest...
+2026-02-22 12:26:14,120 - INFO - Image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-10449:latest removed.

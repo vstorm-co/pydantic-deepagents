@@ -1,0 +1,50 @@
+2026-02-22 11:18:04,186 - INFO - Creating container for django__django-10999...
+2026-02-22 11:18:04,555 - INFO - Container for django__django-10999 created: 6de65bc6e9e81edd9150b9437ca7d448a951cf113c91b9497141243a335392a4
+2026-02-22 11:18:04,699 - INFO - Container for django__django-10999 started: 6de65bc6e9e81edd9150b9437ca7d448a951cf113c91b9497141243a335392a4
+2026-02-22 11:18:04,700 - INFO - Intermediate patch for django__django-10999 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10999/patch.diff, now applying to container...
+2026-02-22 11:18:04,912 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:18:05,022 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:18:05,115 - INFO - >>>>> Applied Patch:
+patching file django/utils/dateparse.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 29 with fuzz 1.
+
+2026-02-22 11:18:06,053 - INFO - Git diff before:
+diff --git a/django/utils/dateparse.py b/django/utils/dateparse.py
+index 8d08b7d1d3..a037758784 100644
+--- a/django/utils/dateparse.py
++++ b/django/utils/dateparse.py
+@@ -29,7 +29,7 @@ datetime_re = re.compile(
+ standard_duration_re = re.compile(
+     r'^'
+     r'(?:(?P<days>-?\d+) (days?, )?)?'
+-    r'((?:(?P<hours>-?\d+):)(?=\d+:\d+))?'
++    r'((?:(?P<hours>-?\d+):)(?=-?\d+:-?\d+))?'
+     r'(?:(?P<minutes>-?\d+):)?'
+     r'(?P<seconds>-?\d+)'
+     r'(?:\.(?P<microseconds>\d{1,6})\d{0,6})?'
+2026-02-22 11:18:06,054 - INFO - Eval script for django__django-10999 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10999/eval.sh; copying to container...
+2026-02-22 11:18:18,379 - INFO - Test runtime: 12.25 seconds
+2026-02-22 11:18:18,380 - INFO - Test output for django__django-10999 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-10999/test_output.txt
+2026-02-22 11:18:18,475 - INFO - Git diff after:
+diff --git a/django/utils/dateparse.py b/django/utils/dateparse.py
+index 8d08b7d1d3..a037758784 100644
+--- a/django/utils/dateparse.py
++++ b/django/utils/dateparse.py
+@@ -29,7 +29,7 @@ datetime_re = re.compile(
+ standard_duration_re = re.compile(
+     r'^'
+     r'(?:(?P<days>-?\d+) (days?, )?)?'
+-    r'((?:(?P<hours>-?\d+):)(?=\d+:\d+))?'
++    r'((?:(?P<hours>-?\d+):)(?=-?\d+:-?\d+))?'
+     r'(?:(?P<minutes>-?\d+):)?'
+     r'(?P<seconds>-?\d+)'
+     r'(?:\.(?P<microseconds>\d{1,6})\d{0,6})?'
+2026-02-22 11:18:18,475 - INFO - Grading answer for django__django-10999...
+2026-02-22 11:18:18,476 - INFO - report: {'django__django-10999': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_negative (utils_tests.test_dateparse.DurationParseTests)', 'test_parse_postgresql_format (utils_tests.test_dateparse.DurationParseTests)']}, 'PASS_TO_PASS': {'success': ['test_parse_date (utils_tests.test_dateparse.DateParseTests)', 'test_parse_datetime (utils_tests.test_dateparse.DateParseTests)', 'test_parse_time (utils_tests.test_dateparse.DateParseTests)', 'test_days (utils_tests.test_dateparse.DurationParseTests)', 'test_fractions_of_seconds (utils_tests.test_dateparse.DurationParseTests)', 'test_hours_minutes_seconds (utils_tests.test_dateparse.DurationParseTests)', 'test_iso_8601 (utils_tests.test_dateparse.DurationParseTests)', 'test_minutes_seconds (utils_tests.test_dateparse.DurationParseTests)', 'test_parse_python_format (utils_tests.test_dateparse.DurationParseTests)', 'test_seconds (utils_tests.test_dateparse.DurationParseTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-10999: resolved: False
+2026-02-22 11:18:18,476 - INFO - Attempting to stop container sweb.eval.django__django-10999.pydantic-deep...
+2026-02-22 11:18:33,650 - INFO - Attempting to remove container sweb.eval.django__django-10999.pydantic-deep...
+2026-02-22 11:18:33,673 - INFO - Container sweb.eval.django__django-10999.pydantic-deep removed.
+2026-02-22 11:18:33,673 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-10999:latest...
+2026-02-22 11:18:33,830 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-10999:latest removed.

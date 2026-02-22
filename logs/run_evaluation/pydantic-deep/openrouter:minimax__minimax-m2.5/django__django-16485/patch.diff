@@ -1,0 +1,16 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..de0ca2c0cc 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -182,7 +182,10 @@ def floatformat(text, arg=-1):
+     # Set the precision high enough to avoid an exception (#15789).
+     tupl = d.as_tuple()
+     units = len(tupl[1])
+-    units += -tupl[2] if m else tupl[2]
++    if d.is_zero():
++        units = 1
++    else:
++        units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,

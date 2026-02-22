@@ -1,0 +1,650 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   django/db/backends/mysql/operations.py
+	modified:   django/db/backends/oracle/operations.py
+	modified:   django/db/backends/sqlite3/base.py
+	modified:   django/db/backends/sqlite3/operations.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	django/db/backends/sqlite3/operations.py.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit a647b9a3e1e988a8401c6f1b65cb81d185197b18
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 09:53:18 2025 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff c84b91b7603e488f7171fdff8f08368ef3d6b856
+diff --git a/django/db/backends/mysql/operations.py b/django/db/backends/mysql/operations.py
+index 50f85e0621..e23262493a 100644
+--- a/django/db/backends/mysql/operations.py
++++ b/django/db/backends/mysql/operations.py
+@@ -70,9 +70,11 @@ class DatabaseOperations(BaseDatabaseOperations):
+ 
+     def _convert_field_to_tz(self, field_name, tzname):
+         if settings.USE_TZ:
+-            field_name = "CONVERT_TZ(%s, 'UTC', '%s')" % (field_name, tzname)
++            if tzname and self.connection.timezone_name:
++                field_name = "CONVERT_TZ(%s, '%s', '%s')" % (field_name, self.connection.timezone_name, tzname)
+         return field_name
+ 
++
+     def datetime_cast_date_sql(self, field_name, tzname):
+         field_name = self._convert_field_to_tz(field_name, tzname)
+         return "DATE(%s)" % field_name
+diff --git a/django/db/backends/oracle/operations.py b/django/db/backends/oracle/operations.py
+index c1afb2ed5e..e7e6c58ac9 100644
+--- a/django/db/backends/oracle/operations.py
++++ b/django/db/backends/oracle/operations.py
+@@ -99,9 +99,11 @@ END;
+             return field_name
+         if not self._tzname_re.match(tzname):
+             raise ValueError("Invalid time zone name: %s" % tzname)
+-        # Convert from UTC to local time, returning TIMESTAMP WITH TIME ZONE
+-        # and cast it back to TIMESTAMP to strip the TIME ZONE details.
+-        return "CAST((FROM_TZ(%s, '0:00') AT TIME ZONE '%s') AS TIMESTAMP)" % (field_name, tzname)
++        # Convert from database timezone to the specified timezone, returning
++        # TIMESTAMP WITH TIME ZONE and cast it back to TIMESTAMP to strip the
++        # TIME ZONE details.
++        return "CAST((FROM_TZ(%s, '%s') AT TIME ZONE '%s') AS TIMESTAMP)" % (field_name, self.connection.timezone_name, tzname)
++
+ 
+     def datetime_cast_date_sql(self, field_name, tzname):
+         field_name = self._convert_field_to_tz(field_name, tzname)
+diff --git a/django/db/backends/sqlite3/base.py b/django/db/backends/sqlite3/base.py
+index 6a19236c48..0c0cc04e5b 100644
+--- a/django/db/backends/sqlite3/base.py
++++ b/django/db/backends/sqlite3/base.py
+@@ -196,9 +196,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+         conn.create_function("django_date_extract", 2, _sqlite_datetime_extract)
+         conn.create_function("django_date_trunc", 2, _sqlite_date_trunc)
+         conn.create_function("django_datetime_cast_date", 2, _sqlite_datetime_cast_date)
++        conn.create_function("django_datetime_cast_date", 3, _sqlite_datetime_cast_date)
+         conn.create_function("django_datetime_cast_time", 2, _sqlite_datetime_cast_time)
++        conn.create_function("django_datetime_cast_time", 3, _sqlite_datetime_cast_time)
+         conn.create_function("django_datetime_extract", 3, _sqlite_datetime_extract)
++        conn.create_function("django_datetime_extract", 4, _sqlite_datetime_extract)
+         conn.create_function("django_datetime_trunc", 3, _sqlite_datetime_trunc)
++        conn.create_function("django_datetime_trunc", 4, _sqlite_datetime_trunc)
+         conn.create_function("django_time_extract", 2, _sqlite_time_extract)
+         conn.create_function("django_time_trunc", 2, _sqlite_time_trunc)
+         conn.create_function("django_time_diff", 2, _sqlite_time_diff)
+@@ -242,6 +246,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+         conn.execute('PRAGMA foreign_keys = ON')
+         return conn
+ 
++
+     def init_connection_state(self):
+         pass
+ 
+@@ -398,18 +403,27 @@ class SQLiteCursorWrapper(Database.Cursor):
+         return FORMAT_QMARK_REGEX.sub('?', query).replace('%%', '%')
+ 
+ 
+-def _sqlite_datetime_parse(dt, tzname=None):
++def _sqlite_datetime_parse(dt, tzname=None, conn_tzname=None):
+     if dt is None:
+         return None
+     try:
+         dt = backend_utils.typecast_timestamp(dt)
+     except (TypeError, ValueError):
+         return None
+-    if tzname is not None:
+-        dt = timezone.localtime(dt, pytz.timezone(tzname))
++    if tzname is not None and conn_tzname is not None:
++        if tzname != conn_tzname:
++            # The database stores datetimes in conn_tzname, but typecast_timestamp
++            # assumes UTC. We need to reinterpret the datetime as conn_tzname,
++            # then convert to the target timezone tzname.
++            if timezone.is_aware(dt):
++                dt = timezone.make_naive(dt, timezone.utc)
++            dt = timezone.make_aware(dt, pytz.timezone(conn_tzname))
++            dt = timezone.localtime(dt, pytz.timezone(tzname))
+     return dt
+ 
+ 
++
++
+ def _sqlite_date_trunc(lookup_type, dt):
+     dt = _sqlite_datetime_parse(dt)
+     if dt is None:
+@@ -443,22 +457,24 @@ def _sqlite_time_trunc(lookup_type, dt):
+         return "%02i:%02i:%02i" % (dt.hour, dt.minute, dt.second)
+ 
+ 
+-def _sqlite_datetime_cast_date(dt, tzname):
+-    dt = _sqlite_datetime_parse(dt, tzname)
++def _sqlite_datetime_cast_date(dt, tzname, conn_tzname=None):
++    dt = _sqlite_datetime_parse(dt, tzname, conn_tzname)
+     if dt is None:
+         return None
+     return dt.date().isoformat()
+ 
+ 
+-def _sqlite_datetime_cast_time(dt, tzname):
+-    dt = _sqlite_datetime_parse(dt, tzname)
++
++def _sqlite_datetime_cast_time(dt, tzname, conn_tzname=None):
++    dt = _sqlite_datetime_parse(dt, tzname, conn_tzname)
+     if dt is None:
+         return None
+     return dt.time().isoformat()
+ 
+ 
+-def _sqlite_datetime_extract(lookup_type, dt, tzname=None):
+-    dt = _sqlite_datetime_parse(dt, tzname)
++
++def _sqlite_datetime_extract(lookup_type, dt, tzname=None, conn_tzname=None):
++    dt = _sqlite_datetime_parse(dt, tzname, conn_tzname)
+     if dt is None:
+         return None
+     if lookup_type == 'week_day':
+@@ -473,8 +489,9 @@ def _sqlite_datetime_extract(lookup_type, dt, tzname=None):
+         return getattr(dt, lookup_type)
+ 
+ 
+-def _sqlite_datetime_trunc(lookup_type, dt, tzname):
+-    dt = _sqlite_datetime_parse(dt, tzname)
++
++def _sqlite_datetime_trunc(lookup_type, dt, tzname, conn_tzname=None):
++    dt = _sqlite_datetime_parse(dt, tzname, conn_tzname)
+     if dt is None:
+         return None
+     if lookup_type == 'year':
+@@ -497,6 +514,7 @@ def _sqlite_datetime_trunc(lookup_type, dt, tzname):
+         return "%i-%02i-%02i %02i:%02i:%02i" % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+ 
+ 
++
+ def _sqlite_time_extract(lookup_type, dt):
+     if dt is None:
+         return None
+diff --git a/django/db/backends/sqlite3/operations.py b/django/db/backends/sqlite3/operations.py
+index c4b02e5c60..a26ccd0139 100644
+--- a/django/db/backends/sqlite3/operations.py
++++ b/django/db/backends/sqlite3/operations.py
+@@ -88,25 +88,39 @@ class DatabaseOperations(BaseDatabaseOperations):
+         return "'%s'" % tzname if settings.USE_TZ else 'NULL'
+ 
+     def datetime_cast_date_sql(self, field_name, tzname):
+-        return "django_datetime_cast_date(%s, %s)" % (
+-            field_name, self._convert_tzname_to_sql(tzname),
++        return "django_datetime_cast_date(%s, %s, %s)" % (
++            field_name,
++            self._convert_tzname_to_sql(tzname),
++            self._convert_tzname_to_sql(self.connection.timezone_name),
+         )
+ 
++
+     def datetime_cast_time_sql(self, field_name, tzname):
+-        return "django_datetime_cast_time(%s, %s)" % (
+-            field_name, self._convert_tzname_to_sql(tzname),
++        return "django_datetime_cast_time(%s, %s, %s)" % (
++            field_name,
++            self._convert_tzname_to_sql(tzname),
++            self._convert_tzname_to_sql(self.connection.timezone_name),
+         )
+ 
++
+     def datetime_extract_sql(self, lookup_type, field_name, tzname):
+-        return "django_datetime_extract('%s', %s, %s)" % (
+-            lookup_type.lower(), field_name, self._convert_tzname_to_sql(tzname),
++        return "django_datetime_extract('%s', %s, %s, %s)" % (
++            lookup_type.lower(),
++            field_name,
++            self._convert_tzname_to_sql(tzname),
++            self._convert_tzname_to_sql(self.connection.timezone_name),
+         )
+ 
++
+     def datetime_trunc_sql(self, lookup_type, field_name, tzname):
+-        return "django_datetime_trunc('%s', %s, %s)" % (
+-            lookup_type.lower(), field_name, self._convert_tzname_to_sql(tzname),
++        return "django_datetime_trunc('%s', %s, %s, %s)" % (
++            lookup_type.lower(),
++            field_name,
++            self._convert_tzname_to_sql(tzname),
++            self._convert_tzname_to_sql(self.connection.timezone_name),
+         )
+ 
++
+     def time_extract_sql(self, lookup_type, field_name):
+         return "django_time_extract('%s', %s)" % (lookup_type.lower(), field_name)
+ 
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20250910095318) (2024.2)
+Requirement already satisfied: sqlparse in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20250910095318) (0.4.4)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.0.dev20190408000220
+    Uninstalling Django-3.0.dev20190408000220:
+      Successfully uninstalled Django-3.0.dev20190408000220
+  Running setup.py develop for Django
+Successfully installed Django-3.0.dev20250910095318
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout c84b91b7603e488f7171fdff8f08368ef3d6b856 tests/timezones/tests.py
+Updated 0 paths from 7bb2d0d7f0
++ git apply -v -
+Checking patch tests/timezones/tests.py...
+Applied patch tests/timezones/tests.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 timezones.tests
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+test_change_editable (timezones.tests.AdminTests) ... ok
+test_change_editable_in_other_timezone (timezones.tests.AdminTests) ... ok
+test_change_readonly (timezones.tests.AdminTests) ... ok
+test_change_readonly_in_other_timezone (timezones.tests.AdminTests) ... ok
+test_changelist (timezones.tests.AdminTests) ... ok
+test_changelist_in_other_timezone (timezones.tests.AdminTests) ... ok
+test_auto_now_and_auto_now_add (timezones.tests.LegacyDatabaseTests) ... ok
+test_aware_datetime_in_local_timezone (timezones.tests.LegacyDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_aware_datetime_in_local_timezone_with_microsecond (timezones.tests.LegacyDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_aware_datetime_in_other_timezone (timezones.tests.LegacyDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_aware_datetime_in_utc (timezones.tests.LegacyDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_aware_datetime_unsupported (timezones.tests.LegacyDatabaseTests) ... ok
+test_cursor_execute_accepts_naive_datetime (timezones.tests.LegacyDatabaseTests) ... ok
+test_cursor_execute_returns_naive_datetime (timezones.tests.LegacyDatabaseTests) ... ok
+test_filter_date_field_with_aware_datetime (timezones.tests.LegacyDatabaseTests) ... ok
+test_naive_datetime (timezones.tests.LegacyDatabaseTests) ... ok
+test_naive_datetime_with_microsecond (timezones.tests.LegacyDatabaseTests) ... ok
+test_query_aggregation (timezones.tests.LegacyDatabaseTests) ... ok
+test_query_annotation (timezones.tests.LegacyDatabaseTests) ... ok
+test_query_datetime_lookups (timezones.tests.LegacyDatabaseTests) ... ok
+test_query_datetimes (timezones.tests.LegacyDatabaseTests) ... ok
+test_query_filter (timezones.tests.LegacyDatabaseTests) ... ok
+test_raw_sql (timezones.tests.LegacyDatabaseTests) ... ok
+test_form (timezones.tests.LegacyFormsTests) ... ok
+test_form_with_ambiguous_time (timezones.tests.LegacyFormsTests) ... ok
+test_form_with_non_existent_time (timezones.tests.LegacyFormsTests) ... ok
+test_model_form (timezones.tests.LegacyFormsTests) ... ok
+test_split_form (timezones.tests.LegacyFormsTests) ... ok
+test_auto_now_and_auto_now_add (timezones.tests.NewDatabaseTests) ... ok
+test_aware_datetime_in_local_timezone (timezones.tests.NewDatabaseTests) ... ok
+test_aware_datetime_in_local_timezone_with_microsecond (timezones.tests.NewDatabaseTests) ... ok
+test_aware_datetime_in_other_timezone (timezones.tests.NewDatabaseTests) ... ok
+test_aware_datetime_in_utc (timezones.tests.NewDatabaseTests) ... ok
+test_cursor_execute_accepts_aware_datetime (timezones.tests.NewDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_cursor_execute_accepts_naive_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_cursor_execute_returns_aware_datetime (timezones.tests.NewDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+test_cursor_execute_returns_naive_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_datetime_from_date (timezones.tests.NewDatabaseTests) ... ok
+test_filter_date_field_with_aware_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_naive_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_naive_datetime_with_microsecond (timezones.tests.NewDatabaseTests) ... ok
+test_null_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_query_aggregation (timezones.tests.NewDatabaseTests) ... ok
+test_query_annotation (timezones.tests.NewDatabaseTests) ... ok
+test_query_convert_timezones (timezones.tests.NewDatabaseTests) ... ok
+test_query_datetime_lookups (timezones.tests.NewDatabaseTests) ... ok
+test_query_datetime_lookups_in_other_timezone (timezones.tests.NewDatabaseTests) ... ok
+test_query_datetimes (timezones.tests.NewDatabaseTests) ... ok
+test_query_datetimes_in_other_timezone (timezones.tests.NewDatabaseTests) ... ok
+test_query_filter (timezones.tests.NewDatabaseTests) ... ok
+test_query_filter_with_naive_datetime (timezones.tests.NewDatabaseTests) ... ok
+test_query_filter_with_pytz_timezones (timezones.tests.NewDatabaseTests) ... ok
+test_raw_sql (timezones.tests.NewDatabaseTests) ... ok
+test_update_with_timedelta (timezones.tests.NewDatabaseTests) ... ok
+test_form (timezones.tests.NewFormsTests) ... ok
+test_form_with_ambiguous_time (timezones.tests.NewFormsTests) ... ok
+test_form_with_explicit_timezone (timezones.tests.NewFormsTests) ... ok
+test_form_with_non_existent_time (timezones.tests.NewFormsTests) ... ok
+test_form_with_other_timezone (timezones.tests.NewFormsTests) ... ok
+test_localized_form (timezones.tests.NewFormsTests) ... ok
+test_localized_model_form (timezones.tests.NewFormsTests) ... ok
+test_model_form (timezones.tests.NewFormsTests) ... ok
+test_split_form (timezones.tests.NewFormsTests) ... ok
+test_time_zone_parameter_not_supported_if_database_supports_timezone (timezones.tests.UnsupportedTimeZoneDatabaseTests) ... skipped "Database doesn't support feature(s): supports_timezones"
+skipped "Database doesn't support feature(s): test_db_allows_multiple_connections"
+test_aware_datetime_in_local_timezone (timezones.tests.SerializationTests) ... FAIL
+test_aware_datetime_in_other_timezone (timezones.tests.SerializationTests) ... FAIL
+test_aware_datetime_in_utc (timezones.tests.SerializationTests) ... ok
+test_aware_datetime_with_microsecond (timezones.tests.SerializationTests) ... FAIL
+test_naive_datetime (timezones.tests.SerializationTests) ... ok
+test_naive_datetime_with_microsecond (timezones.tests.SerializationTests) ... ok
+test_date_and_time_template_filters (timezones.tests.TemplateTests) ... ok
+test_date_and_time_template_filters_honor_localtime (timezones.tests.TemplateTests) ... ok
+test_get_current_timezone_templatetag (timezones.tests.TemplateTests) ... ok
+test_get_current_timezone_templatetag_invalid_argument (timezones.tests.TemplateTests) ... ok
+test_get_current_timezone_templatetag_with_pytz (timezones.tests.TemplateTests) ... ok
+test_localtime_filters_do_not_raise_exceptions (timezones.tests.TemplateTests) ... ok
+test_localtime_filters_with_pytz (timezones.tests.TemplateTests) ... ok
+test_localtime_templatetag_and_filters (timezones.tests.TemplateTests) ... ok
+test_localtime_templatetag_invalid_argument (timezones.tests.TemplateTests) ... ok
+test_now_template_tag_uses_current_time_zone (timezones.tests.TemplateTests) ... ok
+test_timezone_templatetag (timezones.tests.TemplateTests) ... ok
+test_timezone_templatetag_invalid_argument (timezones.tests.TemplateTests) ... ok
+test_timezone_templatetag_with_pytz (timezones.tests.TemplateTests) ... ok
+test_tz_template_context_processor (timezones.tests.TemplateTests) ... ok
+
+======================================================================
+FAIL: test_aware_datetime_in_local_timezone (timezones.tests.SerializationTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/timezones/tests.py", line 758, in test_aware_datetime_in_local_timezone
+    self.assertEqual(obj.dt.replace(tzinfo=UTC), dt)
+AssertionError: datet[38 chars]zinfo=<UTC>) != datet[38 chars]zinfo=datetime.timezone(datetime.timedelta(0, 10800), '+0300'))
+
+======================================================================
+FAIL: test_aware_datetime_in_other_timezone (timezones.tests.SerializationTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/timezones/tests.py", line 782, in test_aware_datetime_in_other_timezone
+    self.assertEqual(obj.dt.replace(tzinfo=UTC), dt)
+AssertionError: datet[38 chars]zinfo=<UTC>) != datet[38 chars]zinfo=datetime.timezone(datetime.timedelta(0, 25200), '+0700'))
+
+======================================================================
+FAIL: test_aware_datetime_with_microsecond (timezones.tests.SerializationTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/timezones/tests.py", line 710, in test_aware_datetime_with_microsecond
+    self.assertEqual(obj.dt.replace(tzinfo=UTC), dt)
+AssertionError: datet[46 chars]zinfo=<UTC>) != datet[46 chars]zinfo=datetime.timezone(datetime.timedelta(0, 25200), '+0700'))
+
+----------------------------------------------------------------------
+Ran 84 tests in 0.182s
+
+FAILED (failures=3, skipped=8)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Testing against Django installed in '/testbed/django'
+Importing application timezones
+Skipping setup of unused database(s): other.
+Operations to perform:
+  Synchronize unmigrated apps: auth, contenttypes, messages, sessions, staticfiles, timezones
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Creating table timezones_event
+    Creating table timezones_maybeevent
+    Creating table timezones_session
+    Creating table timezones_sessionevent
+    Creating table timezones_timestamp
+    Creating table timezones_alldayevent
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+System check identified no issues (0 silenced).
++ : '>>>>> End Test Output'
++ git checkout c84b91b7603e488f7171fdff8f08368ef3d6b856 tests/timezones/tests.py
+Updated 1 path from 7bb2d0d7f0

@@ -1,0 +1,56 @@
+2026-02-22 11:38:17,163 - INFO - Creating container for django__django-14376...
+2026-02-22 11:38:17,427 - INFO - Container for django__django-14376 created: 8a0e9e619fb2462eda7cba76192fbb5ff3c5259014a0eeb5374b9b99b5b32931
+2026-02-22 11:38:17,634 - INFO - Container for django__django-14376 started: 8a0e9e619fb2462eda7cba76192fbb5ff3c5259014a0eeb5374b9b99b5b32931
+2026-02-22 11:38:17,636 - INFO - Intermediate patch for django__django-14376 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14376/patch.diff, now applying to container...
+2026-02-22 11:38:17,873 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:38:18,007 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:38:18,084 - INFO - >>>>> Applied Patch:
+patching file django/db/backends/mysql/base.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 200 with fuzz 1.
+
+2026-02-22 11:38:19,253 - INFO - Git diff before:
+diff --git a/django/db/backends/mysql/base.py b/django/db/backends/mysql/base.py
+index 2c62182d31..8b28a60485 100644
+--- a/django/db/backends/mysql/base.py
++++ b/django/db/backends/mysql/base.py
+@@ -200,9 +200,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+         if settings_dict['USER']:
+             kwargs['user'] = settings_dict['USER']
+         if settings_dict['NAME']:
+-            kwargs['db'] = settings_dict['NAME']
++            kwargs['database'] = settings_dict['NAME']
+         if settings_dict['PASSWORD']:
+-            kwargs['passwd'] = settings_dict['PASSWORD']
++            kwargs['password'] = settings_dict['PASSWORD']
+         if settings_dict['HOST'].startswith('/'):
+             kwargs['unix_socket'] = settings_dict['HOST']
+         elif settings_dict['HOST']:
+2026-02-22 11:38:19,253 - INFO - Eval script for django__django-14376 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14376/eval.sh; copying to container...
+2026-02-22 11:38:25,885 - INFO - Test runtime: 6.57 seconds
+2026-02-22 11:38:25,887 - INFO - Test output for django__django-14376 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14376/test_output.txt
+2026-02-22 11:38:25,997 - INFO - Git diff after:
+diff --git a/django/db/backends/mysql/base.py b/django/db/backends/mysql/base.py
+index 2c62182d31..8b28a60485 100644
+--- a/django/db/backends/mysql/base.py
++++ b/django/db/backends/mysql/base.py
+@@ -200,9 +200,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
+         if settings_dict['USER']:
+             kwargs['user'] = settings_dict['USER']
+         if settings_dict['NAME']:
+-            kwargs['db'] = settings_dict['NAME']
++            kwargs['database'] = settings_dict['NAME']
+         if settings_dict['PASSWORD']:
+-            kwargs['passwd'] = settings_dict['PASSWORD']
++            kwargs['password'] = settings_dict['PASSWORD']
+         if settings_dict['HOST'].startswith('/'):
+             kwargs['unix_socket'] = settings_dict['HOST']
+         elif settings_dict['HOST']:
+2026-02-22 11:38:25,997 - INFO - Grading answer for django__django-14376...
+2026-02-22 11:38:25,999 - INFO - report: {'django__django-14376': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_options_non_deprecated_keys_preferred (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_options_override_settings_proper_values (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_parameters (dbshell.test_mysql.MySqlDbshellCommandTestCase)']}, 'PASS_TO_PASS': {'success': ['test_basic_params_specified_in_settings (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_can_connect_using_sockets (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_crash_password_does_not_leak (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_fails_with_keyerror_on_incomplete_config (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_options_charset (dbshell.test_mysql.MySqlDbshellCommandTestCase)', 'test_ssl_certificate_is_added (dbshell.test_mysql.MySqlDbshellCommandTestCase)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14376: resolved: False
+2026-02-22 11:38:26,000 - INFO - Attempting to stop container sweb.eval.django__django-14376.pydantic-deep...
+2026-02-22 11:38:41,196 - INFO - Attempting to remove container sweb.eval.django__django-14376.pydantic-deep...
+2026-02-22 11:38:41,225 - INFO - Container sweb.eval.django__django-14376.pydantic-deep removed.
+2026-02-22 11:38:41,226 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14376:latest...
+2026-02-22 11:38:41,576 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14376:latest removed.

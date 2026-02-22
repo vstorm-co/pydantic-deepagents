@@ -1,0 +1,2397 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   sympy/core/basic.py
+	modified:   sympy/geometry/point.py
+	modified:   sympy/matrices/matrices.py
+	modified:   sympy/matrices/sparse.py
+	modified:   sympy/plotting/plot.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	sympy/plotting/plot.py.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit 5d04139ee3094b08aac0c68148d56708936d2b13
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 16:16:01 2025 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 360290c4c401e386db60723ddb0109ed499c9f6e
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 627630fea..92677698c 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,6 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping
++from collections.abc import Mapping
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+ from .cache import cacheit
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 593048464..7edd7eb85 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -10,6 +10,8 @@
+ 
+ from __future__ import division, print_function
+ 
++from itertools import zip_longest
++
+ from sympy.core import S, sympify
+ from sympy.core.compatibility import iterable
+ from sympy.core.containers import Tuple
+@@ -266,6 +268,10 @@ def distance(self, p):
+         sqrt(x**2 + y**2)
+ 
+         """
++        s = self.args
++        p_args = p.args if isinstance(p, Point) else p
++        return sqrt(sum([(a - b)**2 for a, b in zip_longest(
++            s, p_args, fillvalue=0)]))
+         return sqrt(sum([(a - b)**2 for a, b in zip(
+             self.args, p.args if isinstance(p, Point) else p)]))
+ 
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index f458f7d1e..5bb4c1a5e 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,5 +1,8 @@
+ from __future__ import print_function, division
+ 
++import collections
++from collections.abc import Callable
++
+ import collections
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+@@ -386,7 +389,7 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+             cols = as_int(args[1])
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index 6a6a3818c..34d7eee07 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -1,5 +1,9 @@
+ from __future__ import print_function, division
+ 
++import copy
++from collections import defaultdict
++from collections.abc import Callable
++
+ import copy
+ from collections import defaultdict
+ 
+@@ -51,7 +55,7 @@ def __init__(self, *args):
+             self.rows = as_int(args[0])
+             self.cols = as_int(args[1])
+ 
+-            if isinstance(args[2], collections.Callable):
++            if isinstance(args[2], Callable):
+                 op = args[2]
+                 for i in range(self.rows):
+                     for j in range(self.cols):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index b1ead153e..f3dc7f60f 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+ 
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: mpmath>=0.19 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from sympy==1.0.1.dev0) (1.3.0)
+Installing collected packages: sympy
+  Attempting uninstall: sympy
+    Found existing installation: sympy 1.0.1.dev0
+    Uninstalling sympy-1.0.1.dev0:
+      Successfully uninstalled sympy-1.0.1.dev0
+  DEPRECATION: Legacy editable install of sympy==1.0.1.dev0 from file:///testbed (setup.py develop) is deprecated. pip 25.0 will enforce this behaviour change. A possible replacement is to add a pyproject.toml or enable --use-pep517, and use setuptools >= 64. If the resulting installation is not behaving as expected, try using --config-settings editable_mode=compat. Please consult the setuptools documentation for more information. Discussion can be found at https://github.com/pypa/pip/issues/11457
+  Running setup.py develop for sympy
+Successfully installed sympy
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ git checkout 360290c4c401e386db60723ddb0109ed499c9f6e sympy/geometry/tests/test_point.py
+Updated 0 paths from d0d3281d5
++ git apply -v -
+Checking patch sympy/geometry/tests/test_point.py...
+Applied patch sympy/geometry/tests/test_point.py cleanly.
++ : '>>>>> Start Test Output'
++ PYTHONWARNINGS=ignore::UserWarning,ignore::SyntaxWarning
++ bin/test -C --verbose sympy/geometry/tests/test_point.py
+============================= test process starts ==============================
+executable:         /opt/miniconda3/envs/testbed/bin/python  (3.9.20-final-0) [CPython]
+architecture:       64-bit
+cache:              no
+ground types:       python 
+random seed:        75475703
+hash randomization: on (PYTHONHASHSEED=3205152003)
+
+sympy/geometry/tests/test_point.py[7] 
+test_point E
+test_point3D ok
+test_Point2D ok
+test_issue_9214 ok
+test_issue_11617 ok
+test_transform ok
+test_concyclic_doctest_bug ok                                             [FAIL]
+
+
+________________________________________________________________________________
+________________ sympy/geometry/tests/test_point.py:test_point _________________
+  File "/testbed/sympy/geometry/tests/test_point.py", line 33, in test_point
+    raises(ValueError, lambda: Point(3 + I, I))
+  File "/testbed/sympy/utilities/pytest.py", line 78, in raises
+    code()
+  File "/testbed/sympy/geometry/tests/test_point.py", line 33, in <lambda>
+    raises(ValueError, lambda: Point(3 + I, I))
+  File "/testbed/sympy/geometry/point.py", line 92, in __new__
+    if any(a.is_number and im(a) for a in coords):
+  File "/testbed/sympy/geometry/point.py", line 92, in <genexpr>
+    if any(a.is_number and im(a) for a in coords):
+  File "/testbed/sympy/core/function.py", line 427, in __new__
+    result = super(Function, cls).__new__(cls, *args, **options)
+  File "/testbed/sympy/core/function.py", line 251, in __new__
+    evaluated = cls.eval(*args)
+  File "/testbed/sympy/functions/elementary/complexes.py", line 153, in eval
+    elif arg.is_imaginary or (S.ImaginaryUnit*arg).is_real:
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 302, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1273, in _eval_is_even
+    is_integer = self.is_integer
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1082, in _eval_is_integer
+    is_rational = self.is_rational
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 302, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 302, in _ask
+    _ask(pk, obj)
+  File "/testbed/sympy/core/assumptions.py", line 302, in _ask
+    _ask(pk, obj)
+  [Previous line repeated 1 more time]
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1296, in _eval_is_prime
+    return r.is_prime
+  File "/testbed/sympy/core/assumptions.py", line 247, in getit
+    return _ask(fact, self)
+  File "/testbed/sympy/core/assumptions.py", line 290, in _ask
+    a = evaluate(obj)
+  File "/testbed/sympy/core/mul.py", line 1295, in _eval_is_prime
+    r *= arg
+  File "/testbed/sympy/core/decorators.py", line 77, in __sympifyit_wrapper
+    return func(a, b)
+  File "/testbed/sympy/core/decorators.py", line 118, in binary_op_wrapper
+    return func(self, other)
+  File "/testbed/sympy/core/expr.py", line 141, in __mul__
+    return Mul(self, other)
+  File "/testbed/sympy/core/operations.py", line 41, in __new__
+    c_part, nc_part, order_symbols = cls.flatten(args)
+  File "/testbed/sympy/core/mul.py", line 287, in flatten
+    neg1e += S.Half
+  File "/testbed/sympy/core/numbers.py", line 1806, in __add__
+    return Rational(self.p*other.q + other.p, other.q, 1)
+  File "/testbed/sympy/core/numbers.py", line 1283, in __new__
+    p = Rational(p)
+  File "/testbed/sympy/core/numbers.py", line 1270, in __new__
+    if isinstance(p, fractions.Fraction):
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/abc.py", line 119, in __instancecheck__
+    return _abc_instancecheck(cls, instance)
+RecursionError: maximum recursion depth exceeded while calling a Python object
+
+=========== tests finished: 6 passed, 1 exceptions, in 0.31 seconds ============
+DO *NOT* COMMIT!
++ : '>>>>> End Test Output'
++ git checkout 360290c4c401e386db60723ddb0109ed499c9f6e sympy/geometry/tests/test_point.py
+Updated 1 path from d0d3281d5

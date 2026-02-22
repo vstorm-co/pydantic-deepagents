@@ -1,0 +1,207 @@
+2026-02-22 12:36:17,532 - INFO - Creating container for sympy__sympy-13031...
+2026-02-22 12:36:18,560 - INFO - Container for sympy__sympy-13031 created: 3c0cfe68ad3aadb1e30dd0717e9f5d2230de0a7c5e7b752dbe4c4f2f0ad51d37
+2026-02-22 12:36:18,737 - INFO - Container for sympy__sympy-13031 started: 3c0cfe68ad3aadb1e30dd0717e9f5d2230de0a7c5e7b752dbe4c4f2f0ad51d37
+2026-02-22 12:36:18,738 - INFO - Intermediate patch for sympy__sympy-13031 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13031/patch.diff, now applying to container...
+2026-02-22 12:36:19,044 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:36:19,182 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:36:19,339 - INFO - >>>>> Applied Patch:
+patching file sympy/__init__.py
+patching file sympy/core/basic.py
+patching file sympy/matrices/matrices.py
+patching file sympy/plotting/plot.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 24 with fuzz 1.
+
+2026-02-22 12:36:19,782 - INFO - Git diff before:
+diff --git a/sympy/__init__.py b/sympy/__init__.py
+index 0c52a7512..dda342fe2 100644
+--- a/sympy/__init__.py
++++ b/sympy/__init__.py
+@@ -76,7 +76,10 @@ def __sympy_debug():
+ # from combinatorics import *
+ # This module is slow to import:
+ #from physics import units
+-from .plotting import plot, textplot, plot_backends, plot_implicit
++# from combinatorics import *
++# This module is slow to import:
++#from physics import units
++# from .plotting import plot, textplot, plot_backends, plot_implicit
+ from .printing import pretty, pretty_print, pprint, pprint_use_unicode, \
+     pprint_try_use_unicode, print_gtk, print_tree, pager_print, TableForm
+ from .printing import rcode, ccode, fcode, jscode, julia_code, mathematica_code, \
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 04452ce9a..87d4a9ef4 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,10 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++try:
++    from collections.abc import Mapping
++except ImportError:
++    from collections import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index da1d30716..0e0b27c48 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,6 +1,11 @@
+ from __future__ import print_function, division
+ 
++
+ import collections
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+ from sympy.core.expr import Expr
+@@ -2032,7 +2037,8 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+                                  "Both dimensions must be positive".format(rows, cols))
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            # Matrix(2, 2, lambda i, j: i+j)
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index d5abe84da..75c3f72be 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -24,7 +24,27 @@
+ 
+ from __future__ import print_function, division
+ 
++
++
++
+ import inspect
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
++import sys
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
++import sys
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
+ from collections import Callable
+ import warnings
+ import sys
+2026-02-22 12:36:19,782 - INFO - Eval script for sympy__sympy-13031 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13031/eval.sh; copying to container...
+2026-02-22 12:36:25,819 - INFO - Test runtime: 5.82 seconds
+2026-02-22 12:36:25,820 - INFO - Test output for sympy__sympy-13031 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-13031/test_output.txt
+2026-02-22 12:36:25,914 - INFO - Git diff after:
+diff --git a/sympy/__init__.py b/sympy/__init__.py
+index 0c52a7512..dda342fe2 100644
+--- a/sympy/__init__.py
++++ b/sympy/__init__.py
+@@ -76,7 +76,10 @@ def __sympy_debug():
+ # from combinatorics import *
+ # This module is slow to import:
+ #from physics import units
+-from .plotting import plot, textplot, plot_backends, plot_implicit
++# from combinatorics import *
++# This module is slow to import:
++#from physics import units
++# from .plotting import plot, textplot, plot_backends, plot_implicit
+ from .printing import pretty, pretty_print, pprint, pprint_use_unicode, \
+     pprint_try_use_unicode, print_gtk, print_tree, pager_print, TableForm
+ from .printing import rcode, ccode, fcode, jscode, julia_code, mathematica_code, \
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 04452ce9a..87d4a9ef4 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,10 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++try:
++    from collections.abc import Mapping
++except ImportError:
++    from collections import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index da1d30716..0e0b27c48 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,6 +1,11 @@
+ from __future__ import print_function, division
+ 
++
+ import collections
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+ from sympy.core.expr import Expr
+@@ -2032,7 +2037,8 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+                                  "Both dimensions must be positive".format(rows, cols))
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            # Matrix(2, 2, lambda i, j: i+j)
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index d5abe84da..75c3f72be 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -24,7 +24,27 @@
+ 
+ from __future__ import print_function, division
+ 
++
++
++
+ import inspect
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
++import sys
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
++import sys
++try:
++    from collections.abc import Callable
++except ImportError:
++    from collections import Callable
++import warnings
+ from collections import Callable
+ import warnings
+ import sys
+2026-02-22 12:36:25,914 - INFO - Grading answer for sympy__sympy-13031...
+2026-02-22 12:36:25,915 - INFO - report: {'sympy__sympy-13031': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_sparse_matrix']}, 'PASS_TO_PASS': {'success': ['test_trace', 'test_CL_RL', 'test_len'], 'failure': ['test_transpose', 'test_add', 'test_errors', 'test_sparse_zeros_sparse_eye', 'test_copyin', 'test_sparse_solve']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-13031: resolved: False
+2026-02-22 12:36:25,916 - INFO - Attempting to stop container sweb.eval.sympy__sympy-13031.pydantic-deep...
+2026-02-22 12:36:41,150 - INFO - Attempting to remove container sweb.eval.sympy__sympy-13031.pydantic-deep...
+2026-02-22 12:36:41,177 - INFO - Container sweb.eval.sympy__sympy-13031.pydantic-deep removed.
+2026-02-22 12:36:41,177 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-13031:latest...
+2026-02-22 12:36:41,239 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-13031:latest removed.

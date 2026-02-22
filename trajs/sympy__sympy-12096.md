@@ -1,0 +1,61 @@
+# sympy__sympy-12096
+
+**Repository**: sympy/sympy
+**Duration**: 602.3s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 47 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 2135089542..b604063ee7 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,6 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping
++from collections.abc import Mapping
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+ from .cache import cacheit
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 1b8005e1d2..2b295110c6 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -506,6 +506,18 @@ def _eval_evalf(self, prec):
+                 fname = MPMATH_TRANSLATIONS[fname]
+             func = getattr(mpmath, fname)
+         except (AttributeError, KeyError):
++            try:
++                # Evaluate the arguments first
++                args = [arg.evalf(prec) for arg in self.args]
++                # Call the implementation with evaluated arguments
++                result = self._imp_(*args)
++                # If the result is a SymPy expression, evaluate it recursively
++                from sympy import Expr
++                if isinstance(result, Expr):
++                    return result.evalf(prec)
++                return Float(result, prec)
++            except (AttributeError, TypeError, ValueError):
++                return
+             try:
+                 return Float(self._imp_(*self.args), prec)
+             except (AttributeError, TypeError, ValueError):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index 664602d6ba..6268b99c06 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+```

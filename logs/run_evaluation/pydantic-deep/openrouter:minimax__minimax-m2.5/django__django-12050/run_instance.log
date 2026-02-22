@@ -1,0 +1,50 @@
+2026-02-22 11:25:33,113 - INFO - Creating container for django__django-12050...
+2026-02-22 11:25:33,294 - INFO - Container for django__django-12050 created: 2cc5d82297cdc17f0efbd41e1249cef995d3937fb7c750830bc03dba908f835f
+2026-02-22 11:25:33,397 - INFO - Container for django__django-12050 started: 2cc5d82297cdc17f0efbd41e1249cef995d3937fb7c750830bc03dba908f835f
+2026-02-22 11:25:33,398 - INFO - Intermediate patch for django__django-12050 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12050/patch.diff, now applying to container...
+2026-02-22 11:25:33,566 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:25:33,657 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:25:33,752 - INFO - >>>>> Applied Patch:
+patching file django/db/models/sql/query.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 1073 with fuzz 1.
+
+2026-02-22 11:25:34,355 - INFO - Git diff before:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ea51912e8b..90475d6fb9 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1073,7 +1073,7 @@ class Query(BaseExpression):
+                         ))
+                 else:
+                     resolved_values.append(sub_value)
+-            value = tuple(resolved_values)
++            value = type(value)(resolved_values)
+         return value
+ 
+     def solve_lookup_type(self, lookup):
+2026-02-22 11:25:34,355 - INFO - Eval script for django__django-12050 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12050/eval.sh; copying to container...
+2026-02-22 11:25:45,326 - INFO - Test runtime: 10.89 seconds
+2026-02-22 11:25:45,327 - INFO - Test output for django__django-12050 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-12050/test_output.txt
+2026-02-22 11:25:45,425 - INFO - Git diff after:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ea51912e8b..90475d6fb9 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1073,7 +1073,7 @@ class Query(BaseExpression):
+                         ))
+                 else:
+                     resolved_values.append(sub_value)
+-            value = tuple(resolved_values)
++            value = type(value)(resolved_values)
+         return value
+ 
+     def solve_lookup_type(self, lookup):
+2026-02-22 11:25:45,425 - INFO - Grading answer for django__django-12050...
+2026-02-22 11:25:45,426 - INFO - report: {'django__django-12050': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_iterable_lookup_value (queries.test_query.TestQuery)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_clone_select_related (queries.test_query.TestQuery)', 'test_complex_query (queries.test_query.TestQuery)', 'test_foreign_key (queries.test_query.TestQuery)', 'test_foreign_key_exclusive (queries.test_query.TestQuery)', 'test_foreign_key_f (queries.test_query.TestQuery)', 'test_multiple_fields (queries.test_query.TestQuery)', 'test_negated_nullable (queries.test_query.TestQuery)', 'test_simple_query (queries.test_query.TestQuery)', 'test_simplecol_query (queries.test_query.TestQuery)', 'test_transform (queries.test_query.TestQuery)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-12050: resolved: True
+2026-02-22 11:25:45,426 - INFO - Attempting to stop container sweb.eval.django__django-12050.pydantic-deep...
+2026-02-22 11:26:00,760 - INFO - Attempting to remove container sweb.eval.django__django-12050.pydantic-deep...
+2026-02-22 11:26:00,802 - INFO - Container sweb.eval.django__django-12050.pydantic-deep removed.
+2026-02-22 11:26:00,802 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-12050:latest...
+2026-02-22 11:26:01,122 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-12050:latest removed.

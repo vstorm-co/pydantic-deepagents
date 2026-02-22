@@ -1,0 +1,79 @@
+# sympy__sympy-13974
+
+**Repository**: sympy/sympy
+**Duration**: 602.5s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 65 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index a1bf92bde1..fe1b27687c 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,7 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping, defaultdict
++from collections.abc import Mapping
++from collections import defaultdict
+ from itertools import chain
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+diff --git a/sympy/core/containers.py b/sympy/core/containers.py
+index 15abd93e3a..a9b8948ebe 100644
+--- a/sympy/core/containers.py
++++ b/sympy/core/containers.py
+@@ -14,6 +14,7 @@
+ from sympy.utilities.iterables import iterable
+ 
+ import collections
++from collections.abc import MutableSet
+ 
+ 
+ class Tuple(Basic):
+@@ -268,7 +269,7 @@ def _sorted_args(self):
+         return tuple(sorted(self.args, key=default_sort_key))
+ 
+ 
+-class OrderedSet(collections.MutableSet):
++class OrderedSet(MutableSet):
+     def __init__(self, iterable=None):
+         if iterable:
+             self.map = collections.OrderedDict((item, None) for item in iterable)
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 9dd10d219e..6c7f3b25bd 100644
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -382,6 +382,14 @@ def tensor_product_simp(e, **hints):
+     if isinstance(e, Add):
+         return Add(*[tensor_product_simp(arg) for arg in e.args])
+     elif isinstance(e, Pow):
++        # If the base is a TensorProduct and the exponent is a positive integer,
++        # expand the power into a multiplication and then simplify.
++        if isinstance(e.base, TensorProduct) and e.exp.is_Integer and e.exp > 0:
++            # Expand Pow into Mul: base**n -> base*base*...*base (n times)
++            # Use evaluate=False to prevent SymPy from converting it back to Pow
++            expanded = Mul(*[e.base for _ in range(e.exp)], evaluate=False)
++            return tensor_product_simp(expanded)
++        return tensor_product_simp(e.base) ** e.exp
+         return tensor_product_simp(e.base) ** e.exp
+     elif isinstance(e, Mul):
+         return tensor_product_simp_Mul(e)
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index b3b0237d19..0b959a43a4 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+```

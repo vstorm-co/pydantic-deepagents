@@ -27,6 +27,9 @@ def load_dataset(config: RunConfig) -> list[SWEBenchInstance]:
 
     instances: list[SWEBenchInstance] = []
     for row in ds:
+        # NOTE: We load hints_text, FAIL_TO_PASS, PASS_TO_PASS for metadata only.
+        # These are NOT passed to the agent (see format_task_message in prompt.py).
+        # SWE-bench rules forbid using these fields for official submissions.
         instance = SWEBenchInstance(
             instance_id=row["instance_id"],
             repo=row["repo"],
@@ -89,6 +92,31 @@ def write_predictions(
             f.write(json.dumps(prediction.to_dict()) + "\n")
 
     return output_path
+
+
+def write_trajectories(
+    results: list[InstanceResult],
+    trajs_dir: str,
+) -> Path:
+    """Write per-instance trajectory markdown files.
+
+    Args:
+        results: List of instance results with trajectory data.
+        trajs_dir: Directory to write trajectory files.
+
+    Returns:
+        Path to the trajectories directory.
+    """
+    trajs_path = Path(trajs_dir)
+    trajs_path.mkdir(parents=True, exist_ok=True)
+
+    for result in results:
+        if not result.trajectory:
+            continue
+        traj_file = trajs_path / f"{result.instance_id}.md"
+        traj_file.write_text(result.trajectory)
+
+    return trajs_path
 
 
 def _print_summary(
@@ -179,7 +207,26 @@ async def run_swebench(
     instances = load_dataset(config)
 
     if not instances:
-        console.print("[red]No instances found.[/red]")
+        if config.instance_ids:
+            # Load all IDs to suggest similar ones
+            all_instances = load_dataset(RunConfig(
+                dataset=config.dataset, split=config.split,
+                model=config.model,
+            ))
+            all_ids = [i.instance_id for i in all_instances]
+            # Find similar IDs (prefix match)
+            for wanted in config.instance_ids:
+                similar = [i for i in all_ids if wanted.split("-")[0] in i][:5]
+                if similar:
+                    console.print(
+                        f"[red]Instance '{wanted}' not found.[/red] "
+                        f"Similar: {', '.join(similar)}"
+                    )
+                else:
+                    console.print(f"[red]Instance '{wanted}' not found in {config.dataset}.[/red]")
+            console.print(f"\n[dim]Use 'pydantic-deep swebench list' to see available instances.[/dim]")
+        else:
+            console.print("[red]No instances found.[/red]")
         return []
 
     console.print(f"Found [bold]{len(instances)}[/bold] instances")
@@ -199,13 +246,21 @@ async def run_swebench(
             console.print(f"  Starting [cyan]{instance.instance_id}[/cyan]...")
             result = await run_instance(instance, config, verbose=verbose)
 
-            status = "[green]ok[/green]" if not result.error else f"[red]{result.error[:50]}[/red]"
             patch_lines = len(result.model_patch.splitlines()) if result.model_patch else 0
-            console.print(
-                f"  Finished [cyan]{instance.instance_id}[/cyan] "
-                f"({patch_lines} lines, ${result.cost_usd:.4f}, "
-                f"{result.duration_seconds:.1f}s) {status}"
-            )
+            if result.error:
+                status = f"[red]error[/red]"
+                console.print(
+                    f"  Finished [cyan]{instance.instance_id}[/cyan] "
+                    f"({result.duration_seconds:.1f}s) {status}"
+                )
+                console.print(f"    [red]{result.error}[/red]")
+            else:
+                status = "[green]ok[/green]"
+                console.print(
+                    f"  Finished [cyan]{instance.instance_id}[/cyan] "
+                    f"({patch_lines} lines, ${result.cost_usd:.4f}, "
+                    f"{result.duration_seconds:.1f}s) {status}"
+                )
             return result
 
     results = await asyncio.gather(*[_run_bounded(inst) for inst in instances])
@@ -214,6 +269,12 @@ async def run_swebench(
     # Write predictions
     output_path = write_predictions(list(results), config)
     console.print(f"\nPredictions written to [bold]{output_path}[/bold]")
+
+    # Write trajectories
+    if config.trajs_dir:
+        trajs_path = write_trajectories(list(results), config.trajs_dir)
+        traj_count = sum(1 for r in results if r.trajectory)
+        console.print(f"Trajectories written to [bold]{trajs_path}[/bold] ({traj_count} files)")
 
     # Summary
     _print_summary(list(results), config, total_duration)

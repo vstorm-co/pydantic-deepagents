@@ -1,0 +1,54 @@
+2026-02-22 11:34:03,674 - INFO - Creating container for django__django-13670...
+2026-02-22 11:34:04,041 - INFO - Container for django__django-13670 created: c2a27bc1cc4996145c8be87cb461cc2d592de4ac28b1142634119b71d68b939e
+2026-02-22 11:34:04,202 - INFO - Container for django__django-13670 started: c2a27bc1cc4996145c8be87cb461cc2d592de4ac28b1142634119b71d68b939e
+2026-02-22 11:34:04,204 - INFO - Intermediate patch for django__django-13670 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13670/patch.diff, now applying to container...
+2026-02-22 11:34:04,400 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:34:04,467 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:34:04,541 - INFO - >>>>> Applied Patch:
+patching file django/utils/dateformat.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 325 with fuzz 1.
+
+2026-02-22 11:34:05,330 - INFO - Git diff before:
+diff --git a/django/utils/dateformat.py b/django/utils/dateformat.py
+index afd36d79e0..3e23eea42f 100644
+--- a/django/utils/dateformat.py
++++ b/django/utils/dateformat.py
+@@ -325,8 +325,8 @@ class DateFormat(TimeFormat):
+         return self.data.isocalendar()[1]
+ 
+     def y(self):
+-        "Year, 2 digits; e.g. '99'"
+-        return str(self.data.year)[2:]
++        "Year, 2 digits with leading zeros; e.g. '99'"
++        return '%02d' % (self.data.year % 100)
+ 
+     def Y(self):
+         "Year, 4 digits; e.g. '1999'"
+2026-02-22 11:34:05,331 - INFO - Eval script for django__django-13670 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13670/eval.sh; copying to container...
+2026-02-22 11:34:19,885 - INFO - Test runtime: 14.49 seconds
+2026-02-22 11:34:19,885 - INFO - Test output for django__django-13670 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13670/test_output.txt
+2026-02-22 11:34:20,012 - INFO - Git diff after:
+diff --git a/django/utils/dateformat.py b/django/utils/dateformat.py
+index afd36d79e0..3e23eea42f 100644
+--- a/django/utils/dateformat.py
++++ b/django/utils/dateformat.py
+@@ -325,8 +325,8 @@ class DateFormat(TimeFormat):
+         return self.data.isocalendar()[1]
+ 
+     def y(self):
+-        "Year, 2 digits; e.g. '99'"
+-        return str(self.data.year)[2:]
++        "Year, 2 digits with leading zeros; e.g. '99'"
++        return '%02d' % (self.data.year % 100)
+ 
+     def Y(self):
+         "Year, 4 digits; e.g. '1999'"
+2026-02-22 11:34:20,012 - INFO - Grading answer for django__django-13670...
+2026-02-22 11:34:20,013 - INFO - report: {'django__django-13670': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_year_before_1000 (utils_tests.test_dateformat.DateFormatTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_am_pm (utils_tests.test_dateformat.DateFormatTests)', 'test_date (utils_tests.test_dateformat.DateFormatTests)', 'test_date_formats (utils_tests.test_dateformat.DateFormatTests)', 'test_dateformat (utils_tests.test_dateformat.DateFormatTests)', 'test_datetime_with_local_tzinfo (utils_tests.test_dateformat.DateFormatTests)', 'test_datetime_with_tzinfo (utils_tests.test_dateformat.DateFormatTests)', 'test_day_of_year_leap (utils_tests.test_dateformat.DateFormatTests)', 'test_empty_format (utils_tests.test_dateformat.DateFormatTests)', 'test_epoch (utils_tests.test_dateformat.DateFormatTests)', 'test_futuredates (utils_tests.test_dateformat.DateFormatTests)', 'test_invalid_time_format_specifiers (utils_tests.test_dateformat.DateFormatTests)', 'test_microsecond (utils_tests.test_dateformat.DateFormatTests)', 'test_naive_ambiguous_datetime (utils_tests.test_dateformat.DateFormatTests)', 'test_naive_datetime (utils_tests.test_dateformat.DateFormatTests)', 'test_r_format_with_non_en_locale (utils_tests.test_dateformat.DateFormatTests)', 'test_time_formats (utils_tests.test_dateformat.DateFormatTests)', 'test_timezones (utils_tests.test_dateformat.DateFormatTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13670: resolved: True
+2026-02-22 11:34:20,013 - INFO - Attempting to stop container sweb.eval.django__django-13670.pydantic-deep...
+2026-02-22 11:34:35,236 - INFO - Attempting to remove container sweb.eval.django__django-13670.pydantic-deep...
+2026-02-22 11:34:35,259 - INFO - Container sweb.eval.django__django-13670.pydantic-deep removed.
+2026-02-22 11:34:35,259 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-13670:latest...
+2026-02-22 11:34:35,423 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-13670:latest removed.

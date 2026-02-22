@@ -1,0 +1,33 @@
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index ea5baca08d..ebaf0ccb61 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -159,14 +159,13 @@ class TemplateView(TemplateResponseMixin, ContextMixin, View):
+     def get(self, request, *args, **kwargs):
+         # RemovedInDjango40Warning: when the deprecation ends, replace with:
+         #   context = self.get_context_data()
+-        context_kwargs = _wrap_url_kwargs_with_deprecation_warning(kwargs)
+-        context = self.get_context_data(**context_kwargs)
++        context = self.get_context_data(**kwargs)
++        context = _wrap_url_kwargs_with_deprecation_warning(kwargs, context)
+         return self.render_to_response(context)
+ 
+ 
+ # RemovedInDjango40Warning
+-def _wrap_url_kwargs_with_deprecation_warning(url_kwargs):
+-    context_kwargs = {}
++def _wrap_url_kwargs_with_deprecation_warning(url_kwargs, context):
+     for key, value in url_kwargs.items():
+         # Bind into function closure.
+         @SimpleLazyObject
+@@ -178,8 +177,8 @@ def _wrap_url_kwargs_with_deprecation_warning(url_kwargs):
+                 RemovedInDjango40Warning, stacklevel=2,
+             )
+             return value
+-        context_kwargs[key] = access_value
+-    return context_kwargs
++        context[key] = access_value
++    return context
+ 
+ 
+ class RedirectView(View):

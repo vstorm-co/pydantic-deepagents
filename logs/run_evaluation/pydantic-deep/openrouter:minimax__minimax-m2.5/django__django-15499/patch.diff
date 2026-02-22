@@ -1,0 +1,24 @@
+diff --git a/django/db/migrations/operations/models.py b/django/db/migrations/operations/models.py
+index 90fc31bee5..b69c431971 100644
+--- a/django/db/migrations/operations/models.py
++++ b/django/db/migrations/operations/models.py
+@@ -202,6 +202,19 @@ class CreateModel(ModelOperation):
+                     managers=self.managers,
+                 ),
+             ]
++        elif (
++            isinstance(operation, AlterModelManagers)
++            and self.name_lower == operation.name_lower
++        ):
++            return [
++                CreateModel(
++                    self.name,
++                    fields=self.fields,
++                    options=self.options,
++                    bases=self.bases,
++                    managers=operation.managers,
++                ),
++            ]
+         elif (
+             isinstance(operation, FieldOperation)
+             and self.name_lower == operation.model_name_lower

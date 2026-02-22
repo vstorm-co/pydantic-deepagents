@@ -1,0 +1,251 @@
+2026-02-22 12:35:03,537 - INFO - Creating container for sympy__sympy-12419...
+2026-02-22 12:35:04,492 - INFO - Container for sympy__sympy-12419 created: d48093ae8837a47a4d9452976141037a0f2b66c1d65e96f0c52add6816c87c81
+2026-02-22 12:35:04,724 - INFO - Container for sympy__sympy-12419 started: d48093ae8837a47a4d9452976141037a0f2b66c1d65e96f0c52add6816c87c81
+2026-02-22 12:35:04,725 - INFO - Intermediate patch for sympy__sympy-12419 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-12419/patch.diff, now applying to container...
+2026-02-22 12:35:05,190 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:35:05,519 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:35:05,834 - INFO - >>>>> Applied Patch:
+patching file sympy/assumptions/sathandlers.py
+patching file sympy/core/basic.py
+patching file sympy/matrices/expressions/matexpr.py
+patching file sympy/matrices/matrices.py
+patching file sympy/matrices/sparse.py
+patching file sympy/plotting/plot.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 25 with fuzz 2.
+
+2026-02-22 12:35:06,416 - INFO - Git diff before:
+diff --git a/sympy/assumptions/sathandlers.py b/sympy/assumptions/sathandlers.py
+index 61d62d04c..881a5f9ba 100644
+--- a/sympy/assumptions/sathandlers.py
++++ b/sympy/assumptions/sathandlers.py
+@@ -1,6 +1,7 @@
+ from __future__ import print_function, division
+ 
+-from collections import MutableMapping, defaultdict
++from collections.abc import MutableMapping
++from collections import defaultdict
+ 
+ from sympy.core import (Add, Mul, Pow, Integer, Number, NumberSymbol,)
+ from sympy.core.numbers import ImaginaryUnit
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index b992b45c2..fe91845ca 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,6 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping
++from collections.abc import Mapping
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+ from .cache import cacheit
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836..776977ede 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -2,11 +2,12 @@
+ 
+ from functools import wraps
+ 
+-from sympy.core import S, Symbol, Tuple, Integer, Basic, Expr
++from sympy.core import S, Symbol, Tuple, Integer, Basic, Expr, Eq
+ from sympy.core.decorators import call_highest_priority
+ from sympy.core.compatibility import range
+ from sympy.core.sympify import SympifyError, sympify
+ from sympy.functions import conjugate, adjoint
++from sympy.functions.special.tensor_functions import KroneckerDelta
+ from sympy.matrices import ShapeError
+ from sympy.simplify import simplify
+ 
+@@ -476,6 +477,13 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
++        eq = Eq(i, j)
++        if eq is S.true:
++            return S.One
++        elif eq is S.false:
++            return S.Zero
++        else:
++            return KroneckerDelta(i, j)
+         if i == j:
+             return S.One
+         else:
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index b6808b58d..3ce54d84a 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,6 +1,7 @@
+ from __future__ import print_function, division
+ 
+ import collections
++from collections.abc import Callable
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+ from sympy.core.expr import Expr
+@@ -1903,7 +1904,7 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+             cols = as_int(args[1])
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index 24df97b01..9f170790c 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -14,6 +14,7 @@
+ from .matrices import MatrixBase, ShapeError, a2idx
+ from .dense import Matrix
+ import collections
++from collections.abc import Callable
+ 
+ 
+ class SparseMatrix(MatrixBase):
+@@ -52,7 +53,7 @@ def __new__(cls, *args, **kwargs):
+             self.rows = as_int(args[0])
+             self.cols = as_int(args[1])
+ 
+-            if isinstance(args[2], collections.Callable):
++            if isinstance(args[2], Callable):
+                 op = args[2]
+                 for i in range(self.rows):
+                     for j in range(self.cols):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index 664602d6b..6268b99c0 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+2026-02-22 12:35:06,417 - INFO - Eval script for sympy__sympy-12419 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-12419/eval.sh; copying to container...
+2026-02-22 12:35:11,456 - INFO - Test runtime: 4.92 seconds
+2026-02-22 12:35:11,456 - INFO - Test output for sympy__sympy-12419 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sympy__sympy-12419/test_output.txt
+2026-02-22 12:35:11,555 - INFO - Git diff after:
+diff --git a/sympy/assumptions/sathandlers.py b/sympy/assumptions/sathandlers.py
+index 61d62d04c..881a5f9ba 100644
+--- a/sympy/assumptions/sathandlers.py
++++ b/sympy/assumptions/sathandlers.py
+@@ -1,6 +1,7 @@
+ from __future__ import print_function, division
+ 
+-from collections import MutableMapping, defaultdict
++from collections.abc import MutableMapping
++from collections import defaultdict
+ 
+ from sympy.core import (Add, Mul, Pow, Integer, Number, NumberSymbol,)
+ from sympy.core.numbers import ImaginaryUnit
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index b992b45c2..fe91845ca 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1,6 +1,6 @@
+ """Base class for all the objects in SymPy"""
+ from __future__ import print_function, division
+-from collections import Mapping
++from collections.abc import Mapping
+ 
+ from .assumptions import BasicMeta, ManagedProperties
+ from .cache import cacheit
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836..776977ede 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -2,11 +2,12 @@
+ 
+ from functools import wraps
+ 
+-from sympy.core import S, Symbol, Tuple, Integer, Basic, Expr
++from sympy.core import S, Symbol, Tuple, Integer, Basic, Expr, Eq
+ from sympy.core.decorators import call_highest_priority
+ from sympy.core.compatibility import range
+ from sympy.core.sympify import SympifyError, sympify
+ from sympy.functions import conjugate, adjoint
++from sympy.functions.special.tensor_functions import KroneckerDelta
+ from sympy.matrices import ShapeError
+ from sympy.simplify import simplify
+ 
+@@ -476,6 +477,13 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
++        eq = Eq(i, j)
++        if eq is S.true:
++            return S.One
++        elif eq is S.false:
++            return S.Zero
++        else:
++            return KroneckerDelta(i, j)
+         if i == j:
+             return S.One
+         else:
+diff --git a/sympy/matrices/matrices.py b/sympy/matrices/matrices.py
+index b6808b58d..3ce54d84a 100644
+--- a/sympy/matrices/matrices.py
++++ b/sympy/matrices/matrices.py
+@@ -1,6 +1,7 @@
+ from __future__ import print_function, division
+ 
+ import collections
++from collections.abc import Callable
+ from sympy.core.add import Add
+ from sympy.core.basic import Basic, Atom
+ from sympy.core.expr import Expr
+@@ -1903,7 +1904,7 @@ def _handle_creation_inputs(cls, *args, **kwargs):
+             cols = as_int(args[1])
+ 
+             # Matrix(2, 2, lambda i, j: i+j)
+-            if len(args) == 3 and isinstance(args[2], collections.Callable):
++            if len(args) == 3 and isinstance(args[2], Callable):
+                 op = args[2]
+                 flat_list = []
+                 for i in range(rows):
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index 24df97b01..9f170790c 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -14,6 +14,7 @@
+ from .matrices import MatrixBase, ShapeError, a2idx
+ from .dense import Matrix
+ import collections
++from collections.abc import Callable
+ 
+ 
+ class SparseMatrix(MatrixBase):
+@@ -52,7 +53,7 @@ def __new__(cls, *args, **kwargs):
+             self.rows = as_int(args[0])
+             self.cols = as_int(args[1])
+ 
+-            if isinstance(args[2], collections.Callable):
++            if isinstance(args[2], Callable):
+                 op = args[2]
+                 for i in range(self.rows):
+                     for j in range(self.cols):
+diff --git a/sympy/plotting/plot.py b/sympy/plotting/plot.py
+index 664602d6b..6268b99c0 100644
+--- a/sympy/plotting/plot.py
++++ b/sympy/plotting/plot.py
+@@ -25,7 +25,7 @@
+ from __future__ import print_function, division
+ 
+ import inspect
+-from collections import Callable
++from collections.abc import Callable
+ import warnings
+ import sys
+2026-02-22 12:35:11,555 - INFO - Grading answer for sympy__sympy-12419...
+2026-02-22 12:35:11,556 - INFO - report: {'sympy__sympy-12419': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_Identity'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_shape', 'test_matexpr', 'test_subs', 'test_ZeroMatrix', 'test_ZeroMatrix_doit', 'test_Identity_doit', 'test_addition', 'test_multiplication', 'test_MatPow', 'test_MatrixSymbol', 'test_dense_conversion', 'test_free_symbols', 'test_zero_matmul', 'test_matadd_simplify', 'test_matmul_simplify', 'test_invariants', 'test_indexing', 'test_single_indexing', 'test_MatrixElement_commutative', 'test_MatrixSymbol_determinant', 'test_MatrixElement_diff', 'test_MatrixElement_doit', 'test_identity_powers', 'test_Zero_power', 'test_matrixelement_diff'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sympy__sympy-12419: resolved: True
+2026-02-22 12:35:11,556 - INFO - Attempting to stop container sweb.eval.sympy__sympy-12419.pydantic-deep...
+2026-02-22 12:35:26,797 - INFO - Attempting to remove container sweb.eval.sympy__sympy-12419.pydantic-deep...
+2026-02-22 12:35:26,832 - INFO - Container sweb.eval.sympy__sympy-12419.pydantic-deep removed.
+2026-02-22 12:35:26,832 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sympy_1776_sympy-12419:latest...
+2026-02-22 12:35:26,905 - INFO - Image swebench/sweb.eval.x86_64.sympy_1776_sympy-12419:latest removed.

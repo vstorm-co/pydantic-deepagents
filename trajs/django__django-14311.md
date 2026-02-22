@@ -1,0 +1,52 @@
+# django__django-14311
+
+**Repository**: django/django
+**Duration**: 603.5s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 38 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index b6af5f5491..0a4d4c1b53 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -216,6 +216,7 @@ def get_child_arguments():
+     executable is reported to not have the .exe extension which can cause bugs
+     on reloading.
+     """
++    """
+     import __main__
+     py_script = Path(sys.argv[0])
+ 
+@@ -223,10 +224,21 @@ def get_child_arguments():
+     # __spec__ is set when the server was started with the `-m` option,
+     # see https://docs.python.org/3/reference/import.html#main-spec
+     # __spec__ may not exist, e.g. when running in a Conda env.
+-    if getattr(__main__, '__spec__', None) is not None and __main__.__spec__.parent:
+-        args += ['-m', __main__.__spec__.parent]
+-        args += sys.argv[1:]
+-    elif not py_script.exists():
++    if getattr(__main__, '__spec__', None) is not None:
++        spec = __main__.__spec__
++        if (spec.name == '__main__' or spec.name.endswith('.__main__')):
++            # If started with python -m pkg where pkg is a package with __main__.py,
++            # __spec__.name is 'pkg.__main__' and we need to use the parent package name.
++            module_name = spec.parent
++        else:
++            # If started with python -m pkg.mod where mod is a module file,
++            # __spec__.name is 'pkg.mod' and we need to use the full module name.
++            module_name = spec.name
++        if module_name:
++            args += ['-m', module_name]
++            args += sys.argv[1:]
++            return args
++    if not py_script.exists():
+         # sys.argv[0] may not exist for several reasons on Windows.
+         # It may exist with a .exe extension or have a -script.py suffix.
+         exe_entrypoint = py_script.with_suffix('.exe')
+```

@@ -1,0 +1,21 @@
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 83a5f2aedc..bcb3d60ea9 100644
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -548,6 +548,8 @@ def _eval_is_zero(self):
+                     return
+             elif a.is_imaginary:
+                 im = True
++                if (S.ImaginaryUnit*a).is_real:
++                    im_or_z = True
+             elif (S.ImaginaryUnit*a).is_real:
+                 im_or_z = True
+             else:
+@@ -561,7 +563,7 @@ def _eval_is_zero(self):
+             if not im_or_z and not im:
+                 return True
+             if im and not im_or_z:
+-                return False
++                return
+         if b.is_zero is False:
+             return False

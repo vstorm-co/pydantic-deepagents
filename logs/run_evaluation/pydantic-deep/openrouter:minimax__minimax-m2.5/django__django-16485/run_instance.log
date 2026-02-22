@@ -1,0 +1,56 @@
+2026-02-22 11:48:41,282 - INFO - Creating container for django__django-16485...
+2026-02-22 11:48:41,658 - INFO - Container for django__django-16485 created: 41d5fc717fe0b7f7f1bd5e4668b9e2c023876dce863ac53a2c112a95be781ef5
+2026-02-22 11:48:41,805 - INFO - Container for django__django-16485 started: 41d5fc717fe0b7f7f1bd5e4668b9e2c023876dce863ac53a2c112a95be781ef5
+2026-02-22 11:48:41,806 - INFO - Intermediate patch for django__django-16485 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16485/patch.diff, now applying to container...
+2026-02-22 11:48:41,982 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:48:42,068 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:48:42,190 - INFO - >>>>> Applied Patch:
+patching file django/template/defaultfilters.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 182 with fuzz 1.
+
+2026-02-22 11:48:43,558 - INFO - Git diff before:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..de0ca2c0cc 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -182,7 +182,10 @@ def floatformat(text, arg=-1):
+     # Set the precision high enough to avoid an exception (#15789).
+     tupl = d.as_tuple()
+     units = len(tupl[1])
+-    units += -tupl[2] if m else tupl[2]
++    if d.is_zero():
++        units = 1
++    else:
++        units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,
+2026-02-22 11:48:43,560 - INFO - Eval script for django__django-16485 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16485/eval.sh; copying to container...
+2026-02-22 11:48:51,573 - INFO - Test runtime: 7.93 seconds
+2026-02-22 11:48:51,575 - INFO - Test output for django__django-16485 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16485/test_output.txt
+2026-02-22 11:48:51,716 - INFO - Git diff after:
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 23c3a08c67..de0ca2c0cc 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -182,7 +182,10 @@ def floatformat(text, arg=-1):
+     # Set the precision high enough to avoid an exception (#15789).
+     tupl = d.as_tuple()
+     units = len(tupl[1])
+-    units += -tupl[2] if m else tupl[2]
++    if d.is_zero():
++        units = 1
++    else:
++        units += -tupl[2] if m else tupl[2]
+     prec = abs(p) + units + 1
+ 
+     # Avoid conversion to scientific notation by accessing `sign`, `digits`,
+2026-02-22 11:48:51,716 - INFO - Grading answer for django__django-16485...
+2026-02-22 11:48:51,717 - INFO - report: {'django__django-16485': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests.test_zero_values)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_floatformat01 (template_tests.filter_tests.test_floatformat.FloatformatTests.test_floatformat01)', 'test_floatformat02 (template_tests.filter_tests.test_floatformat.FloatformatTests.test_floatformat02)', 'test_float_dunder_method (template_tests.filter_tests.test_floatformat.FunctionTests.test_float_dunder_method)', 'test_force_grouping (template_tests.filter_tests.test_floatformat.FunctionTests.test_force_grouping)', 'test_infinity (template_tests.filter_tests.test_floatformat.FunctionTests.test_infinity)', 'test_inputs (template_tests.filter_tests.test_floatformat.FunctionTests.test_inputs)', '#15789', 'test_negative_zero_values (template_tests.filter_tests.test_floatformat.FunctionTests.test_negative_zero_values)', 'test_unlocalize (template_tests.filter_tests.test_floatformat.FunctionTests.test_unlocalize)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16485: resolved: True
+2026-02-22 11:48:51,718 - INFO - Attempting to stop container sweb.eval.django__django-16485.pydantic-deep...
+2026-02-22 11:49:07,124 - INFO - Attempting to remove container sweb.eval.django__django-16485.pydantic-deep...
+2026-02-22 11:49:07,169 - INFO - Container sweb.eval.django__django-16485.pydantic-deep removed.
+2026-02-22 11:49:07,169 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-16485:latest...
+2026-02-22 11:49:07,456 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-16485:latest removed.

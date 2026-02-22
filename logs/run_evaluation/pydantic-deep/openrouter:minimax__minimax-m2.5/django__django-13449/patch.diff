@@ -1,0 +1,27 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 90d90119d0..6243a7fea8 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1332,6 +1332,22 @@ class Window(Expression):
+             'window': ''.join(window_sql).strip()
+         }, params
+ 
++    def as_sqlite(self, compiler, connection):
++        if self.output_field.get_internal_type() == 'DecimalField':
++            # Casting to numeric must happen after the window function expression
++            # (e.g., LAG) is completed (i.e., after the OVER clause), not within
++            # the window function expression.
++            copy = self.copy()
++            # Bypass the inner expression's as_sqlite by temporarily removing it.
++            source_as_sqlite = copy.source_expression.as_sqlite
++            copy.source_expression.as_sqlite = None
++            try:
++                sql, params = copy.as_sql(compiler, connection)
++            finally:
++                copy.source_expression.as_sqlite = source_as_sqlite
++            return 'CAST(%s AS NUMERIC)' % sql, params
++        return self.as_sql(compiler, connection)
++
+     def __str__(self):
+         return '{} OVER ({}{}{})'.format(
+             str(self.source_expression),

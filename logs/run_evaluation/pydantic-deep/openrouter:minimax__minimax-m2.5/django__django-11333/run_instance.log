@@ -1,0 +1,121 @@
+2026-02-22 11:22:20,284 - INFO - Creating container for django__django-11333...
+2026-02-22 11:22:20,469 - INFO - Container for django__django-11333 created: 67c2838ffd4d0dd7eb7fb21b3b89536e0d1e346e66f92c92b94a80985b45059c
+2026-02-22 11:22:20,616 - INFO - Container for django__django-11333 started: 67c2838ffd4d0dd7eb7fb21b3b89536e0d1e346e66f92c92b94a80985b45059c
+2026-02-22 11:22:20,616 - INFO - Intermediate patch for django__django-11333 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11333/patch.diff, now applying to container...
+2026-02-22 11:22:20,786 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:22:20,877 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:22:20,946 - INFO - >>>>> Applied Patch:
+patching file django/urls/base.py
+patching file django/urls/resolvers.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 63 with fuzz 1.
+
+2026-02-22 11:22:21,758 - INFO - Git diff before:
+diff --git a/django/urls/base.py b/django/urls/base.py
+index 0e1c3d909c..dd9b2e4c22 100644
+--- a/django/urls/base.py
++++ b/django/urls/base.py
+@@ -7,7 +7,7 @@ from django.utils.functional import lazy
+ from django.utils.translation import override
+ 
+ from .exceptions import NoReverseMatch, Resolver404
+-from .resolvers import get_ns_resolver, get_resolver
++from .resolvers import _get_cached_resolver, get_ns_resolver, get_resolver
+ from .utils import get_callable
+ 
+ # SCRIPT_NAME prefixes for each thread are stored here. If there's no entry for
+@@ -92,7 +92,7 @@ reverse_lazy = lazy(reverse, str)
+ 
+ def clear_url_caches():
+     get_callable.cache_clear()
+-    get_resolver.cache_clear()
++    _get_cached_resolver.cache_clear()
+     get_ns_resolver.cache_clear()
+ 
+ 
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 247e3680c0..e84b6509c8 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -63,11 +63,16 @@ class ResolverMatch:
+         )
+ 
+ 
+-@functools.lru_cache(maxsize=None)
+-def get_resolver(urlconf=None):
+-    if urlconf is None:
+-        urlconf = settings.ROOT_URLCONF
+-    return URLResolver(RegexPattern(r'^/'), urlconf)
++4f|@functools.lru_cache(maxsize=None)
++64|def get_resolver(urlconf=None):
++28|    if urlconf is None:
++5b|        urlconf = settings.ROOT_URLCONF
++16|    return _get_cached_resolver(urlconf)
++d4|
++d4|
++4f|@functools.lru_cache(maxsize=None)
++64|def _get_cached_resolver(urlconf):
++28|    return URLResolver(RegexPattern(r'^/'), urlconf)
+ 
+ 
+ @functools.lru_cache(maxsize=None)
+2026-02-22 11:22:21,759 - INFO - Eval script for django__django-11333 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11333/eval.sh; copying to container...
+2026-02-22 11:22:35,964 - INFO - Test runtime: 14.11 seconds
+2026-02-22 11:22:35,965 - INFO - Test output for django__django-11333 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11333/test_output.txt
+2026-02-22 11:22:36,080 - INFO - Git diff after:
+diff --git a/django/urls/base.py b/django/urls/base.py
+index 0e1c3d909c..dd9b2e4c22 100644
+--- a/django/urls/base.py
++++ b/django/urls/base.py
+@@ -7,7 +7,7 @@ from django.utils.functional import lazy
+ from django.utils.translation import override
+ 
+ from .exceptions import NoReverseMatch, Resolver404
+-from .resolvers import get_ns_resolver, get_resolver
++from .resolvers import _get_cached_resolver, get_ns_resolver, get_resolver
+ from .utils import get_callable
+ 
+ # SCRIPT_NAME prefixes for each thread are stored here. If there's no entry for
+@@ -92,7 +92,7 @@ reverse_lazy = lazy(reverse, str)
+ 
+ def clear_url_caches():
+     get_callable.cache_clear()
+-    get_resolver.cache_clear()
++    _get_cached_resolver.cache_clear()
+     get_ns_resolver.cache_clear()
+ 
+ 
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 247e3680c0..e84b6509c8 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -63,11 +63,16 @@ class ResolverMatch:
+         )
+ 
+ 
+-@functools.lru_cache(maxsize=None)
+-def get_resolver(urlconf=None):
+-    if urlconf is None:
+-        urlconf = settings.ROOT_URLCONF
+-    return URLResolver(RegexPattern(r'^/'), urlconf)
++4f|@functools.lru_cache(maxsize=None)
++64|def get_resolver(urlconf=None):
++28|    if urlconf is None:
++5b|        urlconf = settings.ROOT_URLCONF
++16|    return _get_cached_resolver(urlconf)
++d4|
++d4|
++4f|@functools.lru_cache(maxsize=None)
++64|def _get_cached_resolver(urlconf):
++28|    return URLResolver(RegexPattern(r'^/'), urlconf)
+ 
+ 
+ @functools.lru_cache(maxsize=None)
+2026-02-22 11:22:36,081 - INFO - Grading answer for django__django-11333...
+2026-02-22 11:22:36,083 - INFO - report: {'django__django-11333': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_resolver_cache_default__root_urlconf (urlpatterns.test_resolvers.ResolverCacheTests)']}, 'PASS_TO_PASS': {'success': [], 'failure': ['test_str (urlpatterns.test_resolvers.RegexPatternTests)', 'test_str (urlpatterns.test_resolvers.RoutePatternTests)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11333: resolved: False
+2026-02-22 11:22:36,084 - INFO - Attempting to stop container sweb.eval.django__django-11333.pydantic-deep...
+2026-02-22 11:22:51,229 - INFO - Attempting to remove container sweb.eval.django__django-11333.pydantic-deep...
+2026-02-22 11:22:51,251 - INFO - Container sweb.eval.django__django-11333.pydantic-deep removed.
+2026-02-22 11:22:51,251 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11333:latest...
+2026-02-22 11:22:51,405 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11333:latest removed.

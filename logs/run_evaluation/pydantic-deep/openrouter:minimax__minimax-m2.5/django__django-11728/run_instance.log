@@ -1,0 +1,56 @@
+2026-02-22 11:23:40,488 - INFO - Creating container for django__django-11728...
+2026-02-22 11:23:40,612 - INFO - Container for django__django-11728 created: fdd9a5fa58ec721e2a3cd67f34c14e72c2d7db60de2e1d92c1eafe583622502f
+2026-02-22 11:23:40,720 - INFO - Container for django__django-11728 started: fdd9a5fa58ec721e2a3cd67f34c14e72c2d7db60de2e1d92c1eafe583622502f
+2026-02-22 11:23:40,721 - INFO - Intermediate patch for django__django-11728 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11728/patch.diff, now applying to container...
+2026-02-22 11:23:40,854 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:23:40,927 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:23:40,990 - INFO - >>>>> Applied Patch:
+patching file django/contrib/admindocs/utils.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 180 with fuzz 1.
+
+2026-02-22 11:23:41,532 - INFO - Git diff before:
+diff --git a/django/contrib/admindocs/utils.py b/django/contrib/admindocs/utils.py
+index 1ce4594501..74fab8317f 100644
+--- a/django/contrib/admindocs/utils.py
++++ b/django/contrib/admindocs/utils.py
+@@ -180,6 +180,11 @@ def replace_named_groups(pattern):
+             elif val == ')' and prev_char != '\\':
+                 unmatched_open_brackets -= 1
+             prev_char = val
++        else:
++            # If the loop completes without a break, check if the pattern ends
++            # with a named group (unmatched_open_brackets is 0 after processing).
++            if unmatched_open_brackets == 0:
++                group_pattern_and_name.append((pattern[start:], group_name))
+ 
+     # Replace the string for named capture groups with their group names.
+     for group_pattern, group_name in group_pattern_and_name:
+2026-02-22 11:23:41,532 - INFO - Eval script for django__django-11728 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11728/eval.sh; copying to container...
+2026-02-22 11:23:54,367 - INFO - Test runtime: 12.77 seconds
+2026-02-22 11:23:54,369 - INFO - Test output for django__django-11728 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-11728/test_output.txt
+2026-02-22 11:23:54,472 - INFO - Git diff after:
+diff --git a/django/contrib/admindocs/utils.py b/django/contrib/admindocs/utils.py
+index 1ce4594501..74fab8317f 100644
+--- a/django/contrib/admindocs/utils.py
++++ b/django/contrib/admindocs/utils.py
+@@ -180,6 +180,11 @@ def replace_named_groups(pattern):
+             elif val == ')' and prev_char != '\\':
+                 unmatched_open_brackets -= 1
+             prev_char = val
++        else:
++            # If the loop completes without a break, check if the pattern ends
++            # with a named group (unmatched_open_brackets is 0 after processing).
++            if unmatched_open_brackets == 0:
++                group_pattern_and_name.append((pattern[start:], group_name))
+ 
+     # Replace the string for named capture groups with their group names.
+     for group_pattern, group_name in group_pattern_and_name:
+2026-02-22 11:23:54,472 - INFO - Grading answer for django__django-11728...
+2026-02-22 11:23:54,474 - INFO - report: {'django__django-11728': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_app_not_found (admin_docs.test_views.TestModelDetailView)'], 'failure': ['test_simplify_regex (admin_docs.test_views.AdminDocViewFunctionsTests)']}, 'PASS_TO_PASS': {'success': ['test_custom_fields (admin_docs.test_views.TestFieldType)', 'test_field_name (admin_docs.test_views.TestFieldType)', 'test_descriptions_render_correctly (admin_docs.test_views.TestModelDetailView)', 'Model properties are displayed as fields.', 'test_method_data_types (admin_docs.test_views.TestModelDetailView)', 'test_method_excludes (admin_docs.test_views.TestModelDetailView)', 'test_methods_with_arguments (admin_docs.test_views.TestModelDetailView)', 'test_methods_with_arguments_display_arguments (admin_docs.test_views.TestModelDetailView)', 'test_methods_with_arguments_display_arguments_default_value (admin_docs.test_views.TestModelDetailView)', 'test_methods_with_multiple_arguments_display_arguments (admin_docs.test_views.TestModelDetailView)', 'test_model_detail_title (admin_docs.test_views.TestModelDetailView)', 'test_model_docstring_renders_correctly (admin_docs.test_views.TestModelDetailView)', 'test_model_not_found (admin_docs.test_views.TestModelDetailView)', 'test_model_with_many_to_one (admin_docs.test_views.TestModelDetailView)', 'test_model_with_no_backward_relations_render_only_relevant_fields (admin_docs.test_views.TestModelDetailView)', 'test_bookmarklets (admin_docs.test_views.AdminDocViewTests)', 'test_index (admin_docs.test_views.AdminDocViewTests)', 'test_missing_docutils (admin_docs.test_views.AdminDocViewTests)', 'test_model_index (admin_docs.test_views.AdminDocViewTests)', 'test_namespaced_view_detail (admin_docs.test_views.AdminDocViewTests)', 'test_no_sites_framework (admin_docs.test_views.AdminDocViewTests)', 'test_template_detail (admin_docs.test_views.AdminDocViewTests)', 'test_templatefilter_index (admin_docs.test_views.AdminDocViewTests)', 'test_templatetag_index (admin_docs.test_views.AdminDocViewTests)', 'test_view_detail (admin_docs.test_views.AdminDocViewTests)', 'test_view_detail_as_method (admin_docs.test_views.AdminDocViewTests)', 'test_view_detail_illegal_import (admin_docs.test_views.AdminDocViewTests)', 'test_view_index (admin_docs.test_views.AdminDocViewTests)', 'test_view_index_with_method (admin_docs.test_views.AdminDocViewTests)', 'test_bookmarklets (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_index (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_missing_docutils (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_model_index (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_namespaced_view_detail (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_no_sites_framework (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_template_detail (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_templatefilter_index (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_templatetag_index (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_view_detail (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_view_detail_as_method (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_view_detail_illegal_import (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_view_index (admin_docs.test_views.AdminDocViewWithMultipleEngines)', 'test_view_index_with_method (admin_docs.test_views.AdminDocViewWithMultipleEngines)'], 'failure': ['test_builtin_fields (admin_docs.test_views.TestFieldType)']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-11728: resolved: False
+2026-02-22 11:23:54,475 - INFO - Attempting to stop container sweb.eval.django__django-11728.pydantic-deep...
+2026-02-22 11:24:09,662 - INFO - Attempting to remove container sweb.eval.django__django-11728.pydantic-deep...
+2026-02-22 11:24:09,693 - INFO - Container sweb.eval.django__django-11728.pydantic-deep removed.
+2026-02-22 11:24:09,693 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-11728:latest...
+2026-02-22 11:24:09,894 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-11728:latest removed.

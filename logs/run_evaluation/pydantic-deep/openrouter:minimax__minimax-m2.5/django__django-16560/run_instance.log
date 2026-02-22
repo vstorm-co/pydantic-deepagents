@@ -1,0 +1,441 @@
+2026-02-22 11:49:13,436 - INFO - Creating container for django__django-16560...
+2026-02-22 11:49:13,752 - INFO - Container for django__django-16560 created: 6d61cb641c088d7f4a59d9bb0c54a6e0a9600119b5e056430152da6e03e48132
+2026-02-22 11:49:13,918 - INFO - Container for django__django-16560 started: 6d61cb641c088d7f4a59d9bb0c54a6e0a9600119b5e056430152da6e03e48132
+2026-02-22 11:49:13,919 - INFO - Intermediate patch for django__django-16560 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16560/patch.diff, now applying to container...
+2026-02-22 11:49:14,122 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:49:14,211 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:49:14,310 - INFO - >>>>> Applied Patch:
+patching file django/contrib/postgres/constraints.py
+patching file django/db/models/constraints.py
+patch unexpectedly ends in middle of line
+Hunk #14 succeeded at 418 with fuzz 2.
+
+2026-02-22 11:49:15,172 - INFO - Git diff before:
+diff --git a/django/contrib/postgres/constraints.py b/django/contrib/postgres/constraints.py
+index ad3a5f61f5..1f677ae97e 100644
+--- a/django/contrib/postgres/constraints.py
++++ b/django/contrib/postgres/constraints.py
+@@ -33,6 +33,7 @@ class ExclusionConstraint(BaseConstraint):
+         deferrable=None,
+         include=None,
+         violation_error_message=None,
++        violation_error_code=None,
+     ):
+         if index_type and index_type.lower() not in {"gist", "spgist"}:
+             raise ValueError(
+@@ -60,7 +61,7 @@ class ExclusionConstraint(BaseConstraint):
+         self.condition = condition
+         self.deferrable = deferrable
+         self.include = tuple(include) if include else ()
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     def _get_expressions(self, schema_editor, query):
+         expressions = []
+@@ -150,11 +151,12 @@ class ExclusionConstraint(BaseConstraint):
+                 and self.deferrable == other.deferrable
+                 and self.include == other.include
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+     def __repr__(self):
+-        return "<%s: index_type=%s expressions=%s name=%s%s%s%s%s>" % (
++        return "<%s: index_type=%s expressions=%s name=%s%s%s%s%s%s>" % (
+             self.__class__.__qualname__,
+             repr(self.index_type),
+             repr(self.expressions),
+@@ -168,6 +170,11 @@ class ExclusionConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def validate(self, model, instance, exclude=None, using=DEFAULT_DB_ALIAS):
+@@ -204,9 +211,9 @@ class ExclusionConstraint(BaseConstraint):
+             queryset = queryset.exclude(pk=model_class_pk)
+         if not self.condition:
+             if queryset.exists():
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+         else:
+             if (self.condition & Exists(queryset.filter(self.condition))).check(
+                 replacement_map, using=using
+             ):
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+diff --git a/django/db/models/constraints.py b/django/db/models/constraints.py
+index 075ecee1be..63350972d7 100644
+--- a/django/db/models/constraints.py
++++ b/django/db/models/constraints.py
+@@ -19,10 +19,11 @@ __all__ = ["BaseConstraint", "CheckConstraint", "Deferrable", "UniqueConstraint"
+ class BaseConstraint:
+     default_violation_error_message = _("Constraint “%(name)s” is violated.")
+     violation_error_message = None
++    violation_error_code = None
+ 
+     # RemovedInDjango60Warning: When the deprecation ends, replace with:
+     # def __init__(self, *, name, violation_error_message=None):
+-    def __init__(self, *args, name=None, violation_error_message=None):
++    def __init__(self, *args, name=None, violation_error_message=None, violation_error_code=None):
+         # RemovedInDjango60Warning.
+         if name is None and not args:
+             raise TypeError(
+@@ -34,6 +35,8 @@ class BaseConstraint:
+             self.violation_error_message = violation_error_message
+         else:
+             self.violation_error_message = self.default_violation_error_message
++        if violation_error_code is not None:
++            self.violation_error_code = violation_error_code
+         # RemovedInDjango60Warning.
+         if args:
+             warnings.warn(
+@@ -74,6 +77,8 @@ class BaseConstraint:
+             and self.violation_error_message != self.default_violation_error_message
+         ):
+             kwargs["violation_error_message"] = self.violation_error_message
++        if self.violation_error_code is not None:
++            kwargs["violation_error_code"] = self.violation_error_code
+         return (path, (), kwargs)
+ 
+     def clone(self):
+@@ -82,13 +87,13 @@ class BaseConstraint:
+ 
+ 
+ class CheckConstraint(BaseConstraint):
+-    def __init__(self, *, check, name, violation_error_message=None):
++    def __init__(self, *, check, name, violation_error_message=None, violation_error_code=None):
+         self.check = check
+         if not getattr(check, "conditional", False):
+             raise TypeError(
+                 "CheckConstraint.check must be a Q instance or boolean expression."
+             )
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     def _get_check_sql(self, model, schema_editor):
+         query = Query(model=model, alias_cols=False)
+@@ -112,12 +117,12 @@ class CheckConstraint(BaseConstraint):
+         against = instance._get_field_value_map(meta=model._meta, exclude=exclude)
+         try:
+             if not Q(self.check).check(against, using=using):
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+         except FieldError:
+             pass
+ 
+     def __repr__(self):
+-        return "<%s: check=%s name=%s%s>" % (
++        return "<%s: check=%s name=%s%s%s>" % (
+             self.__class__.__qualname__,
+             self.check,
+             repr(self.name),
+@@ -127,6 +132,11 @@ class CheckConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def __eq__(self, other):
+@@ -135,6 +145,7 @@ class CheckConstraint(BaseConstraint):
+                 self.name == other.name
+                 and self.check == other.check
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+@@ -164,6 +175,7 @@ class UniqueConstraint(BaseConstraint):
+         include=None,
+         opclasses=(),
+         violation_error_message=None,
++        violation_error_code=None,
+     ):
+         if not name:
+             raise ValueError("A unique constraint must be named.")
+@@ -213,7 +225,7 @@ class UniqueConstraint(BaseConstraint):
+             F(expression) if isinstance(expression, str) else expression
+             for expression in expressions
+         )
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     @property
+     def contains_expressions(self):
+@@ -293,7 +305,7 @@ class UniqueConstraint(BaseConstraint):
+         )
+ 
+     def __repr__(self):
+-        return "<%s:%s%s%s%s%s%s%s%s>" % (
++        return "<%s:%s%s%s%s%s%s%s%s%s>" % (
+             self.__class__.__qualname__,
+             "" if not self.fields else " fields=%s" % repr(self.fields),
+             "" if not self.expressions else " expressions=%s" % repr(self.expressions),
+@@ -308,6 +320,11 @@ class UniqueConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def __eq__(self, other):
+@@ -321,6 +338,7 @@ class UniqueConstraint(BaseConstraint):
+                 and self.opclasses == other.opclasses
+                 and self.expressions == other.expressions
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+@@ -385,7 +403,7 @@ class UniqueConstraint(BaseConstraint):
+         if not self.condition:
+             if queryset.exists():
+                 if self.expressions:
+-                    raise ValidationError(self.get_violation_error_message())
++                    raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+                 # When fields are defined, use the unique_error_message() for
+                 # backward compatibility.
+                 for model, constraints in instance.get_constraints():
+@@ -400,6 +418,6 @@ class UniqueConstraint(BaseConstraint):
+                 if (self.condition & Exists(queryset.filter(self.condition))).check(
+                     against, using=using
+                 ):
+-                    raise ValidationError(self.get_violation_error_message())
++                    raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+             except FieldError:
+                 pass
+2026-02-22 11:49:15,173 - INFO - Eval script for django__django-16560 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16560/eval.sh; copying to container...
+2026-02-22 11:49:26,350 - INFO - Test runtime: 11.11 seconds
+2026-02-22 11:49:26,351 - INFO - Test output for django__django-16560 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16560/test_output.txt
+2026-02-22 11:49:26,525 - INFO - Git diff after:
+diff --git a/django/contrib/postgres/constraints.py b/django/contrib/postgres/constraints.py
+index ad3a5f61f5..1f677ae97e 100644
+--- a/django/contrib/postgres/constraints.py
++++ b/django/contrib/postgres/constraints.py
+@@ -33,6 +33,7 @@ class ExclusionConstraint(BaseConstraint):
+         deferrable=None,
+         include=None,
+         violation_error_message=None,
++        violation_error_code=None,
+     ):
+         if index_type and index_type.lower() not in {"gist", "spgist"}:
+             raise ValueError(
+@@ -60,7 +61,7 @@ class ExclusionConstraint(BaseConstraint):
+         self.condition = condition
+         self.deferrable = deferrable
+         self.include = tuple(include) if include else ()
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     def _get_expressions(self, schema_editor, query):
+         expressions = []
+@@ -150,11 +151,12 @@ class ExclusionConstraint(BaseConstraint):
+                 and self.deferrable == other.deferrable
+                 and self.include == other.include
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+     def __repr__(self):
+-        return "<%s: index_type=%s expressions=%s name=%s%s%s%s%s>" % (
++        return "<%s: index_type=%s expressions=%s name=%s%s%s%s%s%s>" % (
+             self.__class__.__qualname__,
+             repr(self.index_type),
+             repr(self.expressions),
+@@ -168,6 +170,11 @@ class ExclusionConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def validate(self, model, instance, exclude=None, using=DEFAULT_DB_ALIAS):
+@@ -204,9 +211,9 @@ class ExclusionConstraint(BaseConstraint):
+             queryset = queryset.exclude(pk=model_class_pk)
+         if not self.condition:
+             if queryset.exists():
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+         else:
+             if (self.condition & Exists(queryset.filter(self.condition))).check(
+                 replacement_map, using=using
+             ):
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+diff --git a/django/db/models/constraints.py b/django/db/models/constraints.py
+index 075ecee1be..63350972d7 100644
+--- a/django/db/models/constraints.py
++++ b/django/db/models/constraints.py
+@@ -19,10 +19,11 @@ __all__ = ["BaseConstraint", "CheckConstraint", "Deferrable", "UniqueConstraint"
+ class BaseConstraint:
+     default_violation_error_message = _("Constraint “%(name)s” is violated.")
+     violation_error_message = None
++    violation_error_code = None
+ 
+     # RemovedInDjango60Warning: When the deprecation ends, replace with:
+     # def __init__(self, *, name, violation_error_message=None):
+-    def __init__(self, *args, name=None, violation_error_message=None):
++    def __init__(self, *args, name=None, violation_error_message=None, violation_error_code=None):
+         # RemovedInDjango60Warning.
+         if name is None and not args:
+             raise TypeError(
+@@ -34,6 +35,8 @@ class BaseConstraint:
+             self.violation_error_message = violation_error_message
+         else:
+             self.violation_error_message = self.default_violation_error_message
++        if violation_error_code is not None:
++            self.violation_error_code = violation_error_code
+         # RemovedInDjango60Warning.
+         if args:
+             warnings.warn(
+@@ -74,6 +77,8 @@ class BaseConstraint:
+             and self.violation_error_message != self.default_violation_error_message
+         ):
+             kwargs["violation_error_message"] = self.violation_error_message
++        if self.violation_error_code is not None:
++            kwargs["violation_error_code"] = self.violation_error_code
+         return (path, (), kwargs)
+ 
+     def clone(self):
+@@ -82,13 +87,13 @@ class BaseConstraint:
+ 
+ 
+ class CheckConstraint(BaseConstraint):
+-    def __init__(self, *, check, name, violation_error_message=None):
++    def __init__(self, *, check, name, violation_error_message=None, violation_error_code=None):
+         self.check = check
+         if not getattr(check, "conditional", False):
+             raise TypeError(
+                 "CheckConstraint.check must be a Q instance or boolean expression."
+             )
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     def _get_check_sql(self, model, schema_editor):
+         query = Query(model=model, alias_cols=False)
+@@ -112,12 +117,12 @@ class CheckConstraint(BaseConstraint):
+         against = instance._get_field_value_map(meta=model._meta, exclude=exclude)
+         try:
+             if not Q(self.check).check(against, using=using):
+-                raise ValidationError(self.get_violation_error_message())
++                raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+         except FieldError:
+             pass
+ 
+     def __repr__(self):
+-        return "<%s: check=%s name=%s%s>" % (
++        return "<%s: check=%s name=%s%s%s>" % (
+             self.__class__.__qualname__,
+             self.check,
+             repr(self.name),
+@@ -127,6 +132,11 @@ class CheckConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def __eq__(self, other):
+@@ -135,6 +145,7 @@ class CheckConstraint(BaseConstraint):
+                 self.name == other.name
+                 and self.check == other.check
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+@@ -164,6 +175,7 @@ class UniqueConstraint(BaseConstraint):
+         include=None,
+         opclasses=(),
+         violation_error_message=None,
++        violation_error_code=None,
+     ):
+         if not name:
+             raise ValueError("A unique constraint must be named.")
+@@ -213,7 +225,7 @@ class UniqueConstraint(BaseConstraint):
+             F(expression) if isinstance(expression, str) else expression
+             for expression in expressions
+         )
+-        super().__init__(name=name, violation_error_message=violation_error_message)
++        super().__init__(name=name, violation_error_message=violation_error_message, violation_error_code=violation_error_code)
+ 
+     @property
+     def contains_expressions(self):
+@@ -293,7 +305,7 @@ class UniqueConstraint(BaseConstraint):
+         )
+ 
+     def __repr__(self):
+-        return "<%s:%s%s%s%s%s%s%s%s>" % (
++        return "<%s:%s%s%s%s%s%s%s%s%s>" % (
+             self.__class__.__qualname__,
+             "" if not self.fields else " fields=%s" % repr(self.fields),
+             "" if not self.expressions else " expressions=%s" % repr(self.expressions),
+@@ -308,6 +320,11 @@ class UniqueConstraint(BaseConstraint):
+                 or self.violation_error_message == self.default_violation_error_message
+                 else " violation_error_message=%r" % self.violation_error_message
+             ),
++            (
++                ""
++                if self.violation_error_code is None
++                else " violation_error_code=%r" % self.violation_error_code
++            ),
+         )
+ 
+     def __eq__(self, other):
+@@ -321,6 +338,7 @@ class UniqueConstraint(BaseConstraint):
+                 and self.opclasses == other.opclasses
+                 and self.expressions == other.expressions
+                 and self.violation_error_message == other.violation_error_message
++                and self.violation_error_code == other.violation_error_code
+             )
+         return super().__eq__(other)
+ 
+@@ -385,7 +403,7 @@ class UniqueConstraint(BaseConstraint):
+         if not self.condition:
+             if queryset.exists():
+                 if self.expressions:
+-                    raise ValidationError(self.get_violation_error_message())
++                    raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+                 # When fields are defined, use the unique_error_message() for
+                 # backward compatibility.
+                 for model, constraints in instance.get_constraints():
+@@ -400,6 +418,6 @@ class UniqueConstraint(BaseConstraint):
+                 if (self.condition & Exists(queryset.filter(self.condition))).check(
+                     against, using=using
+                 ):
+-                    raise ValidationError(self.get_violation_error_message())
++                    raise ValidationError(self.get_violation_error_message(), code=self.violation_error_code)
+             except FieldError:
+                 pass
+2026-02-22 11:49:26,525 - INFO - Grading answer for django__django-16560...
+2026-02-22 11:49:26,529 - INFO - report: {'django__django-16560': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_custom_violation_code_message (constraints.tests.BaseConstraintTests.test_custom_violation_code_message)', 'test_deconstruction (constraints.tests.BaseConstraintTests.test_deconstruction)', 'test_eq (constraints.tests.CheckConstraintTests.test_eq)', 'test_repr_with_violation_error_code (constraints.tests.CheckConstraintTests.test_repr_with_violation_error_code)', 'test_validate_custom_error (constraints.tests.CheckConstraintTests.test_validate_custom_error)', 'test_eq (constraints.tests.UniqueConstraintTests.test_eq)', 'test_repr_with_violation_error_code (constraints.tests.UniqueConstraintTests.test_repr_with_violation_error_code)', 'test_validate_conditon_custom_error (constraints.tests.UniqueConstraintTests.test_validate_conditon_custom_error)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_constraint_sql (constraints.tests.BaseConstraintTests.test_constraint_sql)', 'test_contains_expressions (constraints.tests.BaseConstraintTests.test_contains_expressions)', 'test_create_sql (constraints.tests.BaseConstraintTests.test_create_sql)', 'test_custom_violation_error_message (constraints.tests.BaseConstraintTests.test_custom_violation_error_message)', 'test_custom_violation_error_message_clone (constraints.tests.BaseConstraintTests.test_custom_violation_error_message_clone)', 'test_default_violation_error_message (constraints.tests.BaseConstraintTests.test_default_violation_error_message)', 'test_deprecation (constraints.tests.BaseConstraintTests.test_deprecation)', 'test_name_required (constraints.tests.BaseConstraintTests.test_name_required)', 'test_positional_arguments (constraints.tests.BaseConstraintTests.test_positional_arguments)', 'test_remove_sql (constraints.tests.BaseConstraintTests.test_remove_sql)', 'test_validate (constraints.tests.BaseConstraintTests.test_validate)', 'test_abstract_name (constraints.tests.CheckConstraintTests.test_abstract_name)', 'test_database_constraint (constraints.tests.CheckConstraintTests.test_database_constraint)', 'test_database_constraint_unicode (constraints.tests.CheckConstraintTests.test_database_constraint_unicode)', 'test_deconstruction (constraints.tests.CheckConstraintTests.test_deconstruction)', 'test_invalid_check_types (constraints.tests.CheckConstraintTests.test_invalid_check_types)', 'test_name (constraints.tests.CheckConstraintTests.test_name)', 'test_repr (constraints.tests.CheckConstraintTests.test_repr)', 'test_repr_with_violation_error_message (constraints.tests.CheckConstraintTests.test_repr_with_violation_error_message)', 'test_validate (constraints.tests.CheckConstraintTests.test_validate)', 'test_validate_boolean_expressions (constraints.tests.CheckConstraintTests.test_validate_boolean_expressions)', 'test_validate_nullable_field_with_none (constraints.tests.CheckConstraintTests.test_validate_nullable_field_with_none)', 'test_validate_rawsql_expressions_noop (constraints.tests.CheckConstraintTests.test_validate_rawsql_expressions_noop)', 'test_condition_must_be_q (constraints.tests.UniqueConstraintTests.test_condition_must_be_q)', 'test_database_constraint (constraints.tests.UniqueConstraintTests.test_database_constraint)', 'test_database_constraint_with_condition (constraints.tests.UniqueConstraintTests.test_database_constraint_with_condition)', 'test_deconstruction (constraints.tests.UniqueConstraintTests.test_deconstruction)', 'test_deconstruction_with_condition (constraints.tests.UniqueConstraintTests.test_deconstruction_with_condition)', 'test_deconstruction_with_deferrable (constraints.tests.UniqueConstraintTests.test_deconstruction_with_deferrable)', 'test_deconstruction_with_expressions (constraints.tests.UniqueConstraintTests.test_deconstruction_with_expressions)', 'test_deconstruction_with_include (constraints.tests.UniqueConstraintTests.test_deconstruction_with_include)', 'test_deconstruction_with_opclasses (constraints.tests.UniqueConstraintTests.test_deconstruction_with_opclasses)', 'test_deferrable_with_condition (constraints.tests.UniqueConstraintTests.test_deferrable_with_condition)', 'test_deferrable_with_expressions (constraints.tests.UniqueConstraintTests.test_deferrable_with_expressions)', 'test_deferrable_with_include (constraints.tests.UniqueConstraintTests.test_deferrable_with_include)', 'test_deferrable_with_opclasses (constraints.tests.UniqueConstraintTests.test_deferrable_with_opclasses)', 'test_eq_with_condition (constraints.tests.UniqueConstraintTests.test_eq_with_condition)', 'test_eq_with_deferrable (constraints.tests.UniqueConstraintTests.test_eq_with_deferrable)', 'test_eq_with_expressions (constraints.tests.UniqueConstraintTests.test_eq_with_expressions)', 'test_eq_with_include (constraints.tests.UniqueConstraintTests.test_eq_with_include)', 'test_eq_with_opclasses (constraints.tests.UniqueConstraintTests.test_eq_with_opclasses)', 'test_expressions_and_fields_mutually_exclusive (constraints.tests.UniqueConstraintTests.test_expressions_and_fields_mutually_exclusive)', 'test_expressions_with_opclasses (constraints.tests.UniqueConstraintTests.test_expressions_with_opclasses)', 'test_invalid_defer_argument (constraints.tests.UniqueConstraintTests.test_invalid_defer_argument)', 'test_invalid_include_argument (constraints.tests.UniqueConstraintTests.test_invalid_include_argument)', 'test_invalid_opclasses_argument (constraints.tests.UniqueConstraintTests.test_invalid_opclasses_argument)', 'test_model_validation (constraints.tests.UniqueConstraintTests.test_model_validation)', 'test_model_validation_constraint_no_code_error (constraints.tests.UniqueConstraintTests.test_model_validation_constraint_no_code_error)', 'Partial unique constraints are not ignored by', 'test_name (constraints.tests.UniqueConstraintTests.test_name)', 'test_opclasses_and_fields_same_length (constraints.tests.UniqueConstraintTests.test_opclasses_and_fields_same_length)', 'test_repr (constraints.tests.UniqueConstraintTests.test_repr)', 'test_repr_with_condition (constraints.tests.UniqueConstraintTests.test_repr_with_condition)', 'test_repr_with_deferrable (constraints.tests.UniqueConstraintTests.test_repr_with_deferrable)', 'test_repr_with_expressions (constraints.tests.UniqueConstraintTests.test_repr_with_expressions)', 'test_repr_with_include (constraints.tests.UniqueConstraintTests.test_repr_with_include)', 'test_repr_with_opclasses (constraints.tests.UniqueConstraintTests.test_repr_with_opclasses)', 'test_repr_with_violation_error_message (constraints.tests.UniqueConstraintTests.test_repr_with_violation_error_message)', 'test_requires_field_or_expression (constraints.tests.UniqueConstraintTests.test_requires_field_or_expression)', 'test_requires_name (constraints.tests.UniqueConstraintTests.test_requires_name)', 'test_validate (constraints.tests.UniqueConstraintTests.test_validate)', 'test_validate_condition (constraints.tests.UniqueConstraintTests.test_validate_condition)', 'test_validate_expression (constraints.tests.UniqueConstraintTests.test_validate_expression)', 'test_validate_expression_condition (constraints.tests.UniqueConstraintTests.test_validate_expression_condition)', 'test_validate_expression_str (constraints.tests.UniqueConstraintTests.test_validate_expression_str)', 'test_validate_ordered_expression (constraints.tests.UniqueConstraintTests.test_validate_ordered_expression)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16560: resolved: True
+2026-02-22 11:49:26,530 - INFO - Attempting to stop container sweb.eval.django__django-16560.pydantic-deep...
+2026-02-22 11:49:41,705 - INFO - Attempting to remove container sweb.eval.django__django-16560.pydantic-deep...
+2026-02-22 11:49:41,726 - INFO - Container sweb.eval.django__django-16560.pydantic-deep removed.
+2026-02-22 11:49:41,726 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-16560:latest...
+2026-02-22 11:49:41,924 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-16560:latest removed.

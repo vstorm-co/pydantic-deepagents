@@ -1,0 +1,115 @@
+# sphinx-doc__sphinx-8035
+
+**Repository**: sphinx-doc/sphinx
+**Duration**: 604.9s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 101 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/setup.py b/setup.py
+index a404f1fa5..2c6848797 100644
+--- a/setup.py
++++ b/setup.py
+@@ -15,22 +15,22 @@ if sys.version_info < (3, 5):
+     sys.exit(1)
+ 
+ install_requires = [
+-    'sphinxcontrib-applehelp',
+-    'sphinxcontrib-devhelp',
++    'sphinxcontrib-applehelp<=1.0.7',
++    'sphinxcontrib-devhelp<=1.0.5',
+     'sphinxcontrib-jsmath',
+-    'sphinxcontrib-htmlhelp',
+-    'sphinxcontrib-serializinghtml',
+-    'sphinxcontrib-qthelp',
+-    'Jinja2>=2.3',
++    'sphinxcontrib-htmlhelp<=2.0.4',
++    'sphinxcontrib-serializinghtml<=1.1.9',
++    'sphinxcontrib-qthelp<=1.0.6',
++    'Jinja2<3.0',
+     'Pygments>=2.0',
+     'docutils>=0.12',
+     'snowballstemmer>=1.1',
+     'babel>=1.3',
+-    'alabaster>=0.7,<0.8',
++    'alabaster>=0.7,<0.7.12',
+     'imagesize',
+     'requests>=2.5.0',
+     'setuptools',
+-    'packaging',
++    'packaging', 'markupsafe<=2.0.1',
+ ]
+ 
+ extras_require = {
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 8c3509c3b..292ff2345 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -648,6 +648,14 @@ class Documenter:
+                         keep = has_doc or self.options.undoc_members
+             elif (namespace, membername) in attr_docs:
+                 if want_all and isprivate:
++                    # ignore members whose name starts with _ by default
++                    if self.options.private_members is ALL:
++                        keep = True
++                    elif self.options.private_members:
++                        keep = membername in self.options.private_members
++                    else:
++                        keep = False
++                else:
+                     # ignore members whose name starts with _ by default
+                     keep = self.options.private_members
+                 else:
+@@ -655,6 +663,15 @@ class Documenter:
+                     keep = True
+                 isattr = True
+             elif want_all and isprivate:
++                # ignore members whose name starts with _ by default
++                if self.options.private_members is ALL:
++                    keep = has_doc or self.options.undoc_members
++                elif self.options.private_members:
++                    keep = membername in self.options.private_members and \
++                        (has_doc or self.options.undoc_members)
++                else:
++                    keep = False
++            else:
+                 # ignore members whose name starts with _ by default
+                 keep = self.options.private_members and \
+                     (has_doc or self.options.undoc_members)
+@@ -859,7 +876,7 @@ class ModuleDocumenter(Documenter):
+         'show-inheritance': bool_option, 'synopsis': identity,
+         'platform': identity, 'deprecated': bool_option,
+         'member-order': member_order_option, 'exclude-members': members_set_option,
+-        'private-members': bool_option, 'special-members': members_option,
++        'private-members': members_option, 'special-members': members_option,
+         'imported-members': bool_option, 'ignore-module-all': bool_option
+     }  # type: Dict[str, Callable]
+ 
+@@ -1279,7 +1296,7 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+         'noindex': bool_option, 'inherited-members': inherited_members_option,
+         'show-inheritance': bool_option, 'member-order': member_order_option,
+         'exclude-members': members_set_option,
+-        'private-members': bool_option, 'special-members': members_option,
++        'private-members': members_option, 'special-members': members_option,
+     }  # type: Dict[str, Callable]
+ 
+     _signature_class = None  # type: Any
+diff --git a/tox.ini b/tox.ini
+index bddd822a6..34baee205 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -27,7 +27,7 @@ extras =
+ setenv =
+     PYTHONWARNINGS = all,ignore::ImportWarning:importlib._bootstrap_external,ignore::DeprecationWarning:site,ignore::DeprecationWarning:distutils
+ commands=
+-    pytest --durations 25 {posargs}
++    pytest -rA --durations 25 {posargs}
+ 
+ [testenv:flake8]
+ basepython = python3
+```

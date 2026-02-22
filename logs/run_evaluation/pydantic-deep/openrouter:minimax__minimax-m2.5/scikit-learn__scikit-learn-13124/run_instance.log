@@ -1,0 +1,76 @@
+2026-02-22 12:22:05,156 - INFO - Creating container for scikit-learn__scikit-learn-13124...
+2026-02-22 12:22:05,761 - INFO - Container for scikit-learn__scikit-learn-13124 created: 2282b799349d62d84409e87291ca40fe9d7d4469780b038eb66ec3f9d5755711
+2026-02-22 12:22:06,059 - INFO - Container for scikit-learn__scikit-learn-13124 started: 2282b799349d62d84409e87291ca40fe9d7d4469780b038eb66ec3f9d5755711
+2026-02-22 12:22:06,059 - INFO - Intermediate patch for scikit-learn__scikit-learn-13124 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-13124/patch.diff, now applying to container...
+2026-02-22 12:22:06,920 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:22:07,261 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:22:07,412 - INFO - >>>>> Applied Patch:
+patching file sklearn/model_selection/_split.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 651 with fuzz 1.
+
+2026-02-22 12:22:07,976 - INFO - Git diff before:
+diff --git a/sklearn/model_selection/_split.py b/sklearn/model_selection/_split.py
+index 24394f869..29ee35426 100644
+--- a/sklearn/model_selection/_split.py
++++ b/sklearn/model_selection/_split.py
+@@ -651,9 +651,19 @@ class StratifiedKFold(_BaseKFold):
+         # NOTE: Passing the data corresponding to ith class say X[y==class_i]
+         # will break when the data is not 100% stratifiable for all classes.
+         # So we pass np.zeroes(max(c, n_splits)) as data to the KFold
++        # Shuffle the indices for each class if shuffle is True
++        # This ensures samples are randomly assigned to folds, not just
++        # that the fold order is shuffled
++        if self.shuffle:
++            rng = check_random_state(self.random_state)
++            idx = np.arange(n_samples)
++            for cls in unique_y:
++                cls_idx = idx[y == cls]
++                rng.shuffle(cls_idx)
++
+         per_cls_cvs = [
+-            KFold(self.n_splits, shuffle=self.shuffle,
+-                  random_state=rng).split(np.zeros(max(count, self.n_splits)))
++            KFold(self.n_splits, shuffle=False,
++                  random_state=None).split(np.arange(max(count, self.n_splits)))
+             for count in y_counts]
+ 
+         test_folds = np.zeros(n_samples, dtype=np.int)
+2026-02-22 12:22:07,977 - INFO - Eval script for scikit-learn__scikit-learn-13124 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-13124/eval.sh; copying to container...
+2026-02-22 12:22:19,707 - INFO - Test runtime: 11.62 seconds
+2026-02-22 12:22:19,707 - INFO - Test output for scikit-learn__scikit-learn-13124 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-13124/test_output.txt
+2026-02-22 12:22:19,794 - INFO - Git diff after:
+diff --git a/sklearn/model_selection/_split.py b/sklearn/model_selection/_split.py
+index 24394f869..29ee35426 100644
+--- a/sklearn/model_selection/_split.py
++++ b/sklearn/model_selection/_split.py
+@@ -651,9 +651,19 @@ class StratifiedKFold(_BaseKFold):
+         # NOTE: Passing the data corresponding to ith class say X[y==class_i]
+         # will break when the data is not 100% stratifiable for all classes.
+         # So we pass np.zeroes(max(c, n_splits)) as data to the KFold
++        # Shuffle the indices for each class if shuffle is True
++        # This ensures samples are randomly assigned to folds, not just
++        # that the fold order is shuffled
++        if self.shuffle:
++            rng = check_random_state(self.random_state)
++            idx = np.arange(n_samples)
++            for cls in unique_y:
++                cls_idx = idx[y == cls]
++                rng.shuffle(cls_idx)
++
+         per_cls_cvs = [
+-            KFold(self.n_splits, shuffle=self.shuffle,
+-                  random_state=rng).split(np.zeros(max(count, self.n_splits)))
++            KFold(self.n_splits, shuffle=False,
++                  random_state=None).split(np.arange(max(count, self.n_splits)))
+             for count in y_counts]
+ 
+         test_folds = np.zeros(n_samples, dtype=np.int)
+2026-02-22 12:22:19,795 - INFO - Grading answer for scikit-learn__scikit-learn-13124...
+2026-02-22 12:22:19,799 - INFO - report: {'scikit-learn__scikit-learn-13124': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['sklearn/model_selection/tests/test_split.py::test_shuffle_stratifiedkfold']}, 'PASS_TO_PASS': {'success': ['sklearn/model_selection/tests/test_split.py::test_cross_validator_with_default_params', 'sklearn/model_selection/tests/test_split.py::test_2d_y', 'sklearn/model_selection/tests/test_split.py::test_kfold_valueerrors', 'sklearn/model_selection/tests/test_split.py::test_kfold_indices', 'sklearn/model_selection/tests/test_split.py::test_kfold_no_shuffle', 'sklearn/model_selection/tests/test_split.py::test_stratified_kfold_no_shuffle', 'sklearn/model_selection/tests/test_split.py::test_stratified_kfold_ratios', 'sklearn/model_selection/tests/test_split.py::test_kfold_balance', 'sklearn/model_selection/tests/test_split.py::test_stratifiedkfold_balance', 'sklearn/model_selection/tests/test_split.py::test_shuffle_kfold', 'sklearn/model_selection/tests/test_split.py::test_kfold_can_detect_dependent_samples_on_digits', 'sklearn/model_selection/tests/test_split.py::test_shuffle_split', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_init', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_respects_test_size', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_iter', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_even', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_overlap_train_test_bug', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_multilabel', 'sklearn/model_selection/tests/test_split.py::test_stratified_shuffle_split_multilabel_many_labels', 'sklearn/model_selection/tests/test_split.py::test_predefinedsplit_with_kfold_split', 'sklearn/model_selection/tests/test_split.py::test_group_shuffle_split', 'sklearn/model_selection/tests/test_split.py::test_leave_one_p_group_out', 'sklearn/model_selection/tests/test_split.py::test_leave_group_out_changing_groups', 'sklearn/model_selection/tests/test_split.py::test_leave_one_p_group_out_error_on_fewer_number_of_groups', 'sklearn/model_selection/tests/test_split.py::test_repeated_cv_value_errors', 'sklearn/model_selection/tests/test_split.py::test_repeated_kfold_determinstic_split', 'sklearn/model_selection/tests/test_split.py::test_get_n_splits_for_repeated_kfold', 'sklearn/model_selection/tests/test_split.py::test_get_n_splits_for_repeated_stratified_kfold', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_errors', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[1.2-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[1.0-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[0.0-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[-0.2-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[0.8-1.2]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[0.8-1.0]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[0.8-0.0]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes1[0.8--0.2]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[-10-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[0-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[11-0.8]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[0.8--10]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[0.8-0]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_invalid_sizes2[0.8-11]', 'sklearn/model_selection/tests/test_split.py::test_train_test_split', 'sklearn/model_selection/tests/test_split.py::test_shufflesplit_errors', 'sklearn/model_selection/tests/test_split.py::test_shufflesplit_reproducible', 'sklearn/model_selection/tests/test_split.py::test_stratifiedshufflesplit_list_input', 'sklearn/model_selection/tests/test_split.py::test_train_test_split_allow_nans', 'sklearn/model_selection/tests/test_split.py::test_check_cv', 'sklearn/model_selection/tests/test_split.py::test_cv_iterable_wrapper', 'sklearn/model_selection/tests/test_split.py::test_group_kfold', 'sklearn/model_selection/tests/test_split.py::test_time_series_cv', 'sklearn/model_selection/tests/test_split.py::test_time_series_max_train_size', 'sklearn/model_selection/tests/test_split.py::test_nested_cv', 'sklearn/model_selection/tests/test_split.py::test_train_test_default_warning', 'sklearn/model_selection/tests/test_split.py::test_nsplit_default_warn', 'sklearn/model_selection/tests/test_split.py::test_check_cv_default_warn', 'sklearn/model_selection/tests/test_split.py::test_build_repr'], 'failure': ['sklearn/model_selection/tests/test_split.py::test_shuffle_kfold_stratifiedkfold_reproducibility', 'sklearn/model_selection/tests/test_split.py::test_repeated_stratified_kfold_determinstic_split']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-13124: resolved: False
+2026-02-22 12:22:19,800 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-13124.pydantic-deep...
+2026-02-22 12:22:34,970 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-13124.pydantic-deep...
+2026-02-22 12:22:35,007 - INFO - Container sweb.eval.scikit-learn__scikit-learn-13124.pydantic-deep removed.
+2026-02-22 12:22:35,007 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-13124:latest...
+2026-02-22 12:22:35,106 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-13124:latest removed.

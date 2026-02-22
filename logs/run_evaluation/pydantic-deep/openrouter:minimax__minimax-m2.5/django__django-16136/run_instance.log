@@ -1,0 +1,68 @@
+2026-02-22 11:47:33,825 - INFO - Creating container for django__django-16136...
+2026-02-22 11:47:34,281 - INFO - Container for django__django-16136 created: 86171779ed4e52e430634cdef705fc4864961ef947f40e5d13df971615f7e707
+2026-02-22 11:47:34,441 - INFO - Container for django__django-16136 started: 86171779ed4e52e430634cdef705fc4864961ef947f40e5d13df971615f7e707
+2026-02-22 11:47:34,442 - INFO - Intermediate patch for django__django-16136 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16136/patch.diff, now applying to container...
+2026-02-22 11:47:34,595 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:47:34,679 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:47:34,758 - INFO - >>>>> Applied Patch:
+patching file django/views/generic/base.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 148 with fuzz 1.
+
+2026-02-22 11:47:35,630 - INFO - Git diff before:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index db1842e3e5..3a3afb0c73 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -148,7 +148,16 @@ class View:
+             request.path,
+             extra={"status_code": 405, "request": request},
+         )
+-        return HttpResponseNotAllowed(self._allowed_methods())
++        response = HttpResponseNotAllowed(self._allowed_methods())
++
++        if self.view_is_async:
++
++            async def func():
++                return response
++
++            return func()
++        else:
++            return response
+ 
+     def options(self, request, *args, **kwargs):
+         """Handle responding to requests for the OPTIONS HTTP verb."""
+2026-02-22 11:47:35,631 - INFO - Eval script for django__django-16136 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16136/eval.sh; copying to container...
+2026-02-22 11:47:47,572 - INFO - Test runtime: 11.88 seconds
+2026-02-22 11:47:47,573 - INFO - Test output for django__django-16136 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-16136/test_output.txt
+2026-02-22 11:47:47,661 - INFO - Git diff after:
+diff --git a/django/views/generic/base.py b/django/views/generic/base.py
+index db1842e3e5..3a3afb0c73 100644
+--- a/django/views/generic/base.py
++++ b/django/views/generic/base.py
+@@ -148,7 +148,16 @@ class View:
+             request.path,
+             extra={"status_code": 405, "request": request},
+         )
+-        return HttpResponseNotAllowed(self._allowed_methods())
++        response = HttpResponseNotAllowed(self._allowed_methods())
++
++        if self.view_is_async:
++
++            async def func():
++                return response
++
++            return func()
++        else:
++            return response
+ 
+     def options(self, request, *args, **kwargs):
+         """Handle responding to requests for the OPTIONS HTTP verb."""
+2026-02-22 11:47:47,661 - INFO - Grading answer for django__django-16136...
+2026-02-22 11:47:47,662 - INFO - report: {'django__django-16136': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_http_method_not_allowed_responds_correctly (async.tests.ViewTests)', 'test_mixed_views_raise_error (async.tests.ViewTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ["View and by extension any subclasses that don't define handlers are", 'test_options_handler_responds_correctly (async.tests.ViewTests)', 'test_views_are_correctly_marked (async.tests.ViewTests)', 'test_caches_local (async.tests.CacheTest)', 'test_async_unsafe (async.tests.AsyncUnsafeTest)', 'Utility class which turns an awaitable that only works on the thread with', 'test_get_async_connection (async.tests.DatabaseConnectionTest)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-16136: resolved: True
+2026-02-22 11:47:47,663 - INFO - Attempting to stop container sweb.eval.django__django-16136.pydantic-deep...
+2026-02-22 11:48:02,850 - INFO - Attempting to remove container sweb.eval.django__django-16136.pydantic-deep...
+2026-02-22 11:48:02,882 - INFO - Container sweb.eval.django__django-16136.pydantic-deep removed.
+2026-02-22 11:48:02,882 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-16136:latest...
+2026-02-22 11:48:03,151 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-16136:latest removed.

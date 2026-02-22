@@ -1,0 +1,50 @@
+2026-02-22 11:32:13,130 - INFO - Creating container for django__django-13406...
+2026-02-22 11:32:13,413 - INFO - Container for django__django-13406 created: 5b5543a212a24a225c55ff58ac9de48d5f663f22840cb31d8b4c92e6a3598e4f
+2026-02-22 11:32:13,552 - INFO - Container for django__django-13406 started: 5b5543a212a24a225c55ff58ac9de48d5f663f22840cb31d8b4c92e6a3598e4f
+2026-02-22 11:32:13,552 - INFO - Intermediate patch for django__django-13406 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13406/patch.diff, now applying to container...
+2026-02-22 11:32:13,711 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:32:13,781 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:32:13,855 - INFO - >>>>> Applied Patch:
+patching file django/db/models/query.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 210 with fuzz 1.
+
+2026-02-22 11:32:14,621 - INFO - Git diff before:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index b48d0df9c0..85cd8311a7 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -210,6 +210,8 @@ class QuerySet:
+ 
+     @query.setter
+     def query(self, value):
++        if value.values_select:
++            self._iterable_class = ValuesIterable
+         self._query = value
+ 
+     def as_manager(cls):
+2026-02-22 11:32:14,622 - INFO - Eval script for django__django-13406 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13406/eval.sh; copying to container...
+2026-02-22 11:32:28,757 - INFO - Test runtime: 14.05 seconds
+2026-02-22 11:32:28,758 - INFO - Test output for django__django-13406 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-13406/test_output.txt
+2026-02-22 11:32:28,874 - INFO - Git diff after:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index b48d0df9c0..85cd8311a7 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -210,6 +210,8 @@ class QuerySet:
+ 
+     @query.setter
+     def query(self, value):
++        if value.values_select:
++            self._iterable_class = ValuesIterable
+         self._query = value
+ 
+     def as_manager(cls):
+2026-02-22 11:32:28,874 - INFO - Grading answer for django__django-13406...
+2026-02-22 11:32:28,875 - INFO - report: {'django__django-13406': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_annotation_values (queryset_pickle.tests.PickleabilityTestCase)', 'test_annotation_values_list (queryset_pickle.tests.PickleabilityTestCase)', 'test_annotation_with_callable_default (queryset_pickle.tests.PickleabilityTestCase)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_in_lookup_query_evaluation (queryset_pickle.tests.InLookupTests)', 'test_in_lookup_queryset_evaluation (queryset_pickle.tests.InLookupTests)', 'test_datetime_callable_default_all (queryset_pickle.tests.PickleabilityTestCase)', 'test_datetime_callable_default_filter (queryset_pickle.tests.PickleabilityTestCase)', 'test_doesnotexist_class (queryset_pickle.tests.PickleabilityTestCase)', 'test_doesnotexist_exception (queryset_pickle.tests.PickleabilityTestCase)', 'test_filter_deferred (queryset_pickle.tests.PickleabilityTestCase)', 'test_filter_reverse_fk (queryset_pickle.tests.PickleabilityTestCase)', 'test_forward_relatedobjectdoesnotexist_class (queryset_pickle.tests.PickleabilityTestCase)', 'test_manager_pickle (queryset_pickle.tests.PickleabilityTestCase)', 'test_missing_django_version_unpickling (queryset_pickle.tests.PickleabilityTestCase)', 'test_model_pickle (queryset_pickle.tests.PickleabilityTestCase)', 'test_model_pickle_dynamic (queryset_pickle.tests.PickleabilityTestCase)', 'test_model_pickle_m2m (queryset_pickle.tests.PickleabilityTestCase)', 'test_multipleobjectsreturned_class (queryset_pickle.tests.PickleabilityTestCase)', 'test_order_by_model_with_abstract_inheritance_and_meta_ordering (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_exists_kwargs_queryset_not_evaluated (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_exists_queryset_not_evaluated (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_exists_queryset_still_usable (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_prefetch_queryset_not_evaluated (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_prefetch_queryset_still_usable (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_prefetch_queryset_usable_outside_of_prefetch (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_prefetch_related_idempotence (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_prefetch_related_with_m2m_and_objects_deletion (queryset_pickle.tests.PickleabilityTestCase)', 'test_pickle_subquery_queryset_not_evaluated (queryset_pickle.tests.PickleabilityTestCase)', 'test_related_field (queryset_pickle.tests.PickleabilityTestCase)', 'test_reverse_one_to_one_relatedobjectdoesnotexist_class (queryset_pickle.tests.PickleabilityTestCase)', 'test_specialized_queryset (queryset_pickle.tests.PickleabilityTestCase)', 'test_standalone_method_as_default (queryset_pickle.tests.PickleabilityTestCase)', 'test_staticmethod_as_default (queryset_pickle.tests.PickleabilityTestCase)', 'test_string_as_default (queryset_pickle.tests.PickleabilityTestCase)', 'test_unsupported_unpickle (queryset_pickle.tests.PickleabilityTestCase)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-13406: resolved: True
+2026-02-22 11:32:28,876 - INFO - Attempting to stop container sweb.eval.django__django-13406.pydantic-deep...
+2026-02-22 11:32:44,070 - INFO - Attempting to remove container sweb.eval.django__django-13406.pydantic-deep...
+2026-02-22 11:32:44,093 - INFO - Container sweb.eval.django__django-13406.pydantic-deep removed.
+2026-02-22 11:32:44,094 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-13406:latest...
+2026-02-22 11:32:44,235 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-13406:latest removed.

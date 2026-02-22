@@ -1,0 +1,50 @@
+2026-02-22 11:42:34,104 - INFO - Creating container for django__django-15127...
+2026-02-22 11:42:34,347 - INFO - Container for django__django-15127 created: 586ffb5a3ca5e859ef8ee2fea738d6b9c04c8b6f2f70b3ea1e2f61b05d2aa59b
+2026-02-22 11:42:34,468 - INFO - Container for django__django-15127 started: 586ffb5a3ca5e859ef8ee2fea738d6b9c04c8b6f2f70b3ea1e2f61b05d2aa59b
+2026-02-22 11:42:34,468 - INFO - Intermediate patch for django__django-15127 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15127/patch.diff, now applying to container...
+2026-02-22 11:42:34,604 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:42:34,682 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:42:34,748 - INFO - >>>>> Applied Patch:
+patching file django/contrib/messages/storage/base.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 38 with fuzz 1.
+
+2026-02-22 11:42:35,329 - INFO - Git diff before:
+diff --git a/django/contrib/messages/storage/base.py b/django/contrib/messages/storage/base.py
+index 01422066a6..a46c57cd53 100644
+--- a/django/contrib/messages/storage/base.py
++++ b/django/contrib/messages/storage/base.py
+@@ -38,7 +38,7 @@ class Message:
+ 
+     @property
+     def level_tag(self):
+-        return LEVEL_TAGS.get(self.level, '')
++        return utils.get_level_tags().get(self.level, '')
+ 
+ 
+ class BaseStorage:
+2026-02-22 11:42:35,329 - INFO - Eval script for django__django-15127 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15127/eval.sh; copying to container...
+2026-02-22 11:42:41,600 - INFO - Test runtime: 6.22 seconds
+2026-02-22 11:42:41,600 - INFO - Test output for django__django-15127 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-15127/test_output.txt
+2026-02-22 11:42:41,705 - INFO - Git diff after:
+diff --git a/django/contrib/messages/storage/base.py b/django/contrib/messages/storage/base.py
+index 01422066a6..a46c57cd53 100644
+--- a/django/contrib/messages/storage/base.py
++++ b/django/contrib/messages/storage/base.py
+@@ -38,7 +38,7 @@ class Message:
+ 
+     @property
+     def level_tag(self):
+-        return LEVEL_TAGS.get(self.level, '')
++        return utils.get_level_tags().get(self.level, '')
+ 
+ 
+ class BaseStorage:
+2026-02-22 11:42:41,705 - INFO - Grading answer for django__django-15127...
+2026-02-22 11:42:41,706 - INFO - report: {'django__django-15127': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['test_override_settings_level_tags (messages_tests.tests.TestLevelTags)']}, 'PASS_TO_PASS': {'success': ['test_eq (messages_tests.tests.MessageTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-15127: resolved: False
+2026-02-22 11:42:41,706 - INFO - Attempting to stop container sweb.eval.django__django-15127.pydantic-deep...
+2026-02-22 11:42:56,852 - INFO - Attempting to remove container sweb.eval.django__django-15127.pydantic-deep...
+2026-02-22 11:42:56,873 - INFO - Container sweb.eval.django__django-15127.pydantic-deep removed.
+2026-02-22 11:42:56,873 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-15127:latest...
+2026-02-22 11:42:57,041 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-15127:latest removed.

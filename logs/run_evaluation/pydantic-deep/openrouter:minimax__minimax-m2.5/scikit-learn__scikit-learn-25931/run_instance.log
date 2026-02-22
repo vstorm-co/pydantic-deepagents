@@ -1,0 +1,60 @@
+2026-02-22 12:24:50,652 - INFO - Creating container for scikit-learn__scikit-learn-25931...
+2026-02-22 12:24:51,301 - INFO - Container for scikit-learn__scikit-learn-25931 created: 7b3098dd270f734b1a3995af4081552af0338b4d6d149c371828e4b80dbd9756
+2026-02-22 12:24:51,459 - INFO - Container for scikit-learn__scikit-learn-25931 started: 7b3098dd270f734b1a3995af4081552af0338b4d6d149c371828e4b80dbd9756
+2026-02-22 12:24:51,461 - INFO - Intermediate patch for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25931/patch.diff, now applying to container...
+2026-02-22 12:24:51,636 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:24:51,723 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:24:51,829 - INFO - >>>>> Applied Patch:
+patching file sklearn/ensemble/_iforest.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 344 with fuzz 2.
+
+2026-02-22 12:24:52,242 - INFO - Git diff before:
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..2d79e4d79 100644
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -344,8 +344,12 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             self.offset_ = -0.5
+             return self
+ 
+-        # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++c5|        # Else, define offset_ wrt contamination parameter.
++        # Use _compute_chunked_score_samples to avoid redundant validation
++        # (X is already validated at this point).
++        self.offset_ = np.percentile(
++            -self._compute_chunked_score_samples(X), 100.0 * self.contamination
++        )
+ 
+         return self
+2026-02-22 12:24:52,242 - INFO - Eval script for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25931/eval.sh; copying to container...
+2026-02-22 12:25:00,862 - INFO - Test runtime: 8.56 seconds
+2026-02-22 12:25:00,862 - INFO - Test output for scikit-learn__scikit-learn-25931 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/scikit-learn__scikit-learn-25931/test_output.txt
+2026-02-22 12:25:00,987 - INFO - Git diff after:
+diff --git a/sklearn/ensemble/_iforest.py b/sklearn/ensemble/_iforest.py
+index 4d6c1c3f0..2d79e4d79 100644
+--- a/sklearn/ensemble/_iforest.py
++++ b/sklearn/ensemble/_iforest.py
+@@ -344,8 +344,12 @@ class IsolationForest(OutlierMixin, BaseBagging):
+             self.offset_ = -0.5
+             return self
+ 
+-        # else, define offset_ wrt contamination parameter
+-        self.offset_ = np.percentile(self.score_samples(X), 100.0 * self.contamination)
++c5|        # Else, define offset_ wrt contamination parameter.
++        # Use _compute_chunked_score_samples to avoid redundant validation
++        # (X is already validated at this point).
++        self.offset_ = np.percentile(
++            -self._compute_chunked_score_samples(X), 100.0 * self.contamination
++        )
+ 
+         return self
+2026-02-22 12:25:00,987 - INFO - Grading answer for scikit-learn__scikit-learn-25931...
+2026-02-22 12:25:00,988 - INFO - report: {'scikit-learn__scikit-learn-25931': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['sklearn/ensemble/tests/test_iforest.py::test_iforest_preserve_feature_names']}, 'PASS_TO_PASS': {'success': [], 'failure': ['sklearn/ensemble/tests/test_iforest.py::test_iforest[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_sparse[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_error', 'sklearn/ensemble/tests/test_iforest.py::test_recalculate_max_depth', 'sklearn/ensemble/tests/test_iforest.py::test_max_samples_attribute', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_parallel_regression[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_performance[42]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_works[42-0.25]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_works[42-auto]', 'sklearn/ensemble/tests/test_iforest.py::test_max_samples_consistency', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_subsampled_features', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_average_path_length', 'sklearn/ensemble/tests/test_iforest.py::test_score_samples', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_warm_start', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works1[42-0.25-3]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works1[42-auto-2]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works2[42-0.25-3]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_chunks_works2[42-auto-2]', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_with_uniform_data', 'sklearn/ensemble/tests/test_iforest.py::test_iforest_with_n_jobs_does_not_segfault', 'sklearn/ensemble/tests/test_iforest.py::test_base_estimator_property_deprecated']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for scikit-learn__scikit-learn-25931: resolved: False
+2026-02-22 12:25:00,989 - INFO - Attempting to stop container sweb.eval.scikit-learn__scikit-learn-25931.pydantic-deep...
+2026-02-22 12:25:16,290 - INFO - Attempting to remove container sweb.eval.scikit-learn__scikit-learn-25931.pydantic-deep...
+2026-02-22 12:25:16,319 - INFO - Container sweb.eval.scikit-learn__scikit-learn-25931.pydantic-deep removed.
+2026-02-22 12:25:16,319 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931:latest...
+2026-02-22 12:25:16,374 - INFO - Image swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-25931:latest removed.

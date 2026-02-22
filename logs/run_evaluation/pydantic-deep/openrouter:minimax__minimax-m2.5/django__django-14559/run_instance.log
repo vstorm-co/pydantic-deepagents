@@ -1,0 +1,74 @@
+2026-02-22 11:39:16,923 - INFO - Creating container for django__django-14559...
+2026-02-22 11:39:17,116 - INFO - Container for django__django-14559 created: f7709f9adfde80aa34c8451ad7d1f6eb44997ea70308ef97bb7ec7ace764c61f
+2026-02-22 11:39:17,276 - INFO - Container for django__django-14559 started: f7709f9adfde80aa34c8451ad7d1f6eb44997ea70308ef97bb7ec7ace764c61f
+2026-02-22 11:39:17,277 - INFO - Intermediate patch for django__django-14559 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14559/patch.diff, now applying to container...
+2026-02-22 11:39:17,512 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:39:17,602 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:39:17,705 - INFO - >>>>> Applied Patch:
+patching file django/db/models/query.py
+patch unexpectedly ends in middle of line
+Hunk #2 succeeded at 564 with fuzz 1.
+
+2026-02-22 11:39:18,356 - INFO - Git diff before:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 387deca527..7fce385d30 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -541,7 +541,7 @@ class QuerySet:
+         if any(f.primary_key for f in fields):
+             raise ValueError('bulk_update() cannot be used with primary key fields.')
+         if not objs:
+-            return
++            return 0
+         # PK is used twice in the resulting update query, once in the filter
+         # and once in the WHEN. Each field will also have one CAST.
+         max_batch_size = connections[self.db].ops.bulk_batch_size(['pk', 'pk'] + fields, objs)
+@@ -564,8 +564,10 @@ class QuerySet:
+                 update_kwargs[field.attname] = case_statement
+             updates.append(([obj.pk for obj in batch_objs], update_kwargs))
+         with transaction.atomic(using=self.db, savepoint=False):
++            rows_updated = 0
+             for pks, update_kwargs in updates:
+-                self.filter(pk__in=pks).update(**update_kwargs)
++                rows_updated += self.filter(pk__in=pks).update(**update_kwargs)
++        return rows_updated
+     bulk_update.alters_data = True
+ 
+     def get_or_create(self, defaults=None, **kwargs):
+2026-02-22 11:39:18,357 - INFO - Eval script for django__django-14559 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14559/eval.sh; copying to container...
+2026-02-22 11:39:26,000 - INFO - Test runtime: 7.58 seconds
+2026-02-22 11:39:26,001 - INFO - Test output for django__django-14559 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/django__django-14559/test_output.txt
+2026-02-22 11:39:26,102 - INFO - Git diff after:
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 387deca527..7fce385d30 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -541,7 +541,7 @@ class QuerySet:
+         if any(f.primary_key for f in fields):
+             raise ValueError('bulk_update() cannot be used with primary key fields.')
+         if not objs:
+-            return
++            return 0
+         # PK is used twice in the resulting update query, once in the filter
+         # and once in the WHEN. Each field will also have one CAST.
+         max_batch_size = connections[self.db].ops.bulk_batch_size(['pk', 'pk'] + fields, objs)
+@@ -564,8 +564,10 @@ class QuerySet:
+                 update_kwargs[field.attname] = case_statement
+             updates.append(([obj.pk for obj in batch_objs], update_kwargs))
+         with transaction.atomic(using=self.db, savepoint=False):
++            rows_updated = 0
+             for pks, update_kwargs in updates:
+-                self.filter(pk__in=pks).update(**update_kwargs)
++                rows_updated += self.filter(pk__in=pks).update(**update_kwargs)
++        return rows_updated
+     bulk_update.alters_data = True
+ 
+     def get_or_create(self, defaults=None, **kwargs):
+2026-02-22 11:39:26,102 - INFO - Grading answer for django__django-14559...
+2026-02-22 11:39:26,104 - INFO - report: {'django__django-14559': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_empty_objects (queries.test_bulk_update.BulkUpdateTests)', 'test_large_batch (queries.test_bulk_update.BulkUpdateTests)', 'test_updated_rows_when_passing_duplicates (queries.test_bulk_update.BulkUpdateTests)'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_batch_size (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_foreign_keys_do_not_lookup (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_functions (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_multiple_fields (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_set_field_to_null (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_set_mixed_fields_to_null (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_simple (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_unsaved_models (queries.test_bulk_update.BulkUpdateNoteTests)', 'test_booleanfield (queries.test_bulk_update.BulkUpdateTests)', 'test_custom_db_columns (queries.test_bulk_update.BulkUpdateTests)', 'test_custom_pk (queries.test_bulk_update.BulkUpdateTests)', 'test_datetime_field (queries.test_bulk_update.BulkUpdateTests)', 'test_falsey_pk_value (queries.test_bulk_update.BulkUpdateTests)', 'test_field_references (queries.test_bulk_update.BulkUpdateTests)', 'test_inherited_fields (queries.test_bulk_update.BulkUpdateTests)', 'test_invalid_batch_size (queries.test_bulk_update.BulkUpdateTests)', 'test_ipaddressfield (queries.test_bulk_update.BulkUpdateTests)', 'test_json_field (queries.test_bulk_update.BulkUpdateTests)', 'test_no_fields (queries.test_bulk_update.BulkUpdateTests)', 'test_nonexistent_field (queries.test_bulk_update.BulkUpdateTests)', 'test_only_concrete_fields_allowed (queries.test_bulk_update.BulkUpdateTests)', 'test_update_custom_primary_key (queries.test_bulk_update.BulkUpdateTests)', 'test_update_primary_key (queries.test_bulk_update.BulkUpdateTests)'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for django__django-14559: resolved: True
+2026-02-22 11:39:26,104 - INFO - Attempting to stop container sweb.eval.django__django-14559.pydantic-deep...
+2026-02-22 11:39:41,285 - INFO - Attempting to remove container sweb.eval.django__django-14559.pydantic-deep...
+2026-02-22 11:39:41,308 - INFO - Container sweb.eval.django__django-14559.pydantic-deep removed.
+2026-02-22 11:39:41,308 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.django_1776_django-14559:latest...
+2026-02-22 11:39:41,573 - INFO - Image swebench/sweb.eval.x86_64.django_1776_django-14559:latest removed.

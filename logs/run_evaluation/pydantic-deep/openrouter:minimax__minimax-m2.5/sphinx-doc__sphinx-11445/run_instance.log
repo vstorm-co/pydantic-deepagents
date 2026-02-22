@@ -1,0 +1,78 @@
+2026-02-22 12:26:34,023 - INFO - Creating container for sphinx-doc__sphinx-11445...
+2026-02-22 12:26:34,445 - INFO - Container for sphinx-doc__sphinx-11445 created: f789a4849eb454290289e34e3c5743962c19bc3a667f169c9b6f7d75365a0a41
+2026-02-22 12:26:34,622 - INFO - Container for sphinx-doc__sphinx-11445 started: f789a4849eb454290289e34e3c5743962c19bc3a667f169c9b6f7d75365a0a41
+2026-02-22 12:26:34,622 - INFO - Intermediate patch for sphinx-doc__sphinx-11445 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-11445/patch.diff, now applying to container...
+2026-02-22 12:26:34,843 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:26:34,922 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:26:35,025 - INFO - >>>>> Applied Patch:
+patching file sphinx/util/rst.py
+patching file tox.ini
+patch unexpectedly ends in middle of line
+Reversed (or previously applied) patch detected!  Assuming -R.
+Hunk #1 succeeded at 24 with fuzz 1.
+
+2026-02-22 12:26:35,457 - INFO - Git diff before:
+diff --git a/sphinx/util/rst.py b/sphinx/util/rst.py
+index 7a1538325..ab06a4299 100644
+--- a/sphinx/util/rst.py
++++ b/sphinx/util/rst.py
+@@ -25,7 +25,7 @@ except ImportError:
+ 
+ logger = logging.getLogger(__name__)
+ 
+-docinfo_re = re.compile(':\\w+:.*?')
++docinfo_re = re.compile(r':\w+:(?!\`)')
+ symbols_re = re.compile(r'([!-\-/:-@\[-`{-~])')  # symbols without dot(0x2e)
+ SECTIONING_CHARS = ['=', '-', '~']
+ 
+diff --git a/tox.ini b/tox.ini
+index 84c8093a3..512aa5f74 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -24,7 +24,7 @@ setenv =
+     PYTHONWARNINGS = error
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:docs]
+ basepython = python3
+2026-02-22 12:26:35,458 - INFO - Eval script for sphinx-doc__sphinx-11445 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-11445/eval.sh; copying to container...
+2026-02-22 12:26:44,392 - INFO - Test runtime: 8.86 seconds
+2026-02-22 12:26:44,394 - INFO - Test output for sphinx-doc__sphinx-11445 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/sphinx-doc__sphinx-11445/test_output.txt
+2026-02-22 12:26:44,507 - INFO - Git diff after:
+diff --git a/sphinx/util/rst.py b/sphinx/util/rst.py
+index 7a1538325..ab06a4299 100644
+--- a/sphinx/util/rst.py
++++ b/sphinx/util/rst.py
+@@ -25,7 +25,7 @@ except ImportError:
+ 
+ logger = logging.getLogger(__name__)
+ 
+-docinfo_re = re.compile(':\\w+:.*?')
++docinfo_re = re.compile(r':\w+:(?!\`)')
+ symbols_re = re.compile(r'([!-\-/:-@\[-`{-~])')  # symbols without dot(0x2e)
+ SECTIONING_CHARS = ['=', '-', '~']
+ 
+diff --git a/tox.ini b/tox.ini
+index 84c8093a3..512aa5f74 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -24,7 +24,7 @@ setenv =
+     PYTHONWARNINGS = error
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
+ 
+ [testenv:docs]
+ basepython = python3
+2026-02-22 12:26:44,507 - INFO - Grading answer for sphinx-doc__sphinx-11445...
+2026-02-22 12:26:44,510 - INFO - report: {'sphinx-doc__sphinx-11445': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['tests/test_util_rst.py::test_prepend_prolog_with_roles_in_sections_with_newline', 'tests/test_util_rst.py::test_prepend_prolog_with_roles_in_sections_without_newline']}, 'PASS_TO_PASS': {'success': [], 'failure': ['tests/test_util_rst.py::test_escape', 'tests/test_util_rst.py::test_append_epilog', 'tests/test_util_rst.py::test_prepend_prolog', 'tests/test_util_rst.py::test_prepend_prolog_with_CR', 'tests/test_util_rst.py::test_prepend_prolog_without_CR', 'tests/test_util_rst.py::test_prepend_prolog_with_roles_in_sections', 'tests/test_util_rst.py::test_textwidth', 'tests/test_util_rst.py::test_heading']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for sphinx-doc__sphinx-11445: resolved: False
+2026-02-22 12:26:44,510 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-11445.pydantic-deep...
+2026-02-22 12:26:59,727 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-11445.pydantic-deep...
+2026-02-22 12:26:59,767 - INFO - Container sweb.eval.sphinx-doc__sphinx-11445.pydantic-deep removed.
+2026-02-22 12:26:59,768 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-11445:latest...
+2026-02-22 12:26:59,870 - INFO - Image swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-11445:latest removed.

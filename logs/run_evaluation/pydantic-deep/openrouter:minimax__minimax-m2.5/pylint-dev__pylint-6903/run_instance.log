@@ -1,0 +1,58 @@
+2026-02-22 12:17:32,164 - INFO - Creating container for pylint-dev__pylint-6903...
+2026-02-22 12:17:32,602 - INFO - Container for pylint-dev__pylint-6903 created: cddc21ec0c11ade4a7d2bc7af508d6728efe25ecd26e42985dcc26b74bd5e735
+2026-02-22 12:17:32,688 - INFO - Container for pylint-dev__pylint-6903 started: cddc21ec0c11ade4a7d2bc7af508d6728efe25ecd26e42985dcc26b74bd5e735
+2026-02-22 12:17:32,689 - INFO - Intermediate patch for pylint-dev__pylint-6903 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6903/patch.diff, now applying to container...
+2026-02-22 12:17:32,827 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:17:32,903 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:17:32,966 - INFO - >>>>> Applied Patch:
+patching file pylint/lint/run.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 76 with fuzz 3.
+
+2026-02-22 12:17:33,167 - INFO - Git diff before:
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index a7e5d557..5d4dfab7 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -76,10 +76,13 @@ def _cpu_count() -> int:
+     else:
+         cpu_count = 1
+     if cpu_share is not None:
+-        return min(cpu_share, cpu_count)
++        return max(min(cpu_share, cpu_count), 1)
+     return cpu_count
+ 
+ 
++
++
++
+ UNUSED_PARAM_SENTINEL = object()
+2026-02-22 12:17:33,167 - INFO - Eval script for pylint-dev__pylint-6903 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6903/eval.sh; copying to container...
+2026-02-22 12:17:44,777 - INFO - Test runtime: 11.55 seconds
+2026-02-22 12:17:44,778 - INFO - Test output for pylint-dev__pylint-6903 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/pylint-dev__pylint-6903/test_output.txt
+2026-02-22 12:17:44,876 - INFO - Git diff after:
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index a7e5d557..5d4dfab7 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -76,10 +76,13 @@ def _cpu_count() -> int:
+     else:
+         cpu_count = 1
+     if cpu_share is not None:
+-        return min(cpu_share, cpu_count)
++        return max(min(cpu_share, cpu_count), 1)
+     return cpu_count
+ 
+ 
++
++
++
+ UNUSED_PARAM_SENTINEL = object()
+2026-02-22 12:17:44,876 - INFO - Grading answer for pylint-dev__pylint-6903...
+2026-02-22 12:17:44,876 - INFO - report: {'pylint-dev__pylint-6903': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['tests/test_pylint_runners.py::test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction'], 'failure': []}, 'PASS_TO_PASS': {'success': ['tests/test_pylint_runners.py::test_runner[run_epylint]', 'tests/test_pylint_runners.py::test_runner[run_pylint]', 'tests/test_pylint_runners.py::test_runner[run_pyreverse]', 'tests/test_pylint_runners.py::test_runner[run_symilar]', 'tests/test_pylint_runners.py::test_runner_with_arguments[run_epylint]', 'tests/test_pylint_runners.py::test_runner_with_arguments[run_pylint]', 'tests/test_pylint_runners.py::test_runner_with_arguments[run_pyreverse]', 'tests/test_pylint_runners.py::test_runner_with_arguments[run_symilar]'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for pylint-dev__pylint-6903: resolved: True
+2026-02-22 12:17:44,877 - INFO - Attempting to stop container sweb.eval.pylint-dev__pylint-6903.pydantic-deep...
+2026-02-22 12:18:00,229 - INFO - Attempting to remove container sweb.eval.pylint-dev__pylint-6903.pydantic-deep...
+2026-02-22 12:18:00,243 - INFO - Container sweb.eval.pylint-dev__pylint-6903.pydantic-deep removed.
+2026-02-22 12:18:00,243 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-6903:latest...
+2026-02-22 12:18:00,294 - INFO - Image swebench/sweb.eval.x86_64.pylint-dev_1776_pylint-6903:latest removed.

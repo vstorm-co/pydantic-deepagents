@@ -1,0 +1,21 @@
+diff --git a/django/db/models/manager.py b/django/db/models/manager.py
+index e37e56cd17..d9980daab6 100644
+--- a/django/db/models/manager.py
++++ b/django/db/models/manager.py
+@@ -1,4 +1,5 @@
+ import copy
++import functools
+ import inspect
+ from importlib import import_module
+ 
+@@ -84,9 +85,7 @@ class BaseManager:
+             def manager_method(self, *args, **kwargs):
+                 return getattr(self.get_queryset(), name)(*args, **kwargs)
+ 
+-            manager_method.__name__ = method.__name__
+-            manager_method.__doc__ = method.__doc__
+-            return manager_method
++            return functools.wraps(method)(manager_method)
+ 
+         new_methods = {}
+         for name, method in inspect.getmembers(

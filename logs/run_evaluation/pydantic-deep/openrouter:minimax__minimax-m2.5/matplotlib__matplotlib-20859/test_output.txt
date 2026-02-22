@@ -1,0 +1,453 @@
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   lib/matplotlib/legend.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	lib/matplotlib/legend.py.orig
+
+no changes added to commit (use "git add" and/or "git commit -a")
++ git show
+commit 39321b52140d6d332cacc7627212ca1cd11bf396
+Author: SWE-bench <setup@swebench.config>
+Date:   Wed Sep 10 14:05:09 2025 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 64619e53e9d0ed417daba287ac0d3a06943a54d5
+diff --git a/lib/matplotlib/legend.py b/lib/matplotlib/legend.py
+index 44ab024698..b2e8d9b914 100644
+--- a/lib/matplotlib/legend.py
++++ b/lib/matplotlib/legend.py
+@@ -360,7 +360,7 @@ class Legend(Artist):
+         """
+         # local import only to avoid circularity
+         from matplotlib.axes import Axes
+-        from matplotlib.figure import Figure
++        from matplotlib.figure import Figure, FigureBase
+ 
+         super().__init__()
+ 
+@@ -434,7 +434,7 @@ class Legend(Artist):
+             self.isaxes = True
+             self.axes = parent
+             self.set_figure(parent.figure)
+-        elif isinstance(parent, Figure):
++        elif isinstance(parent, FigureBase):
+             self.isaxes = False
+             self.set_figure(parent)
+         else:
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: cycler>=0.10 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (0.12.1)
+Requirement already satisfied: fonttools>=4.22.0 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (4.56.0)
+Requirement already satisfied: kiwisolver>=1.0.1 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (1.4.7)
+Requirement already satisfied: numpy>=1.17 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (1.24.4)
+Requirement already satisfied: packaging>=20.0 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (24.2)
+Requirement already satisfied: pillow>=6.2.0 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (10.4.0)
+Requirement already satisfied: pyparsing>=2.2.1 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (2.4.7)
+Requirement already satisfied: python-dateutil>=2.7 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (2.9.0.post0)
+Requirement already satisfied: setuptools_scm>=4 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (8.2.0)
+Requirement already satisfied: six>=1.5 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from python-dateutil>=2.7->matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (1.17.0)
+Requirement already satisfied: setuptools>=61 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from setuptools_scm>=4->matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (75.1.0)
+Requirement already satisfied: tomli>=1 in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from setuptools_scm>=4->matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (2.2.1)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.8/site-packages (from setuptools_scm>=4->matplotlib==3.5.0.dev1717+g39321b5214.d20260222) (4.12.2)
+Installing collected packages: matplotlib
+  Attempting uninstall: matplotlib
+    Found existing installation: matplotlib 3.5.0.dev1716+g64619e53e9
+    Uninstalling matplotlib-3.5.0.dev1716+g64619e53e9:
+      Successfully uninstalled matplotlib-3.5.0.dev1716+g64619e53e9
+  DEPRECATION: Legacy editable install of matplotlib==3.5.0.dev1717+g39321b5214.d20260222 from file:///testbed (setup.py develop) is deprecated. pip 25.0 will enforce this behaviour change. A possible replacement is to add a pyproject.toml or enable --use-pep517, and use setuptools >= 64. If the resulting installation is not behaving as expected, try using --config-settings editable_mode=compat. Please consult the setuptools documentation for more information. Discussion can be found at https://github.com/pypa/pip/issues/11457
+  Running setup.py develop for matplotlib
+Successfully installed matplotlib
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ git checkout 64619e53e9d0ed417daba287ac0d3a06943a54d5 lib/matplotlib/tests/test_legend.py
+Updated 0 paths from 61c04b19ab
++ git apply -v -
+Checking patch lib/matplotlib/tests/test_legend.py...
+Applied patch lib/matplotlib/tests/test_legend.py cleanly.
++ : '>>>>> Start Test Output'
++ pytest -rA lib/matplotlib/tests/test_legend.py
+============================= test session starts ==============================
+platform linux -- Python 3.8.20, pytest-8.3.4, pluggy-1.5.0
+rootdir: /testbed
+configfile: pytest.ini
+plugins: cov-5.0.0, xdist-3.6.1, rerunfailures-14.0, timeout-2.3.1
+collected 99 items
+
+lib/matplotlib/tests/test_legend.py ...s..s..s..s......s..s..s..s..s.... [ 36%]
+..............................................s................          [100%]
+
+==================================== PASSES ====================================
+___________________________ test_legend_title_empty ____________________________
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+_____________________ test_legend_title_fontprop_fontsize ______________________
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+____________________________ test_get_set_draggable ____________________________
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.legend:legend.py:1225 No handles with labels found to put in legend.
+=========================== short test summary info ============================
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_ordereddict
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto1[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto1[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto2[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto2[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto3[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_auto3[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_various_labels[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_various_labels[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_labels_first[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_multiple_keys[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_alpha_rgba[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_alpha_rcparam[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_fancy[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_fancy[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_framealpha[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_framealpha[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_rc[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_rc[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_expand[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_expand[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_hatching[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_hatching[pdf]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_remove
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_no_args
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_positional_handles_labels
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_positional_handles_only
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_positional_labels_only
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_three_args
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_handler_map
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_kwargs_handles_only
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_kwargs_labels_only
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_legend_kwargs_handles_labels
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_warn_mixed_args_and_kwargs
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFunction::test_parasite
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_handle_label
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_no_args
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_label_arg
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_label_three_args
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_label_three_args_pluskw
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_legend_kw_args
+PASSED lib/matplotlib/tests/test_legend.py::TestLegendFigureFunction::test_warn_args_kwargs
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_stackplot[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_cross_figure_patch_legend
+PASSED lib/matplotlib/tests/test_legend.py::test_nanscatter
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_repeatcheckok
+PASSED lib/matplotlib/tests/test_legend.py::test_not_covering_scatter[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_not_covering_scatter_transform[png]
+PASSED lib/matplotlib/tests/test_legend.py::test_linecollection_scaled_dashes
+PASSED lib/matplotlib/tests/test_legend.py::test_handler_numpoints
+PASSED lib/matplotlib/tests/test_legend.py::test_empty_bar_chart_with_legend
+PASSED lib/matplotlib/tests/test_legend.py::test_shadow_framealpha
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_title_empty
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_proper_window_extent
+PASSED lib/matplotlib/tests/test_legend.py::test_window_extent_cached_renderer
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_title_fontprop_fontsize
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_single[red]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_single[none]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_single[color2]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_list
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_linecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_markeredgecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_markerfacecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_single[red]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_single[none]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_single[color2]
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_linecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_markeredgecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_markeredgecolor_short
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_markerfacecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_labelcolor_rcparam_markerfacecolor_short
+PASSED lib/matplotlib/tests/test_legend.py::test_get_set_draggable
+PASSED lib/matplotlib/tests/test_legend.py::test_alpha_handles
+PASSED lib/matplotlib/tests/test_legend.py::test_warn_big_data_best_loc
+PASSED lib/matplotlib/tests/test_legend.py::test_no_warn_big_data_when_loc_specified
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_multiple_label[label_array0]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_multiple_label[label_array1]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_multiple_label[label_array2]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_single_label[one]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_single_label[1]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_input_single_label[int]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_single_input_multiple_label[label_array0]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_single_input_multiple_label[label_array1]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_single_input_multiple_label[label_array2]
+PASSED lib/matplotlib/tests/test_legend.py::test_plot_multiple_label_incorrect_length_exception
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_face_edgecolor
+PASSED lib/matplotlib/tests/test_legend.py::test_legend_text_axes
+PASSED lib/matplotlib/tests/test_legend.py::test_handlerline2d
+PASSED lib/matplotlib/tests/test_legend.py::test_subfigure_legend
+SKIPPED [9] ../opt/miniconda3/envs/testbed/lib/python3.8/contextlib.py:75: Cannot compare svg files on this system
+SKIPPED [1] lib/matplotlib/tests/test_legend.py:745: This test needs a TeX installation
+======================= 89 passed, 10 skipped in 15.75s ========================
++ : '>>>>> End Test Output'
++ git checkout 64619e53e9d0ed417daba287ac0d3a06943a54d5 lib/matplotlib/tests/test_legend.py
+Updated 1 path from 61c04b19ab

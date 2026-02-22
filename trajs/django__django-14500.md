@@ -1,0 +1,28 @@
+# django__django-14500
+
+**Repository**: django/django
+**Duration**: 603.6s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 14 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/db/migrations/executor.py b/django/db/migrations/executor.py
+index 57042a8690..c9da68708a 100644
+--- a/django/db/migrations/executor.py
++++ b/django/db/migrations/executor.py
+@@ -277,7 +277,8 @@ class MigrationExecutor:
+             all_applied = all(m in applied for m in migration.replaces)
+             if all_applied and key not in applied:
+                 self.recorder.record_applied(*key)
+-
++            elif not all_applied and key in applied:
++                self.recorder.record_unapplied(*key)
+     def detect_soft_applied(self, project_state, migration):
+         """
+         Test whether a migration has been implicitly applied - that the
+```

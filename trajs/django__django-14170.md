@@ -1,0 +1,84 @@
+# django__django-14170
+
+**Repository**: django/django
+**Duration**: 604.1s
+**Cost**: $0.0000
+**Status**: Timed out
+**Patch**: 70 lines
+
+## Tool Calls
+
+## Patch
+
+```diff
+diff --git a/django/db/backends/base/operations.py b/django/db/backends/base/operations.py
+index 0fcc607bcf..cb59b5b1bb 100644
+--- a/django/db/backends/base/operations.py
++++ b/django/db/backends/base/operations.py
+@@ -558,6 +558,47 @@ class BaseDatabaseOperations:
+         second = self.adapt_datetimefield_value(second)
+         return [first, second]
+ 
++    def iso_year_lookup_bounds_for_date_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.date(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.date(value, 12, 28)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        first = self.adapt_datefield_value(first)
++        second = self.adapt_datefield_value(second)
++        return [first, second]
++
++    def iso_year_lookup_bounds_for_datetime_field(self, value):
++        """
++        Return a two-elements list with the lower and upper bound to be used
++        with a BETWEEN operator to query a DateTimeField value using an iso_year
++        lookup.
++
++        `value` is an int, containing the looked-up year.
++        """
++        # ISO year N starts on the Monday of the week that contains January 4
++        jan4 = datetime.datetime(value, 1, 4)
++        first = jan4 - datetime.timedelta(days=jan4.weekday())
++        # ISO year N ends on the Sunday of the week containing December 28
++        dec28 = datetime.datetime(value, 12, 28, 23, 59, 59, 999999)
++        second = dec28 + datetime.timedelta(days=(6 - dec28.weekday()))
++        if settings.USE_TZ:
++            tz = timezone.get_current_timezone()
++            first = timezone.make_aware(first, tz)
++            second = timezone.make_aware(second, tz)
++        first = self.adapt_datetimefield_value(first)
++        second = self.adapt_datetimefield_value(second)
++        return [first, second]
++
++
+     def get_db_converters(self, expression):
+         """
+         Return a list of functions needed to convert field data.
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 916478d075..1479e83641 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -540,7 +540,12 @@ class IRegex(Regex):
+ class YearLookup(Lookup):
+     def year_lookup_bounds(self, connection, year):
+         output_field = self.lhs.lhs.output_field
+-        if isinstance(output_field, DateTimeField):
++        if self.lhs.lookup_name == 'iso_year':
++            if isinstance(output_field, DateTimeField):
++                bounds = connection.ops.iso_year_lookup_bounds_for_datetime_field(year)
++            else:
++                bounds = connection.ops.iso_year_lookup_bounds_for_date_field(year)
++        elif isinstance(output_field, DateTimeField):
+             bounds = connection.ops.year_lookup_bounds_for_datetime_field(year)
+         else:
+             bounds = connection.ops.year_lookup_bounds_for_date_field(year)
+```

@@ -1,0 +1,164 @@
+2026-02-22 12:07:48,879 - INFO - Creating container for psf__requests-1142...
+2026-02-22 12:07:49,203 - INFO - Container for psf__requests-1142 created: 2bf793a184b5a249db1d5c59b80008b9ebe1ad5059345f9e9dedc087b6e686ac
+2026-02-22 12:07:49,340 - INFO - Container for psf__requests-1142 started: 2bf793a184b5a249db1d5c59b80008b9ebe1ad5059345f9e9dedc087b6e686ac
+2026-02-22 12:07:49,341 - INFO - Intermediate patch for psf__requests-1142 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/psf__requests-1142/patch.diff, now applying to container...
+2026-02-22 12:07:49,513 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 12:07:49,592 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 12:07:49,682 - INFO - >>>>> Applied Patch:
+patching file requests/cookies.py
+patching file requests/models.py
+patching file requests/packages/urllib3/_collections.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 4 with fuzz 1.
+
+2026-02-22 12:07:49,800 - INFO - Git diff before:
+diff --git a/requests/cookies.py b/requests/cookies.py
+index bd7289e..19e4ec1 100644
+--- a/requests/cookies.py
++++ b/requests/cookies.py
+@@ -7,6 +7,10 @@ requests.utils imports from here, so be careful with imports.
+ """
+ 
+ import collections
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from .compat import cookielib, urlparse, Morsel
+ 
+ try:
+@@ -133,7 +137,7 @@ class CookieConflictError(RuntimeError):
+     Use .get and .set and include domain and path args in order to be more specific."""
+ 
+ 
+-class RequestsCookieJar(cookielib.CookieJar, collections.MutableMapping):
++class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
+     """Compatibility class; is a cookielib.CookieJar, but exposes a dict interface.
+ 
+     This is the CookieJar we create by default for requests and sessions that
+diff --git a/requests/models.py b/requests/models.py
+index 9926045..9bd86d1 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -386,13 +386,17 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         self.body = body
+ 
+     def prepare_content_length(self, body):
+-        self.headers['Content-Length'] = '0'
+-        if hasattr(body, 'seek') and hasattr(body, 'tell'):
+-            body.seek(0, 2)
+-            self.headers['Content-Length'] = str(body.tell())
+-            body.seek(0, 0)
+-        elif body is not None:
+-            self.headers['Content-Length'] = str(len(body))
++        if body is not None:
++            length = super_len(body)
++            if length:
++                self.headers['Content-Length'] = str(length)
++            elif hasattr(body, 'seek') and hasattr(body, 'tell'):
++                body.seek(0, 2)
++                length = body.tell()
++                body.seek(0, 0)
++                self.headers['Content-Length'] = str(length)
++            else:
++                self.headers['Content-Length'] = str(len(body))
+ 
+     def prepare_auth(self, auth):
+         """Prepares the given HTTP auth data."""
+diff --git a/requests/packages/urllib3/_collections.py b/requests/packages/urllib3/_collections.py
+index a052b1d..2103bfa 100644
+--- a/requests/packages/urllib3/_collections.py
++++ b/requests/packages/urllib3/_collections.py
+@@ -4,7 +4,10 @@
+ # This module is part of urllib3 and is released under
+ # the MIT License: http://www.opensource.org/licenses/mit-license.php
+ 
+-from collections import MutableMapping
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from threading import Lock
+ 
+ try: # Python 2.7+
+2026-02-22 12:07:49,801 - INFO - Eval script for psf__requests-1142 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/psf__requests-1142/eval.sh; copying to container...
+2026-02-22 12:07:54,086 - INFO - Test runtime: 4.20 seconds
+2026-02-22 12:07:54,087 - INFO - Test output for psf__requests-1142 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/psf__requests-1142/test_output.txt
+2026-02-22 12:07:54,227 - INFO - Git diff after:
+diff --git a/requests/cookies.py b/requests/cookies.py
+index bd7289e..19e4ec1 100644
+--- a/requests/cookies.py
++++ b/requests/cookies.py
+@@ -7,6 +7,10 @@ requests.utils imports from here, so be careful with imports.
+ """
+ 
+ import collections
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from .compat import cookielib, urlparse, Morsel
+ 
+ try:
+@@ -133,7 +137,7 @@ class CookieConflictError(RuntimeError):
+     Use .get and .set and include domain and path args in order to be more specific."""
+ 
+ 
+-class RequestsCookieJar(cookielib.CookieJar, collections.MutableMapping):
++class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
+     """Compatibility class; is a cookielib.CookieJar, but exposes a dict interface.
+ 
+     This is the CookieJar we create by default for requests and sessions that
+diff --git a/requests/models.py b/requests/models.py
+index 9926045..9bd86d1 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -386,13 +386,17 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         self.body = body
+ 
+     def prepare_content_length(self, body):
+-        self.headers['Content-Length'] = '0'
+-        if hasattr(body, 'seek') and hasattr(body, 'tell'):
+-            body.seek(0, 2)
+-            self.headers['Content-Length'] = str(body.tell())
+-            body.seek(0, 0)
+-        elif body is not None:
+-            self.headers['Content-Length'] = str(len(body))
++        if body is not None:
++            length = super_len(body)
++            if length:
++                self.headers['Content-Length'] = str(length)
++            elif hasattr(body, 'seek') and hasattr(body, 'tell'):
++                body.seek(0, 2)
++                length = body.tell()
++                body.seek(0, 0)
++                self.headers['Content-Length'] = str(length)
++            else:
++                self.headers['Content-Length'] = str(len(body))
+ 
+     def prepare_auth(self, auth):
+         """Prepares the given HTTP auth data."""
+diff --git a/requests/packages/urllib3/_collections.py b/requests/packages/urllib3/_collections.py
+index a052b1d..2103bfa 100644
+--- a/requests/packages/urllib3/_collections.py
++++ b/requests/packages/urllib3/_collections.py
+@@ -4,7 +4,10 @@
+ # This module is part of urllib3 and is released under
+ # the MIT License: http://www.opensource.org/licenses/mit-license.php
+ 
+-from collections import MutableMapping
++try:
++    from collections.abc import MutableMapping
++except ImportError:
++    from collections import MutableMapping
+ from threading import Lock
+ 
+ try: # Python 2.7+
+2026-02-22 12:07:54,228 - INFO - Grading answer for psf__requests-1142...
+2026-02-22 12:07:54,235 - INFO - report: {'psf__requests-1142': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': True, 'tests_status': {'FAIL_TO_PASS': {'success': ['test_requests.py::RequestsTestCase::test_no_content_length'], 'failure': []}, 'PASS_TO_PASS': {'success': ['test_requests.py::RequestsTestCase::test_basic_building', 'test_requests.py::RequestsTestCase::test_entry_points', 'test_requests.py::RequestsTestCase::test_invalid_url', 'test_requests.py::RequestsTestCase::test_params_are_added_before_fragment', 'test_requests.py::RequestsTestCase::test_path_is_not_double_encoded'], 'failure': []}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for psf__requests-1142: resolved: True
+2026-02-22 12:07:54,235 - INFO - Attempting to stop container sweb.eval.psf__requests-1142.pydantic-deep...
+2026-02-22 12:08:09,429 - INFO - Attempting to remove container sweb.eval.psf__requests-1142.pydantic-deep...
+2026-02-22 12:08:09,456 - INFO - Container sweb.eval.psf__requests-1142.pydantic-deep removed.
+2026-02-22 12:08:09,457 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.psf_1776_requests-1142:latest...
+2026-02-22 12:08:09,515 - INFO - Image swebench/sweb.eval.x86_64.psf_1776_requests-1142:latest removed.

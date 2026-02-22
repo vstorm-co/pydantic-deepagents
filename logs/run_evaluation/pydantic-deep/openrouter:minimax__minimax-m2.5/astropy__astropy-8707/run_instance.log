@@ -1,0 +1,113 @@
+2026-02-22 11:17:15,118 - INFO - Creating container for astropy__astropy-8707...
+2026-02-22 11:17:15,394 - INFO - Container for astropy__astropy-8707 created: dd88ff1670d63380e2a62e97b65a212f3af50b577ffe448ec9a43b5afcefde72
+2026-02-22 11:17:15,512 - INFO - Container for astropy__astropy-8707 started: dd88ff1670d63380e2a62e97b65a212f3af50b577ffe448ec9a43b5afcefde72
+2026-02-22 11:17:15,513 - INFO - Intermediate patch for astropy__astropy-8707 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-8707/patch.diff, now applying to container...
+2026-02-22 11:17:15,743 - INFO - Failed to apply patch to container: git apply --verbose
+2026-02-22 11:17:15,855 - INFO - Failed to apply patch to container: git apply --verbose --reject
+2026-02-22 11:17:15,954 - INFO - >>>>> Applied Patch:
+patching file astropy/io/fits/card.py
+patching file astropy/io/fits/header.py
+patch unexpectedly ends in middle of line
+Hunk #1 succeeded at 348 with fuzz 1.
+
+2026-02-22 11:17:16,474 - INFO - Git diff before:
+diff --git a/astropy/io/fits/card.py b/astropy/io/fits/card.py
+index 8c1ac5d73..4e469a0f4 100644
+--- a/astropy/io/fits/card.py
++++ b/astropy/io/fits/card.py
+@@ -5,7 +5,7 @@ import warnings
+ 
+ import numpy as np
+ 
+-from .util import _str_to_num, _is_int, translate, _words_group
++from .util import _str_to_num, _is_int, translate, _words_group, decode_ascii
+ from .verify import _Verify, _ErrList, VerifyError, VerifyWarning
+ 
+ from . import conf
+@@ -547,6 +547,13 @@ class Card(_Verify):
+     @classmethod
+     def fromstring(cls, image):
+         """
++
++        # Handle bytes input by decoding to ASCII string
++        if isinstance(image, bytes):
++            image = decode_ascii(image)
++
++        card = cls()
++        card._image = _pad(image)
+         Construct a `Card` object from a (raw) string. It will pad the string
+         if it is not the length of a card image (80 columns).  If the card
+         image is longer than 80 columns, assume it contains ``CONTINUE``
+diff --git a/astropy/io/fits/header.py b/astropy/io/fits/header.py
+index ad07e6d52..ac0b455a4 100644
+--- a/astropy/io/fits/header.py
++++ b/astropy/io/fits/header.py
+@@ -348,6 +348,12 @@ class Header:
+             A new `Header` instance.
+         """
+ 
++        # Handle bytes input by decoding to ASCII string
++        if isinstance(data, bytes):
++            data = decode_ascii(data)
++
++        cards = []
++
+         cards = []
+ 
+         # If the card separator contains characters that may validly appear in
+2026-02-22 11:17:16,475 - INFO - Eval script for astropy__astropy-8707 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-8707/eval.sh; copying to container...
+2026-02-22 11:17:43,130 - INFO - Test runtime: 26.49 seconds
+2026-02-22 11:17:43,131 - INFO - Test output for astropy__astropy-8707 written to logs/run_evaluation/pydantic-deep/openrouter:minimax__minimax-m2.5/astropy__astropy-8707/test_output.txt
+2026-02-22 11:17:43,256 - INFO - Git diff after:
+diff --git a/astropy/io/fits/card.py b/astropy/io/fits/card.py
+index 8c1ac5d73..4e469a0f4 100644
+--- a/astropy/io/fits/card.py
++++ b/astropy/io/fits/card.py
+@@ -5,7 +5,7 @@ import warnings
+ 
+ import numpy as np
+ 
+-from .util import _str_to_num, _is_int, translate, _words_group
++from .util import _str_to_num, _is_int, translate, _words_group, decode_ascii
+ from .verify import _Verify, _ErrList, VerifyError, VerifyWarning
+ 
+ from . import conf
+@@ -547,6 +547,13 @@ class Card(_Verify):
+     @classmethod
+     def fromstring(cls, image):
+         """
++
++        # Handle bytes input by decoding to ASCII string
++        if isinstance(image, bytes):
++            image = decode_ascii(image)
++
++        card = cls()
++        card._image = _pad(image)
+         Construct a `Card` object from a (raw) string. It will pad the string
+         if it is not the length of a card image (80 columns).  If the card
+         image is longer than 80 columns, assume it contains ``CONTINUE``
+diff --git a/astropy/io/fits/header.py b/astropy/io/fits/header.py
+index ad07e6d52..ac0b455a4 100644
+--- a/astropy/io/fits/header.py
++++ b/astropy/io/fits/header.py
+@@ -348,6 +348,12 @@ class Header:
+             A new `Header` instance.
+         """
+ 
++        # Handle bytes input by decoding to ASCII string
++        if isinstance(data, bytes):
++            data = decode_ascii(data)
++
++        cards = []
++
+         cards = []
+ 
+         # If the card separator contains characters that may validly appear in
+2026-02-22 11:17:43,256 - INFO - Grading answer for astropy__astropy-8707...
+2026-02-22 11:17:43,311 - INFO - report: {'astropy__astropy-8707': {'patch_is_None': False, 'patch_exists': True, 'patch_successfully_applied': True, 'resolved': False, 'tests_status': {'FAIL_TO_PASS': {'success': [], 'failure': ['astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_card_from_bytes']}, 'PASS_TO_PASS': {'success': ['astropy/io/fits/tests/test_header.py::test_shallow_copy', 'astropy/io/fits/tests/test_header.py::test_init_with_header', 'astropy/io/fits/tests/test_header.py::test_init_with_dict', 'astropy/io/fits/tests/test_header.py::test_init_with_ordereddict'], 'failure': ['astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_rename_keyword', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_card_constructor_default_args', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_string_value_card', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_boolean_value_card', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_long_integer_value_card', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_floating_point_value_card', 'astropy/io/fits/tests/test_header.py::TestHeaderFunctions::test_complex_value_card']}, 'FAIL_TO_FAIL': {'success': [], 'failure': []}, 'PASS_TO_FAIL': {'success': [], 'failure': []}}}}
+Result for astropy__astropy-8707: resolved: False
+2026-02-22 11:17:43,311 - INFO - Attempting to stop container sweb.eval.astropy__astropy-8707.pydantic-deep...
+2026-02-22 11:17:58,650 - INFO - Attempting to remove container sweb.eval.astropy__astropy-8707.pydantic-deep...
+2026-02-22 11:17:58,686 - INFO - Container sweb.eval.astropy__astropy-8707.pydantic-deep removed.
+2026-02-22 11:17:58,686 - INFO - Attempting to remove image swebench/sweb.eval.x86_64.astropy_1776_astropy-8707:latest...
+2026-02-22 11:17:59,247 - INFO - Image swebench/sweb.eval.x86_64.astropy_1776_astropy-8707:latest removed.

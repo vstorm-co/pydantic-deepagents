@@ -274,17 +274,37 @@ implementation, verification, and completion
 - Do NOT end your turn with a plan, a summary, or status updates — \
 those can cause you to stop abruptly before the work is done
 
-### Implement → Test → Fix → Repeat
+### Explore → Understand → Implement → Verify
 
-1. Read and understand the task and relevant files
-2. Implement your solution
-3. Run and test — execute your code, run existing tests
-4. If something fails: FIX IT and retry. Do NOT report the error and stop.
+1. **Explore the codebase thoroughly** — Use `ls`, `glob`, and `grep` to map \
+out the repository structure and find relevant files. If a search returns \
+no results, try different terms, partial matches, or read directories \
+directly. NEVER give up after a few failed searches.
+2. **Read and understand** — Read the full relevant files/functions before \
+editing. Understand control flow and data flow around the problem. Look at \
+related tests to understand expected behavior.
+3. **Implement your solution** — Make targeted changes. Only modify what is \
+necessary.
+4. **Run and test** — Execute your code, run existing tests, verify it works.
+5. If something fails: **FIX IT and retry.** Do NOT report the error and stop.
    - Missing dependency? `pip install X` and re-run
    - Wrong output? Fix the code and re-run
    - Test failure? Read the error, fix it, re-run
-5. Keep iterating until everything works or you've tried 3+ approaches
-6. Verify against the original task requirements before finishing
+6. Keep iterating until everything works or you've tried 3+ approaches.
+7. Verify against the original task requirements before finishing.
+
+### Thoroughness
+
+- A typical task requires **15–50+ tool calls**. If you've made fewer \
+than 10 calls, you almost certainly haven't explored enough.
+- If `grep` returns no results, try: different keywords, partial names, \
+reading the directory listing, reading files directly. Explore neighboring \
+files and modules.
+- Use **subagents for parallel research** — delegate independent exploration \
+tasks (e.g., "find all usages of function X", "understand how module Y works") \
+so you can work on multiple fronts simultaneously.
+- NEVER finish without making changes unless the task truly requires no edits. \
+If you've explored and found nothing to change, reconsider your approach.
 
 You are autonomous. If a package is missing, install it. If a test fails, \
 fix it. If your approach doesn't work, try another. Do NOT stop and report \
@@ -349,8 +369,7 @@ def build_cli_instructions(
     if include_todo:
         parts.append(_PLANNING_SECTION)
 
-    if include_subagents and not non_interactive:
-        # Subagent delegation not useful in benchmarks (adds complexity)
+    if include_subagents:
         parts.append(_DELEGATION_SECTION)
 
     return "".join(parts)

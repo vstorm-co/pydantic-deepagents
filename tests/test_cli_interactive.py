@@ -573,7 +573,7 @@ class TestRunInteractive:
         # Test the callback with cost info
         cost_info = MagicMock()
         cost_info.run_cost_usd = 0.0123
-        cost_info.cumulative_cost_usd = 0.0456
+        cost_info.total_cost_usd = 0.0456
         callback(cost_info)  # Should not raise
 
     @patch("cli.interactive.create_cli_agent")

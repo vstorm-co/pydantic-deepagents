@@ -64,11 +64,14 @@ def create_cli_agent(
     include_checkpoints: bool = True,
     include_subagents: bool = True,
     include_todo: bool = True,
+    include_local_context: bool = True,
     context_discovery: bool = True,
     non_interactive: bool = False,
     config_path: Path | None = None,
     model_settings: dict[str, Any] | None = None,
     session_id: str | None = None,
+    skills_dir: str | None = None,
+    extra_instructions: str | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -88,9 +91,14 @@ def create_cli_agent(
         include_checkpoints: Whether to include conversation checkpointing.
         include_subagents: Whether to include the subagent toolset.
         include_todo: Whether to include the todo toolset.
+        include_local_context: Whether to include local context (git info, dir tree).
+            Disable for Docker/sandbox backends where the root dir doesn't exist on host.
         context_discovery: Whether to auto-discover context files (AGENT.md).
         config_path: Override config file path (for testing).
         session_id: Session identifier for per-session plans storage.
+        extra_instructions: Additional instructions appended to the system prompt.
+        skills_dir: Override skills directory path. When None, auto-discovers
+            from ``{working_dir}/.pydantic-deep/skills/``.
 
     Returns:
         Tuple of (agent, deps) ready for agent.run().
@@ -145,28 +153,45 @@ def create_cli_agent(
     )
     instructions += working_dir_section
 
+    if extra_instructions:
+        instructions += "\n\n" + extra_instructions
+
     # Add local context toolset (git info + directory tree)
-    from cli.local_context import LocalContextToolset
+    # Skipped for Docker/sandbox backends where root_dir doesn't exist on host
+    local_context = None
+    if include_local_context:
+        from cli.local_context import LocalContextToolset
 
-    local_context = LocalContextToolset(root_dir=root)
+        local_context = LocalContextToolset(root_dir=root)
 
-    # Skills directory — use .pydantic-deep/skills/ (populated by init)
+    # Skills directory — explicit override > project root > bundled fallback
     skill_dirs: list[str] = []
     if include_skills:
-        project_skills_dir = root / ".pydantic-deep" / "skills"
-        if project_skills_dir.is_dir():
-            skill_dirs.append(str(project_skills_dir))
+        if skills_dir:
+            sd = Path(skills_dir)
+            if sd.is_dir():
+                skill_dirs.append(str(sd))
+        else:
+            project_skills_dir = root / ".pydantic-deep" / "skills"
+            if project_skills_dir.is_dir():
+                skill_dirs.append(str(project_skills_dir))
 
-    # In non-interactive mode: no approval needed, disable features that add
-    # noise (memory, checkpoints, skills, plan, subagents) — single-shot tasks
-    # don't benefit from them and they waste context/tool slots.
+        # Fallback to bundled skills shipped with the package
+        if not skill_dirs:
+            bundled = Path(__file__).resolve().parent.parent / "pydantic_deep" / "bundled_skills"
+            if bundled.is_dir():
+                skill_dirs.append(str(bundled))
+
+    # In non-interactive mode: no approval needed, disable interactive features
+    # (memory, checkpoints, plan, subagents). Skills stay ON — they're static
+    # instructions that improve benchmark performance.
     interrupt_on = {"execute": False} if non_interactive else None
 
     effective_memory = include_memory and not non_interactive
     effective_checkpoints = include_checkpoints and not non_interactive
-    effective_skills = include_skills and not non_interactive
+    effective_skills = include_skills  # Always available — read-only context
     effective_plan = include_plan and not non_interactive
-    effective_subagents = include_subagents and not non_interactive
+    effective_subagents = include_subagents  # Available in all modes — useful for research delegation
 
     # Model settings — non-interactive defaults, then config, then explicit overrides
     effective_model_settings: dict[str, Any] = {}
@@ -254,7 +279,7 @@ def create_cli_agent(
         hooks=hooks or None,
         middleware=middleware,
         permission_handler=permission_handler,
-        toolsets=[local_context],
+        toolsets=[local_context] if local_context else None,
     )
 
     deps = DeepAgentDeps(backend=effective_backend, checkpoint_store=cp_store)

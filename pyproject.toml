@@ -77,6 +77,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["pydantic_deep", "cli", "swebench_agent"]
 
+[tool.hatch.build.targets.wheel.force-include]
+".pydantic-deep/skills" = "pydantic_deep/bundled_skills"
+
 # Dependency groups for development
 [dependency-groups]
 dev = [

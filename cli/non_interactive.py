@@ -130,7 +130,7 @@ async def run_non_interactive(
     def _on_cost(cost_info: Any) -> None:
         if not effective_quiet:
             run_cost = getattr(cost_info, "run_cost_usd", None)
-            total = getattr(cost_info, "cumulative_cost_usd", None)
+            total = getattr(cost_info, "total_cost_usd", None)
             if isinstance(run_cost, (int, float)):
                 total_f = total if isinstance(total, (int, float)) else None
                 line = format_cost_line(run_cost=run_cost, total_cost=total_f)

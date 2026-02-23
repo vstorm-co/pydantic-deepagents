@@ -70,6 +70,14 @@ def swebench_run(
         str | None,
         typer.Option("--trajs-dir", help="Directory for trajectory files (per-instance tool call logs)"),
     ] = None,
+    reasoning: Annotated[
+        bool,
+        typer.Option("--reasoning", "-r", help="Enable reasoning/thinking mode (for models that support it)"),
+    ] = False,
+    reasoning_effort: Annotated[
+        str | None,
+        typer.Option("--reasoning-effort", help="Reasoning effort level: high, medium, low"),
+    ] = None,
     model_settings_json: Annotated[
         str | None,
         typer.Option("--model-settings", help="Model settings as JSON"),
@@ -91,6 +99,23 @@ def swebench_run(
     ms: dict[str, Any] | None = None
     if model_settings_json:
         ms = json.loads(model_settings_json)
+
+    # Auto-configure reasoning based on model provider
+    if reasoning or reasoning_effort:
+        ms = ms or {}
+        effort = reasoning_effort or "high"
+        if effective_model and "openrouter:" in effective_model:
+            # OpenRouter: uses openrouter_reasoning parameter
+            ms.setdefault("openrouter_reasoning", {"enabled": True, "effort": effort})
+        elif effective_model and "openai:" in effective_model:
+            # OpenAI: uses openai_reasoning_effort
+            ms.setdefault("openai_reasoning_effort", effort)
+        elif effective_model and "anthropic:" in effective_model:
+            # Anthropic: uses extended thinking
+            ms.setdefault("anthropic_thinking", {"type": "enabled", "budget_tokens": 10000})
+        else:
+            # Generic: try OpenRouter-style reasoning
+            ms.setdefault("openrouter_reasoning", {"enabled": True, "effort": effort})
 
     run_config = RunConfig(
         model=effective_model,

@@ -1931,7 +1931,7 @@ async def run_interactive(
     def _on_cost(cost_info: Any) -> None:
         nonlocal cumulative_cost
         run_cost = getattr(cost_info, "run_cost_usd", None)
-        total = getattr(cost_info, "cumulative_cost_usd", None)
+        total = getattr(cost_info, "total_cost_usd", None)
         if isinstance(total, (int, float)):
             cumulative_cost = total
         if isinstance(run_cost, (int, float)):

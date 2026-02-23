@@ -2,7 +2,7 @@
 
 Evaluate pydantic-deep on [SWE-bench](https://www.swebench.com/) — a benchmark of real GitHub issues from popular Python repos (Django, Flask, scikit-learn, sympy, etc.).
 
-The agent receives an issue description, explores the codebase inside a Docker container, makes code changes, and produces a `git diff` patch. The patch is then evaluated by running the project's test suite.
+Uses the **same agent and prompt** as `pydantic-deep run` / Terminal-Bench (`create_cli_agent` with `non_interactive=True`). The only difference is the backend: `DockerSandbox` pointed at a SWE-bench Docker image with `/testbed` as working directory.
 
 ## Quick Start
 
@@ -10,19 +10,24 @@ The agent receives an issue description, explores the codebase inside a Docker c
 # Install dependencies
 pip install pydantic-deep[swebench,sandbox]
 
-# Run on a single instance (debug)
+# Run on a single instance
 pydantic-deep swebench run \
-    -m openrouter:openai/gpt-4.1 \
-    -i django__django-16379
+    -m openrouter:minimax/minimax-m2.5 \
+    --reasoning \
+    -i django__django-16950 \
+    --timeout 600 -v
 
 # Run on SWE-bench Verified (500 instances)
 pydantic-deep swebench run \
-    -m anthropic:claude-sonnet-4 \
+    -m openrouter:minimax/minimax-m2.5 \
+    --reasoning \
     -w 8 \
-    -o predictions.jsonl
+    --timeout 600 \
+    -o all_preds.jsonl \
+    --trajs-dir trajs/
 
 # Evaluate results
-pydantic-deep swebench evaluate predictions.jsonl
+pydantic-deep swebench evaluate all_preds.jsonl
 ```
 
 ## How It Works
@@ -39,23 +44,25 @@ pydantic-deep swebench run
          ▼  (per instance, parallel with --workers)
 ┌─────────────────────────────────────────┐
 │  1. Start Docker container              │
-│     image: swebench/sweb.eval.x86_64.*  │
+│     image: ghcr.io/epoch-research/...   │
 │     work_dir: /testbed                  │
 │                                         │
 │  2. Run pydantic-deep agent             │
 │     create_cli_agent(                   │
 │       backend=DockerSandbox,            │
+│       working_dir="/testbed",           │
 │       non_interactive=True              │
 │     )                                   │
 │                                         │
 │  3. Extract patch: git diff             │
-│                                         │
-│  4. Stop container                      │
+│  4. Save trajectory                     │
+│  5. Stop container                      │
 └────────┬────────────────────────────────┘
          │
          ▼
 ┌─────────────────┐
-│  Write JSONL     │  predictions.jsonl
+│  Write JSONL     │  all_preds.jsonl
+│  Write trajs/    │  per-instance markdown
 │  Print summary   │
 └─────────────────┘
 ```
@@ -66,72 +73,39 @@ pydantic-deep swebench run
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-m, --model` | from config | Model to use (e.g. `openrouter:openai/gpt-4.1`) |
+| `-m, --model` | from config | Model to use |
+| `-r, --reasoning` | off | Enable reasoning/thinking mode |
+| `--reasoning-effort` | `high` | Reasoning effort: high, medium, low |
 | `-d, --dataset` | `princeton-nlp/SWE-bench_Verified` | HuggingFace dataset |
-| `--split` | `test` | Dataset split |
 | `-i, --instance` | all | Specific instance IDs (repeatable) |
 | `-w, --workers` | `1` | Max parallel instances |
 | `--timeout` | `300` | Per-instance timeout in seconds |
 | `-o, --output` | `predictions.jsonl` | Output JSONL path |
-| `-t, --temperature` | `0.0` | Model temperature |
-| `--cost-budget` | unlimited | Max total cost in USD |
+| `--trajs-dir` | none | Directory for trajectory files |
+| `--image` | Epoch AI ghcr.io | Docker image template |
 | `-v, --verbose` | off | Verbose per-instance output |
 | `--model-settings` | none | Model settings as JSON string |
 
 ### `pydantic-deep swebench evaluate`
 
-Wraps `python -m swebench.harness.run_evaluation`.
-
 | Argument/Flag | Default | Description |
 |---------------|---------|-------------|
 | `predictions` | required | Path to predictions JSONL |
+| `--run-id` | `pydantic-deep` | Unique run identifier |
 | `-d, --dataset` | `princeton-nlp/SWE-bench_Verified` | HuggingFace dataset |
-| `--split` | `test` | Dataset split |
 | `-w, --workers` | `4` | Parallel evaluation workers |
+| `--timeout` | `1800` | Per-instance eval timeout |
+| `--cache-level` | `env` | Docker cache level |
 
-## SWE-bench Variants
+### `pydantic-deep swebench list`
 
-| Variant | Instances | Description |
-|---------|-----------|-------------|
-| **SWE-bench Full** | 2,294 | Complete dataset |
-| **SWE-bench Verified** | 500 | Human-verified as solvable (default) |
-| **SWE-bench Lite** | 300 | Smaller subset for quick testing |
-
-```bash
-# Use Lite for faster iteration
-pydantic-deep swebench run -d princeton-nlp/SWE-bench_Lite -m openai:gpt-4.1
-
-# Use Full for comprehensive evaluation
-pydantic-deep swebench run -d princeton-nlp/SWE-bench -m openai:gpt-4.1
-```
-
-## Prerequisites
-
-- **Docker** — SWE-bench uses per-instance Docker images (~2-5 GB each)
-- **HuggingFace token** — for downloading the dataset (set `HF_TOKEN`)
-- **Model API key** — for the LLM provider you choose
-
-Pull SWE-bench images before running:
-
-```bash
-# Pull a single instance image
-docker pull swebench/sweb.eval.x86_64.django__django-16379:latest
-```
-
-## Output Format
-
-The predictions JSONL follows the standard SWE-bench format:
-
-```json
-{"instance_id": "django__django-16379", "model_name_or_path": "openai:gpt-4.1", "model_patch": "diff --git a/..."}
-```
+List available instances, optionally filtered by repo.
 
 ## Architecture
 
 | Module | Description |
 |--------|-------------|
 | `types.py` | Data models: `SWEBenchInstance`, `Prediction`, `RunConfig`, `InstanceResult` |
-| `prompt.py` | SWE-bench system prompt and task message formatting |
-| `instance.py` | Single instance execution — `create_cli_agent` + `DockerSandbox` + `git diff` |
-| `runner.py` | Orchestration — load dataset, parallel execution, write JSONL |
+| `instance.py` | Single instance execution — `create_cli_agent` + `DockerSandbox` + `git diff` + trajectory |
+| `runner.py` | Orchestration — load dataset, parallel execution, write JSONL + trajectories |
 | `cli.py` | Typer commands wired into `pydantic-deep swebench` |

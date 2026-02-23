@@ -7,7 +7,6 @@ import time
 import traceback
 from typing import Any
 
-from swebench_agent.prompt import format_task_message
 from swebench_agent.types import InstanceResult, RunConfig, SWEBenchInstance
 
 # Image registries (Epoch AI images are ~10x smaller than official ones)
@@ -15,6 +14,20 @@ EPOCH_IMAGE = "ghcr.io/epoch-research/swe-bench.eval.x86_64.{instance_id}"
 OFFICIAL_IMAGE = "swebench/sweb.eval.x86_64.{instance_id}:latest"
 
 DEFAULT_IMAGE_TEMPLATE = EPOCH_IMAGE
+
+def _format_task_message(instance: SWEBenchInstance) -> str:
+    """Format a SWE-bench instance into an agent task message.
+
+    NOTE: hints_text is intentionally NOT included — SWE-bench rules forbid it.
+    """
+    return (
+        f"## Issue: {instance.instance_id}\n"
+        f"\n**Repository**: {instance.repo}\n"
+        f"\n### Problem Statement\n\n{instance.problem_statement}\n"
+        f"\n---\n"
+        f"Fix this issue by editing the source code in `/testbed`. "
+        f"Do NOT modify any test files."
+    )
 
 
 def _create_sandbox(
@@ -189,7 +202,7 @@ async def run_instance(
 
     def _on_cost(cost_info: Any) -> None:
         nonlocal cost_usd
-        val = getattr(cost_info, "cumulative_cost_usd", None)
+        val = getattr(cost_info, "total_cost_usd", None)
         if isinstance(val, (int, float)):
             cost_usd = val
 
@@ -206,18 +219,25 @@ async def run_instance(
             model_settings.update(config.model_settings)
 
         # Same config as `pydantic-deep run` / Terminal-Bench
+        # working_dir="/testbed" — tell agent the correct container path
+        # include_local_context=False — host git/tree doesn't apply to container
+        # context_discovery=False — no AGENT.md inside the Docker container
+        # Skills auto-discovered from bundled_skills fallback in create_cli_agent
         agent, deps = create_cli_agent(
             model=config.model,
             backend=sandbox,
+            working_dir="/testbed",
             on_cost_update=_on_cost,
             non_interactive=True,
             model_settings=model_settings,
+            include_local_context=False,
+            context_discovery=False,
         )
 
         if verbose:
             print(f"  [{instance.instance_id}] Agent running...")
 
-        task_message = format_task_message(instance)
+        task_message = _format_task_message(instance)
         traj_entries: list[dict[str, str]] = []
         timed_out = False
 

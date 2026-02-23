@@ -28,7 +28,7 @@ def load_dataset(config: RunConfig) -> list[SWEBenchInstance]:
     instances: list[SWEBenchInstance] = []
     for row in ds:
         # NOTE: We load hints_text, FAIL_TO_PASS, PASS_TO_PASS for metadata only.
-        # These are NOT passed to the agent (see format_task_message in prompt.py).
+        # These are NOT passed to the agent (see _format_task_message in instance.py).
         # SWE-bench rules forbid using these fields for official submissions.
         instance = SWEBenchInstance(
             instance_id=row["instance_id"],

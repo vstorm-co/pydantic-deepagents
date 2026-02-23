@@ -1,0 +1,239 @@
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8792 kB]
+Get:5 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [297 kB]
+Fetched 9343 kB in 4s (2135 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  git-man libcurl4 libnsl2 libproc2-0 libpython3-stdlib libpython3.11-minimal
+  libpython3.11-stdlib libtirpc-common libtirpc3 media-types psmisc
+  python3-distutils python3-lib2to3 python3-minimal python3-pip-whl
+  python3-setuptools-whl python3.11 python3.11-minimal python3.11-venv
+Suggested packages:
+  gettext-base git-daemon-run | git-daemon-sysvinit git-doc git-email git-gui
+  gitk gitweb git-cvs git-mediawiki git-svn python3-doc python3-tk
+  python3.11-doc binutils binfmt-support
+The following NEW packages will be installed:
+  curl libcurl4 libnsl2 libproc2-0 libpython3-stdlib libpython3.11-minimal
+  libpython3.11-stdlib libtirpc-common libtirpc3 media-types procps psmisc
+  python3 python3-distutils python3-lib2to3 python3-minimal python3-pip-whl
+  python3-setuptools-whl python3-venv python3.11 python3.11-minimal
+  python3.11-venv
+The following packages will be upgraded:
+  git git-man
+2 upgraded, 22 newly installed, 0 to remove and 25 not upgraded.
+Need to get 19.6 MB of archives.
+After this operation, 31.0 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-minimal amd64 3.11.2-6+deb12u6 [817 kB]
+Get:2 http://deb.debian.org/debian bookworm/main amd64 python3.11-minimal amd64 3.11.2-6+deb12u6 [2064 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 python3-minimal amd64 3.11.2-1+b1 [26.3 kB]
+Get:4 http://deb.debian.org/debian bookworm/main amd64 media-types all 10.0.0 [26.1 kB]
+Get:5 http://deb.debian.org/debian bookworm/main amd64 libtirpc-common all 1.3.3+ds-1 [14.0 kB]
+Get:6 http://deb.debian.org/debian bookworm/main amd64 libtirpc3 amd64 1.3.3+ds-1 [85.2 kB]
+Get:7 http://deb.debian.org/debian bookworm/main amd64 libnsl2 amd64 1.3.0-2 [39.5 kB]
+Get:8 http://deb.debian.org/debian bookworm/main amd64 libpython3.11-stdlib amd64 3.11.2-6+deb12u6 [1798 kB]
+Get:9 http://deb.debian.org/debian bookworm/main amd64 python3.11 amd64 3.11.2-6+deb12u6 [573 kB]
+Get:10 http://deb.debian.org/debian bookworm/main amd64 libpython3-stdlib amd64 3.11.2-1+b1 [9312 B]
+Get:11 http://deb.debian.org/debian bookworm/main amd64 python3 amd64 3.11.2-1+b1 [26.3 kB]
+Get:12 http://deb.debian.org/debian bookworm/main amd64 libproc2-0 amd64 2:4.0.2-3 [62.8 kB]
+Get:13 http://deb.debian.org/debian bookworm/main amd64 procps amd64 2:4.0.2-3 [709 kB]
+Get:14 http://deb.debian.org/debian bookworm/main amd64 libcurl4 amd64 7.88.1-10+deb12u14 [392 kB]
+Get:15 http://deb.debian.org/debian bookworm/main amd64 curl amd64 7.88.1-10+deb12u14 [316 kB]
+Get:16 http://deb.debian.org/debian bookworm/main amd64 git-man all 1:2.39.5-0+deb12u3 [2053 kB]
+Get:17 http://deb.debian.org/debian bookworm/main amd64 git amd64 1:2.39.5-0+deb12u3 [7264 kB]
+Get:18 http://deb.debian.org/debian bookworm/main amd64 psmisc amd64 23.6-1 [259 kB]
+Get:19 http://deb.debian.org/debian bookworm/main amd64 python3-lib2to3 all 3.11.2-3 [76.3 kB]
+Get:20 http://deb.debian.org/debian bookworm/main amd64 python3-distutils all 3.11.2-3 [131 kB]
+Get:21 http://deb.debian.org/debian bookworm/main amd64 python3-pip-whl all 23.0.1+dfsg-1 [1717 kB]
+Get:22 http://deb.debian.org/debian bookworm/main amd64 python3-setuptools-whl all 66.1.1-1+deb12u2 [1112 kB]
+Get:23 http://deb.debian.org/debian bookworm/main amd64 python3.11-venv amd64 3.11.2-6+deb12u6 [5896 B]
+Get:24 http://deb.debian.org/debian bookworm/main amd64 python3-venv amd64 3.11.2-1+b1 [1200 B]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 19.6 MB in 1s (24.0 MB/s)
+Selecting previously unselected package libpython3.11-minimal:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 10322 files and directories currently installed.)
+Preparing to unpack .../libpython3.11-minimal_3.11.2-6+deb12u6_amd64.deb ...
+Unpacking libpython3.11-minimal:amd64 (3.11.2-6+deb12u6) ...
+Selecting previously unselected package python3.11-minimal.
+Preparing to unpack .../python3.11-minimal_3.11.2-6+deb12u6_amd64.deb ...
+Unpacking python3.11-minimal (3.11.2-6+deb12u6) ...
+Setting up libpython3.11-minimal:amd64 (3.11.2-6+deb12u6) ...
+Setting up python3.11-minimal (3.11.2-6+deb12u6) ...
+Selecting previously unselected package python3-minimal.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 10629 files and directories currently installed.)
+Preparing to unpack .../0-python3-minimal_3.11.2-1+b1_amd64.deb ...
+Unpacking python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package media-types.
+Preparing to unpack .../1-media-types_10.0.0_all.deb ...
+Unpacking media-types (10.0.0) ...
+Selecting previously unselected package libtirpc-common.
+Preparing to unpack .../2-libtirpc-common_1.3.3+ds-1_all.deb ...
+Unpacking libtirpc-common (1.3.3+ds-1) ...
+Selecting previously unselected package libtirpc3:amd64.
+Preparing to unpack .../3-libtirpc3_1.3.3+ds-1_amd64.deb ...
+Unpacking libtirpc3:amd64 (1.3.3+ds-1) ...
+Selecting previously unselected package libnsl2:amd64.
+Preparing to unpack .../4-libnsl2_1.3.0-2_amd64.deb ...
+Unpacking libnsl2:amd64 (1.3.0-2) ...
+Selecting previously unselected package libpython3.11-stdlib:amd64.
+Preparing to unpack .../5-libpython3.11-stdlib_3.11.2-6+deb12u6_amd64.deb ...
+Unpacking libpython3.11-stdlib:amd64 (3.11.2-6+deb12u6) ...
+Selecting previously unselected package python3.11.
+Preparing to unpack .../6-python3.11_3.11.2-6+deb12u6_amd64.deb ...
+Unpacking python3.11 (3.11.2-6+deb12u6) ...
+Selecting previously unselected package libpython3-stdlib:amd64.
+Preparing to unpack .../7-libpython3-stdlib_3.11.2-1+b1_amd64.deb ...
+Unpacking libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3-minimal (3.11.2-1+b1) ...
+Selecting previously unselected package python3.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 11059 files and directories currently installed.)
+Preparing to unpack .../00-python3_3.11.2-1+b1_amd64.deb ...
+Unpacking python3 (3.11.2-1+b1) ...
+Selecting previously unselected package libproc2-0:amd64.
+Preparing to unpack .../01-libproc2-0_2%3a4.0.2-3_amd64.deb ...
+Unpacking libproc2-0:amd64 (2:4.0.2-3) ...
+Selecting previously unselected package procps.
+Preparing to unpack .../02-procps_2%3a4.0.2-3_amd64.deb ...
+Unpacking procps (2:4.0.2-3) ...
+Selecting previously unselected package libcurl4:amd64.
+Preparing to unpack .../03-libcurl4_7.88.1-10+deb12u14_amd64.deb ...
+Unpacking libcurl4:amd64 (7.88.1-10+deb12u14) ...
+Selecting previously unselected package curl.
+Preparing to unpack .../04-curl_7.88.1-10+deb12u14_amd64.deb ...
+Unpacking curl (7.88.1-10+deb12u14) ...
+Preparing to unpack .../05-git-man_1%3a2.39.5-0+deb12u3_all.deb ...
+Unpacking git-man (1:2.39.5-0+deb12u3) over (1:2.39.5-0+deb12u2) ...
+Preparing to unpack .../06-git_1%3a2.39.5-0+deb12u3_amd64.deb ...
+Unpacking git (1:2.39.5-0+deb12u3) over (1:2.39.5-0+deb12u2) ...
+Selecting previously unselected package psmisc.
+Preparing to unpack .../07-psmisc_23.6-1_amd64.deb ...
+Unpacking psmisc (23.6-1) ...
+Selecting previously unselected package python3-lib2to3.
+Preparing to unpack .../08-python3-lib2to3_3.11.2-3_all.deb ...
+Unpacking python3-lib2to3 (3.11.2-3) ...
+Selecting previously unselected package python3-distutils.
+Preparing to unpack .../09-python3-distutils_3.11.2-3_all.deb ...
+Unpacking python3-distutils (3.11.2-3) ...
+Selecting previously unselected package python3-pip-whl.
+Preparing to unpack .../10-python3-pip-whl_23.0.1+dfsg-1_all.deb ...
+Unpacking python3-pip-whl (23.0.1+dfsg-1) ...
+Selecting previously unselected package python3-setuptools-whl.
+Preparing to unpack .../11-python3-setuptools-whl_66.1.1-1+deb12u2_all.deb ...
+Unpacking python3-setuptools-whl (66.1.1-1+deb12u2) ...
+Selecting previously unselected package python3.11-venv.
+Preparing to unpack .../12-python3.11-venv_3.11.2-6+deb12u6_amd64.deb ...
+Unpacking python3.11-venv (3.11.2-6+deb12u6) ...
+Selecting previously unselected package python3-venv.
+Preparing to unpack .../13-python3-venv_3.11.2-1+b1_amd64.deb ...
+Unpacking python3-venv (3.11.2-1+b1) ...
+Setting up media-types (10.0.0) ...
+Setting up python3-setuptools-whl (66.1.1-1+deb12u2) ...
+Setting up python3-pip-whl (23.0.1+dfsg-1) ...
+Setting up psmisc (23.6-1) ...
+Setting up libtirpc-common (1.3.3+ds-1) ...
+Setting up libproc2-0:amd64 (2:4.0.2-3) ...
+Setting up procps (2:4.0.2-3) ...
+Setting up libcurl4:amd64 (7.88.1-10+deb12u14) ...
+Setting up git-man (1:2.39.5-0+deb12u3) ...
+Setting up curl (7.88.1-10+deb12u14) ...
+Setting up libtirpc3:amd64 (1.3.3+ds-1) ...
+Setting up git (1:2.39.5-0+deb12u3) ...
+Setting up libnsl2:amd64 (1.3.0-2) ...
+Setting up libpython3.11-stdlib:amd64 (3.11.2-6+deb12u6) ...
+Setting up libpython3-stdlib:amd64 (3.11.2-1+b1) ...
+Setting up python3.11 (3.11.2-6+deb12u6) ...
+Setting up python3 (3.11.2-1+b1) ...
+Setting up python3-lib2to3 (3.11.2-3) ...
+Setting up python3-distutils (3.11.2-3) ...
+Setting up python3.11-venv (3.11.2-6+deb12u6) ...
+Setting up python3-venv (3.11.2-1+b1) ...
+Processing triggers for libc-bin (2.36-9+deb12u10) ...
+downloading uv 0.10.4 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+
+To add $HOME/.local/bin to your PATH, either restart your shell or run:
+
+    source $HOME/.local/bin/env (sh, bash, zsh)
+    source $HOME/.local/bin/env.fish (fish)
+Using CPython 3.13.7 interpreter at: /usr/local/bin/python
+Creating virtual environment at: /opt/pydantic-deep-venv
+Activate with: source /opt/pydantic-deep-venv/bin/activate
+Using Python 3.13.7 environment at: /opt/pydantic-deep-venv
+   Updating https://github.com/vstorm-co/pydantic-deep.git (feat/cli)
+    Updated https://github.com/vstorm-co/pydantic-deep.git (8fbdd00bf3722e1d8ec90b7478d3e078d3b687a9)
+Resolved 152 packages in 6.84s
+Downloading tokenizers (3.1MiB)
+Downloading temporalio (11.6MiB)
+Downloading openai (1.1MiB)
+Downloading pydantic-core (2.0MiB)
+Downloading cryptography (4.3MiB)
+Downloading fastavro (3.2MiB)
+Downloading pygments (1.2MiB)
+Downloading aiohttp (1.7MiB)
+Downloading tiktoken (1.1MiB)
+Downloading asyncpg (3.4MiB)
+Downloading hf-xet (3.2MiB)
+Downloading botocore (13.9MiB)
+Downloading beartype (1.3MiB)
+Downloading grpcio (6.4MiB)
+   Building pydantic-deep @ git+https://github.com/vstorm-co/pydantic-deep.git@8fbdd00bf3722e1d8ec90b7478d3e078d3b687a9
+ Downloaded tiktoken
+ Downloaded aiohttp
+ Downloaded pydantic-core
+ Downloaded tokenizers
+ Downloaded hf-xet
+ Downloaded asyncpg
+ Downloaded pygments
+ Downloaded fastavro
+ Downloaded grpcio
+ Downloaded cryptography
+ Downloaded beartype
+ Downloaded temporalio
+ Downloaded openai
+  × Failed to build `pydantic-deep @
+  │ git+https://github.com/vstorm-co/pydantic-deep.git@8fbdd00bf3722e1d8ec90b7478d3e078d3b687a9`
+  ├─▶ The build backend returned an error
+  ╰─▶ Call to `hatchling.build.build_wheel` failed (exit status: 1)
+
+      [stderr]
+      Traceback (most recent call last):
+        File "<string>", line 11, in <module>
+          wheel_filename =
+      backend.build_wheel("/root/.cache/uv/builds-v0/.tmpZ9kCXj", {}, None)
+        File
+      "/root/.cache/uv/builds-v0/.tmpYbPJt5/lib/python3.13/site-packages/hatchling/build.py",
+      line 58, in build_wheel
+          return os.path.basename(next(builder.build(directory=wheel_directory,
+      versions=["standard"])))
+      
+      ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File
+      "/root/.cache/uv/builds-v0/.tmpYbPJt5/lib/python3.13/site-packages/hatchling/builders/plugin/interface.py",
+      line 157, in build
+          artifact = version_api[version](directory, **build_data)
+        File
+      "/root/.cache/uv/builds-v0/.tmpYbPJt5/lib/python3.13/site-packages/hatchling/builders/wheel.py",
+      line 505, in build_standard
+          for included_file in self.recurse_included_files():
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+        File
+      "/root/.cache/uv/builds-v0/.tmpYbPJt5/lib/python3.13/site-packages/hatchling/builders/plugin/interface.py",
+      line 179, in recurse_included_files
+          yield from self.recurse_forced_files(self.config.get_force_include())
+        File
+      "/root/.cache/uv/builds-v0/.tmpYbPJt5/lib/python3.13/site-packages/hatchling/builders/plugin/interface.py",
+      line 239, in recurse_forced_files
+          raise FileNotFoundError(msg)
+      FileNotFoundError: Forced include not found:
+      /root/.cache/uv/git-v0/checkouts/587c102c49e6638a/8fbdd00/.pydantic-deep/skills
+
+      hint: This usually indicates a problem with the package or the build
+      environment.

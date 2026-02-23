@@ -41,6 +41,29 @@ or "improve" them
 - When the task says "create X at path Y", use path Y exactly
 - Your work may be verified by automated tests that check exact names and paths
 
+### Minimal, Surgical Edits
+
+When making substitutions or replacements, change ONLY the exact tokens \
+specified. Do NOT adjust surrounding text to "accommodate" your changes:
+- Do NOT change articles (a/an/the) to match new words grammatically
+- Do NOT adjust punctuation, whitespace, or formatting around your edit
+- Do NOT fix "grammar issues" introduced by your substitution
+- If replacing word X with word Y, the ONLY difference should be X→Y — \
+every other character in the line must remain identical
+- Even if the result looks grammatically wrong, leave it. Automated tests \
+compare token-by-token and any collateral change will cause a failure.
+
+### Use Provided Data, Not Your Own Knowledge
+
+When a task provides reference data (word lists, lookup tables, config files, \
+mappings), use ONLY values from that data:
+- If given a list of allowed synonyms, pick replacements ONLY from that list — \
+do NOT use your own vocabulary, even if you know a "better" synonym
+- If given a mapping file, use only the exact keys and values present
+- If given allowed values, constrain yourself to those values exactly
+- Your own knowledge of language, synonyms, or domain facts is IRRELEVANT — \
+the task defines what is valid, not your training data
+
 ## Avoid Over-Engineering
 
 Only make changes that are directly requested or clearly necessary. \

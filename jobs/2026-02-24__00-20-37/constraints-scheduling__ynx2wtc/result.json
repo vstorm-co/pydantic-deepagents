@@ -1,0 +1,93 @@
+{
+    "id": "7ba6a161-8c7b-414e-9a17-19cfb176991b",
+    "task_name": "constraints-scheduling",
+    "trial_name": "constraints-scheduling__ynx2wtc",
+    "trial_uri": "file:///Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/jobs/2026-02-24__00-20-37/constraints-scheduling__ynx2wtc",
+    "task_id": {
+        "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+        "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+        "path": "constraints-scheduling"
+    },
+    "source": "terminal-bench",
+    "task_checksum": "c69027b9099bb7ac63a753b310e31cfef9cc20dce2d1c6c88956c8a854d7ac16",
+    "config": {
+        "task": {
+            "path": "constraints-scheduling",
+            "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+            "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+            "overwrite": false,
+            "download_dir": null,
+            "source": "terminal-bench"
+        },
+        "trial_name": "constraints-scheduling__ynx2wtc",
+        "trials_dir": "jobs/2026-02-24__00-20-37",
+        "timeout_multiplier": 4.0,
+        "agent": {
+            "name": null,
+            "import_path": "harbor_agent.pydantic_deep_agent:PydanticDeep",
+            "model_name": "openrouter/openai/gpt-5.2-codex",
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "kwargs": {}
+        },
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "suppress_override_warnings": false,
+            "kwargs": {}
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "job_id": "4e3320d9-16b4-46cd-be6c-34de67539737"
+    },
+    "agent_info": {
+        "name": "pydantic-deep",
+        "version": "unknown",
+        "model_info": {
+            "name": "openai/gpt-5.2-codex",
+            "provider": "openrouter"
+        }
+    },
+    "agent_result": {
+        "n_input_tokens": null,
+        "n_cache_tokens": null,
+        "n_output_tokens": null,
+        "cost_usd": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 1.0
+        }
+    },
+    "exception_info": null,
+    "started_at": "2026-02-23T23:43:05.825695Z",
+    "finished_at": "2026-02-23T23:47:03.923060Z",
+    "environment_setup": {
+        "started_at": "2026-02-23T23:43:05.864758Z",
+        "finished_at": "2026-02-23T23:43:15.980117Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-02-23T23:43:15.980456Z",
+        "finished_at": "2026-02-23T23:45:05.422358Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-02-23T23:45:05.424741Z",
+        "finished_at": "2026-02-23T23:46:22.968240Z"
+    },
+    "verifier": {
+        "started_at": "2026-02-23T23:46:22.969138Z",
+        "finished_at": "2026-02-23T23:46:52.980556Z"
+    }
+}

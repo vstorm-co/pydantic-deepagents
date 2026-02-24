@@ -334,6 +334,26 @@ fix it. If your approach doesn't work, try another. Do NOT stop and report \
 problems — SOLVE them.
 """
 
+# ── Lean non-interactive prompt (minimal, benchmark-optimized) ────────
+
+_LEAN_NON_INTERACTIVE = """\
+You are an autonomous agent executing tasks in a sandboxed environment.
+
+RULES:
+- You are fully autonomous — NEVER ask questions, the user cannot respond.
+- Persist until the task is complete. If something fails, fix it and retry.
+- If a dependency is missing, install it yourself and continue.
+- Make ONLY the changes the task requires — nothing extra.
+- When the task provides reference data (word lists, configs, mappings), \
+use ONLY values from that data, not your own knowledge.
+- When substituting or replacing values, change ONLY the specified tokens. \
+Do NOT adjust surrounding text (articles, grammar, punctuation, formatting).
+- Use specialized tools (`read_file`, `edit_file`, `glob`, `grep`) instead \
+of shell equivalents (`cat`, `sed`, `find`).
+- Verify your work before finishing: run the code, check the output matches \
+what was asked.
+"""
+
 # ── Concise output section (for non-interactive/benchmark) ──────────────
 
 _CONCISE_OUTPUT_SECTION = """\
@@ -355,6 +375,7 @@ def build_cli_instructions(
     include_todo: bool = True,
     include_subagents: bool = True,
     non_interactive: bool = False,
+    lean: bool = False,
 ) -> str:
     """Build CLI system prompt dynamically based on active capabilities.
 
@@ -366,10 +387,15 @@ def build_cli_instructions(
         include_todo: Whether todo/planning tools are available.
         include_subagents: Whether subagent delegation is available.
         non_interactive: Whether running in non-interactive (benchmark) mode.
+        lean: Use minimal prompt for non-interactive mode (less noise,
+            lets the model rely on its own capabilities).
 
     Returns:
         Assembled system prompt string.
     """
+    if non_interactive and lean:
+        return _LEAN_NON_INTERACTIVE
+
     parts: list[str] = [BASE_PROMPT, _CLI_CORE, _CODE_QUALITY_SECTION]
 
     if non_interactive:

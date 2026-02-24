@@ -95,6 +95,7 @@ async def run_non_interactive(
     output_format: str = "text",
     verbose: bool = False,
     model_settings: dict[str, Any] | None = None,
+    lean: bool = False,
 ) -> int:
     """Run a single task non-interactively and exit.
 
@@ -112,6 +113,7 @@ async def run_non_interactive(
         runtime: Sandbox runtime name.
         output_format: Output format — ``text``, ``json``, or ``markdown``.
         verbose: Enable verbose tool call logging.
+        lean: Use minimal system prompt (less noise for benchmarks).
 
     Returns:
         Exit code: 0 for success, 1 for error, 2 for API key error, 130 for interrupt.
@@ -155,6 +157,7 @@ async def run_non_interactive(
             on_cost_update=_on_cost,
             backend=backend,
             non_interactive=True,
+            lean=lean,
             model_settings=model_settings,
             session_id=session_id,
         )

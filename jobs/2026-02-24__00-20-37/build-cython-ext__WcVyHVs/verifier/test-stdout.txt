@@ -1,0 +1,152 @@
+Collecting pytest==8.4.1
+  Downloading pytest-8.4.1-py3-none-any.whl.metadata (7.7 kB)
+Collecting pytest-json-ctrf==0.3.5
+  Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl.metadata (3.3 kB)
+Collecting iniconfig>=1 (from pytest==8.4.1)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Requirement already satisfied: packaging>=20 in /usr/local/lib/python3.13/site-packages (from pytest==8.4.1) (26.0)
+Collecting pluggy<2,>=1.5 (from pytest==8.4.1)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting pygments>=2.7.2 (from pytest==8.4.1)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Downloading pytest-8.4.1-py3-none-any.whl (365 kB)
+Downloading pytest_json_ctrf-0.3.5-py3-none-any.whl (6.8 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 13.0 MB/s  0:00:00
+Installing collected packages: pygments, pluggy, iniconfig, pytest, pytest-json-ctrf
+
+Successfully installed iniconfig-2.3.0 pluggy-1.6.0 pygments-2.19.2 pytest-8.4.1 pytest-json-ctrf-0.3.5
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 25.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 11 items
+
+../tests/test_outputs.py ........FFF                                     [100%]
+
+=================================== FAILURES ===================================
+______________________ test_cinvariants_python_vs_cython _______________________
+
+    def test_cinvariants_python_vs_cython():
+        """Test that Cython cinvariants matches Python fallback implementation."""
+        import pyknotid.invariants as inv
+>       import pyknotid.make as mk
+
+/tests/test_outputs.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.13/site-packages/pyknotid/make/__init__.py:13: in <module>
+    from pyknotid.make.torus import torus_knot, torus_link
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    '''
+    Torus knots
+    ===========
+    
+    Functions for creating torus knots and links.
+    
+    API documentation
+    -----------------
+    '''
+    
+    from __future__ import division
+    
+    import numpy as np
+>   from fractions import gcd
+E   ImportError: cannot import name 'gcd' from 'fractions' (/usr/local/lib/python3.13/fractions.py)
+
+/usr/local/lib/python3.13/site-packages/pyknotid/make/torus.py:14: ImportError
+______________________________ test_example_usage ______________________________
+
+    def test_example_usage():
+        """Test example usage of pyknotid from readme as well as a variation"""
+>       import pyknotid.make as mk
+
+/tests/test_outputs.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.13/site-packages/pyknotid/make/__init__.py:13: in <module>
+    from pyknotid.make.torus import torus_knot, torus_link
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    '''
+    Torus knots
+    ===========
+    
+    Functions for creating torus knots and links.
+    
+    API documentation
+    -----------------
+    '''
+    
+    from __future__ import division
+    
+    import numpy as np
+>   from fractions import gcd
+E   ImportError: cannot import name 'gcd' from 'fractions' (/usr/local/lib/python3.13/fractions.py)
+
+/usr/local/lib/python3.13/site-packages/pyknotid/make/torus.py:14: ImportError
+________________________ test_pyknotid_repository_tests ________________________
+
+    def test_pyknotid_repository_tests():
+        """Download and run the original pyknotid test suite."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            git_cmd = [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                "0.5.3",
+                "https://github.com/SPOCKnots/pyknotid.git",
+                temp_dir,
+            ]
+            result = subprocess.run(git_cmd, capture_output=True, text=True)
+            tests_dir = os.path.join(temp_dir, "tests")
+    
+            # Run pytest excluding the problematic test files
+            pytest_cmd = [
+                "python",
+                "-m",
+                "pytest",
+                tests_dir,
+                "--ignore",
+                os.path.join(tests_dir, "test_random_curves.py"),
+                "--ignore",
+                os.path.join(tests_dir, "test_catalogue.py"),
+                "-v",
+            ]
+    
+            original_cwd = os.getcwd()
+            try:
+                os.chdir("/app/pyknotid")
+                result = subprocess.run(pytest_cmd, capture_output=True, text=True)
+>               assert result.returncode == 0, (
+                    f"Repository tests failed with return code {result.returncode}"
+                )
+E               AssertionError: Repository tests failed with return code 1
+E               assert 1 == 0
+E                +  where 1 = CompletedProcess(args=['python', '-m', 'pytest', '/tmp/tmpfb1x4gnh/tests', '--ignore', '/tmp/tmpfb1x4gnh/tests/test_ra..._python_find_crossings\n============================== 18 failed in 2.74s ==============================\n', stderr='').returncode
+
+/tests/test_outputs.py:173: AssertionError
+==================================== PASSES ====================================
+_______________________________ test_ccomplexity _______________________________
+----------------------------- Captured stdout call -----------------------------
+cython i1 0 0
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_numpy_version
+PASSED ../tests/test_outputs.py::test_repo_cloned
+PASSED ../tests/test_outputs.py::test_pyknotid_core_import
+PASSED ../tests/test_outputs.py::test_chelpers_cython_extension
+PASSED ../tests/test_outputs.py::test_ccomplexity_cython_extension
+PASSED ../tests/test_outputs.py::test_cinvariants_cython_extension
+PASSED ../tests/test_outputs.py::test_chelpers
+PASSED ../tests/test_outputs.py::test_ccomplexity
+FAILED ../tests/test_outputs.py::test_cinvariants_python_vs_cython - ImportEr...
+FAILED ../tests/test_outputs.py::test_example_usage - ImportError: cannot imp...
+FAILED ../tests/test_outputs.py::test_pyknotid_repository_tests - AssertionEr...
+========================= 3 failed, 8 passed in 7.53s ==========================

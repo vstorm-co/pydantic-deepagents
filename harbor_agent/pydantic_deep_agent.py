@@ -63,6 +63,7 @@ class PydanticDeep(BaseInstalledAgent):
         env = self._build_env(provider)
         model_flag = f"--model {pai_model}" if pai_model else ""
         logfire_flag = "--logfire " if os.environ.get("LOGFIRE_TOKEN") else ""
+        lean_flag = "--lean " if os.environ.get("PYDANTIC_DEEP_LEAN") else ""
 
         return [
             ExecInput(
@@ -70,6 +71,7 @@ class PydanticDeep(BaseInstalledAgent):
                     'export PATH="/opt/pydantic-deep-venv/bin:$HOME/.local/bin:$PATH"; '
                     f"pydantic-deep {logfire_flag}run {escaped_instruction} "
                     f"{model_flag} "
+                    f"{lean_flag}"
                     f"--temperature 0 "
                     f"2>&1 | tee /logs/agent/pydantic-deep.txt"
                 ),

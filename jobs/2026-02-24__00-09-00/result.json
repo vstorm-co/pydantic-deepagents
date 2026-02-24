@@ -1,0 +1,29 @@
+{
+    "id": "b39010c3-aa4b-456f-b2de-5fcf016bf87b",
+    "started_at": "2026-02-24T00:09:00.944840",
+    "finished_at": "2026-02-24T00:16:04.825682",
+    "n_total_trials": 1,
+    "stats": {
+        "n_trials": 1,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__openai-gpt-5.2-codex__terminal-bench": {
+                "n_trials": 1,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 1.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "1.0": [
+                            "overfull-hbox__b8oaKsc"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

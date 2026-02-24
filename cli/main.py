@@ -179,6 +179,10 @@ def run(
         str | None,
         typer.Option("--model-settings", help="Model settings as JSON"),
     ] = None,
+    lean: Annotated[
+        bool,
+        typer.Option("--lean", help="Use minimal system prompt (less noise for benchmarks)"),
+    ] = False,
 ) -> None:
     """Run a task non-interactively (benchmark mode)."""
     from cli.init import ensure_initialized
@@ -203,6 +207,7 @@ def run(
             output_format=output_format,
             verbose=verbose,
             model_settings=settings,
+            lean=lean,
         )
     )
     raise typer.Exit(exit_code)

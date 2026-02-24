@@ -67,6 +67,7 @@ def create_cli_agent(
     include_local_context: bool = True,
     context_discovery: bool = True,
     non_interactive: bool = False,
+    lean: bool = False,
     config_path: Path | None = None,
     model_settings: dict[str, Any] | None = None,
     session_id: str | None = None,
@@ -143,6 +144,7 @@ def create_cli_agent(
         include_todo=include_todo,
         include_subagents=include_subagents,
         non_interactive=non_interactive,
+        lean=lean,
     )
 
     # Append working directory context

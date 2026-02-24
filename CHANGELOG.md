@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.19] - 2026-02-24
+
+### Changed
+
+- **Moved tool-specific guidance from system prompt to tool descriptions** — All local toolsets now use exported description constants wired via `@toolset.tool(description=CONSTANT)`:
+  - **Skills**: `LIST_SKILLS_DESCRIPTION`, `LOAD_SKILL_DESCRIPTION`, `READ_SKILL_RESOURCE_DESCRIPTION`, `RUN_SKILL_SCRIPT_DESCRIPTION`
+  - **Memory**: `READ_MEMORY_DESCRIPTION`, `WRITE_MEMORY_DESCRIPTION`, `UPDATE_MEMORY_DESCRIPTION`
+  - **Checkpointing**: `SAVE_CHECKPOINT_DESCRIPTION`, `LIST_CHECKPOINTS_DESCRIPTION`, `REWIND_TO_DESCRIPTION`
+  - **Plan**: `ASK_USER_DESCRIPTION`, `SAVE_PLAN_DESCRIPTION`
+  - **Teams**: `SPAWN_TEAM_DESCRIPTION`, `ASSIGN_TASK_DESCRIPTION`, `CHECK_TEAMMATES_DESCRIPTION`, `MESSAGE_TEAMMATE_DESCRIPTION`, `DISSOLVE_TEAM_DESCRIPTION`
+- **Slimmed CLI system prompt** (`cli/prompts.py`) — Reduced from ~350 lines to ~100 lines. Removed `_SHELL_SECTION`, `_GIT_SECTION`, `_DEPENDENCIES_SECTION`, `_PLANNING_SECTION`, `_DELEGATION_SECTION` (all moved to tool descriptions in pydantic-ai-backend and pydantic-ai-subagents). Kept only general behavioral guidance: path handling, exactness requirements, code quality, verification.
+- **Simplified `build_cli_instructions()`** — Removed tool-conditional sections. `include_execute`, `include_todo`, `include_subagents` params kept for backwards compatibility but are now no-ops.
+
 ## [0.2.18] - 2026-02-19
 
 ### Changed

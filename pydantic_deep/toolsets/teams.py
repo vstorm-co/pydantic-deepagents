@@ -307,6 +307,46 @@ class AgentTeam:
 
 
 # ---------------------------------------------------------------------------
+# Tool description constants
+# ---------------------------------------------------------------------------
+
+SPAWN_TEAM_DESCRIPTION = """\
+Create and start an agent team for parallel multi-agent collaboration.
+
+Each member runs as an independent agent with its own model and instructions. \
+Use teams when a task benefits from parallel work by specialists \
+(e.g., one member writes code while another writes tests).
+
+You must provide a list of members, each with 'name', 'role', 'description', \
+and 'instructions' keys. Only one team can be active at a time — dissolve \
+the current team before creating a new one."""
+
+ASSIGN_TASK_DESCRIPTION = """\
+Assign a task to a specific team member.
+
+The member must exist in the active team. Use check_teammates to see \
+available members and their current status before assigning."""
+
+CHECK_TEAMMATES_DESCRIPTION = """\
+Check the status of all team members and shared tasks.
+
+Returns each member's current status and the shared task list with \
+assignments. Use this to monitor progress before assigning new work \
+or dissolving the team."""
+
+MESSAGE_TEAMMATE_DESCRIPTION = """\
+Send a message to a specific team member.
+
+Use this to provide additional context, clarifications, or instructions \
+to a running team member. The member must exist in the active team."""
+
+DISSOLVE_TEAM_DESCRIPTION = """\
+Shut down the active team and clean up all resources.
+
+Call this when all team tasks are complete or the team is no longer needed. \
+This stops all running members and releases resources."""
+
+# ---------------------------------------------------------------------------
 # create_team_toolset
 # ---------------------------------------------------------------------------
 
@@ -332,7 +372,7 @@ def create_team_toolset(  # noqa: C901
 
     _team: list[AgentTeam | None] = [None]  # Mutable container for closure
 
-    @toolset.tool
+    @toolset.tool(description=SPAWN_TEAM_DESCRIPTION)
     async def spawn_team(
         ctx: RunContext[Any],
         team_name: str,
@@ -376,7 +416,7 @@ def create_team_toolset(  # noqa: C901
             lines.append(f"- {name}")
         return "\n".join(lines)
 
-    @toolset.tool
+    @toolset.tool(description=ASSIGN_TASK_DESCRIPTION)
     async def assign_task(
         ctx: RunContext[Any],
         member_name: str,
@@ -402,7 +442,7 @@ def create_team_toolset(  # noqa: C901
         item_id = await team.assign(member_name, task_description)
         return f"Task assigned to '{member_name}' (ID: {item_id})"
 
-    @toolset.tool
+    @toolset.tool(description=CHECK_TEAMMATES_DESCRIPTION)
     async def check_teammates(
         ctx: RunContext[Any],
     ) -> str:
@@ -437,7 +477,7 @@ def create_team_toolset(  # noqa: C901
 
         return "\n".join(lines)
 
-    @toolset.tool
+    @toolset.tool(description=MESSAGE_TEAMMATE_DESCRIPTION)
     async def message_teammate(
         ctx: RunContext[Any],
         member_name: str,
@@ -463,7 +503,7 @@ def create_team_toolset(  # noqa: C901
         await team.message_bus.send("team_lead", member_name, message)
         return f"Message sent to '{member_name}'"
 
-    @toolset.tool
+    @toolset.tool(description=DISSOLVE_TEAM_DESCRIPTION)
     async def dissolve_team(
         ctx: RunContext[Any],
     ) -> str:

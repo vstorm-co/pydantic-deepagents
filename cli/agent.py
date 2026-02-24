@@ -132,17 +132,16 @@ def create_cli_agent(
         hooks.append(_make_shell_allow_list_hook(effective_allow_list))
 
     # Build middleware list
-    from cli.middleware.loop_detection import LoopDetectionMiddleware
+    middleware: list[Any] = []
+    if not lean:
+        from cli.middleware.loop_detection import LoopDetectionMiddleware
 
-    middleware: list[Any] = [LoopDetectionMiddleware()]
+        middleware.append(LoopDetectionMiddleware())
     if extra_middleware:
         middleware.extend(extra_middleware)
 
-    # Build dynamic system prompt based on active toolsets
+    # Build dynamic system prompt (tool-specific guidance lives in tool descriptions)
     instructions = build_cli_instructions(
-        include_execute=True,
-        include_todo=include_todo,
-        include_subagents=include_subagents,
         non_interactive=non_interactive,
         lean=lean,
     )
@@ -191,9 +190,10 @@ def create_cli_agent(
 
     effective_memory = include_memory and not non_interactive
     effective_checkpoints = include_checkpoints and not non_interactive
-    effective_skills = include_skills  # Always available — read-only context
+    effective_skills = include_skills if not lean else False  # Lean: no skills noise
     effective_plan = include_plan and not non_interactive
-    effective_subagents = include_subagents  # Available in all modes — useful for research delegation
+    effective_subagents = include_subagents if not lean else False  # Lean: no subagents
+    effective_todo = include_todo if not lean else False  # Lean: no todo overhead
 
     # Model settings — non-interactive defaults, then config, then explicit overrides
     effective_model_settings: dict[str, Any] = {}
@@ -248,7 +248,7 @@ def create_cli_agent(
         include_execute=True,
         include_filesystem=True,
         # Planning & task management
-        include_todo=include_todo,
+        include_todo=effective_todo,
         include_plan=effective_plan,
         plans_dir=plans_dir,
         # Delegation
@@ -264,11 +264,11 @@ def create_cli_agent(
         checkpoint_store=cp_store,
         checkpoint_frequency="every_turn",
         # Context files (auto-discover AGENT.md)
-        context_discovery=context_discovery,
+        context_discovery=context_discovery if not lean else False,
         # Teams (not needed for CLI single-agent use)
         include_teams=False,
         # Context management
-        context_manager=True,
+        context_manager=not lean,
         context_manager_max_tokens=200_000,
         on_context_update=on_context_update,
         eviction_token_limit=20_000,
@@ -276,10 +276,10 @@ def create_cli_agent(
         cost_tracking=True,
         on_cost_update=on_cost_update,
         # Output style
-        output_style="concise",
+        output_style="concise" if not lean else None,
         # Middleware & hooks
         hooks=hooks or None,
-        middleware=middleware,
+        middleware=middleware or None,
         permission_handler=permission_handler,
         toolsets=[local_context] if local_context else None,
     )

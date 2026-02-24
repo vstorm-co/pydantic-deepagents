@@ -425,6 +425,26 @@ class CheckpointMiddleware(AgentMiddleware["Any"]):  # type: ignore[misc]
 # ---------------------------------------------------------------------------
 
 
+SAVE_CHECKPOINT_DESCRIPTION = """\
+Save a named checkpoint of the current conversation state.
+
+Labels the most recent auto-checkpoint with the given name. \
+Use this before risky operations (major refactors, destructive changes) \
+so you can rewind later if things go wrong."""
+
+LIST_CHECKPOINTS_DESCRIPTION = """\
+List all saved checkpoints with their labels and metadata.
+
+Use this to see available restore points before deciding to rewind."""
+
+REWIND_TO_DESCRIPTION = """\
+Rewind the conversation to a previously saved checkpoint.
+
+This restores the conversation state to the checkpoint and discards \
+all messages after it. Use this when the current approach isn't working \
+and you want to try a different strategy from a known good state."""
+
+
 class CheckpointToolset(FunctionToolset[Any]):
     """Toolset giving the agent manual checkpoint controls.
 
@@ -443,18 +463,12 @@ class CheckpointToolset(FunctionToolset[Any]):
         super().__init__(id=id)
         self._fallback_store = store
 
-        @self.tool
+        @self.tool(description=SAVE_CHECKPOINT_DESCRIPTION)
         async def save_checkpoint(ctx: RunContext[Any], label: str) -> str:
-            """Save a named checkpoint of the current conversation state.
-
-            Labels the most recent auto-checkpoint with the given name.
-            Use this before risky operations so you can rewind later.
+            """Save a named checkpoint.
 
             Args:
                 label: A descriptive name for the checkpoint (e.g. "before-refactor").
-
-            Returns:
-                Confirmation message with checkpoint details.
             """
             s = _resolve_toolset_store(ctx, self._fallback_store)
             if s is None:
@@ -482,13 +496,9 @@ class CheckpointToolset(FunctionToolset[Any]):
                 f" {labeled.message_count} messages)"
             )
 
-        @self.tool
+        @self.tool(description=LIST_CHECKPOINTS_DESCRIPTION)
         async def list_checkpoints(ctx: RunContext[Any]) -> str:
-            """List all saved checkpoints with their labels and metadata.
-
-            Returns:
-                Formatted list of checkpoints, or a message if none exist.
-            """
+            """List all saved checkpoints."""
             s = _resolve_toolset_store(ctx, self._fallback_store)
             if s is None:
                 return "Checkpointing is not enabled."
@@ -508,19 +518,12 @@ class CheckpointToolset(FunctionToolset[Any]):
                 )
             return "\n".join(lines)
 
-        @self.tool
+        @self.tool(description=REWIND_TO_DESCRIPTION)
         async def rewind_to(ctx: RunContext[Any], checkpoint_id: str) -> str:
-            """Rewind the conversation to a previously saved checkpoint.
-
-            This restores the conversation state to the checkpoint and discards
-            all messages after it. Use this when the current approach isn't working
-            and you want to try a different strategy.
+            """Rewind to a previously saved checkpoint.
 
             Args:
                 checkpoint_id: The ID of the checkpoint to rewind to.
-
-            Returns:
-                Error message if checkpoint not found (otherwise raises RewindRequested).
             """
             s = _resolve_toolset_store(ctx, self._fallback_store)
             if s is None:

@@ -114,6 +114,28 @@ Write plans in this markdown format:
 """
 
 
+ASK_USER_DESCRIPTION = """\
+Ask the user a question with predefined answer options.
+
+Use this to clarify requirements, choose between approaches, or get \
+user preferences during planning. The user sees your question with \
+selectable options in an interactive picker.
+
+IMPORTANT: You MUST always provide 2-4 concrete options. Never pass \
+an empty options list. Even for open-ended questions, suggest the most \
+likely answers — the user can always type a custom answer."""
+
+SAVE_PLAN_DESCRIPTION = """\
+Save the implementation plan to a markdown file.
+
+Call this when you have finished planning and have a complete plan. \
+The plan is saved as a markdown file for reference during implementation.
+
+Never end with only a plan — plans guide your edits; the deliverable \
+is working code. Before finishing, reconcile all plan items: mark each \
+as completed or cancelled with a reason."""
+
+
 def create_plan_toolset(
     plans_dir: str = DEFAULT_PLANS_DIR,
     *,
@@ -137,7 +159,7 @@ def create_plan_toolset(
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-plan")
 
-    @toolset.tool
+    @toolset.tool(description=ASK_USER_DESCRIPTION)
     async def ask_user(  # pragma: no cover
         ctx: RunContext[Any],
         question: str,
@@ -145,33 +167,12 @@ def create_plan_toolset(
     ) -> str:
         """Ask the user a question with predefined answer options.
 
-        Use this to clarify requirements, choose between approaches, or get
-        user preferences during planning. The user sees your question with
-        selectable options in an interactive picker.
-
-        IMPORTANT: You MUST always provide 2-4 concrete options. Never pass
-        an empty options list. Even for open-ended questions, suggest the most
-        likely answers as options — the user can always type a custom answer.
-
-        Example:
-            ask_user(
-                question="Which database should we use?",
-                options=[
-                    {"label": "PostgreSQL", "description": "Best for relational data", "recommended": "true"},
-                    {"label": "MongoDB", "description": "Flexible schema, good for documents"},
-                    {"label": "SQLite", "description": "Simple, no server needed"},
-                ]
-            )
-
         Args:
             question: The question to ask. Be specific and concise.
             options: REQUIRED list of 2-4 answer options. Each option MUST have:
                 - 'label': Short option text (1-5 words)
                 - 'description': What this option means or implies
                 - 'recommended': Set to 'true' to highlight as recommended (optional)
-
-        Returns:
-            The user's selected option label or their custom text answer.
         """
         callback = getattr(ctx.deps, "ask_user", None)
         if callback is None:
@@ -185,7 +186,7 @@ def create_plan_toolset(
 
         return str(await callback(question, options))
 
-    @toolset.tool
+    @toolset.tool(description=SAVE_PLAN_DESCRIPTION)
     async def save_plan(  # pragma: no cover
         ctx: RunContext[Any],
         title: str,
@@ -193,15 +194,9 @@ def create_plan_toolset(
     ) -> str:
         """Save the implementation plan to a markdown file.
 
-        Call this when you have finished planning and have a complete plan.
-        The plan is saved as a markdown file for reference during implementation.
-
         Args:
             title: Plan title (used to generate the filename).
             content: Full markdown content of the plan.
-
-        Returns:
-            Confirmation with the file path where the plan was saved.
         """
         # Generate filename from title
         slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:50]

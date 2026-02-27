@@ -1,4 +1,4 @@
-"""Local context injection — git info and directory tree.
+"""Local context injection — git, project, runtime, and directory tree.
 
 Injects into the system prompt so the agent starts with full awareness
 of its environment, reducing discovery errors on benchmarks.
@@ -39,6 +39,53 @@ IGNORE_PATTERNS: frozenset[str] = frozenset(
         ".vscode",
     }
 )
+
+# Lock file → package manager mapping (checked in priority order)
+_PACKAGE_MANAGER_MARKERS: list[tuple[str, str]] = [
+    # Python
+    ("uv.lock", "uv"),
+    ("poetry.lock", "poetry"),
+    ("Pipfile", "pipenv"),
+    ("pyproject.toml", "pip"),
+    ("requirements.txt", "pip"),
+    # JavaScript / TypeScript
+    ("bun.lockb", "bun"),
+    ("bun.lock", "bun"),
+    ("pnpm-lock.yaml", "pnpm"),
+    ("yarn.lock", "yarn"),
+    ("package-lock.json", "npm"),
+    ("package.json", "npm"),
+    # Rust
+    ("Cargo.lock", "cargo"),
+    # Go
+    ("go.sum", "go modules"),
+]
+
+# Config file → language mapping
+_LANGUAGE_MARKERS: list[tuple[str, str]] = [
+    ("pyproject.toml", "Python"),
+    ("setup.py", "Python"),
+    ("setup.cfg", "Python"),
+    ("package.json", "JavaScript/TypeScript"),
+    ("tsconfig.json", "TypeScript"),
+    ("Cargo.toml", "Rust"),
+    ("go.mod", "Go"),
+    ("pom.xml", "Java"),
+    ("build.gradle", "Java"),
+    ("build.gradle.kts", "Kotlin"),
+    ("Gemfile", "Ruby"),
+    ("mix.exs", "Elixir"),
+    ("composer.json", "PHP"),
+    ("*.csproj", "C#"),
+]
+
+# Monorepo markers
+_MONOREPO_MARKERS: list[tuple[str, str]] = [
+    ("lerna.json", "Lerna"),
+    ("pnpm-workspace.yaml", "pnpm workspace"),
+    ("nx.json", "Nx"),
+    ("turbo.json", "Turborepo"),
+]
 
 
 def _get_git_executable() -> str | None:
@@ -89,12 +136,160 @@ def get_git_info(root: Path) -> dict[str, Any]:
                 if branch in ("main", "master"):
                     main_branches.append(branch)
 
+        # Uncommitted changes count
+        uncommitted = 0
+        result = subprocess.run(
+            [git_path, "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            cwd=str(root),
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            uncommitted = len(result.stdout.strip().splitlines())
+
         return {
             "branch": current_branch,
             "main_branches": main_branches,
+            "uncommitted": uncommitted,
         }
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return {}
+
+
+def detect_package_manager(root: Path) -> str | None:
+    """Detect the package manager used in the project.
+
+    Checks for lock files in priority order. Returns the first match.
+    """
+    for filename, manager in _PACKAGE_MANAGER_MARKERS:
+        if (root / filename).exists():
+            return manager
+    return None
+
+
+def detect_language(root: Path) -> str | None:
+    """Detect the primary language of the project from config files."""
+    for marker, language in _LANGUAGE_MARKERS:
+        if marker.startswith("*"):
+            # Glob pattern (e.g. *.csproj)
+            if any(root.glob(marker)):
+                return language
+        elif (root / marker).exists():
+            return language
+    return None
+
+
+def detect_monorepo(root: Path) -> str | None:
+    """Detect if the project is a monorepo and which type."""
+    for marker, name in _MONOREPO_MARKERS:
+        if (root / marker).exists():
+            return name
+    # Heuristic: packages/ + apps/ dirs
+    if (root / "packages").is_dir() and (root / "apps").is_dir():
+        return "workspaces"
+    return None
+
+
+def _run_version_cmd(cmd: str) -> str | None:
+    """Run a version command and return trimmed output, or None."""
+    exe = shutil.which(cmd)
+    if not exe:
+        return None
+    try:
+        result = subprocess.run(
+            [exe, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().splitlines()[0]
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        pass
+    return None
+
+
+def detect_runtimes(root: Path) -> dict[str, str]:
+    """Detect available runtime versions relevant to the project.
+
+    Only checks runtimes that match detected project files to avoid
+    unnecessary subprocess calls.
+    """
+    runtimes: dict[str, str] = {}
+
+    # Python — check if project has Python markers
+    py_markers = ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile")
+    if any((root / m).exists() for m in py_markers):
+        ver = _run_version_cmd("python3") or _run_version_cmd("python")
+        if ver:
+            runtimes["Python"] = ver
+
+    # Node — check if project has JS/TS markers
+    node_markers = ("package.json", "tsconfig.json")
+    if any((root / m).exists() for m in node_markers):
+        ver = _run_version_cmd("node")
+        if ver:
+            runtimes["Node"] = ver
+
+    # Go
+    if (root / "go.mod").exists():
+        ver = _run_version_cmd("go")
+        if ver:
+            runtimes["Go"] = ver
+
+    # Rust
+    if (root / "Cargo.toml").exists():
+        ver = _run_version_cmd("rustc")
+        if ver:
+            runtimes["Rust"] = ver
+
+    return runtimes
+
+
+def detect_test_command(root: Path) -> str | None:
+    """Detect the likely test command for the project."""
+    # Makefile with test target
+    makefile = root / "Makefile"
+    if makefile.exists():
+        try:
+            content = makefile.read_text(errors="ignore")
+            for line in content.splitlines():
+                if line.startswith("test:") or line.startswith("test "):
+                    return "make test"
+        except OSError:
+            pass
+
+    # Python: pytest
+    pyproject = root / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            content = pyproject.read_text(errors="ignore")
+            if "[tool.pytest" in content:
+                return "pytest"
+        except OSError:
+            pass
+
+    # Node: npm test
+    pkg_json = root / "package.json"
+    if pkg_json.exists():
+        try:
+            content = pkg_json.read_text(errors="ignore")
+            if '"test"' in content:
+                pm = detect_package_manager(root)
+                if pm == "bun":
+                    return "bun test"
+                if pm == "pnpm":
+                    return "pnpm test"
+                if pm == "yarn":
+                    return "yarn test"
+                return "npm test"
+        except OSError:
+            pass
+
+    return None
 
 
 def get_directory_tree(
@@ -151,6 +346,12 @@ def format_local_context(
     root: Path,
     git_info: dict[str, Any],
     tree: str,
+    *,
+    language: str | None = None,
+    package_manager: str | None = None,
+    monorepo: str | None = None,
+    runtimes: dict[str, str] | None = None,
+    test_command: str | None = None,
 ) -> str:
     """Format local context as a markdown block for system prompt injection.
 
@@ -158,6 +359,11 @@ def format_local_context(
         root: Working directory.
         git_info: Git state information.
         tree: Directory tree string.
+        language: Detected primary language.
+        package_manager: Detected package manager.
+        monorepo: Detected monorepo type, if any.
+        runtimes: Detected runtime versions.
+        test_command: Detected test command.
 
     Returns:
         Formatted markdown context block.
@@ -167,10 +373,27 @@ def format_local_context(
     # Git info
     if git_info:
         branch = git_info.get("branch", "unknown")
-        parts.append(f"\n**Git branch**: `{branch}`")
+        uncommitted = git_info.get("uncommitted", 0)
+        suffix = f" ({uncommitted} uncommitted)" if uncommitted else ""
+        parts.append(f"\n**Git branch**: `{branch}`{suffix}")
         main_branches = git_info.get("main_branches", [])
         if main_branches:
             parts.append(f"**Main branch**: `{main_branches[0]}`")
+
+    # Project info
+    if language:
+        parts.append(f"**Language**: {language}")
+    if package_manager:
+        parts.append(f"**Package manager**: {package_manager}")
+    if monorepo:
+        parts.append(f"**Monorepo**: {monorepo}")
+    if test_command:
+        parts.append(f"**Test command**: `{test_command}`")
+
+    # Runtime versions
+    if runtimes:
+        for name, version in runtimes.items():
+            parts.append(f"**{name}**: {version}")
 
     # Directory tree
     if tree:
@@ -201,6 +424,11 @@ class LocalContextToolset(FunctionToolset[DeepAgentDeps]):
                 self._root,
                 git_info,
                 tree,
+                language=detect_language(self._root),
+                package_manager=detect_package_manager(self._root),
+                monorepo=detect_monorepo(self._root),
+                runtimes=detect_runtimes(self._root),
+                test_command=detect_test_command(self._root),
             )
         return self._cached_context
 
@@ -212,6 +440,11 @@ class LocalContextToolset(FunctionToolset[DeepAgentDeps]):
 __all__ = [
     "IGNORE_PATTERNS",
     "LocalContextToolset",
+    "detect_language",
+    "detect_monorepo",
+    "detect_package_manager",
+    "detect_runtimes",
+    "detect_test_command",
     "format_local_context",
     "get_directory_tree",
     "get_git_info",

@@ -354,6 +354,7 @@ This stops all running members and releases resources."""
 def create_team_toolset(  # noqa: C901
     *,
     id: str | None = None,
+    descriptions: dict[str, str] | None = None,
 ) -> FunctionToolset[Any]:
     """Create a toolset for managing agent teams.
 
@@ -364,15 +365,20 @@ def create_team_toolset(  # noqa: C901
 
     Args:
         id: Toolset identifier. Defaults to ``"deep-team"``.
+        descriptions: Optional mapping of tool name to custom description.
+            Supported keys: ``spawn_team``, ``assign_task``,
+            ``check_teammates``, ``message_teammate``, ``dissolve_team``.
+            When a key is absent the built-in default is used.
 
     Returns:
         A ``FunctionToolset`` with team management tools.
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-team")
+    _descs = descriptions or {}
 
     _team: list[AgentTeam | None] = [None]  # Mutable container for closure
 
-    @toolset.tool(description=SPAWN_TEAM_DESCRIPTION)
+    @toolset.tool(description=_descs.get("spawn_team", SPAWN_TEAM_DESCRIPTION))
     async def spawn_team(
         ctx: RunContext[Any],
         team_name: str,
@@ -416,7 +422,7 @@ def create_team_toolset(  # noqa: C901
             lines.append(f"- {name}")
         return "\n".join(lines)
 
-    @toolset.tool(description=ASSIGN_TASK_DESCRIPTION)
+    @toolset.tool(description=_descs.get("assign_task", ASSIGN_TASK_DESCRIPTION))
     async def assign_task(
         ctx: RunContext[Any],
         member_name: str,
@@ -442,7 +448,7 @@ def create_team_toolset(  # noqa: C901
         item_id = await team.assign(member_name, task_description)
         return f"Task assigned to '{member_name}' (ID: {item_id})"
 
-    @toolset.tool(description=CHECK_TEAMMATES_DESCRIPTION)
+    @toolset.tool(description=_descs.get("check_teammates", CHECK_TEAMMATES_DESCRIPTION))
     async def check_teammates(
         ctx: RunContext[Any],
     ) -> str:
@@ -477,7 +483,7 @@ def create_team_toolset(  # noqa: C901
 
         return "\n".join(lines)
 
-    @toolset.tool(description=MESSAGE_TEAMMATE_DESCRIPTION)
+    @toolset.tool(description=_descs.get("message_teammate", MESSAGE_TEAMMATE_DESCRIPTION))
     async def message_teammate(
         ctx: RunContext[Any],
         member_name: str,
@@ -503,7 +509,7 @@ def create_team_toolset(  # noqa: C901
         await team.message_bus.send("team_lead", member_name, message)
         return f"Message sent to '{member_name}'"
 
-    @toolset.tool(description=DISSOLVE_TEAM_DESCRIPTION)
+    @toolset.tool(description=_descs.get("dissolve_team", DISSOLVE_TEAM_DESCRIPTION))
     async def dissolve_team(
         ctx: RunContext[Any],
     ) -> str:

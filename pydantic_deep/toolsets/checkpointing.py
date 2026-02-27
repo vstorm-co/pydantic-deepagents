@@ -459,11 +459,23 @@ class CheckpointToolset(FunctionToolset[Any]):
         *,
         store: CheckpointStore | None = None,
         id: str = "deep-checkpoints",
+        descriptions: dict[str, str] | None = None,
     ) -> None:
+        """Initialize the checkpoint toolset.
+
+        Args:
+            store: Fallback checkpoint store (used if deps has no store).
+            id: Toolset identifier.
+            descriptions: Optional mapping of tool name to custom description.
+                Supported keys: ``save_checkpoint``, ``list_checkpoints``,
+                ``rewind_to``. Any key not present falls back to the built-in
+                description constant.
+        """
         super().__init__(id=id)
         self._fallback_store = store
+        self._descs = descriptions or {}
 
-        @self.tool(description=SAVE_CHECKPOINT_DESCRIPTION)
+        @self.tool(description=self._descs.get("save_checkpoint", SAVE_CHECKPOINT_DESCRIPTION))
         async def save_checkpoint(ctx: RunContext[Any], label: str) -> str:
             """Save a named checkpoint.
 
@@ -496,7 +508,7 @@ class CheckpointToolset(FunctionToolset[Any]):
                 f" {labeled.message_count} messages)"
             )
 
-        @self.tool(description=LIST_CHECKPOINTS_DESCRIPTION)
+        @self.tool(description=self._descs.get("list_checkpoints", LIST_CHECKPOINTS_DESCRIPTION))
         async def list_checkpoints(ctx: RunContext[Any]) -> str:
             """List all saved checkpoints."""
             s = _resolve_toolset_store(ctx, self._fallback_store)
@@ -518,7 +530,7 @@ class CheckpointToolset(FunctionToolset[Any]):
                 )
             return "\n".join(lines)
 
-        @self.tool(description=REWIND_TO_DESCRIPTION)
+        @self.tool(description=self._descs.get("rewind_to", REWIND_TO_DESCRIPTION))
         async def rewind_to(ctx: RunContext[Any], checkpoint_id: str) -> str:
             """Rewind to a previously saved checkpoint.
 

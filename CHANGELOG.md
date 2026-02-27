@@ -5,10 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.19] - 2026-02-24
+## [0.2.18] - 2026-02-27
+
+### Added
+
+- **Custom tool descriptions** — all toolset factories now accept `descriptions: dict[str, str] | None` parameter to override any tool's built-in description. Applies to `SkillsToolset`, `AgentMemoryToolset`, `CheckpointToolset`, `create_team_toolset()`, `create_plan_toolset()`, and `create_web_toolset()`
+- **Custom commands** — user-triggered slash commands from `.md` files (`cli/commands/`). Built-in commands: `/commit`, `/pr`, `/review`, `/test`, `/fix`, `/explain`. Three-scope discovery: built-in → user → project
+- **Diff viewer for file approvals** (`cli/diff_display.py`) — colored unified diffs with gutter bars (▌ green/red) for `edit_file`, line-numbered head/tail previews for `write_file`, shown before Y/N/A approval prompt
+- **Tool call success/error rendering** (`cli/tool_display.py`) — `render_tool_call_success()` shows ✓ with elapsed time in green, `render_tool_call_error()` shows ✗ in red
+- **New glyphs** (`cli/theme.py`) — `gutter_bar` (▌), `box_vertical` (│), `progress_filled` (█), `progress_empty` (░) with ASCII fallbacks
 
 ### Changed
 
+- **CLI streaming** — single `Live` context that starts as a braille spinner and transitions to Markdown rendering seamlessly, eliminating the visual gap between thinking and text output
+- **CLI status bar** — visual context progress bar (`█████░░░░░ 45%`) with threshold colors (green <60%, amber 60–85%, red >85%) and auto-approve indicator
+- **CLI tool calls** — pending → success (✓) or error (✗) state transitions with elapsed time display; reduced tool result preview from 6 to 3 lines
+- **CLI file approval** — `edit_file` shows colored unified diff with `+N -M` stats; `write_file` shows syntax-aware preview with line numbers (head 20 / tail 10 for large files)
+- **BrailleSpinner** — bold accent color for status text, muted for elapsed time
 - **Moved tool-specific guidance from system prompt to tool descriptions** — All local toolsets now use exported description constants wired via `@toolset.tool(description=CONSTANT)`:
   - **Skills**: `LIST_SKILLS_DESCRIPTION`, `LOAD_SKILL_DESCRIPTION`, `READ_SKILL_RESOURCE_DESCRIPTION`, `RUN_SKILL_SCRIPT_DESCRIPTION`
   - **Memory**: `READ_MEMORY_DESCRIPTION`, `WRITE_MEMORY_DESCRIPTION`, `UPDATE_MEMORY_DESCRIPTION`
@@ -17,12 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Teams**: `SPAWN_TEAM_DESCRIPTION`, `ASSIGN_TASK_DESCRIPTION`, `CHECK_TEAMMATES_DESCRIPTION`, `MESSAGE_TEAMMATE_DESCRIPTION`, `DISSOLVE_TEAM_DESCRIPTION`
 - **Slimmed CLI system prompt** (`cli/prompts.py`) — Reduced from ~350 lines to ~100 lines. Removed `_SHELL_SECTION`, `_GIT_SECTION`, `_DEPENDENCIES_SECTION`, `_PLANNING_SECTION`, `_DELEGATION_SECTION` (all moved to tool descriptions in pydantic-ai-backend and pydantic-ai-subagents). Kept only general behavioral guidance: path handling, exactness requirements, code quality, verification.
 - **Simplified `build_cli_instructions()`** — Removed tool-conditional sections. `include_execute`, `include_todo`, `include_subagents` params kept for backwards compatibility but are now no-ops.
-
-## [0.2.18] - 2026-02-19
-
-### Changed
-
 - Updated `pydantic-ai-backend` dependency to `>=0.1.8` — fixes `DockerSandbox.grep_raw()` defaulting to `/` instead of `.`, which caused grep without explicit path to scan the entire container filesystem ([pydantic-ai-backend#13](https://github.com/vstorm-co/pydantic-ai-backend/pull/13))
+- **Repository restructuring** — moved `swebench_agent/`, `harbor_agent/`, and `deepresearch/` into `apps/` directory. Internal imports converted to relative. Core library (`pydantic_deep/`) and CLI (`cli/`) remain at root.
+
+### Fixed
+
+- **Command injection in `BackendSkillScriptExecutor`** — shell metacharacters in skill script arguments are now escaped with `shlex.quote()` ([#31](https://github.com/vstorm-co/pydantic-deepagents/issues/31))
+
+### Removed
+
+- **Textual TUI** — removed `cli/tui/` directory (7 files), `pydantic-deep tui` command, and `textual` optional dependency due to fundamental scrolling issues with touchpad/wheel input
 
 ## [0.2.17] - 2026-02-17
 

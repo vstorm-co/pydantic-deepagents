@@ -39,7 +39,6 @@ class TestCliConfig:
         assert config.include_skills is True
         assert config.include_plan is True
         assert config.include_memory is True
-        assert config.include_checkpoints is True
         assert config.include_subagents is True
         assert config.include_todo is True
         assert config.context_discovery is True
@@ -173,7 +172,6 @@ class TestCoerceValue:
             "include_skills",
             "include_plan",
             "include_memory",
-            "include_checkpoints",
             "include_subagents",
             "include_todo",
             "context_discovery",

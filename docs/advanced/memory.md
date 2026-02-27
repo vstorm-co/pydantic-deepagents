@@ -125,6 +125,23 @@ SubAgentConfig(
     share the same backend instance, they share the same memory files. For multi-user apps,
     give each user a separate backend instance. See [Multi-User Guide](multi-user.md).
 
+## Custom Tool Descriptions
+
+You can override the default tool descriptions with the `descriptions` parameter. This is useful when you want the LLM to interpret a tool differently or when integrating with a specific workflow:
+
+```python
+from pydantic_deep.toolsets.memory import AgentMemoryToolset
+
+memory_toolset = AgentMemoryToolset(
+    descriptions={
+        "write_memory": "Save important findings to persistent memory",
+        "read_memory": "Recall previously saved findings from memory",
+    },
+)
+```
+
+Only the keys you provide are overridden; any missing keys fall back to the built-in descriptions. Supported keys: `read_memory`, `write_memory`, `update_memory`.
+
 ## Standalone Usage
 
 Use `AgentMemoryToolset` directly for custom setups:

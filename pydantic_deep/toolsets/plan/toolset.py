@@ -140,6 +140,7 @@ def create_plan_toolset(
     plans_dir: str = DEFAULT_PLANS_DIR,
     *,
     id: str | None = None,
+    descriptions: dict[str, str] | None = None,
 ) -> FunctionToolset[Any]:
     """Create a plan toolset with ask_user and save_plan tools.
 
@@ -153,13 +154,17 @@ def create_plan_toolset(
     Args:
         plans_dir: Directory to save plan files (default: ``/plans``).
         id: Toolset ID (default: ``deep-plan``).
+        descriptions: Optional mapping of tool name to custom description.
+            Supported keys: ``ask_user``, ``save_plan``.
+            When a key is absent the built-in default is used.
 
     Returns:
         FunctionToolset with ``ask_user`` and ``save_plan`` tools.
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-plan")
+    _descs = descriptions or {}
 
-    @toolset.tool(description=ASK_USER_DESCRIPTION)
+    @toolset.tool(description=_descs.get("ask_user", ASK_USER_DESCRIPTION))
     async def ask_user(  # pragma: no cover
         ctx: RunContext[Any],
         question: str,
@@ -186,7 +191,7 @@ def create_plan_toolset(
 
         return str(await callback(question, options))
 
-    @toolset.tool(description=SAVE_PLAN_DESCRIPTION)
+    @toolset.tool(description=_descs.get("save_plan", SAVE_PLAN_DESCRIPTION))
     async def save_plan(  # pragma: no cover
         ctx: RunContext[Any],
         title: str,

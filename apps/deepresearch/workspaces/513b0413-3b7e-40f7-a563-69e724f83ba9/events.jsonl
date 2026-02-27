@@ -1,0 +1,17 @@
+{"type": "session_created", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:58:30.312023+00:00"}
+{"type": "canvas_ready", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:58:30.929606+00:00"}
+{"type": "user_message", "content": "hej", "_ts": "2026-02-16T03:58:30.930226+00:00"}
+{"type": "start", "_ts": "2026-02-16T03:58:30.951324+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T03:58:31.094654+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T03:58:31.291010+00:00"}
+{"type": "text_delta", "content": "Hej! Hur kan jag hj\u00e4lpa dig idag?", "_ts": "2026-02-16T03:58:33.805286+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T03:58:33.821374+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "4eed776c-6545-4504-aba1-531a23aeac4b", "label": "turn-1", "turn": 1, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T03:58:33.824626+00:00"}
+{"type": "response", "content": "Hej! Hur kan jag hj\u00e4lpa dig idag?", "_ts": "2026-02-16T03:58:33.892662+00:00"}
+{"type": "done", "_ts": "2026-02-16T03:58:33.893000+00:00"}
+{"type": "session_created", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:58:48.122999+00:00"}
+{"type": "canvas_ready", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:58:48.662456+00:00"}
+{"type": "session_created", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:59:02.717830+00:00"}
+{"type": "canvas_ready", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:59:02.972082+00:00"}
+{"type": "session_created", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:59:04.072620+00:00"}
+{"type": "canvas_ready", "session_id": "513b0413-3b7e-40f7-a563-69e724f83ba9", "_ts": "2026-02-16T03:59:04.233095+00:00"}

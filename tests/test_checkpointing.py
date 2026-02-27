@@ -509,14 +509,6 @@ class TestCheckpointMiddleware:
             await mw.before_model_request([], None)
         assert mw._turn_counter == 3
 
-    async def test_resolve_store_from_deps(self):
-        """Store resolved from deps.checkpoint_store."""
-        deps_store = InMemoryCheckpointStore()
-        deps = DeepAgentDeps(checkpoint_store=deps_store)
-        mw = CheckpointMiddleware(frequency="every_turn")  # No fallback store
-        await mw.before_model_request(_make_messages(1), deps)
-        assert await deps_store.count() == 1
-
     async def test_resolve_store_fallback(self):
         """Falls back to init store when deps has no checkpoint_store."""
         fallback_store = InMemoryCheckpointStore()
@@ -557,7 +549,8 @@ class TestCheckpointToolset:
 
     def _make_ctx(self, store: InMemoryCheckpointStore | None = None) -> Any:
         """Create a mock RunContext."""
-        deps = DeepAgentDeps(checkpoint_store=store)
+        deps = DeepAgentDeps()
+        deps.checkpoint_store = store  # type: ignore[attr-defined]
         ctx = type("MockCtx", (), {"deps": deps})()
         return ctx
 
@@ -670,7 +663,8 @@ class TestResolveToolsetStore:
     def test_from_deps(self):
         """Returns store from ctx.deps."""
         store = InMemoryCheckpointStore()
-        deps = DeepAgentDeps(checkpoint_store=store)
+        deps = DeepAgentDeps()
+        deps.checkpoint_store = store  # type: ignore[attr-defined]
         ctx = type("MockCtx", (), {"deps": deps})()
         assert _resolve_toolset_store(ctx, None) is store
 

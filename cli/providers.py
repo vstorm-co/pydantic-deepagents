@@ -207,6 +207,8 @@ def format_provider_error(model: str) -> str | None:
 
     Returns None if no issues detected.
     """
+    if not isinstance(model, str):
+        return None
     provider, _ = parse_model_string(model)
     info = PROVIDERS.get(provider)
 

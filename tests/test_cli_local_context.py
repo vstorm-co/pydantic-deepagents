@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from cli.local_context import (
     IGNORE_PATTERNS,
@@ -43,11 +40,13 @@ class TestGetGitInfo:
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout="feature-xyz\n"),
             MagicMock(returncode=0, stdout="  main\n* feature-xyz\n"),
+            MagicMock(returncode=0, stdout="M file.py\n"),
         ]
 
         result = get_git_info(tmp_path)
         assert result["branch"] == "feature-xyz"
         assert "main" in result["main_branches"]
+        assert result["uncommitted"] == 1
 
     @patch("cli.local_context.subprocess.run")
     @patch("cli.local_context._get_git_executable")
@@ -81,10 +80,12 @@ class TestGetGitInfo:
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout="feature\n"),
             MagicMock(returncode=1, stdout=""),
+            MagicMock(returncode=0, stdout=""),
         ]
         result = get_git_info(tmp_path)
         assert result["branch"] == "feature"
         assert result["main_branches"] == []
+        assert result["uncommitted"] == 0
 
 
 class TestGetDirectoryTree:

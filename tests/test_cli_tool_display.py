@@ -79,7 +79,7 @@ class TestFormatToolCall:
 
     def test_grep_no_path(self) -> None:
         result = format_tool_call("grep", {"pattern": "TODO"})
-        assert 'grep("TODO")' == result
+        assert result == 'grep("TODO")'
 
     def test_glob(self) -> None:
         result = format_tool_call("glob", {"pattern": "**/*.py"})
@@ -96,7 +96,7 @@ class TestFormatToolCall:
 
     def test_read_todos(self) -> None:
         result = format_tool_call("read_todos", {})
-        assert "read_todos()" == result
+        assert result == "read_todos()"
 
     def test_web_search(self) -> None:
         result = format_tool_call("web_search", {"query": "python best practices"})

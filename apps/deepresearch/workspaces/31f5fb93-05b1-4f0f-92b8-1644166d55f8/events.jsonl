@@ -1,0 +1,43 @@
+{"type": "session_created", "session_id": "31f5fb93-05b1-4f0f-92b8-1644166d55f8", "_ts": "2026-02-16T01:21:11.876521+00:00"}
+{"type": "user_message", "content": "utworz plik test.txt w workspace", "_ts": "2026-02-16T01:21:11.877423+00:00"}
+{"type": "start", "_ts": "2026-02-16T01:21:11.878601+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T01:21:11.906438+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T01:21:11.913203+00:00"}
+{"type": "tool_call_start", "tool_name": "write_file", "tool_call_id": "call_8sTwOwC2srryHuoJHV0xQt5H", "_ts": "2026-02-16T01:21:12.784519+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "{\"", "_ts": "2026-02-16T01:21:12.806989+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "path", "_ts": "2026-02-16T01:21:12.807708+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\":", "_ts": "2026-02-16T01:21:12.830339+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\"/", "_ts": "2026-02-16T01:21:12.830887+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "workspace", "_ts": "2026-02-16T01:21:12.832842+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "/test", "_ts": "2026-02-16T01:21:12.833598+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": ".txt", "_ts": "2026-02-16T01:21:12.841521+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\",\"", "_ts": "2026-02-16T01:21:12.842227+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "content", "_ts": "2026-02-16T01:21:12.869687+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\":\"", "_ts": "2026-02-16T01:21:12.870506+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "To", "_ts": "2026-02-16T01:21:12.871194+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " jest", "_ts": "2026-02-16T01:21:12.946171+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " przyk", "_ts": "2026-02-16T01:21:12.946711+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\u0142", "_ts": "2026-02-16T01:21:12.988489+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "adow", "_ts": "2026-02-16T01:21:12.988985+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "a", "_ts": "2026-02-16T01:21:13.021972+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " zaw", "_ts": "2026-02-16T01:21:13.022470+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "arto", "_ts": "2026-02-16T01:21:13.023008+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\u015b\u0107", "_ts": "2026-02-16T01:21:13.023385+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " pl", "_ts": "2026-02-16T01:21:13.050794+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "iku", "_ts": "2026-02-16T01:21:13.051665+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " test", "_ts": "2026-02-16T01:21:13.075452+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": ".txt", "_ts": "2026-02-16T01:21:13.076213+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\"}", "_ts": "2026-02-16T01:21:13.083672+00:00"}
+{"type": "tool_start", "tool_name": "write_file", "args": "{\"path\":\"/workspace/test.txt\",\"content\":\"To jest przyk\u0142adowa zawarto\u015b\u0107 pliku test.txt\"}", "_ts": "2026-02-16T01:21:13.087376+00:00"}
+{"type": "tool_output", "tool_name": "write_file", "output": "Wrote 1 lines to /workspace/test.txt", "_ts": "2026-02-16T01:21:13.182563+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "write_file", "total_calls": 10, "tools_breakdown": {"task": 2, "write_todos": 1, "tavily_tavily_research": 2, "load_skill": 1, "tavily_tavily_search": 1, "write_file": 2, "create_agent": 1}, "_ts": "2026-02-16T01:21:13.183122+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T01:21:13.193485+00:00"}
+{"type": "text_delta", "content": "Plik test.txt zosta\u0142 utworzony w", "_ts": "2026-02-16T01:21:14.314489+00:00"}
+{"type": "text_delta", "content": " katalogu /workspace. Je\u015bli", "_ts": "2026-02-16T01:21:14.429493+00:00"}
+{"type": "text_delta", "content": " chcesz zmieni\u0107 jego zawarto", "_ts": "2026-02-16T01:21:14.547703+00:00"}
+{"type": "text_delta", "content": "\u015b\u0107 lub wykona\u0107 inne", "_ts": "2026-02-16T01:21:14.824520+00:00"}
+{"type": "text_delta", "content": " operacje na tym pliku, daj zna\u0107.", "_ts": "2026-02-16T01:21:14.940908+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T01:21:14.958713+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "90965866-37fb-483c-bc50-b290861321b1", "label": "turn-19", "turn": 19, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T01:21:14.959544+00:00"}
+{"type": "response", "content": "Plik test.txt zosta\u0142 utworzony w katalogu /workspace. Je\u015bli chcesz zmieni\u0107 jego zawarto\u015b\u0107 lub wykona\u0107 inne operacje na tym pliku, daj zna\u0107.", "_ts": "2026-02-16T01:21:14.980690+00:00"}
+{"type": "done", "_ts": "2026-02-16T01:21:14.980800+00:00"}

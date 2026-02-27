@@ -168,21 +168,12 @@ class TestThreadsList:
         threads_dir = tmp_path / "threads"
         threads_dir.mkdir()
 
-        from pydantic_deep.toolsets.checkpointing import Checkpoint, FileCheckpointStore
-
-        # Create a session subdirectory with a checkpoint
+        # Create a session subdirectory with a messages.json
         session_dir = threads_dir / "abc12345abcd"
         session_dir.mkdir()
-        store = FileCheckpointStore(session_dir)
-        cp = Checkpoint(
-            id="cp-001",
-            label="turn-1",
-            turn=1,
-            messages=[],
-            message_count=5,
-            created_at=datetime(2026, 1, 1),
-        )
-        asyncio.run(store.save(cp))
+        messages_file = session_dir / "messages.json"
+        # Minimal valid ModelMessages list (empty)
+        messages_file.write_text("[]")
 
         result = runner.invoke(app, ["threads", "list", "--dir", str(threads_dir)])
         assert result.exit_code == 0
@@ -256,9 +247,7 @@ class TestSandboxFlags:
 
     @patch("cli.init.ensure_initialized", return_value=Path("/tmp"))
     @patch("cli.main.asyncio.run")
-    def test_run_with_sandbox_and_runtime(
-        self, mock_asyncio_run: MagicMock, _: MagicMock
-    ) -> None:
+    def test_run_with_sandbox_and_runtime(self, mock_asyncio_run: MagicMock, _: MagicMock) -> None:
         mock_asyncio_run.return_value = 0
         result = runner.invoke(app, ["run", "test", "--sandbox", "--runtime", "python-datascience"])
         assert result.exit_code == 0

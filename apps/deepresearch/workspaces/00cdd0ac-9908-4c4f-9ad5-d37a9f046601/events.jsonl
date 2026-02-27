@@ -1,0 +1,38 @@
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T04:05:49.874365+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T04:05:49.919711+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T04:05:49.957555+00:00"}
+{"type": "user_message", "content": "mam na imie kacper", "_ts": "2026-02-16T04:05:49.957993+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:05:49.958852+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:05:50.002873+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:05:50.006421+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T04:05:50.029536+00:00"}
+{"type": "text_delta", "content": "Cze\u015b\u0107 Kacper! W czym mog\u0119 Ci pom\u00f3c?", "_ts": "2026-02-16T04:05:51.319594+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:05:51.356903+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "022cc98d-061e-4d15-a8d0-098955db1538", "label": "turn-10", "turn": 10, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T04:05:51.357159+00:00"}
+{"type": "response", "content": "Cze\u015b\u0107 Kacper! W czym mog\u0119 Ci pom\u00f3c?", "_ts": "2026-02-16T04:05:51.372676+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:05:51.372923+00:00"}
+{"type": "user_message", "content": "zapamietaj to", "_ts": "2026-02-16T04:05:57.930734+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:05:57.933346+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:05:57.956039+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:05:57.966609+00:00"}
+{"type": "text_delta", "content": "Zapami\u0119ta\u0142em, \u017ce masz na imi\u0119 Kac", "_ts": "2026-02-16T04:05:58.988089+00:00"}
+{"type": "text_delta", "content": "per. Je\u015bli chcesz, \u017ceb", "_ts": "2026-02-16T04:05:59.092365+00:00"}
+{"type": "text_delta", "content": "ym wykorzysta\u0142 to imi\u0119 w odpowiedziach lub", "_ts": "2026-02-16T04:05:59.203190+00:00"}
+{"type": "text_delta", "content": " zadaniach, daj zna\u0107!", "_ts": "2026-02-16T04:05:59.275689+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:05:59.277415+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "ebf7b438-03a3-4615-9f7f-329eb1cb00e5", "label": "turn-11", "turn": 11, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T04:05:59.277705+00:00"}
+{"type": "response", "content": "Zapami\u0119ta\u0142em, \u017ce masz na imi\u0119 Kacper. Je\u015bli chcesz, \u017cebym wykorzysta\u0142 to imi\u0119 w odpowiedziach lub zadaniach, daj zna\u0107!", "_ts": "2026-02-16T04:05:59.291739+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:05:59.291821+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:22:01.004532+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:22:01.006469+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:22:07.874398+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:22:07.877437+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:05.350413+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:05.352209+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:05.654817+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:05.655089+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:09.337522+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:09.338126+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:09.427408+00:00"}
+{"type": "session_created", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:53.256577+00:00"}
+{"type": "canvas_ready", "session_id": "00cdd0ac-9908-4c4f-9ad5-d37a9f046601", "_ts": "2026-02-16T10:41:53.378744+00:00"}

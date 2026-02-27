@@ -1,0 +1,29 @@
+flowchart TD
+    A([Energia świetlna (Słońce)])
+    B([Dwutlenek węgla (CO2)])
+    C([Woda (H2O)])
+    D([Chloroplast w liściu])
+    E([Reakcje świetlne w tylakoidach])
+    F([Tlen (O2)])
+    G([Etap ciemny / cykl Calvina])
+    H([Wytworzenie glukozy (C6H12O6)])
+
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    G --> H
+
+    F ---|Produkowany gaz| E
+    H ---|Produkt końcowy – energia| G
+
+    style A fill:#ffd700,color:#000
+    style B fill:#c3fae8,color:#000
+    style C fill:#c3fae8,color:#000
+    style D fill:#74c0fc,color:#000
+    style E fill:#a5d8ff,color:#000
+    style G fill:#ffe066,color:#000
+    style H fill:#fab005,color:#000
+    style F fill:#b2f2bb,color:#000

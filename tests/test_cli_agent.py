@@ -23,7 +23,7 @@ class TestCreateCliAgent:
 
     def test_creates_agent_and_deps(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
         assert agent is not None
@@ -32,20 +32,20 @@ class TestCreateCliAgent:
 
     def test_uses_cwd_when_no_working_dir(self) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
         )
         assert agent is not None
 
     def test_includes_local_context_in_toolsets(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
         assert agent is not None
 
     def test_accepts_shell_allow_list(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
             shell_allow_list=["python", "pip"],
         )
@@ -56,7 +56,7 @@ class TestCreateCliAgent:
 
         extra = [LoopDetectionMiddleware(max_repeats=5)]
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
             extra_middleware=extra,
         )
@@ -64,14 +64,14 @@ class TestCreateCliAgent:
 
     def test_instructions_include_working_dir(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
         assert agent is not None
 
     def test_agent_has_toolsets(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
         assert hasattr(agent, "run")
@@ -80,7 +80,7 @@ class TestCreateCliAgent:
     def test_all_features_enabled_by_default(self, tmp_path: Path) -> None:
         """By default, skills, plan, memory, checkpoints, context_discovery are all on."""
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
         assert agent is not None
@@ -88,12 +88,11 @@ class TestCreateCliAgent:
     def test_features_can_be_disabled(self, tmp_path: Path) -> None:
         """All features can be individually disabled."""
         agent, deps = create_cli_agent(
-            model=TEST_MODEL,  # type: ignore[arg-type]
+            model=TEST_MODEL,
             working_dir=str(tmp_path),
             include_skills=False,
             include_plan=False,
             include_memory=False,
-            include_checkpoints=False,
             include_subagents=False,
             include_todo=False,
             context_discovery=False,
@@ -170,63 +169,39 @@ class TestBuildCliInstructions:
     """Tests for build_cli_instructions() dynamic prompt builder."""
 
     def test_full_prompt_includes_all_sections(self) -> None:
-        result = build_cli_instructions(
-            include_execute=True, include_todo=True, include_subagents=True
-        )
-        assert "CLI Environment" in result
-        assert "Shell Execution" in result
-        assert "Git Safety" in result
-        assert "Task Planning" in result
-        assert "Parallel Delegation" in result
-        assert "Dependencies & Environment" in result
-        assert "Before Declaring Done" in result
-        assert "Exactness Requirements" in result
-
-    def test_no_execute_omits_shell_sections(self) -> None:
-        result = build_cli_instructions(
-            include_execute=False, include_todo=True, include_subagents=True
-        )
-        assert "Shell Execution" not in result
-        assert "Git Safety" not in result
-        assert "Dependencies & Environment" not in result
-        assert "Exactness Requirements" in result
-        assert "Before Declaring Done" in result
-
-    def test_no_todo_omits_planning_section(self) -> None:
-        result = build_cli_instructions(
-            include_execute=True, include_todo=False, include_subagents=True
-        )
-        assert "Task Planning" not in result
-        assert "Shell Execution" in result
-
-    def test_no_subagents_omits_delegation_section(self) -> None:
-        result = build_cli_instructions(
-            include_execute=True, include_todo=True, include_subagents=False
-        )
-        assert "Parallel Delegation" not in result
-        assert "Task Planning" in result
-
-    def test_minimal_prompt_has_core_sections(self) -> None:
-        result = build_cli_instructions(
-            include_execute=False, include_todo=False, include_subagents=False
-        )
+        result = build_cli_instructions()
         assert "CLI Environment" in result
         assert "Exactness Requirements" in result
         assert "Avoid Over-Engineering" in result
-        assert "Debugging" in result
+        assert "Writing Code" in result
         assert "Before Declaring Done" in result
+        assert "Parallel Tool Calls" in result
 
-    def test_backwards_compat_cli_system_prompt(self) -> None:
-        full = build_cli_instructions(
-            include_execute=True, include_todo=True, include_subagents=True
-        )
-        assert CLI_SYSTEM_PROMPT == full
-
-    def test_prompt_is_shorter_without_sections(self) -> None:
-        full = build_cli_instructions(
-            include_execute=True, include_todo=True, include_subagents=True
-        )
-        minimal = build_cli_instructions(
+    def test_deprecated_params_accepted(self) -> None:
+        """Deprecated params are accepted for backwards compatibility."""
+        result = build_cli_instructions(
             include_execute=False, include_todo=False, include_subagents=False
         )
-        assert len(minimal) < len(full)
+        # All sections included regardless — params are deprecated
+        assert "CLI Environment" in result
+        assert "Exactness Requirements" in result
+
+    def test_non_interactive_adds_autonomy_section(self) -> None:
+        result = build_cli_instructions(non_interactive=True)
+        assert "Autonomy and Persistence" in result
+        assert "Output Style" in result
+
+    def test_lean_non_interactive_is_minimal(self) -> None:
+        result = build_cli_instructions(non_interactive=True, lean=True)
+        assert "autonomous agent" in result
+        # Lean mode skips the full CLI sections
+        assert "CLI Environment" not in result
+
+    def test_backwards_compat_cli_system_prompt(self) -> None:
+        full = build_cli_instructions()
+        assert full == CLI_SYSTEM_PROMPT
+
+    def test_non_interactive_prompt_is_longer(self) -> None:
+        interactive = build_cli_instructions()
+        non_interactive = build_cli_instructions(non_interactive=True)
+        assert len(non_interactive) > len(interactive)

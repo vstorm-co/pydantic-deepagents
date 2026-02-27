@@ -55,7 +55,7 @@ def _setup_logfire() -> None:
             "Logfire not installed. Run: pip install pydantic-deep[logfire]",
             file=sys.stderr,
         )
-        raise SystemExit(2)
+        raise SystemExit(2) from None
 
 
 @app.callback()
@@ -259,6 +259,10 @@ def chat(
         str | None,
         typer.Option("--model-settings", help="Model settings as JSON"),
     ] = None,
+    fork: Annotated[
+        bool,
+        typer.Option("--fork", help="Fork from a resumed session (new session, same history)"),
+    ] = False,
 ) -> None:
     """Start an interactive chat session."""
     from cli.init import ensure_initialized
@@ -282,6 +286,7 @@ def chat(
             resume=effective_resume,
             auto_approve=auto_approve,
             model_settings=settings,
+            fork_session=fork,
         )
     )
 
@@ -486,7 +491,7 @@ Instructions for this skill go here.
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
-from swebench_agent.cli import swebench_app
+from apps.swebench_agent.cli import swebench_app  # noqa: E402
 
 app.add_typer(swebench_app)
 
@@ -561,24 +566,29 @@ def threads_list(
     ] = None,
 ) -> None:
     """List saved conversation threads."""
+    from pydantic_ai.messages import ModelMessagesTypeAdapter
+
     from cli.config import get_sessions_dir
-    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
     store_path = Path(directory) if directory else get_sessions_dir()
     if not store_path.exists():
         typer.echo("No threads found.")
         return
 
-    # Each session is a subdirectory with its own checkpoint store
+    # Each session is a subdirectory with messages.json
     sessions: list[tuple[str, int]] = []
     for session_dir in sorted(store_path.iterdir()):
         if not session_dir.is_dir():
             continue
-        store = FileCheckpointStore(session_dir)
-        checkpoints = asyncio.run(store.list_all())
-        if checkpoints:
-            latest = checkpoints[-1]
-            sessions.append((session_dir.name, latest.message_count))
+        messages_file = session_dir / "messages.json"
+        if messages_file.exists():
+            try:
+                raw = messages_file.read_bytes()
+                if raw:
+                    messages = ModelMessagesTypeAdapter.validate_json(raw)
+                    sessions.append((session_dir.name, len(messages)))
+            except Exception:
+                pass
 
     if not sessions:
         typer.echo("No threads found.")
@@ -642,8 +652,9 @@ def threads_export(
     """Export a conversation thread."""
     import json
 
+    from pydantic_ai.messages import ModelMessagesTypeAdapter
+
     from cli.config import get_sessions_dir
-    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
     store_path = Path(directory) if directory else get_sessions_dir()
     if not store_path.exists():
@@ -661,31 +672,26 @@ def threads_export(
         typer.echo(f"Thread '{thread_id}' not found.", err=True)
         raise typer.Exit(1)
 
-    store = FileCheckpointStore(session_dir)
-    checkpoints = asyncio.run(store.list_all())
-    if not checkpoints:
-        typer.echo("Thread has no checkpoints.", err=True)
+    messages_file = session_dir / "messages.json"
+    if not messages_file.exists():
+        typer.echo("Thread has no history.", err=True)
         raise typer.Exit(1)
 
-    loaded = checkpoints[-1]  # Latest checkpoint
+    raw = messages_file.read_bytes()
+    messages = list(ModelMessagesTypeAdapter.validate_json(raw))
 
     if output_format == "json":
         data = {
-            "id": loaded.id,
-            "label": loaded.label,
-            "turn": loaded.turn,
-            "message_count": loaded.message_count,
-            "messages": [str(m) for m in (loaded.messages or [])],
-            "metadata": loaded.metadata,
+            "id": session_dir.name,
+            "message_count": len(messages),
+            "messages": [str(m) for m in messages],
         }
         typer.echo(json.dumps(data, indent=2, default=str))
     else:
-        typer.echo(f"# Thread: {loaded.label}")
-        typer.echo(f"\nID: {loaded.id}")
-        typer.echo(f"Turn: {loaded.turn}")
-        typer.echo(f"Messages: {loaded.message_count}")
+        typer.echo(f"# Thread: {session_dir.name}")
+        typer.echo(f"\nMessages: {len(messages)}")
         typer.echo()
-        for msg in loaded.messages or []:
+        for msg in messages:
             typer.echo(f"---\n{msg}\n")
 
 

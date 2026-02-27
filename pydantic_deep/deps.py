@@ -35,7 +35,7 @@ class DeepAgentDeps:
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
     ask_user: Any = field(default=None, repr=False)  # Callback for interactive questions
-    checkpoint_store: Any = field(default=None, repr=False)  # CheckpointStore | None
+    context_middleware: Any = field(default=None, repr=False)  # ContextManagerMiddleware | None
     share_todos: bool = False  # When True, subagents share parent's todo list
 
     def __post_init__(self) -> None:

@@ -107,7 +107,7 @@ def _fuzzy_match(query: str, text: str) -> bool:
     return qi == len(q)
 
 
-def interactive_select(
+def interactive_select(  # noqa: C901
     items: list[PickerItem],
     *,
     title: str = "Select",
@@ -167,6 +167,7 @@ def interactive_select(
         # Title with search query
         if filterable and query:
             from rich.markup import escape
+
             out.append(f" [bold]{title}[/bold]  [cyan]{escape(query)}[/cyan]")
         else:
             out.append(f" [bold]{title}[/bold]")
@@ -174,7 +175,7 @@ def interactive_select(
         out.append("")
 
         if not filtered:
-            out.append(f"   [dim]No matches for \"{query}\"[/dim]")
+            out.append(f'   [dim]No matches for "{query}"[/dim]')
             out += ["", " [dim]\u2191\u2193 navigate  Enter select  esc cancel[/dim]"]
             return out
 
@@ -228,16 +229,10 @@ def interactive_select(
             key = _read_key()
             n = len(filtered)
 
-            if key in ("up", "k") and not query:
+            if key in ("up", "k") and not query or key == "up":
                 if n > 0:
                     cursor = (cursor - 1) % n
-            elif key == "up":
-                if n > 0:
-                    cursor = (cursor - 1) % n
-            elif key in ("down", "j") and not query:
-                if n > 0:
-                    cursor = (cursor + 1) % n
-            elif key == "down":
+            elif key in ("down", "j") and not query or key == "down":
                 if n > 0:
                     cursor = (cursor + 1) % n
             elif key == "enter":

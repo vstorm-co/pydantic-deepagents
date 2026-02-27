@@ -54,16 +54,18 @@ console = Console()
 _USER_PROMPT = "\033[1m\033[38;2;16;185;129m> \033[0m"
 
 # TODO tool names — these are suppressed from the stream and shown as a checklist
-_TODO_TOOLS: frozenset[str] = frozenset({
-    "write_todos",
-    "read_todos",
-    "add_todo",
-    "update_todo_status",
-    "remove_todo",
-    "add_subtask",
-    "set_dependency",
-    "get_available_tasks",
-})
+_TODO_TOOLS: frozenset[str] = frozenset(
+    {
+        "write_todos",
+        "read_todos",
+        "add_todo",
+        "update_todo_status",
+        "remove_todo",
+        "add_subtask",
+        "set_dependency",
+        "get_available_tasks",
+    }
+)
 
 # Markers inserted by Ctrl+V readline binding — we detect these after input()
 _PASTE_MARKER = "\x16"  # Ctrl+V literal character
@@ -88,6 +90,7 @@ _SLASH_COMMANDS = [
     "/help",
     "/clear",
     "/compact",
+    "/context",
     "/undo",
     "/copy",
     "/todos",
@@ -106,10 +109,36 @@ _SLASH_COMMANDS = [
 ]
 
 
+def _get_all_slash_commands() -> list[str]:
+    """Merge built-in slash commands with discovered custom commands."""
+    from cli.commands import discover_commands
+
+    all_cmds = list(_SLASH_COMMANDS)
+    for cmd in discover_commands():
+        slash = f"/{cmd.name}"
+        if slash not in all_cmds:
+            all_cmds.append(slash)
+    return all_cmds
+
+
+def _try_custom_command(user_input: str) -> str | None:
+    """Check if user_input matches a custom command. Returns prompt or None."""
+    from cli.commands import invoke_command, load_command
+
+    parts = user_input.strip().split(maxsplit=1)
+    cmd_name = parts[0].lstrip("/")
+    cmd_arg = parts[1].strip() if len(parts) > 1 else ""
+    cmd = load_command(cmd_name)
+    if cmd is None:
+        return None
+    return invoke_command(cmd, cmd_arg)
+
+
 def _slash_completer(text: str, state: int) -> str | None:
     """Readline completer for slash commands and @file mentions."""
     if text.startswith("/"):
-        matches = [c for c in _SLASH_COMMANDS if c.startswith(text)]
+        all_cmds = _get_all_slash_commands()
+        matches = [c for c in all_cmds if c.startswith(text)]
     elif text.startswith("@"):
         # Complete file paths after @
         import glob as _glob
@@ -223,6 +252,19 @@ async def _interactive_permission_handler(
     if reason:
         console.print(f"[{theme.muted}]Reason: {reason}[/{theme.muted}]")
 
+    # Rich context for file operations
+    from cli.diff_display import render_edit_approval, render_write_approval
+
+    if tool_name == "edit_file":
+        old_s = tool_args.get("old_string", "")
+        new_s = tool_args.get("new_string", "")
+        if old_s or new_s:
+            console.print(render_edit_approval(tool_args.get("path", ""), old_s, new_s))
+    elif tool_name == "write_file":
+        content = tool_args.get("content", "")
+        if content:
+            console.print(render_write_approval(tool_args.get("path", ""), content))
+
     try:
         answer = input("[Y]es / [N]o / [A]uto-approve all: ").strip().lower()
     except (EOFError, KeyboardInterrupt):
@@ -230,11 +272,13 @@ async def _interactive_permission_handler(
 
     if answer in ("a", "auto"):
         _SAFE_TOOLS_MUTABLE.add(tool_name)
+        _auto_approve_state["active"] = True
         return True
     return answer in ("y", "yes", "")
 
 
 _SAFE_TOOLS_MUTABLE: set[str] = set()
+_auto_approve_state: dict[str, bool] = {"active": False}
 
 
 # Map provider prefixes to their required environment variables.
@@ -333,8 +377,8 @@ class BrailleSpinner:
         self._pos += 1
         elapsed = int(time.monotonic() - self._start)
         return Text.from_markup(
-            f"[{self._theme.warning}]{frame} {self._status}"
-            f"\u2026[/{self._theme.warning}] "
+            f"[bold {self._theme.accent}]{frame} {self._status}"
+            f"\u2026[/bold {self._theme.accent}] "
             f"[{self._theme.muted}]({elapsed}s)[/{self._theme.muted}]"
         )
 
@@ -344,86 +388,108 @@ class BrailleSpinner:
 # ---------------------------------------------------------------------------
 
 
+async def _stream_text_rich(request_stream: Any, live: Live) -> str:
+    """Stream text into an existing Live context (spinner → Markdown)."""
+    install_prettier_code_blocks()
+    live.update(Markdown(""))
+    text = ""
+    async for cumulative in request_stream.stream_text():
+        text = cumulative
+        live.update(Markdown(text))
+    live.stop()
+    return text
+
+
+async def _stream_text_rich_new(request_stream: Any) -> str:
+    """Stream text via a fresh Live context (after tool calls stopped it)."""
+    install_prettier_code_blocks()
+    text = ""
+    with Live(
+        Markdown(""),
+        console=console,
+        vertical_overflow="visible",
+        refresh_per_second=10,
+    ) as live:
+        async for cumulative in request_stream.stream_text():
+            text = cumulative
+            live.update(Markdown(text))
+    return text
+
+
+async def _stream_text_pipe(request_stream: Any) -> str:
+    """Stream text to stdout in non-TTY (piped) mode."""
+    previous = ""
+    text = ""
+    async for cumulative in request_stream.stream_text():
+        delta = cumulative[len(previous) :]
+        if delta:
+            sys.stdout.write(delta)
+            sys.stdout.flush()
+        previous = cumulative
+        text = cumulative
+    return text
+
+
 async def _stream_model_request(node: Any, ctx: Any) -> str:
     """Stream text from a ModelRequestNode using node.stream() + stream_text().
 
     When stdout is a TTY, renders output as Rich Markdown using ``Live``.
     When piped, writes raw text to stdout.
 
-    A local "Phase 1" spinner is shown while waiting for the model to
-    produce a final result.  It is stopped before Phase 2 text streaming
-    begins — this avoids overlapping ``Live`` contexts on the same console.
+    Uses a single ``Live`` context that starts as a spinner and seamlessly
+    transitions to Markdown rendering when text begins — no visual gap.
 
     Returns:
         The full response text from this model request.
     """
     use_rich = _is_tty()
-    accumulated_text = ""
-
-    # Phase 1 spinner — local to this function, independent of the caller's
     theme = get_theme()
     glyphs = get_glyphs()
-    phase1_live: Live | None = None
+
+    # Single Live context — starts as spinner, transitions to Markdown
+    live: Live | None = None
     if use_rich:
-        phase1_live = Live(
+        live = Live(
             BrailleSpinner(glyphs, theme),
             console=console,
             refresh_per_second=10,
-            transient=True,
+            vertical_overflow="visible",
         )
-        phase1_live.start()
+        live.start()
 
-    def _stop_phase1() -> None:
-        nonlocal phase1_live
-        if phase1_live is not None:
-            phase1_live.stop()
-            phase1_live = None
+    def _stop_live() -> None:
+        nonlocal live
+        if live is not None:
+            live.stop()
+            live = None
 
     async with node.stream(ctx) as request_stream:
         final_result_found = False
 
-        # Phase 1: events (tool call args, thinking, etc.)
-        # Spinner stays alive here — user sees "⠋ Thinking… (3s)"
+        # Event phase: spinner is visible, waiting for FinalResultEvent
         async for event in request_stream:
             if isinstance(event, PartStartEvent):
                 if hasattr(event.part, "tool_name"):
-                    # Tool calls are rendered by _stream_tool_calls, skip here
-                    _stop_phase1()
+                    _stop_live()
             elif isinstance(event, PartDeltaEvent):
                 if isinstance(event.delta, TextPartDelta) and not use_rich:
-                    _stop_phase1()
+                    _stop_live()
                     sys.stdout.write(event.delta.content_delta)
                     sys.stdout.flush()
             elif isinstance(event, FinalResultEvent):
                 final_result_found = True
                 break
 
-        # Phase 2: stop spinner, then stream text
-        _stop_phase1()
+        # Text streaming phase
+        if not final_result_found:
+            _stop_live()
+            return ""
 
-        if final_result_found:
-            if use_rich:
-                install_prettier_code_blocks()
-                with Live(
-                    Markdown(""),
-                    console=console,
-                    vertical_overflow="visible",
-                    refresh_per_second=8,
-                ) as live:
-                    async for cumulative_text in request_stream.stream_text():
-                        accumulated_text = cumulative_text
-                        live.update(Markdown(accumulated_text))
-            else:
-                previous_text = ""
-                async for cumulative_text in request_stream.stream_text():
-                    delta = cumulative_text[len(previous_text) :]
-                    if delta:
-                        sys.stdout.write(delta)
-                        sys.stdout.flush()
-                    previous_text = cumulative_text
-                    accumulated_text = cumulative_text
-
-    return accumulated_text
+        if use_rich and live is not None:
+            return await _stream_text_rich(request_stream, live)
+        if use_rich:
+            return await _stream_text_rich_new(request_stream)
+        return await _stream_text_pipe(request_stream)
 
 
 def _parse_tool_args(raw_args: Any) -> dict[str, Any]:
@@ -442,6 +508,12 @@ def _parse_tool_args(raw_args: Any) -> dict[str, Any]:
 
 async def _stream_tool_calls(node: Any, ctx: Any) -> None:
     """Stream tool-call results from a CallToolsNode."""
+    from cli.diff_display import render_inline_change
+    from cli.tool_display import render_tool_call_error, render_tool_call_success
+
+    # Track pending calls for elapsed time
+    pending: dict[str, tuple[dict[str, Any], float]] = {}
+
     async with node.stream(ctx) as handle_stream:
         async for event in handle_stream:
             if isinstance(event, FunctionToolCallEvent):
@@ -450,11 +522,34 @@ async def _stream_tool_calls(node: Any, ctx: Any) -> None:
                     continue
                 args = _parse_tool_args(event.part.args)
                 console.print(render_tool_call(tool_name, args))
+                pending[tool_name] = (args, time.monotonic())
             elif isinstance(event, FunctionToolResultEvent):
                 tool_name = getattr(event.result, "tool_name", "unknown")
                 if tool_name in _TODO_TOOLS:
                     continue
-                console.print(render_tool_result(tool_name, event.result.content))
+                # Calculate elapsed
+                elapsed = None
+                args: dict[str, Any] = {}
+                if tool_name in pending:
+                    args, start = pending.pop(tool_name)
+                    elapsed = time.monotonic() - start
+                # Detect error
+                raw = str(event.result.content)
+                is_error = (
+                    "error" in raw.lower()[:100]
+                    or "exit code 1" in raw.lower()
+                    or "traceback" in raw.lower()[:200]
+                )
+                # Show status transition
+                if is_error:
+                    console.print(render_tool_call_error(tool_name, args))
+                else:
+                    console.print(render_tool_call_success(tool_name, args, elapsed))
+                    # Inline diff/preview for file-modifying tools
+                    change_preview = render_inline_change(tool_name, args)
+                    if change_preview:
+                        console.print(change_preview)
+                console.print(render_tool_result(tool_name, event.result.content, error=is_error))
 
 
 async def _process_stream(
@@ -527,7 +622,6 @@ async def _process_stream(
     if result is None:
         return list(message_history)
     return result.all_messages()
-
 
 
 def _cmd_save(arg: str, history: list[ModelMessage]) -> list[ModelMessage]:
@@ -678,14 +772,15 @@ async def _cmd_remember(arg: str, deps: DeepAgentDeps) -> None:
         if memory_path.exists():
             content = memory_path.read_text()
             lines = content.strip().splitlines()
-            console.print(f"\n[bold {theme.primary}]Memory[/bold {theme.primary}] ({len(lines)} lines)")
+            header = f"[bold {theme.primary}]Memory[/bold {theme.primary}]"
+            console.print(f"\n{header} ({len(lines)} lines)")
             for line in lines[:20]:
                 console.print(f"  [{theme.muted}]{line}[/{theme.muted}]")
             if len(lines) > 20:
                 glyphs = get_glyphs()
-                console.print(
-                    f"  [{theme.muted}]{glyphs.ellipsis} ({len(lines) - 20} more lines)[/{theme.muted}]"
-                )
+                extra = len(lines) - 20
+                msg = f"{glyphs.ellipsis} ({extra} more lines)"
+                console.print(f"  [{theme.muted}]{msg}[/{theme.muted}]")
             console.print()
         else:
             console.print(f"[{theme.muted}]No memory file found.[/{theme.muted}]")
@@ -721,6 +816,13 @@ _COMMAND_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+def _get_custom_command_descriptions() -> dict[str, str]:
+    """Build description map for discovered custom commands."""
+    from cli.commands import discover_commands
+
+    return {f"/{cmd.name}": cmd.description for cmd in discover_commands()}
+
+
 def _command_picker(subset: list[str] | None = None) -> str | None:
     """Show interactive arrow-key picker for slash commands.
 
@@ -732,15 +834,18 @@ def _command_picker(subset: list[str] | None = None) -> str | None:
     """
     from cli.picker import PickerItem, interactive_select
 
-    commands = subset if subset else _SLASH_COMMANDS
+    commands = subset if subset else _get_all_slash_commands()
     # Don't show /exit (duplicate of /quit)
     commands = [c for c in commands if c != "/exit"]
+
+    # Merge built-in and custom command descriptions
+    all_descriptions = {**_COMMAND_DESCRIPTIONS, **_get_custom_command_descriptions()}
 
     items = [
         PickerItem(
             label=cmd,
             value=cmd,
-            description=_COMMAND_DESCRIPTIONS.get(cmd, ""),
+            description=all_descriptions.get(cmd, ""),
         )
         for cmd in commands
     ]
@@ -773,18 +878,29 @@ def _file_picker(working_dir: str | None = None) -> str | None:
 
     # Collect files, skipping noise
     _SKIP_DIRS = {
-        ".git", ".venv", "venv", "__pycache__", "node_modules",
-        ".mypy_cache", ".pytest_cache", ".ruff_cache", ".tox",
-        "dist", "build", ".egg-info", ".eggs", "htmlcov",
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "node_modules",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".tox",
+        "dist",
+        "build",
+        ".egg-info",
+        ".eggs",
+        "htmlcov",
     }
 
     files: list[str] = []
     for dirpath, dirnames, filenames in os.walk(root):
         # Prune hidden and noisy directories
         dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and d not in _SKIP_DIRS
-            and not d.endswith(".egg-info")
+            d
+            for d in dirnames
+            if not d.startswith(".") and d not in _SKIP_DIRS and not d.endswith(".egg-info")
         ]
         dirnames.sort()
 
@@ -804,10 +920,7 @@ def _file_picker(working_dir: str | None = None) -> str | None:
         console.print(f"[{theme.muted}]No files found.[/{theme.muted}]")
         return None
 
-    items = [
-        PickerItem(label=f, value=f, description="")
-        for f in files
-    ]
+    items = [PickerItem(label=f, value=f, description="") for f in files]
 
     sys.stdout.write("\n")
     sys.stdout.flush()
@@ -831,7 +944,6 @@ def _cmd_model_picker(
 ) -> None:
     """Show interactive model picker."""
     from cli.picker import PickerItem, interactive_select
-    from cli.providers import PROVIDERS
 
     theme = get_theme()
 
@@ -917,7 +1029,8 @@ def _cmd_help() -> None:
     cmds = [
         ("/help", "Show this help message"),
         ("/clear", "Clear conversation history"),
-        ("/compact", "Trim history to last 10 messages"),
+        ("/compact [focus]", "Summarize history (optional focus instruction)"),
+        ("/context", "Show context usage breakdown"),
         ("/undo", "Remove last turn from history"),
         ("/copy", "Copy last response to clipboard"),
         ("/todos", "Show current TODO list"),
@@ -934,6 +1047,21 @@ def _cmd_help() -> None:
     ]
     for cmd, desc in cmds:
         console.print(f"  [{theme.muted}]{cmd}[/{theme.muted}]  {desc}")
+
+    # Custom commands
+    from cli.commands import discover_commands
+
+    custom = discover_commands()
+    if custom:
+        console.print()
+        console.print(f"[bold {theme.primary}]Custom Commands[/bold {theme.primary}]")
+        for c in custom:
+            hint = f" {c.argument_hint}" if c.argument_hint else ""
+            source = f"[{theme.muted}]({c.source})[/{theme.muted}]"
+            console.print(
+                f"  [{theme.muted}]/{c.name}{hint}[/{theme.muted}]  {c.description} {source}"
+            )
+
     console.print()
     console.print(f"[bold {theme.primary}]Keyboard Shortcuts[/bold {theme.primary}]")
     shortcuts = [
@@ -947,17 +1075,13 @@ def _cmd_help() -> None:
     console.print()
     console.print(f"[bold {theme.primary}]Tips[/bold {theme.primary}]")
     console.print(
-        f"  [{theme.muted}]@filepath[/{theme.muted}]     "
-        f"Include file contents in your message"
+        f"  [{theme.muted}]@filepath[/{theme.muted}]     Include file contents in your message"
     )
     console.print(
         f"  [{theme.muted}]!command[/{theme.muted}]      "
         f"Run a shell command directly (e.g. !ls -la)"
     )
-    console.print(
-        f'  [{theme.muted}]"""..."""[/{theme.muted}]     '
-        f"Multi-line input mode"
-    )
+    console.print(f'  [{theme.muted}]"""..."""[/{theme.muted}]     Multi-line input mode')
     console.print()
 
 
@@ -972,24 +1096,115 @@ def _cmd_cost(cumulative_cost: float | None) -> None:
         console.print(f"[{theme.muted}]No cost data yet.[/{theme.muted}]")
 
 
-def _cmd_compact(history: list[ModelMessage]) -> list[ModelMessage]:
-    """Handle /compact command."""
+async def _cmd_compact(
+    history: list[ModelMessage],
+    deps: DeepAgentDeps,
+    focus: str | None = None,
+) -> list[ModelMessage]:
+    """Handle /compact [focus] command.
+
+    Uses LLM summarization via ContextManagerMiddleware when available,
+    falls back to naive truncation otherwise.
+    """
     theme = get_theme()
     glyphs = get_glyphs()
-    keep = 10
-    if len(history) > keep:
-        old_count = len(history)
-        history = history[-keep:]
+    old_count = len(history)
+
+    ctx_mw = deps.context_middleware
+    if ctx_mw is not None and hasattr(ctx_mw, "compact"):
+        if old_count <= 2:
+            msg = f"History is already compact ({old_count} messages)."
+            console.print(f"[{theme.muted}]{msg}[/{theme.muted}]")
+            return history
+
+        focus_msg = f' (focus: "{focus}")' if focus else ""
+        msg = f"Compacting {old_count} messages{focus_msg}..."
+        console.print(f"[{theme.muted}]{msg}[/{theme.muted}]")
+
+        history = await ctx_mw.compact(history, focus=focus)
+        new_count = len(history)
         line_char = glyphs.separator
         console.print(
             f"\n[{theme.muted}] {line_char}{line_char}{line_char}[/{theme.muted}] "
             f"[{theme.accent}]{glyphs.success} Compacted: "
-            f"{old_count} \u2192 {keep} messages[/{theme.accent}] "
+            f"{old_count} \u2192 {new_count} messages (LLM summary)[/{theme.accent}] "
             f"[{theme.muted}]{line_char}{line_char}{line_char}[/{theme.muted}]\n"
         )
     else:
-        console.print(f"[{theme.muted}]History is already compact ({len(history)} messages).[/{theme.muted}]")
+        # Fallback: naive truncation
+        keep = 10
+        if old_count > keep:
+            history = history[-keep:]
+            line_char = glyphs.separator
+            console.print(
+                f"\n[{theme.muted}] {line_char}{line_char}{line_char}[/{theme.muted}] "
+                f"[{theme.accent}]{glyphs.success} Compacted: "
+                f"{old_count} \u2192 {keep} messages[/{theme.accent}] "
+                f"[{theme.muted}]{line_char}{line_char}{line_char}[/{theme.muted}]\n"
+            )
+        else:
+            msg = f"History is already compact ({old_count} messages)."
+            console.print(f"[{theme.muted}]{msg}[/{theme.muted}]")
     return history
+
+
+async def _cmd_context(deps: DeepAgentDeps, history: list[ModelMessage]) -> None:
+    """Handle /context command — show context usage breakdown."""
+    theme = get_theme()
+    ctx_mw = deps.context_middleware
+
+    console.print()
+    console.print(f"[bold {theme.primary}]Context Usage[/bold {theme.primary}]")
+
+    if ctx_mw is not None:
+        max_tokens = getattr(ctx_mw, "max_tokens", 0)
+        token_counter = getattr(ctx_mw, "token_counter", None)
+        compress_threshold = getattr(ctx_mw, "compress_threshold", 0.9)
+        compression_count = getattr(ctx_mw, "_compression_count", 0)
+
+        if token_counter and history:
+            import inspect as _inspect
+
+            result = token_counter(history)
+            current_tokens = await result if _inspect.isawaitable(result) else result
+        else:
+            current_tokens = 0
+        pct = current_tokens / max_tokens if max_tokens > 0 else 0.0
+        threshold_tokens = int(max_tokens * compress_threshold)
+
+        # Usage bar
+        bar_width = 30
+        filled = int(bar_width * pct)
+        filled_bar = f"[{theme.accent}]{'█' * filled}[/{theme.accent}]"
+        empty_bar = f"[{theme.muted}]{'░' * (bar_width - filled)}[/{theme.muted}]"
+        bar = f"{filled_bar}{empty_bar}"
+
+        console.print(f"  {bar}  {pct:.0%}")
+        tok_label = f"[{theme.muted}]Tokens:[/{theme.muted}]"
+        console.print(f"  {tok_label}       {current_tokens:,} / {max_tokens:,}")
+        thr_label = f"[{theme.muted}]Threshold:[/{theme.muted}]"
+        thr_val = f"{compress_threshold:.0%} ({threshold_tokens:,} tokens)"
+        console.print(f"  {thr_label}    {thr_val}")
+        console.print(f"  [{theme.muted}]Messages:[/{theme.muted}]     {len(history)}")
+        console.print(f"  [{theme.muted}]Compressions:[/{theme.muted}] {compression_count}")
+
+        messages_path = getattr(ctx_mw, "messages_path", None)
+        if messages_path:
+            from pathlib import Path as _P
+
+            p = _P(messages_path)
+            if p.exists():
+                size_kb = p.stat().st_size / 1024
+                hf_label = f"[{theme.muted}]History file:[/{theme.muted}]"
+                console.print(f"  {hf_label}  {messages_path} ({size_kb:.1f} KB)")
+            else:
+                hf_label = f"[{theme.muted}]History file:[/{theme.muted}]"
+                console.print(f"  {hf_label}  {messages_path} (not yet created)")
+    else:
+        console.print(f"  [{theme.muted}]Context manager not available.[/{theme.muted}]")
+        console.print(f"  [{theme.muted}]Messages:[/{theme.muted}] {len(history)}")
+
+    console.print()
 
 
 def _cmd_model(
@@ -1004,9 +1219,7 @@ def _cmd_model(
             on_change(arg)
         console.print(f"[{theme.muted}]Model changed to: {arg}[/{theme.muted}]")
     else:
-        console.print(
-            f"[{theme.muted}]Current model: {current_model or 'default'}[/{theme.muted}]"
-        )
+        console.print(f"[{theme.muted}]Current model: {current_model or 'default'}[/{theme.muted}]")
 
 
 def _cmd_tokens(history: list[ModelMessage]) -> None:
@@ -1032,7 +1245,7 @@ def _cmd_skills() -> None:
             console.print(f"  {s['name']}: {s['description']} {source_tag}")
 
 
-async def _handle_command(
+async def _handle_command(  # noqa: C901
     cmd: str,
     deps: DeepAgentDeps,
     history: list[ModelMessage],
@@ -1067,7 +1280,9 @@ async def _handle_command(
     elif cmd_name == "/cost":
         _cmd_cost(cumulative_cost)
     elif cmd_name == "/compact":
-        history = _cmd_compact(history)
+        history = await _cmd_compact(history, deps, focus=cmd_arg or None)
+    elif cmd_name == "/context":
+        await _cmd_context(deps, history)
     elif cmd_name == "/model":
         if cmd_arg:
             _cmd_model(cmd_arg, current_model, on_model_change)
@@ -1098,7 +1313,8 @@ async def _handle_command(
     else:
         theme = get_theme()
         # Show interactive picker for "/" or partial matches
-        matches = [c for c in _SLASH_COMMANDS if c.startswith(cmd_name)]
+        all_cmds = _get_all_slash_commands()
+        matches = [c for c in all_cmds if c.startswith(cmd_name)]
         if cmd_name == "/" or matches:
             picked = _command_picker(matches if matches else None)
             if picked:
@@ -1205,13 +1421,13 @@ def _read_raw_key() -> str:
         if ch == "\x16":
             return "paste"
         if ch == "\x01":
-            return "home"       # Ctrl+A
+            return "home"  # Ctrl+A
         if ch == "\x05":
-            return "end"        # Ctrl+E
+            return "end"  # Ctrl+E
         if ch == "\x15":
             return "clear_line"  # Ctrl+U
         if ch == "\x17":
-            return "del_word"   # Ctrl+W
+            return "del_word"  # Ctrl+W
         if ch == "\x0c":
             return "clear_screen"  # Ctrl+L
         return ch
@@ -1219,7 +1435,7 @@ def _read_raw_key() -> str:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def _raw_line_edit() -> str:
+def _raw_line_edit() -> str:  # noqa: C901
     """Raw line editor with instant ``/`` and ``@`` triggers.
 
     Reads keystrokes one by one in raw mode, providing:
@@ -1283,14 +1499,14 @@ def _raw_line_edit() -> str:
                 buf += tag
                 size_kb = len(image.data) / 1024
                 # Show tag inline + confirmation below
-                sys.stdout.write(f"\n")
+                sys.stdout.write("\n")
                 console.print(
                     f"[{theme.accent}]  \u2022 Image pasted from clipboard "
                     f"({size_kb:.0f} KB)[/{theme.accent}]"
                 )
                 _redraw()
             else:
-                sys.stdout.write(f"\n")
+                sys.stdout.write("\n")
                 console.print(f"[{theme.muted}]  No image in clipboard.[/{theme.muted}]")
                 _redraw()
             continue
@@ -1385,11 +1601,8 @@ def _read_user_input() -> str:
     - Multi-line paste detection (non-TTY falls back to ``input()``).
     """
     # TTY mode: use custom raw line editor for instant triggers
-    if sys.stdin.isatty():
-        first_line = _raw_line_edit().strip()
-    else:
-        # Non-TTY fallback (tests, pipes) — standard input()
-        first_line = input(_USER_PROMPT).strip()
+    # Non-TTY fallback (tests, pipes) — standard input()
+    first_line = _raw_line_edit().strip() if sys.stdin.isatty() else input(_USER_PROMPT).strip()
 
     # Handle Ctrl+V image paste markers
     first_line = _process_paste_markers(first_line)
@@ -1561,34 +1774,6 @@ def _collapse_long_line(text: str) -> None:
     )
 
 
-async def _save_turn_checkpoint(deps: DeepAgentDeps, messages: list[ModelMessage]) -> None:
-    """Save the full message history after each turn.
-
-    The built-in CheckpointMiddleware saves *before* the model responds,
-    so it never captures the AI's response. This explicit save runs
-    *after* ``_process_stream`` returns, ensuring responses, tool calls,
-    and tool results are all persisted.
-    """
-    store = getattr(deps, "checkpoint_store", None)
-    if store is None:
-        return
-
-    import uuid as _uuid
-    from datetime import datetime, timezone
-
-    from pydantic_deep.toolsets.checkpointing import Checkpoint
-
-    cp = Checkpoint(
-        id=_uuid.uuid4().hex[:12],
-        label="turn-complete",
-        turn=len(messages),
-        messages=list(messages),
-        message_count=len(messages),
-        created_at=datetime.now(timezone.utc),
-    )
-    await store.save(cp)
-
-
 def _extract_option_label(opt: Any) -> str:
     """Extract the display label from an option dict or string.
 
@@ -1687,11 +1872,13 @@ async def _interactive_ask_user(
         return custom
 
     # Add "Other" option for custom text
-    items.append(PickerItem(
-        label="Other",
-        value="__other__",
-        description="Type a custom answer",
-    ))
+    items.append(
+        PickerItem(
+            label="Other",
+            value="__other__",
+            description="Type a custom answer",
+        )
+    )
 
     selected = interactive_select(
         items,
@@ -1750,6 +1937,7 @@ def _format_status_bar(
     context_current: int = 0,
     context_max: int = 0,
     message_count: int = 0,
+    auto_approve: bool = False,
 ) -> str:
     """Build the status bar string shown before each prompt.
 
@@ -1759,6 +1947,12 @@ def _format_status_bar(
     glyphs = get_glyphs()
     segments: list[str] = []
 
+    # Auto-approve indicator
+    if auto_approve or _auto_approve_state["active"]:
+        segments.append(f"[bold {theme.success}]auto[/bold {theme.success}]")
+    else:
+        segments.append(f"[{theme.warning}]manual[/{theme.warning}]")
+
     # Todos: completed/total
     if deps.todos:
         completed = sum(1 for t in deps.todos if t.status == "completed")
@@ -1767,12 +1961,27 @@ def _format_status_bar(
 
     # Cost
     if cost and cost > 0:
-        segments.append(f"[{theme.accent}]${cost:.2f}[/{theme.accent}]")
+        segments.append(f"[{theme.accent}]${cost:.4f}[/{theme.accent}]")
 
-    # Context percentage
+    # Context: visual progress bar + percentage
     if context_pct > 0:
+        bar_width = 10
+        filled = int(bar_width * min(context_pct, 1.0))
+        empty = bar_width - filled
+
+        if context_pct >= 0.85:
+            bar_color = theme.error
+        elif context_pct >= 0.60:
+            bar_color = theme.warning
+        else:
+            bar_color = theme.success
+
         pct_str = f"{context_pct:.0%}" if context_pct >= 0.01 else "<1%"
-        ctx_seg = f"[{theme.accent}]{pct_str}[/{theme.accent}] ctx"
+        bar = (
+            f"[{bar_color}]{glyphs.progress_filled * filled}[/{bar_color}]"
+            f"[{theme.muted}]{glyphs.progress_empty * empty}[/{theme.muted}]"
+        )
+        ctx_seg = f"{bar} [{bar_color}]{pct_str}[/{bar_color}]"
         if context_current > 0 and context_max > 0:
             ctx_seg += (
                 f" [{theme.muted}]({format_tokens(context_current)}"
@@ -1794,10 +2003,11 @@ def _format_status_bar(
     sep = f" [{theme.muted}]{glyphs.bullet}[/{theme.muted}] "
     inner = sep.join(segments)
     line_char = glyphs.separator
-    return f"[{theme.muted}] {line_char}{line_char}{line_char}[/{theme.muted}] {inner} [{theme.muted}]{line_char}{line_char}{line_char}[/{theme.muted}]"
+    border = f"[{theme.muted}] {line_char}{line_char}{line_char}[/{theme.muted}]"
+    return f"{border} {inner} {border}"
 
 
-async def _chat_loop(
+async def _chat_loop(  # noqa: C901
     agent: Agent[DeepAgentDeps, str],
     deps: DeepAgentDeps,
     message_history: list[ModelMessage],
@@ -1827,6 +2037,7 @@ async def _chat_loop(
                 message_count=len(message_history),
             )
             if bar:
+                console.print()
                 console.print(bar)
 
             user_input = _read_user_input()
@@ -1835,6 +2046,17 @@ async def _chat_loop(
                 continue
 
             if user_input.startswith("/"):
+                # Try custom commands first (they need agent access)
+                custom_prompt = _try_custom_command(user_input)
+                if custom_prompt is not None:
+                    print()
+                    message_history[:] = await _process_stream(
+                        agent, custom_prompt, deps, message_history
+                    )
+                    if deps.todos:
+                        _print_todos(deps)
+                    continue
+
                 should_break, message_history[:] = await _handle_command(
                     user_input,
                     deps,
@@ -1864,13 +2086,8 @@ async def _chat_loop(
             print()
             message_history[:] = await _process_stream(agent, prompt, deps, message_history)
 
-            # Save full history (including AI responses + tool calls)
-            await _save_turn_checkpoint(deps, message_history)
-
             if deps.todos:
                 _print_todos(deps)
-
-            print()
 
         except KeyboardInterrupt:
             now = time.monotonic()
@@ -1879,8 +2096,7 @@ async def _chat_loop(
                 break
             last_interrupt = now
             console.print(
-                f"\n[{theme.muted}]Press Ctrl+C again to quit, "
-                f"or Ctrl+D.[/{theme.muted}]\n"
+                f"\n[{theme.muted}]Press Ctrl+C again to quit, or Ctrl+D.[/{theme.muted}]\n"
             )
         except EOFError:
             console.print(f"\n[{theme.muted}]Goodbye![/{theme.muted}]")
@@ -1892,7 +2108,7 @@ async def _chat_loop(
             console.print(f"[{theme.muted}]{traceback.format_exc()}[/{theme.muted}]\n")
 
 
-async def run_interactive(
+async def run_interactive(  # noqa: C901
     model: str | None = None,
     working_dir: str | None = None,
     sandbox: bool = False,
@@ -1900,6 +2116,7 @@ async def run_interactive(
     resume: str | None = None,
     auto_approve: bool = False,
     model_settings: dict[str, Any] | None = None,
+    fork_session: bool = False,
 ) -> None:
     """Run the interactive chat loop.
 
@@ -1910,6 +2127,9 @@ async def run_interactive(
         runtime: Sandbox runtime name.
         resume: Thread ID to resume (prefix match). Empty string means latest.
         auto_approve: Skip HITL approval prompts.
+        model_settings: Model settings overrides.
+        fork_session: When True with --resume, create a new session ID but
+            copy conversation history from the resumed session.
     """
     import uuid
 
@@ -1920,7 +2140,8 @@ async def run_interactive(
     context_current: int = 0
     context_max: int = 0
     prev_context_pct: float = 0.0
-    session_id = uuid.uuid4().hex[:12]
+    new_session_id = uuid.uuid4().hex[:12]
+    session_id = new_session_id  # May be replaced by resumed session's ID
 
     _setup_readline()
 
@@ -1951,6 +2172,7 @@ async def run_interactive(
         context_max = mx
 
     handler = None if auto_approve else _interactive_permission_handler
+    _auto_approve_state["active"] = auto_approve
 
     try:
         backend = None
@@ -1961,6 +2183,15 @@ async def run_interactive(
             backend = sandbox_instance
             theme = get_theme()
             console.print(f"[{theme.muted}]Sandbox: {runtime}[/{theme.muted}]\n")
+
+        # Resolve session_id before creating agent — resume reuses old ID,
+        # fork always gets a fresh one.
+        message_history: list[ModelMessage] = []
+        if resume is not None:
+            message_history, resumed_id = await _load_thread(resume)
+            if message_history and resumed_id and not fork_session:
+                # Continue: reuse old session_id
+                session_id = resumed_id
 
         result = _create_agent_with_retry(
             model=model,
@@ -1982,11 +2213,14 @@ async def run_interactive(
 
         print_welcome_banner(console, model=model, working_dir=working_dir)
 
-        message_history: list[ModelMessage] = []
-        if resume is not None:
-            message_history = await _load_thread(resume)
-            if message_history:
-                _display_loaded_session(message_history)
+        if message_history:
+            if fork_session and resume is not None:
+                theme = get_theme()
+                console.print(
+                    f"[{theme.muted}]Forked from session "
+                    f"\u2192 new session {session_id}[/{theme.muted}]"
+                )
+            _display_loaded_session(message_history)
 
         await _chat_loop(
             agent,
@@ -2009,24 +2243,33 @@ async def run_interactive(
 async def _get_session_info(session_dir: Path) -> dict[str, Any] | None:
     """Get session info from a session directory.
 
+    Reads from messages.json (the persistent conversation history written
+    by ContextManagerMiddleware).
+
     Returns dict with id, messages, message_count, last_user_msg, date — or None.
     """
     from datetime import datetime, timezone
 
-    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
-
-    store = FileCheckpointStore(session_dir)
-    checkpoints = await store.list_all()
-    if not checkpoints:
+    messages_file = session_dir / "messages.json"
+    if not messages_file.exists():
         return None
 
-    latest = checkpoints[-1]
-    if not latest.messages:
+    try:
+        from pydantic_ai.messages import ModelMessagesTypeAdapter
+
+        raw = messages_file.read_bytes()
+        if not raw:
+            return None
+        messages = list(ModelMessagesTypeAdapter.validate_json(raw))
+    except Exception:
+        return None
+
+    if not messages:
         return None
 
     # Extract last user message (most useful for "where did I leave off?")
     last_user_msg = ""
-    for msg in reversed(latest.messages):
+    for msg in reversed(messages):
         if getattr(msg, "kind", None) == "request":
             for part in getattr(msg, "parts", []):
                 content = getattr(part, "content", None)
@@ -2036,14 +2279,14 @@ async def _get_session_info(session_dir: Path) -> dict[str, Any] | None:
             if last_user_msg:
                 break
 
-    # Get date from directory mtime
-    mtime = session_dir.stat().st_mtime
+    # Get date from file mtime
+    mtime = messages_file.stat().st_mtime
     date = datetime.fromtimestamp(mtime, tz=timezone.utc)
 
     return {
         "id": session_dir.name,
-        "messages": latest.messages,
-        "message_count": len(latest.messages),
+        "messages": messages,
+        "message_count": len(messages),
         "last_user_msg": last_user_msg,
         "date": date,
     }
@@ -2153,26 +2396,29 @@ def _display_loaded_session(messages: list[ModelMessage]) -> None:
     console.print(f"[{theme.muted}]{sep}[/{theme.muted}]\n")
 
 
-async def _load_thread(thread_id: str) -> list[ModelMessage]:
+async def _load_thread(thread_id: str) -> tuple[list[ModelMessage], str | None]:
     """Load a thread's message history for resuming.
+
+    Reads from messages.json (the persistent conversation history written
+    by ContextManagerMiddleware).
 
     Args:
         thread_id: Thread ID prefix to match. Empty string triggers interactive picker.
 
     Returns:
-        Message history from the checkpoint, or empty list if not found.
+        Tuple of (message_history, matched_session_id). Session ID is None
+        if the thread was loaded via the interactive picker.
     """
     if not thread_id:
-        return await _pick_session_interactive()
+        return await _pick_session_interactive(), None
 
     from cli.config import get_sessions_dir
-    from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
     sessions_dir = get_sessions_dir()
     if not sessions_dir.exists():
         theme = get_theme()
         console.print(f"[{theme.muted}]No saved sessions.[/{theme.muted}]")
-        return []
+        return [], None
 
     match_dir = next(
         (d for d in sessions_dir.iterdir() if d.is_dir() and d.name.startswith(thread_id)),
@@ -2182,22 +2428,28 @@ async def _load_thread(thread_id: str) -> list[ModelMessage]:
     if match_dir is None:
         theme = get_theme()
         console.print(f"[{theme.muted}]Session '{thread_id}' not found.[/{theme.muted}]")
-        return []
+        return [], None
 
-    store = FileCheckpointStore(match_dir)
-    checkpoints = await store.list_all()
-    if not checkpoints:
+    messages_file = match_dir / "messages.json"
+    if not messages_file.exists():
         theme = get_theme()
-        console.print(f"[{theme.muted}]Session has no checkpoints.[/{theme.muted}]")
-        return []
+        console.print(f"[{theme.muted}]Session has no history.[/{theme.muted}]")
+        return [], None
 
-    latest = checkpoints[-1]
-    if latest.messages:
-        return list(latest.messages)
+    try:
+        from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-    theme = get_theme()
-    console.print(f"[{theme.muted}]Checkpoint has no messages.[/{theme.muted}]")
-    return []
+        raw = messages_file.read_bytes()
+        if not raw:
+            return [], match_dir.name
+        messages = list(ModelMessagesTypeAdapter.validate_json(raw))
+        if messages:
+            return messages, match_dir.name
+    except Exception:
+        theme = get_theme()
+        console.print(f"[{theme.muted}]Failed to load session history.[/{theme.muted}]")
+
+    return [], None
 
 
 __all__ = ["run_interactive"]

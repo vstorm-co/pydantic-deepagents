@@ -271,6 +271,34 @@ def create_skills_toolset(
 ) -> SkillsToolset
 ```
 
+### Constructor
+
+```python
+from pydantic_deep.toolsets.skills import SkillsToolset
+
+toolset = SkillsToolset(
+    skills=[...],
+    directories=[...],
+    descriptions={
+        "list_skills": "Show all available agent capabilities",
+        "load_skill": "Load instructions for a specific capability",
+    },
+)
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skills` | `list[Skill] \| None` | `None` | Pre-loaded Skill objects |
+| `directories` | `list[...] \| None` | `None` | Directories to discover skills from |
+| `validate` | `bool` | `True` | Validate skill structure during discovery |
+| `max_depth` | `int \| None` | `3` | Maximum depth for skill discovery |
+| `id` | `str \| None` | `None` | Unique identifier for this toolset |
+| `instruction_template` | `str \| None` | `None` | Custom instruction template (must include `{skills_list}`) |
+| `exclude_tools` | `set[str] \| list[str] \| None` | `None` | Tool names to exclude from registration |
+| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `list_skills`, `load_skill`, `read_skill_resource`, `run_skill_script`) |
+
 ### Tool: list_skills
 
 ```python
@@ -360,9 +388,28 @@ Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
 | `list_checkpoints` | Show all saved checkpoints |
 | `rewind_to` | Rewind to a checkpoint (raises `RewindRequested`) |
 
-### Factory
+### Constructor
 
-Enabled via `create_deep_agent(include_checkpoints=True)`.
+```python
+from pydantic_deep.toolsets.checkpointing import CheckpointToolset
+
+toolset = CheckpointToolset(
+    descriptions={
+        "save_checkpoint": "Bookmark the current conversation state",
+        "rewind_to": "Roll back conversation to a previous bookmark",
+    },
+)
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `store` | `CheckpointStore \| None` | `None` | Fallback checkpoint store (used if deps has no store) |
+| `id` | `str` | `"deep-checkpoints"` | Toolset identifier |
+| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `save_checkpoint`, `list_checkpoints`, `rewind_to`) |
+
+Or enabled via `create_deep_agent(include_checkpoints=True)`.
 
 ---
 
@@ -385,8 +432,21 @@ Multi-agent team management. See [Teams](../advanced/teams.md).
 ```python
 from pydantic_deep.toolsets.teams import create_team_toolset
 
-toolset = create_team_toolset(id="deep-team")
+toolset = create_team_toolset(
+    id="deep-team",
+    descriptions={
+        "spawn_team": "Create a new team of specialized agents",
+        "assign_task": "Delegate a task to a specific team member",
+    },
+)
 ```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `id` | `str \| None` | `"deep-team"` | Toolset identifier |
+| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `spawn_team`, `assign_task`, `check_teammates`, `message_teammate`, `dissolve_team`) |
 
 Or via `create_deep_agent(include_teams=True)`.
 
@@ -413,8 +473,20 @@ toolset = AgentMemoryToolset(
     agent_name="main",
     memory_dir="/.deep/memory",
     max_lines=200,
+    descriptions={
+        "write_memory": "Save important findings to persistent memory",
+    },
 )
 ```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `agent_name` | `str` | `"main"` | Agent name (used for path and prompt label) |
+| `memory_dir` | `str` | `"/.deep/memory"` | Base directory for memory files |
+| `max_lines` | `int` | `200` | Max lines to inject into system prompt |
+| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `read_memory`, `write_memory`, `update_memory`) |
 
 Or via `create_deep_agent(include_memory=True)`.
 
@@ -436,8 +508,21 @@ Interactive planning with ask_user and save_plan. See [Plan Mode](../advanced/pl
 ```python
 from pydantic_deep.toolsets.plan import create_plan_toolset
 
-toolset = create_plan_toolset(plans_dir="/plans")
+toolset = create_plan_toolset(
+    plans_dir="/plans",
+    descriptions={
+        "ask_user": "Pose a question to the user with predefined choices",
+    },
+)
 ```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `plans_dir` | `str` | `"/plans"` | Directory to save plan files |
+| `id` | `str \| None` | `"deep-plan"` | Toolset identifier |
+| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `ask_user`, `save_plan`) |
 
 Or via `create_deep_agent(include_plan=True)` (default).
 

@@ -52,7 +52,6 @@ _BOOL_FIELDS = frozenset(
         "include_skills",
         "include_plan",
         "include_memory",
-        "include_checkpoints",
         "include_subagents",
         "include_todo",
         "context_discovery",
@@ -84,7 +83,6 @@ class CliConfig:
     include_skills: bool = True
     include_plan: bool = True
     include_memory: bool = True
-    include_checkpoints: bool = True
     include_subagents: bool = True
     include_todo: bool = True
     context_discovery: bool = True
@@ -220,9 +218,7 @@ def _write_toml(path: Path, data: dict[str, Any]) -> None:
             continue
         if isinstance(value, bool):
             lines.append(f"{key} = {'true' if value else 'false'}")
-        elif isinstance(value, float):
-            lines.append(f"{key} = {value}")
-        elif isinstance(value, int):
+        elif isinstance(value, (float, int)):
             lines.append(f"{key} = {value}")
         elif isinstance(value, list):
             items = ", ".join(f'"{v}"' for v in value)

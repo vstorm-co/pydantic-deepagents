@@ -78,7 +78,7 @@ def _get_clipboard_via_osascript() -> ClipboardImage | None:
             tmp_path = tmp.name
 
         script = (
-            'set pngData to the clipboard as «class PNGf»\n'
+            "set pngData to the clipboard as «class PNGf»\n"
             f'set theFile to open for access POSIX file "{tmp_path}" '
             "with write permission\n"
             "write pngData to theFile\n"

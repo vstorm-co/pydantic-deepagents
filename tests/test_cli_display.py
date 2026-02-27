@@ -26,7 +26,7 @@ class TestSimpleCodeBlock:
 
     def test_renders_code(self) -> None:
         block = SimpleCodeBlock(lexer_name="python", theme="monokai")
-        block.text = "print('hello')"
+        block.text = "print('hello')"  # type: ignore[assignment]
         console = Console(width=80, force_terminal=False)
         options = console.options
         parts = list(block.__rich_console__(console, options))

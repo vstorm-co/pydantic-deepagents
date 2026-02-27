@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 from pydantic_ai.messages import ModelMessage
 
 from cli.interactive import (
@@ -14,7 +13,6 @@ from cli.interactive import (
     _truncate,
     run_interactive,
 )
-from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.types import Todo
 
 
@@ -111,7 +109,9 @@ class TestHandleCommand:
 
     @patch("cli.interactive._print_todos")
     @patch("cli.interactive.console")
-    async def test_todos_command(self, _mock_console: MagicMock, mock_print_todos: MagicMock) -> None:
+    async def test_todos_command(
+        self, _mock_console: MagicMock, mock_print_todos: MagicMock
+    ) -> None:
         deps = MagicMock()
         should_break, _ = await _handle_command("/todos", deps, [])
         assert should_break is False
@@ -237,17 +237,17 @@ class TestStreamToolCalls:
         tc.part.tool_name = "read_file"
         tc.part.args = {"path": "/test.py"}
 
-        async def fake_stream():
+        async def fake_stream() -> Any:
             yield tc
 
         node = MagicMock()
         ctx = MagicMock()
 
         class FakeHandle:
-            async def __aenter__(self):
+            async def __aenter__(self) -> Any:
                 return fake_stream()
 
-            async def __aexit__(self, *args: Any):
+            async def __aexit__(self, *args: Any) -> None:
                 pass
 
         node.stream.return_value = FakeHandle()
@@ -266,17 +266,17 @@ class TestStreamToolCalls:
         tr.result.tool_name = "read_file"
         tr.result.content = "file content here"
 
-        async def fake_stream():
+        async def fake_stream() -> Any:
             yield tr
 
         node = MagicMock()
         ctx = MagicMock()
 
         class FakeHandle:
-            async def __aenter__(self):
+            async def __aenter__(self) -> Any:
                 return fake_stream()
 
-            async def __aexit__(self, *args: Any):
+            async def __aexit__(self, *args: Any) -> None:
                 pass
 
         node.stream.return_value = FakeHandle()
@@ -295,17 +295,17 @@ class TestStreamToolCalls:
         tc.part.tool_name = "execute"
         tc.part.args = "string args"  # Not a dict
 
-        async def fake_stream():
+        async def fake_stream() -> Any:
             yield tc
 
         node = MagicMock()
         ctx = MagicMock()
 
         class FakeHandle:
-            async def __aenter__(self):
+            async def __aenter__(self) -> Any:
                 return fake_stream()
 
-            async def __aexit__(self, *args: Any):
+            async def __aexit__(self, *args: Any) -> None:
                 pass
 
         node.stream.return_value = FakeHandle()
@@ -357,11 +357,11 @@ class TestProcessStream:
 
         deps = MagicMock()
         result = await _process_stream(mock_agent, "test", deps, [])
-        assert result == ["msg"]
+        assert result == ["msg"]  # type: ignore[comparison-overlap]
 
     @patch("cli.interactive.console")
     async def test_process_stream_with_end_node(self, _mock_console: MagicMock) -> None:
-        from pydantic_ai._agent_graph import End
+        from pydantic_ai._agent_graph import End  # type: ignore[attr-defined]
 
         from cli.interactive import _process_stream
 
@@ -637,25 +637,25 @@ class TestStreamModelRequest:
         self, mock_console: MagicMock, _mock_tty: MagicMock
     ) -> None:
         """Tool PartStartEvent stops spinner but does not print (handled by _stream_tool_calls)."""
-        from cli.interactive import _stream_model_request
-
         from pydantic_ai import PartStartEvent
+
+        from cli.interactive import _stream_model_request
 
         part_start = MagicMock(spec=PartStartEvent)
         part_start.part = MagicMock()
         part_start.part.tool_name = "grep"
 
-        async def fake_events():
+        async def fake_events() -> Any:
             yield part_start
 
         class FakeStream:
-            async def __aenter__(self):
+            async def __aenter__(self) -> Any:
                 return self
 
-            async def __aexit__(self, *args: Any):
+            async def __aexit__(self, *args: Any) -> None:
                 pass
 
-            def __aiter__(self):
+            def __aiter__(self) -> Any:
                 return fake_events().__aiter__()
 
         node = MagicMock()
@@ -741,4 +741,4 @@ class TestProcessStreamBranches:
 
         deps = MagicMock()
         result = await _process_stream(mock_agent, "test", deps, [])
-        assert result == ["m"]
+        assert result == ["m"]  # type: ignore[comparison-overlap]

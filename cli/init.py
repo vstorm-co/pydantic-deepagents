@@ -9,7 +9,6 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-
 _AGENT_MD_TEMPLATE = """\
 # Project Context
 

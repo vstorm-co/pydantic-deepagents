@@ -70,6 +70,16 @@ def _fmt_edit_file(args: dict[str, Any]) -> str:
     return f"edit_file({path})"
 
 
+@_register("hashline_edit")
+def _fmt_hashline_edit(args: dict[str, Any]) -> str:
+    path = _abbreviate_path(str(args.get("path", "")))
+    start = args.get("start_line", "")
+    end = args.get("end_line")
+    if end and end != start:
+        return f"hashline_edit({path}, lines {start}-{end})"
+    return f"hashline_edit({path}, line {start})"
+
+
 @_register("execute")
 def _fmt_execute(args: dict[str, Any]) -> str:
     cmd = str(args.get("command", ""))
@@ -199,7 +209,7 @@ def format_tool_result(tool_name: str, result_content: Any) -> str:
     if tool_name in ("grep", "glob"):
         matches = raw.count("\n") + 1 if raw.strip() else 0
         return f"{matches} matches"
-    if tool_name in ("write_file", "edit_file"):
+    if tool_name in ("write_file", "edit_file", "hashline_edit"):
         return "done"
     if tool_name == "write_todos":
         return "updated"
@@ -213,8 +223,8 @@ def format_tool_result(tool_name: str, result_content: Any) -> str:
 # Content preview formatters (used by render_tool_result)
 # ---------------------------------------------------------------------------
 
-_PREVIEW_LINES = 6
-_PREVIEW_CHARS = 400
+_PREVIEW_LINES = 3
+_PREVIEW_CHARS = 300
 
 
 def _preview_head(raw: str, max_lines: int = _PREVIEW_LINES) -> str:
@@ -280,6 +290,7 @@ _PREVIEW_MAP: dict[str, Any] = {
     "glob": _preview_search,
     "write_file": _preview_write,
     "edit_file": _preview_write,
+    "hashline_edit": _preview_write,
     "ls": _preview_ls,
     "write_todos": lambda _: "updated",
     "read_todos": _preview_generic,
@@ -315,10 +326,48 @@ def render_tool_call(
     return f"[bold {theme.warning}]{glyphs.tool_prefix} {formatted}[/bold {theme.warning}]"
 
 
+def render_tool_call_success(
+    tool_name: str,
+    args: dict[str, Any],
+    elapsed: float | None = None,
+    glyphs: Glyphs | None = None,
+) -> str:
+    """Render a tool call in success state with optional elapsed time.
+
+    Returns a Rich markup string: ``✓ tool(args) (1.2s)``
+    """
+    if glyphs is None:
+        glyphs = get_glyphs()
+    theme = get_theme()
+    formatted = format_tool_call(tool_name, args)
+    elapsed_str = ""
+    if elapsed is not None and elapsed > 1.0:
+        elapsed_str = f" [{theme.muted}]({elapsed:.1f}s)[/{theme.muted}]"
+    return f"[{theme.success}]{glyphs.success} {formatted}[/{theme.success}]{elapsed_str}"
+
+
+def render_tool_call_error(
+    tool_name: str,
+    args: dict[str, Any],
+    glyphs: Glyphs | None = None,
+) -> str:
+    """Render a tool call in error state.
+
+    Returns a Rich markup string: ``✗ tool(args)``
+    """
+    if glyphs is None:
+        glyphs = get_glyphs()
+    theme = get_theme()
+    formatted = format_tool_call(tool_name, args)
+    return f"[{theme.error}]{glyphs.error} {formatted}[/{theme.error}]"
+
+
 def render_tool_result(
     tool_name: str,
     result_content: Any,
     glyphs: Glyphs | None = None,
+    *,
+    error: bool = False,
 ) -> str:
     """Render a tool result with content preview.
 
@@ -328,6 +377,7 @@ def render_tool_result(
     if glyphs is None:
         glyphs = get_glyphs()
     theme = get_theme()
+    color = theme.error if error else theme.muted
 
     raw = str(result_content)
     preview = _format_result_preview(tool_name, raw)
@@ -339,10 +389,10 @@ def render_tool_result(
     parts: list[str] = []
     # First line gets the output_prefix glyph (⎿)
     first = escape(lines[0])
-    parts.append(f"[{theme.muted}]{glyphs.output_prefix} {first}[/{theme.muted}]")
+    parts.append(f"[{color}]{glyphs.output_prefix} {first}[/{color}]")
     # Continuation lines indented to align with first line content
     for line in lines[1:]:
-        parts.append(f"[{theme.muted}]  {escape(line)}[/{theme.muted}]")
+        parts.append(f"[{color}]  {escape(line)}[/{color}]")
 
     return "\n".join(parts)
 
@@ -391,6 +441,8 @@ __all__ = [
     "format_tool_result",
     "render_diff",
     "render_tool_call",
+    "render_tool_call_error",
+    "render_tool_call_success",
     "render_tool_result",
     "render_write_preview",
 ]

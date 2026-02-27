@@ -148,6 +148,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         agent_name: str = "main",
         memory_dir: str = DEFAULT_MEMORY_DIR,
         max_lines: int = DEFAULT_MAX_MEMORY_LINES,
+        descriptions: dict[str, str] | None = None,
     ) -> None:
         """Initialize the memory toolset.
 
@@ -155,15 +156,19 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             agent_name: Name of the agent (used for path and prompt label).
             memory_dir: Base directory for memory files in the backend.
             max_lines: Max lines to inject into system prompt.
+            descriptions: Optional mapping of tool name to custom description.
+                Supported keys: ``read_memory``, ``write_memory``, ``update_memory``.
+                Any key not present falls back to the built-in description constant.
         """
         super().__init__(id="deep-memory")
         self._agent_name = agent_name
         self._memory_dir = memory_dir
         self._max_lines = max_lines
+        self._descs = descriptions or {}
         self._path = get_memory_path(memory_dir, agent_name)
 
         # Register tools
-        @self.tool(description=READ_MEMORY_DESCRIPTION)
+        @self.tool(description=self._descs.get("read_memory", READ_MEMORY_DESCRIPTION))
         async def read_memory(ctx: RunContext[Any]) -> str:
             """Read your persistent memory."""
             backend: BackendProtocol = ctx.deps.backend
@@ -172,7 +177,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 return "No memory saved yet."
             return mem.content
 
-        @self.tool(description=WRITE_MEMORY_DESCRIPTION)
+        @self.tool(description=self._descs.get("write_memory", WRITE_MEMORY_DESCRIPTION))
         async def write_memory(ctx: RunContext[Any], content: str) -> str:
             """Append new content to your persistent memory.
 
@@ -186,7 +191,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             line_count = len(new_content.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
-        @self.tool(description=UPDATE_MEMORY_DESCRIPTION)
+        @self.tool(description=self._descs.get("update_memory", UPDATE_MEMORY_DESCRIPTION))
         async def update_memory(
             ctx: RunContext[Any],
             old_text: str,

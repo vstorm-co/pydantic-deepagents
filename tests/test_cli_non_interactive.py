@@ -275,7 +275,6 @@ class TestStreamExecution:
     async def test_returns_result_from_agent_run_result(self) -> None:
         """AgentRunResultEvent output is returned."""
         from pydantic_ai import AgentRunResultEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -295,7 +294,6 @@ class TestStreamExecution:
     async def test_collects_part_deltas(self) -> None:
         """When no AgentRunResultEvent, collects text from PartDeltaEvents."""
         from pydantic_ai import PartDeltaEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -321,7 +319,6 @@ class TestStreamExecution:
     async def test_null_content_delta(self) -> None:
         """None content_delta should not crash."""
         from pydantic_ai import PartDeltaEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -341,7 +338,6 @@ class TestStreamExecution:
     async def test_tool_call_event_not_quiet(self) -> None:
         """Tool calls are printed to console when not quiet."""
         from pydantic_ai import FunctionToolCallEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -357,14 +353,13 @@ class TestStreamExecution:
 
         with patch.object(Console, "print") as mock_print:
             console = Console(stderr=True)
-            console.print = mock_print
+            console.print = mock_print  # type: ignore[method-assign]
             await _stream_execution(mock_agent, "test", MagicMock(), console, quiet=False)
             mock_print.assert_called()
 
     async def test_tool_call_event_quiet(self) -> None:
         """Tool calls are suppressed in quiet mode."""
         from pydantic_ai import FunctionToolCallEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -385,7 +380,6 @@ class TestStreamExecution:
     async def test_tool_result_event_not_quiet(self) -> None:
         """Tool results are printed when not quiet."""
         from pydantic_ai import FunctionToolResultEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -406,7 +400,6 @@ class TestStreamExecution:
     async def test_tool_result_event_quiet(self) -> None:
         """Tool results are suppressed in quiet mode."""
         from pydantic_ai import FunctionToolResultEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()
@@ -426,7 +419,6 @@ class TestStreamExecution:
     async def test_delta_without_content_delta_attr(self) -> None:
         """PartDeltaEvent where delta lacks content_delta attribute."""
         from pydantic_ai import PartDeltaEvent
-
         from rich.console import Console
 
         mock_agent = MagicMock()

@@ -112,7 +112,10 @@ plugins:
           - advanced/cost-tracking.md: Token and cost tracking
           - advanced/middleware.md: Middleware system
           - advanced/plan-mode.md: Plan mode subagent
+          - advanced/web-tools.md: Web search, fetch, and HTTP tools
           - advanced/multi-user.md: Multi-user isolation patterns
+        CLI:
+          - cli/index.md: CLI installation, commands, and features
         Examples:
           - examples/*.md
         API Reference:
@@ -218,7 +221,9 @@ nav:
     - advanced/cost-tracking.md
     - advanced/middleware.md
     - advanced/plan-mode.md
+    - advanced/web-tools.md
     - advanced/multi-user.md
+  - CLI: cli/index.md
   - Examples:
     - examples/index.md
     - Getting Started:

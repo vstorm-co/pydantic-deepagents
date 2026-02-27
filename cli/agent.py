@@ -7,8 +7,8 @@ from typing import Any
 
 from pydantic_ai_backends import LocalBackend
 
-from pydantic_deep.agent import create_deep_agent
 from cli.prompts import build_cli_instructions
+from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.middleware.hooks import Hook, HookEvent, HookInput, HookResult
 
@@ -48,12 +48,13 @@ def _make_shell_allow_list_hook(allow_list: list[str]) -> Hook:
     )
 
 
-def create_cli_agent(
+def create_cli_agent(  # noqa: C901
     model: str | None = None,
     working_dir: str | None = None,
     shell_allow_list: list[str] | None = None,
     on_cost_update: Any | None = None,
     on_context_update: Any | None = None,
+    summarization_model: str | None = None,
     extra_middleware: list[Any] | None = None,
     backend: Any | None = None,
     permission_handler: Any | None = None,
@@ -61,10 +62,10 @@ def create_cli_agent(
     include_skills: bool = True,
     include_plan: bool = True,
     include_memory: bool = True,
-    include_checkpoints: bool = True,
     include_subagents: bool = True,
     include_todo: bool = True,
     include_local_context: bool = True,
+    include_web: bool = False,
     context_discovery: bool = True,
     non_interactive: bool = False,
     lean: bool = False,
@@ -89,7 +90,6 @@ def create_cli_agent(
         include_skills: Whether to include the skills toolset.
         include_plan: Whether to include the planner subagent.
         include_memory: Whether to include persistent agent memory.
-        include_checkpoints: Whether to include conversation checkpointing.
         include_subagents: Whether to include the subagent toolset.
         include_todo: Whether to include the todo toolset.
         include_local_context: Whether to include local context (git info, dir tree).
@@ -184,12 +184,11 @@ def create_cli_agent(
                 skill_dirs.append(str(bundled))
 
     # In non-interactive mode: no approval needed, disable interactive features
-    # (memory, checkpoints, plan, subagents). Skills stay ON — they're static
+    # (memory, plan, subagents). Skills stay ON — they're static
     # instructions that improve benchmark performance.
     interrupt_on = {"execute": False} if non_interactive else None
 
     effective_memory = include_memory and not non_interactive
-    effective_checkpoints = include_checkpoints and not non_interactive
     effective_skills = include_skills if not lean else False  # Lean: no skills noise
     effective_plan = include_plan and not non_interactive
     effective_subagents = include_subagents if not lean else False  # Lean: no subagents
@@ -227,15 +226,12 @@ def create_cli_agent(
     else:
         plans_dir = ".pydantic-deep/plans"
 
-    # Checkpoint store — per-session FileCheckpointStore for persistent sessions
-    cp_store = None
-    if effective_checkpoints and session_id:
+    # Ensure session directory exists (for plans, messages.json)
+    if session_id:
         from cli.config import get_sessions_dir
-        from pydantic_deep.toolsets.checkpointing import FileCheckpointStore
 
         session_dir = get_sessions_dir() / session_id
         session_dir.mkdir(parents=True, exist_ok=True)
-        cp_store = FileCheckpointStore(session_dir)
 
     agent = create_deep_agent(
         model=effective_model,
@@ -259,18 +255,23 @@ def create_cli_agent(
         # Memory (store in .pydantic-deep/main/MEMORY.md)
         include_memory=effective_memory,
         memory_dir=".pydantic-deep",
-        # Checkpointing — auto-save every turn to session directory
-        include_checkpoints=effective_checkpoints,
-        checkpoint_store=cp_store,
-        checkpoint_frequency="every_turn",
         # Context files (auto-discover AGENT.md)
         context_discovery=context_discovery if not lean else False,
         # Teams (not needed for CLI single-agent use)
         include_teams=False,
+        # Web tools (search, fetch, HTTP)
+        include_web=include_web,
+        # History persistence — per-session messages.json
+        history_messages_path=(
+            f".pydantic-deep/sessions/{session_id}/messages.json"
+            if session_id
+            else ".pydantic-deep/messages.json"
+        ),
         # Context management
         context_manager=not lean,
-        context_manager_max_tokens=200_000,
+        context_manager_max_tokens=None,  # auto-detect from genai-prices
         on_context_update=on_context_update,
+        summarization_model=summarization_model,
         eviction_token_limit=20_000,
         # Cost tracking
         cost_tracking=True,
@@ -284,7 +285,13 @@ def create_cli_agent(
         toolsets=[local_context] if local_context else None,
     )
 
-    deps = DeepAgentDeps(backend=effective_backend, checkpoint_store=cp_store)
+    # Extract context middleware for CLI commands (/compact, /context)
+    context_mw = getattr(agent, "_context_middleware", None)
+
+    deps = DeepAgentDeps(
+        backend=effective_backend,
+        context_middleware=context_mw,
+    )
     return agent, deps
 
 

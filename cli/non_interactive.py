@@ -83,7 +83,7 @@ def _print_diagnostics(
     err_console.print()
 
 
-async def run_non_interactive(
+async def run_non_interactive(  # noqa: C901
     message: str,
     model: str | None = None,
     working_dir: str | None = None,

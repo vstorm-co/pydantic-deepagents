@@ -1,0 +1,719 @@
+{"type": "session_created", "session_id": "3cc1f473-012f-4b47-acc0-99db5438ba12", "_ts": "2026-02-16T02:20:22.756273+00:00"}
+{"type": "user_message", "content": "narysuj mi diagram architektury fastapi + 2 bazy danych + React", "_ts": "2026-02-16T02:20:22.756722+00:00"}
+{"type": "start", "_ts": "2026-02-16T02:20:22.757917+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T02:20:22.764432+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T02:20:22.769099+00:00"}
+{"type": "tool_call_start", "tool_name": "excalidraw_read_me", "tool_call_id": "call_oQnwGsdldk5Oq27qBbyr26Tt", "_ts": "2026-02-16T02:20:24.075380+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_read_me", "args_delta": "{}", "_ts": "2026-02-16T02:20:24.078467+00:00"}
+{"type": "tool_start", "tool_name": "excalidraw_read_me", "args": "{}", "_ts": "2026-02-16T02:20:24.091907+00:00"}
+{"type": "tool_output", "tool_name": "excalidraw_read_me", "output": "# Excalidraw Element Format\n\nThanks for calling read_me! Do NOT call it again in this conversation \u2014 you will not see anything new. Now use create_view to draw.\n\n## Color Palette (use consistently across all tools)\n\n### Primary Colors\n| Name | Hex | Use |\n|------|-----|-----|\n| Blue | `#4a9eed` | Primary actions, links, data series 1 |\n| Amber | `#f59e0b` | Warnings, highlights, data series 2 |\n| Green | `#22c55e` | Success, positive, data series 3 |\n| Red | `#ef4444` | Errors, negative, data series 4 |\n| Purple | `#8b5cf6` | Accents, special items, data series 5 |\n| Pink | `#ec4899` | Decorative, data series 6 |\n| Cyan | `#06b6d4` | Info, secondary, data series 7 |\n| Lime | `#84cc16` | Extra, data series 8 |\n\n### Excalidraw Fills (pastel, for shape backgrounds)\n| Color | Hex | Good For |\n|-------|-----|----------|\n| Light Blue | `#a5d8ff` | Input, sources, primary nodes |\n| Light Green | `#b2f2bb` | Success, output, completed |\n| Light Orange | `#ffd8a8` | Warning, pending, external |\n| Light Purple | `#d0bfff` | Processing, middleware, special |\n| Light Red | `#ffc9c9` | Error, critical, alerts |\n| Light Yellow | `#fff3bf` | Notes, decisions, planning |\n| Light Teal | `#c3fae8` | Storage, data, memory |\n| Light Pink | `#eebefa` | Analytics, metrics |\n\n### Background Zones (use with opacity: 30 for layered diagrams)\n| Color | Hex | Good For |\n|-------|-----|----------|\n| Blue zone | `#dbe4ff` | UI / frontend layer |\n| Purple zone | `#e5dbff` | Logic / agent layer |\n| Green zone | `#d3f9d8` | Data / tool layer |\n\n---\n\n## Excalidraw Elements\n\n### Required Fields (all elements)\n`type`, `id` (unique string), `x`, `y`, `width`, `height`\n\n### Defaults (skip these)\nstrokeColor=\"#1e1e1e\", backgroundColor=\"transparent\", fillStyle=\"solid\", strokeWidth=2, roughness=1, opacity=100\nCanvas background is white.\n\n### Element Types\n\n**Rectangle**: `{ \"type\": \"rectangle\", \"id\": \"r1\", \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 100 }`\n- `roundness: { type: 3 }` for rounded corners\n- `backgroundColor: \"#a5d8ff\"`, `fillStyle: \"solid\"` for filled\n\n**Ellipse**: `{ \"type\": \"ellipse\", \"id\": \"e1\", \"x\": 100, \"y\": 100, \"width\": 150, \"height\": 150 }`\n\n**Diamond**: `{ \"type\": \"diamond\", \"id\": \"d1\", \"x\": 100, \"y\": 100, \"width\": 150, \"height\": 150 }`\n\n**Labeled shape (PREFERRED)**: Add `label` to any shape for auto-centered text. No separate text element needed.\n`{ \"type\": \"rectangle\", \"id\": \"r1\", \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 80, \"label\": { \"text\": \"Hello\", \"fontSize\": 20 } }`\n- Works on rectangle, ellipse, diamond\n- Text auto-centers and container auto-resizes to fit\n- Saves tokens vs separate text elements\n\n**Labeled arrow**: `\"label\": { \"text\": \"connects\" }` on an arrow element.\n\n**Standalone text** (titles, annotations only):\n`{ \"type\": \"text\", \"id\": \"t1\", \"x\": 150, \"y\": 138, \"text\": \"Hello\", \"fontSize\": 20 }`\n- x is the LEFT edge of the text. To center text at position cx: set x = cx - estimatedWidth/2\n- estimatedWidth \u2248 text.length \u00d7 fontSize \u00d7 0.5\n- Do NOT rely on textAlign or width for positioning \u2014 they only affect multi-line wrapping\n\n**Arrow**: `{ \"type\": \"arrow\", \"id\": \"a1\", \"x\": 300, \"y\": 150, \"width\": 200, \"height\": 0, \"points\": [[0,0],[200,0]], \"endArrowhead\": \"arrow\" }`\n- points: [dx, dy] offsets from element x,y\n- endArrowhead: null | \"arrow\" | \"bar\" | \"dot\" | \"triangle\"\n\n### Arrow Bindings\nArrow: `\"startBinding\": { \"elementId\": \"r1\", \"fixedPoint\": [1, 0.5] }`\nfixedPoint: top=[0.5,0], bottom=[0.5,1], left=[0,0.5], right=[1,0.5]\n\n**cameraUpdate** (pseudo-element \u2014 controls the viewport, not drawn):\n`{ \"type\": \"cameraUpdate\", \"width\": 800, \"height\": 600, \"x\": 0, \"y\": 0 }`\n- x, y: top-left corner of the visible area (scene coordinates)\n- width, height: size of the visible area \u2014 MUST be 4:3 ratio (400\u00d7300, 600\u00d7450, 800\u00d7600, 1200\u00d7900, 1600\u00d71200)\n- Animates smoothly between positions \u2014 use multiple cameraUpdates to guide attention as you draw\n- No `id` needed \u2014 this is not a drawn element\n\n**delete** (pseudo-element \u2014 removes elements by id):\n`{ \"type\": \"delete\", \"ids\": \"b2,a1,t3\" }`\n- Comma-separated list of element ids to remove\n- Also removes bound text elements (matching `containerId`)\n- Place AFTER the elements you want to remove\n- Never reuse a deleted id \u2014 always assign new ids to replacements\n\n### Drawing Order (CRITICAL for streaming)\n- Array order = z-order (first = back, last = front)\n- **Emit progressively**: background \u2192 shape \u2192 its label \u2192 its arrows \u2192 next shape\n- BAD: all rectangles \u2192 all texts \u2192 all arrows\n- GOOD: bg_shape \u2192 shape1 \u2192 text1 \u2192 arrow1 \u2192 shape2 \u2192 text2 \u2192 ...\n\n### Example: Two connected labeled boxes\n```json\n[\n  { \"type\": \"cameraUpdate\", \"width\": 800, \"height\": 600, \"x\": 50, \"y\": 50 },\n  { \"type\": \"rectangle\", \"id\": \"b1\", \"x\": 100, \"y\": 100, \"width\": 200, \"height\": 100, \"roundness\": { \"type\": 3 }, \"backgroundColor\": \"#a5d8ff\", \"fillStyle\": \"solid\", \"label\": { \"text\": \"Start\", \"fontSize\": 20 } },\n  { \"type\": \"rectangle\", \"id\": \"b2\", \"x\": 450, \"y\": 100, \"width\": 200, \"height\": 100, \"roundness\": { \"type\": 3 }, \"backgroundColor\": \"#b2f2bb\", \"fillStyle\": \"solid\", \"label\": { \"text\": \"End\", \"fontSize\": 20 } },\n  { \"type\": \"arrow\", \"id\": \"a1\", \"x\": 300, \"y\": 150, \"width\": 150, \"height\": 0, \"points\": [[0,0],[150,0]], \"endArrowhead\": \"arrow\", \"startBinding\": { \"elementId\": \"b1\", \"fixedPoint\": [1, 0.5] }, \"endBinding\": { \"elementId\": \"b2\", \"fixedPoint\": [0, 0.5] } }\n]\n```\n\n### Camera & Sizing (CRITICAL for readability)\n\nThe diagram displays inline at ~700px width. Design for this constraint.\n\n**Recommended camera sizes (4:3 aspect ratio ONLY):**\n- Camera **S**: width 400, height 300 \u2014 close-up on a small group (2-3 elements)\n- Camera **M**: width 600, height 450 \u2014 medium view, a section of a diagram\n- Camera **L**: width 800, height 600 \u2014 standard full diagram (DEFAULT)\n- Camera **XL**: width 1200, height 900 \u2014 large diagram overview. WARNING: font size smaller than 18 is unreadable\n- Camera **XXL**: width 1600, height 1200 \u2014 panorama / final overview of complex diagrams. WARNING: minimum readable font size is 21\n\nALWAYS use one of these exact sizes. Non-4:3 viewports cause distortion.\n\n**Font size rules:**\n- Minimum fontSize: **16** for body text, labels, descriptions\n- Minimum fontSize: **20** for titles and headings\n- Minimum fontSize: **14** for secondary annotations only (sparingly)\n- NEVER use fontSize below 14 \u2014 it becomes unreadable at display scale\n\n**Element sizing rules:**\n- Minimum shape size: 120\u00d760 for labeled rectangles/ellipses\n- Leave 20-30px gaps between elements minimum\n- Prefer fewer, larger elements over many tiny ones\n\nALWAYS start with a `cameraUpdate` as the FIRST element. For example:\n`{ \"type\": \"cameraUpdate\", \"width\": 800, \"height\": 600, \"x\": 0, \"y\": 0 }`\n\n- x, y: top-left corner of visible area (scene coordinates)\n- ALWAYS emit the cameraUpdate BEFORE drawing the elements it frames \u2014 camera moves first, then content appears\n- The camera animates smoothly between positions\n- Leave padding: don't match camera size to content size exactly (e.g., 500px content in 800x600 camera)\n\nExamples:\n`{ \"type\": \"cameraUpdate\", \"width\": 800, \"height\": 600, \"x\": 0, \"y\": 0 }` \u2014 standard view\n`{ \"type\": \"cameraUpdate\", \"width\": 400, \"height\": 300, \"x\": 200, \"y\": 100 }` \u2014 zoom into a detail\n`{ \"type\": \"cameraUpdate\", \"width\": 1600, \"height\": 1200, \"x\": -50, \"y\": -50 }` \u2014 panorama overview\n\nTip: For large diagrams, emit a cameraUpdate to focus on each section as you draw it.\n\n## Diagram Example\n\nExample prompt: \"Explain how photosynthesis works\"\n\nUses 2 camera positions: start zoomed in (M) for title, then zoom out (L) to reveal the full diagram. Sun art drawn last as a finishing touch.\n\n- **Camera 1** (400x300): Draw the title \"Photosynthesis\" and formula subtitle zoomed in\n- **Camera 2** (800x600): Zoom out \u2014 draw the leaf zone, process flow (Light Reactions \u2192 Calvin Cycle), inputs (Sunlight, Water, CO2), outputs (O2, Glucose), and finally a cute 8-ray sun\n\n```json\n[\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":200,\"y\":-20},\n  {\"type\":\"text\",\"id\":\"ti\",\"x\":280,\"y\":10,\"text\":\"Photosynthesis\",\"fontSize\":28,\"strokeColor\":\"#1e1e1e\"},\n  {\"type\":\"text\",\"id\":\"fo\",\"x\":245,\"y\":48,\"text\":\"6CO2 + 6H2O --> C6H12O6 + 6O2\",\"fontSize\":16,\"strokeColor\":\"#757575\"},\n  {\"type\":\"cameraUpdate\",\"width\":800,\"height\":600,\"x\":0,\"y\":-20},\n  {\"type\":\"rectangle\",\"id\":\"lf\",\"x\":150,\"y\":90,\"width\":520,\"height\":380,\"backgroundColor\":\"#d3f9d8\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#22c55e\",\"strokeWidth\":1,\"opacity\":35},\n  {\"type\":\"text\",\"id\":\"lfl\",\"x\":170,\"y\":96,\"text\":\"Inside the Leaf\",\"fontSize\":16,\"strokeColor\":\"#15803d\"},\n  {\"type\":\"rectangle\",\"id\":\"lr\",\"x\":190,\"y\":190,\"width\":160,\"height\":70,\"backgroundColor\":\"#fff3bf\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#f59e0b\",\"label\":{\"text\":\"Light Reactions\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"a1\",\"x\":350,\"y\":225,\"width\":120,\"height\":0,\"points\":[[0,0],[120,0]],\"strokeColor\":\"#1e1e1e\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"ATP\",\"fontSize\":14}},\n  {\"type\":\"rectangle\",\"id\":\"cc\",\"x\":470,\"y\":190,\"width\":160,\"height\":70,\"backgroundColor\":\"#d0bfff\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#8b5cf6\",\"label\":{\"text\":\"Calvin Cycle\",\"fontSize\":16}},\n  {\"type\":\"rectangle\",\"id\":\"sl\",\"x\":10,\"y\":200,\"width\":120,\"height\":50,\"backgroundColor\":\"#fff3bf\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#f59e0b\",\"label\":{\"text\":\"Sunlight\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"a2\",\"x\":130,\"y\":225,\"width\":60,\"height\":0,\"points\":[[0,0],[60,0]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\"},\n  {\"type\":\"rectangle\",\"id\":\"wa\",\"x\":200,\"y\":360,\"width\":140,\"height\":50,\"backgroundColor\":\"#a5d8ff\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#4a9eed\",\"label\":{\"text\":\"Water (H2O)\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"a3\",\"x\":270,\"y\":360,\"width\":0,\"height\":-100,\"points\":[[0,0],[0,-100]],\"strokeColor\":\"#4a9eed\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\"},\n  {\"type\":\"rectangle\",\"id\":\"co\",\"x\":480,\"y\":360,\"width\":130,\"height\":50,\"backgroundColor\":\"#ffd8a8\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#f59e0b\",\"label\":{\"text\":\"CO2\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"a4\",\"x\":545,\"y\":360,\"width\":0,\"height\":-100,\"points\":[[0,0],[0,-100]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\"},\n  {\"type\":\"rectangle\",\"id\":\"ox\",\"x\":540,\"y\":100,\"width\":100,\"height\":40,\"backgroundColor\":\"#ffc9c9\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#ef4444\",\"label\":{\"text\":\"O2\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"a5\",\"x\":310,\"y\":190,\"width\":230,\"height\":-50,\"points\":[[0,0],[230,-50]],\"strokeColor\":\"#ef4444\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\"},\n  {\"type\":\"rectangle\",\"id\":\"gl\",\"x\":690,\"y\":195,\"width\":120,\"height\":60,\"backgroundColor\":\"#c3fae8\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#22c55e\",\"label\":{\"text\":\"Glucose\",\"fontSize\":18}},\n  {\"type\":\"arrow\",\"id\":\"a6\",\"x\":630,\"y\":225,\"width\":60,\"height\":0,\"points\":[[0,0],[60,0]],\"strokeColor\":\"#22c55e\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\"},\n  {\"type\":\"ellipse\",\"id\":\"sun\",\"x\":30,\"y\":110,\"width\":50,\"height\":50,\"backgroundColor\":\"#fff3bf\",\"fillStyle\":\"solid\",\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2},\n  {\"type\":\"arrow\",\"id\":\"r1\",\"x\":55,\"y\":108,\"width\":0,\"height\":-14,\"points\":[[0,0],[0,-14]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r2\",\"x\":55,\"y\":162,\"width\":0,\"height\":14,\"points\":[[0,0],[0,14]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r3\",\"x\":28,\"y\":135,\"width\":-14,\"height\":0,\"points\":[[0,0],[-14,0]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r4\",\"x\":82,\"y\":135,\"width\":14,\"height\":0,\"points\":[[0,0],[14,0]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r5\",\"x\":73,\"y\":117,\"width\":10,\"height\":-10,\"points\":[[0,0],[10,-10]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r6\",\"x\":37,\"y\":117,\"width\":-10,\"height\":-10,\"points\":[[0,0],[-10,-10]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r7\",\"x\":73,\"y\":153,\"width\":10,\"height\":10,\"points\":[[0,0],[10,10]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null},\n  {\"type\":\"arrow\",\"id\":\"r8\",\"x\":37,\"y\":153,\"width\":-10,\"height\":10,\"points\":[[0,0],[-10,10]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":null,\"startArrowhead\":null}\n]\n```\n\nCommon mistakes to avoid:\n- **Camera size must match content with padding** \u2014 if your content is 500px tall, use 800x600 camera, not 500px. No padding = truncated edges\n- **Center titles relative to the diagram below** \u2014 estimate the diagram's total width and center the title text over it, not over the canvas\n- **Arrow labels need space** \u2014 long labels like \"ATP + NADPH\" overflow short arrows. Keep labels short or make arrows wider\n- **Elements overlap when y-coordinates are close** \u2014 always check that text, boxes, and labels don't stack on top of each other (e.g., an output box overlapping a zone label)\n- **Draw art/illustrations LAST** \u2014 cute decorations (sun, stars, icons) should appear as the final drawing step so they don't distract from the main content being built\n\n## Sequence flow Diagram Example\n\nExample prompt: \"show a sequence diagram explaining MCP Apps\"\n\nThis demonstrates a UML-style sequence diagram with 4 actors (User, Agent, App iframe, MCP Server), dashed lifelines, and labeled arrows showing the full MCP Apps request/response flow. Camera pans progressively across the diagram:\n\n- **Camera 1** (600x450): Title \"MCP Apps \u2014 Sequence Flow\"\n- **Cameras 2\u20135** (400x300 each): Zoom into each actor column right-to-left \u2014 draw header box + dashed lifeline for Server, App, Agent, User. Right-to-left so the camera snakes smoothly: pan left across actors, then pan right following the first message arrows\n- **Camera 6** (400x300): Zoom into User \u2014 draw stick figure (head + body)\n- **Camera 7** (600x450): Zoom out \u2014 draw first message arrows: user prompt \u2192 agent, agent tools/call \u2192 server, tool result back, result forwarded to app iframe\n- **Camera 8** (600x450): Pan down \u2014 draw user interaction with app, app requesting tools/call back to agent\n- **Camera 9** (600x450): Pan further down \u2014 agent forwards to server, fresh data flows back through the chain, context update from app to agent\n- **Camera 10** (800x600): Final zoom-out showing the complete sequence\n\n```json\n[\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":80,\"y\":-10},\n  {\"type\":\"text\",\"id\":\"title\",\"x\":200,\"y\":15,\"text\":\"MCP Apps \u2014 Sequence Flow\",\"fontSize\":24,\"strokeColor\":\"#1e1e1e\"},\n\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":450,\"y\":-5},\n  {\"type\":\"rectangle\",\"id\":\"sHead\",\"x\":600,\"y\":60,\"width\":130,\"height\":40,\"backgroundColor\":\"#ffd8a8\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"label\":{\"text\":\"MCP Server\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"sLine\",\"x\":665,\"y\":100,\"width\":0,\"height\":490,\"points\":[[0,0],[0,490]],\"strokeColor\":\"#b0b0b0\",\"strokeWidth\":1,\"strokeStyle\":\"dashed\",\"endArrowhead\":null},\n\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":250,\"y\":-5},\n  {\"type\":\"rectangle\",\"id\":\"appHead\",\"x\":400,\"y\":60,\"width\":130,\"height\":40,\"backgroundColor\":\"#b2f2bb\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#22c55e\",\"strokeWidth\":2,\"label\":{\"text\":\"App iframe\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"appLine\",\"x\":465,\"y\":100,\"width\":0,\"height\":490,\"points\":[[0,0],[0,490]],\"strokeColor\":\"#b0b0b0\",\"strokeWidth\":1,\"strokeStyle\":\"dashed\",\"endArrowhead\":null},\n\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":80,\"y\":-5},\n  {\"type\":\"rectangle\",\"id\":\"aHead\",\"x\":230,\"y\":60,\"width\":100,\"height\":40,\"backgroundColor\":\"#d0bfff\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#8b5cf6\",\"strokeWidth\":2,\"label\":{\"text\":\"Agent\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"aLine\",\"x\":280,\"y\":100,\"width\":0,\"height\":490,\"points\":[[0,0],[0,490]],\"strokeColor\":\"#b0b0b0\",\"strokeWidth\":1,\"strokeStyle\":\"dashed\",\"endArrowhead\":null},\n\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":-10,\"y\":-5},\n  {\"type\":\"rectangle\",\"id\":\"uHead\",\"x\":60,\"y\":60,\"width\":100,\"height\":40,\"backgroundColor\":\"#a5d8ff\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#4a9eed\",\"strokeWidth\":2,\"label\":{\"text\":\"User\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"uLine\",\"x\":110,\"y\":100,\"width\":0,\"height\":490,\"points\":[[0,0],[0,490]],\"strokeColor\":\"#b0b0b0\",\"strokeWidth\":1,\"strokeStyle\":\"dashed\",\"endArrowhead\":null},\n\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":-40,\"y\":50},\n  {\"type\":\"ellipse\",\"id\":\"uh\",\"x\":58,\"y\":110,\"width\":20,\"height\":20,\"backgroundColor\":\"#a5d8ff\",\"fillStyle\":\"solid\",\"strokeColor\":\"#4a9eed\",\"strokeWidth\":2},\n  {\"type\":\"rectangle\",\"id\":\"ub\",\"x\":57,\"y\":132,\"width\":22,\"height\":26,\"backgroundColor\":\"#a5d8ff\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#4a9eed\",\"strokeWidth\":2},\n\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":-20,\"y\":-30},\n  {\"type\":\"arrow\",\"id\":\"m1\",\"x\":110,\"y\":135,\"width\":170,\"height\":0,\"points\":[[0,0],[170,0]],\"strokeColor\":\"#1e1e1e\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"display a chart\",\"fontSize\":14}},\n  {\"type\":\"rectangle\",\"id\":\"note1\",\"x\":130,\"y\":162,\"width\":310,\"height\":26,\"backgroundColor\":\"#fff3bf\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#f59e0b\",\"strokeWidth\":1,\"opacity\":50,\"label\":{\"text\":\"Interactive app rendered in chat\",\"fontSize\":14}},\n\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":170,\"y\":25},\n  {\"type\":\"arrow\",\"id\":\"m2\",\"x\":280,\"y\":210,\"width\":385,\"height\":0,\"points\":[[0,0],[385,0]],\"strokeColor\":\"#8b5cf6\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"tools/call\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"m3\",\"x\":665,\"y\":250,\"width\":-385,\"height\":0,\"points\":[[0,0],[-385,0]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"strokeStyle\":\"dashed\",\"label\":{\"text\":\"tool input/result\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"m4\",\"x\":280,\"y\":290,\"width\":185,\"height\":0,\"points\":[[0,0],[185,0]],\"strokeColor\":\"#8b5cf6\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"strokeStyle\":\"dashed\",\"label\":{\"text\":\"result \u2192 app\",\"fontSize\":16}},\n\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":-10,\"y\":135},\n  {\"type\":\"arrow\",\"id\":\"m5\",\"x\":110,\"y\":340,\"width\":355,\"height\":0,\"points\":[[0,0],[355,0]],\"strokeColor\":\"#4a9eed\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"user interacts\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"m6\",\"x\":465,\"y\":380,\"width\":-185,\"height\":0,\"points\":[[0,0],[-185,0]],\"strokeColor\":\"#22c55e\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"tools/call request\",\"fontSize\":16}},\n\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":170,\"y\":235},\n  {\"type\":\"arrow\",\"id\":\"m7\",\"x\":280,\"y\":420,\"width\":385,\"height\":0,\"points\":[[0,0],[385,0]],\"strokeColor\":\"#8b5cf6\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"label\":{\"text\":\"tools/call (forwarded)\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"m8\",\"x\":665,\"y\":460,\"width\":-385,\"height\":0,\"points\":[[0,0],[-385,0]],\"strokeColor\":\"#f59e0b\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"strokeStyle\":\"dashed\",\"label\":{\"text\":\"fresh data\",\"fontSize\":16}},\n  {\"type\":\"arrow\",\"id\":\"m9\",\"x\":280,\"y\":500,\"width\":185,\"height\":0,\"points\":[[0,0],[185,0]],\"strokeColor\":\"#8b5cf6\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"strokeStyle\":\"dashed\",\"label\":{\"text\":\"fresh data\",\"fontSize\":16}},\n\n  {\"type\":\"cameraUpdate\",\"width\":600,\"height\":450,\"x\":50,\"y\":327},\n  {\"type\":\"rectangle\",\"id\":\"note2\",\"x\":130,\"y\":522,\"width\":310,\"height\":26,\"backgroundColor\":\"#d3f9d8\",\"fillStyle\":\"solid\",\"roundness\":{\"type\":3},\"strokeColor\":\"#22c55e\",\"strokeWidth\":1,\"opacity\":50,\"label\":{\"text\":\"App updates with new data\",\"fontSize\":14}},\n  {\"type\":\"arrow\",\"id\":\"m10\",\"x\":465,\"y\":570,\"width\":-185,\"height\":0,\"points\":[[0,0],[-185,0]],\"strokeColor\":\"#22c55e\",\"strokeWidth\":2,\"endArrowhead\":\"arrow\",\"strokeStyle\":\"dashed\",\"label\":{\"text\":\"context update\",\"fontSize\":16}},\n\n  {\"type\":\"cameraUpdate\",\"width\":800,\"height\":600,\"x\":-5,\"y\":2}\n]\n```\n\n## Checkpoints (restoring previous state)\n\nEvery create_view call returns a `checkpointId` in its response. To continue from a previous diagram state, start your elements array with a restoreCheckpoint element:\n\n`[{\"type\":\"restoreCheckpoint\",\"id\":\"<checkpointId>\"}, ...additional new elements...]`\n\nThe saved state (including any user edits made in fullscreen) is loaded from the client, and your new elements are appended on top. This saves tokens \u2014 you don't need to re-send the entire diagram.\n\n## Deleting Elements\n\nRemove elements by id using the `delete` pseudo-element:\n\n`{\"type\":\"delete\",\"ids\":\"b2,a1,t3\"}`\n\nWorks in two modes:\n- **With restoreCheckpoint**: restore a saved state, then surgically remove specific elements before adding new ones\n- **Inline (animation mode)**: draw elements, then delete and replace them later in the same array to create transformation effects\n\nPlace delete entries AFTER the elements you want to remove. The final render filters them out.\n\n**IMPORTANT**: Every element id must be unique. Never reuse an id after deleting it \u2014 always assign a new id to replacement elements.\n\n## Animation Mode \u2014 Transform in Place\n\nInstead of building left-to-right and panning away, you can animate by DELETING elements and replacing them at the same position. Combined with slight camera moves, this creates smooth visual transformations during streaming.\n\nPattern:\n1. Draw initial elements\n2. cameraUpdate (shift/zoom slightly)\n3. `{\"type\":\"delete\",\"ids\":\"old1,old2\"}`\n4. Draw replacements at same coordinates (different color/content)\n5. Repeat\n\nExample prompt: \"Pixel snake eats apple\"\n\nSnake moves right by adding a head segment and deleting the tail. On eating the apple, tail is NOT deleted (snake grows). Camera nudges between frames add subtle motion.\n\n```json\n[\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":0,\"y\":0},\n  {\"type\":\"ellipse\",\"id\":\"ap\",\"x\":260,\"y\":78,\"width\":20,\"height\":20,\"backgroundColor\":\"#ef4444\",\"fillStyle\":\"solid\",\"strokeColor\":\"#ef4444\"},\n  {\"type\":\"rectangle\",\"id\":\"s0\",\"x\":60,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"rectangle\",\"id\":\"s1\",\"x\":88,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"rectangle\",\"id\":\"s2\",\"x\":116,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"rectangle\",\"id\":\"s3\",\"x\":144,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":1,\"y\":0},\n  {\"type\":\"rectangle\",\"id\":\"s4\",\"x\":172,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s0\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":0,\"y\":1},\n  {\"type\":\"rectangle\",\"id\":\"s5\",\"x\":200,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s1\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":1,\"y\":0},\n  {\"type\":\"rectangle\",\"id\":\"s6\",\"x\":228,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s2\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":0,\"y\":0},\n  {\"type\":\"rectangle\",\"id\":\"s7\",\"x\":256,\"y\":130,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s3\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":1,\"y\":1},\n  {\"type\":\"rectangle\",\"id\":\"s8\",\"x\":256,\"y\":102,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s4\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":0,\"y\":0},\n  {\"type\":\"rectangle\",\"id\":\"s9\",\"x\":256,\"y\":74,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"ap\"},\n  {\"type\":\"cameraUpdate\",\"width\":400,\"height\":300,\"x\":1,\"y\":0},\n  {\"type\":\"rectangle\",\"id\":\"s10\",\"x\":256,\"y\":46,\"width\":28,\"height\":28,\"backgroundColor\":\"#22c55e\",\"fillStyle\":\"solid\",\"strokeColor\":\"#15803d\",\"strokeWidth\":1},\n  {\"type\":\"delete\",\"ids\":\"s5\"}\n]\n```\n\nKey techniques:\n- Add head + delete tail each frame = snake movement illusion\n- On eat: delete apple instead of tail = snake grows by one\n- Post-eat frame resumes normal add-head/delete-tail, proving the snake is now longer\n- Camera nudges (0,0 \u2192 1,0 \u2192 0,1 \u2192 ...) add subtle motion between frames\n- Always use NEW ids for added segments (s0\u2192s4\u2192s5\u2192...); never reuse deleted ids\n\n## Dark Mode\n\nIf the user asks for a dark theme/mode diagram, use a massive dark background rectangle as the FIRST element (before cameraUpdate). Make it 10x the camera size so it covers the entire viewport even when panning:\n\n`{\"type\":\"rectangle\",\"id\":\"darkbg\",\"x\":-4000,\"y\":-3000,\"width\":10000,\"height\":7500,\"backgroundColor\":\"#1e1e2e\",\"fillStyle\":\"solid\",\"strokeColor\":\"transparent\",\"strokeWidth\":0}`\n\nThen use these colors on the dark background:\n\n**Text colors (on dark):**\n| Color | Hex | Use |\n|-------|-----|-----|\n| White | `#e5e5e5` | Primary text, titles |\n| Muted | `#a0a0a0` | Secondary text, annotations |\n| NEVER | `#555` or darker | Invisible on dark bg! |\n\n**Shape fills (on dark):**\n| Color | Hex | Good For |\n|-------|-----|----------|\n| Dark Blue | `#1e3a5f` | Primary nodes |\n| Dark Green | `#1a4d2e` | Success, output |\n| Dark Purple | `#2d1b69` | Processing, special |\n| Dark Orange | `#5c3d1a` | Warning, pending |\n| Dark Red | `#5c1a1a` | Error, critical |\n| Dark Teal | `#1a4d4d` | Storage, data |\n\n**Stroke/arrow colors (on dark):**\nUse the Primary Colors from above \u2014 they're bright enough on dark backgrounds. For shape borders, use slightly lighter variants or `#555555` for subtle outlines.\n\n## Tips\n- Do NOT call read_me again \u2014 you already have everything you need\n- Use the color palette consistently\n- **Text contrast is CRITICAL** \u2014 never use light gray (#b0b0b0, #999) on white backgrounds. Minimum text color on white: #757575. For colored text on light fills, use dark variants (#15803d not #22c55e, #2563eb not #4a9eed). White text needs dark backgrounds (#9a5030 not #c4795b)\n- Do NOT use emoji in text \u2014 they don't render in Excalidraw's font\n- cameraUpdate is MAGICAL and users love it! please use it a lot to guide the user's attention as you draw. It makes a huge difference in readability and engagement.\n", "_ts": "2026-02-16T02:20:24.319107+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "excalidraw_read_me", "total_calls": 1, "tools_breakdown": {"excalidraw_read_me": 1}, "_ts": "2026-02-16T02:20:24.319747+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T02:20:24.321348+00:00"}
+{"type": "tool_call_start", "tool_name": "excalidraw_create_view", "tool_call_id": "call_fD7tpoIMLeQQL9pq3HrD5ruw", "_ts": "2026-02-16T02:20:25.659127+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "{\"", "_ts": "2026-02-16T02:20:25.669742+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "elements", "_ts": "2026-02-16T02:20:25.670448+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":\"", "_ts": "2026-02-16T02:20:25.703942+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "[\\", "_ts": "2026-02-16T02:20:25.704665+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:25.760459+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:25.761027+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:25.813404+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:25.814760+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:25.848609+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:25.849457+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "camera", "_ts": "2026-02-16T02:20:25.865538+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Update", "_ts": "2026-02-16T02:20:25.866149+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:25.866939+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:25.867247+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:25.896042+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "800", "_ts": "2026-02-16T02:20:25.896989+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:25.918242+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:25.918779+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:25.939158+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "600", "_ts": "2026-02-16T02:20:25.939659+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:25.954384+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:25.955151+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:25.955967+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:25.956426+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:25.971006+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:25.971788+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:25.985235+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:25.985802+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:26.016052+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:26.017021+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:26.017887+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:26.018237+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:26.034862+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:26.035365+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:26.066755+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.067280+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:26.083187+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.083935+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:26.111970+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.112626+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "tt", "_ts": "2026-02-16T02:20:26.142282+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:26.143061+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.143797+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:26.144275+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.172039+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "270", "_ts": "2026-02-16T02:20:26.172535+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.186529+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:26.187098+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.222397+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "20", "_ts": "2026-02-16T02:20:26.222972+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.245285+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:26.245943+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.275468+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Arch", "_ts": "2026-02-16T02:20:26.276340+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "itekt", "_ts": "2026-02-16T02:20:26.292271+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ura", "_ts": "2026-02-16T02:20:26.292849+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " Fast", "_ts": "2026-02-16T02:20:26.303910+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "API", "_ts": "2026-02-16T02:20:26.304455+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " +", "_ts": "2026-02-16T02:20:26.321279+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:26.322231+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "2", "_ts": "2026-02-16T02:20:26.338404+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " b", "_ts": "2026-02-16T02:20:26.339384+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "azy", "_ts": "2026-02-16T02:20:26.353902+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " danych", "_ts": "2026-02-16T02:20:26.354641+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " +", "_ts": "2026-02-16T02:20:26.384248+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " React", "_ts": "2026-02-16T02:20:26.384761+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.400156+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:26.400648+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:26.414132+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.414790+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "24", "_ts": "2026-02-16T02:20:26.464561+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:26.465059+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:26.478462+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:26.479003+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\n", "_ts": "2026-02-16T02:20:26.495421+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:26.496174+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:26.522806+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:26.523790+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:26.561084+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.561783+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "rectangle", "_ts": "2026-02-16T02:20:26.584877+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.585550+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:26.598475+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.598907+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fe", "_ts": "2026-02-16T02:20:26.638313+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:26.638918+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.661271+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:26.661777+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.695508+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "100", "_ts": "2026-02-16T02:20:26.696126+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.697310+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:26.697728+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.712537+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "100", "_ts": "2026-02-16T02:20:26.713280+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.714821+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:26.715219+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.746008+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "190", "_ts": "2026-02-16T02:20:26.746684+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.747439+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:26.748022+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.784700+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "70", "_ts": "2026-02-16T02:20:26.785314+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:26.816995+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "round", "_ts": "2026-02-16T02:20:26.817607+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ness", "_ts": "2026-02-16T02:20:26.848262+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:26.849006+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:26.850130+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:26.851090+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:26.869569+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:26.870079+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:26.884966+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "background", "_ts": "2026-02-16T02:20:26.885369+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Color", "_ts": "2026-02-16T02:20:26.886751+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.887309+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "#", "_ts": "2026-02-16T02:20:26.917148+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "a", "_ts": "2026-02-16T02:20:26.918316+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "5", "_ts": "2026-02-16T02:20:26.933958+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "d", "_ts": "2026-02-16T02:20:26.934649+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "8", "_ts": "2026-02-16T02:20:26.936041+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ff", "_ts": "2026-02-16T02:20:26.936932+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:26.947639+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "label", "_ts": "2026-02-16T02:20:26.948281+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:26.948792+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:26.948999+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:26.980481+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Frontend", "_ts": "2026-02-16T02:20:26.981079+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\\", "_ts": "2026-02-16T02:20:27.009924+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:27.010840+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "React", "_ts": "2026-02-16T02:20:27.026233+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.026655+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:27.042862+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:27.043759+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.057409+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "20", "_ts": "2026-02-16T02:20:27.057812+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}},", "_ts": "2026-02-16T02:20:27.073464+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:27.074045+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:27.107922+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\n", "_ts": "2026-02-16T02:20:27.108228+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:27.110429+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:27.110906+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:27.147001+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:27.147627+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.181322+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "rectangle", "_ts": "2026-02-16T02:20:27.182215+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.198474+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:27.199300+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.232058+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "api", "_ts": "2026-02-16T02:20:27.232405+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:27.244536+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.245191+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:27.275068+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.275356+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "350", "_ts": "2026-02-16T02:20:27.290205+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.290701+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:27.323721+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.324873+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "120", "_ts": "2026-02-16T02:20:27.341443+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.341845+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:27.354046+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.354444+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "220", "_ts": "2026-02-16T02:20:27.356069+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.356246+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:27.387450+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.387740+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "70", "_ts": "2026-02-16T02:20:27.415144+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.415484+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "round", "_ts": "2026-02-16T02:20:27.431301+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ness", "_ts": "2026-02-16T02:20:27.431852+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:27.446588+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:27.446969+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.447366+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:27.447532+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:27.475174+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:27.475499+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "background", "_ts": "2026-02-16T02:20:27.492449+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Color", "_ts": "2026-02-16T02:20:27.492754+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.519445+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "#", "_ts": "2026-02-16T02:20:27.519733+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "d", "_ts": "2026-02-16T02:20:27.553246+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:27.553576+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "b", "_ts": "2026-02-16T02:20:27.554246+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fff", "_ts": "2026-02-16T02:20:27.554407+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.567006+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "label", "_ts": "2026-02-16T02:20:27.567300+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:27.568013+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:27.568160+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.582379+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "API", "_ts": "2026-02-16T02:20:27.582619+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\\", "_ts": "2026-02-16T02:20:27.609394+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:27.609610+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Fast", "_ts": "2026-02-16T02:20:27.690262+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "API", "_ts": "2026-02-16T02:20:27.691246+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " app", "_ts": "2026-02-16T02:20:27.705503+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.706176+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:27.719727+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:27.720293+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.721330+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "20", "_ts": "2026-02-16T02:20:27.722273+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}},", "_ts": "2026-02-16T02:20:27.723140+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:27.723583+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:27.724293+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\n", "_ts": "2026-02-16T02:20:27.724682+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:27.738567+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:27.739193+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:27.741055+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:27.741448+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.751574+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "rectangle", "_ts": "2026-02-16T02:20:27.752134+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.753034+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:27.753416+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.765821+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "db", "_ts": "2026-02-16T02:20:27.766316+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:27.781247+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.782351+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:27.801109+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.801624+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "350", "_ts": "2026-02-16T02:20:27.817399+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.818105+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:27.833965+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.834877+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "250", "_ts": "2026-02-16T02:20:27.836398+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.836830+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:27.848309+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.849189+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "150", "_ts": "2026-02-16T02:20:27.864091+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.864652+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:27.883142+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.883643+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:27.899801+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:27.900304+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "round", "_ts": "2026-02-16T02:20:27.901578+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ness", "_ts": "2026-02-16T02:20:27.901975+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:27.912945+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:27.914122+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:27.915201+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:27.915709+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:27.928144+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:27.928661+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "background", "_ts": "2026-02-16T02:20:27.931022+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Color", "_ts": "2026-02-16T02:20:27.931665+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:27.956329+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "#", "_ts": "2026-02-16T02:20:27.957265+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "c", "_ts": "2026-02-16T02:20:27.969350+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:27.969766+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fa", "_ts": "2026-02-16T02:20:27.983184+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "e", "_ts": "2026-02-16T02:20:27.983708+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "8", "_ts": "2026-02-16T02:20:27.984373+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:27.984741+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "label", "_ts": "2026-02-16T02:20:28.005074+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:28.005639+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:28.033180+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.034169+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "B", "_ts": "2026-02-16T02:20:28.048405+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "aza", "_ts": "2026-02-16T02:20:28.048945+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " danych", "_ts": "2026-02-16T02:20:28.099331+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:28.100310+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:28.118467+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.118944+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:28.119978+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:28.120382+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.137972+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "18", "_ts": "2026-02-16T02:20:28.139111+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}},", "_ts": "2026-02-16T02:20:28.140216+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:28.140721+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:28.334380+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:28.335121+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:28.348578+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:28.349361+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:28.369099+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.370168+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "rectangle", "_ts": "2026-02-16T02:20:28.386122+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.386921+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:28.388039+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.388775+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "db", "_ts": "2026-02-16T02:20:28.409722+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "2", "_ts": "2026-02-16T02:20:28.410293+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.423260+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:28.423743+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.454011+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "530", "_ts": "2026-02-16T02:20:28.455137+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.470080+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:28.470506+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.503487+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "250", "_ts": "2026-02-16T02:20:28.503865+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.504882+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:28.505096+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.519038+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "150", "_ts": "2026-02-16T02:20:28.519308+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.522835+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:28.523075+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.561649+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:28.561929+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.563265+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "round", "_ts": "2026-02-16T02:20:28.563461+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ness", "_ts": "2026-02-16T02:20:28.565513+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:28.565759+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:28.588513+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.588798+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:28.591611+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:28.591896+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:28.606709+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "background", "_ts": "2026-02-16T02:20:28.606959+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Color", "_ts": "2026-02-16T02:20:28.608504+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.608645+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "#", "_ts": "2026-02-16T02:20:28.642701+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "c", "_ts": "2026-02-16T02:20:28.643074+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:28.645912+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fa", "_ts": "2026-02-16T02:20:28.646143+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "e", "_ts": "2026-02-16T02:20:28.661429+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "8", "_ts": "2026-02-16T02:20:28.661654+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.662124+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "label", "_ts": "2026-02-16T02:20:28.662261+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:28.675381+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:28.675688+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.678753+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "B", "_ts": "2026-02-16T02:20:28.678972+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "aza", "_ts": "2026-02-16T02:20:28.680449+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " danych", "_ts": "2026-02-16T02:20:28.680637+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:28.691322+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "2", "_ts": "2026-02-16T02:20:28.691567+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.691846+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:28.691980+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:28.705353+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.705607+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "18", "_ts": "2026-02-16T02:20:28.718436+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}},", "_ts": "2026-02-16T02:20:28.719099+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:28.733701+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:28.734173+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\n", "_ts": "2026-02-16T02:20:28.749864+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:28.750388+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:28.762969+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:28.763592+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:28.764378+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.764998+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:28.777542+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.778087+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:28.778818+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:28.779194+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "a", "_ts": "2026-02-16T02:20:28.815099+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:28.815926+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:28.816535+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:28.816925+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.847944+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "290", "_ts": "2026-02-16T02:20:28.848513+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.849793+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:28.850207+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.875242+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "135", "_ts": "2026-02-16T02:20:28.875903+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.888871+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:28.889401+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.890143+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:28.890559+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.902198+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:28.902728+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:28.929896+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "10", "_ts": "2026-02-16T02:20:28.930878+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:28.948494+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "points", "_ts": "2026-02-16T02:20:28.949361+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:28.951315+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:28.951710+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "[", "_ts": "2026-02-16T02:20:28.955979+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:28.956525+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:28.958253+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:28.958944+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "],[", "_ts": "2026-02-16T02:20:28.981582+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:28.982778+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:29.050815+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "10", "_ts": "2026-02-16T02:20:29.051899+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]],", "_ts": "2026-02-16T02:20:29.052693+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:29.053142+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:29.062255+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Arrow", "_ts": "2026-02-16T02:20:29.062859+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "head", "_ts": "2026-02-16T02:20:29.079503+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.080339+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:29.110399+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.110917+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "start", "_ts": "2026-02-16T02:20:29.145961+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:29.146923+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:29.161186+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:29.161708+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:29.163037+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.163610+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fe", "_ts": "2026-02-16T02:20:29.177808+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:29.178304+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.180952+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:29.181658+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:29.195068+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:29.195623+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:29.222288+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:29.222779+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:29.333012+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:29.333296+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:29.335790+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "5", "_ts": "2026-02-16T02:20:29.336178+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]},", "_ts": "2026-02-16T02:20:29.369975+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:29.370572+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:29.413366+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:29.413980+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:29.415162+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:29.415807+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:29.434258+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.434763+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "api", "_ts": "2026-02-16T02:20:29.462235+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:29.462825+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.464996+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:29.465356+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:29.466529+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:29.466965+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:29.503292+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:29.503888+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:29.517800+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:29.518380+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:29.544617+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "5", "_ts": "2026-02-16T02:20:29.545392+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]},", "_ts": "2026-02-16T02:20:29.585332+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:29.585871+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "label", "_ts": "2026-02-16T02:20:29.601230+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:29.601832+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:29.630620+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.631140+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "REST", "_ts": "2026-02-16T02:20:29.658196+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "/", "_ts": "2026-02-16T02:20:29.658674+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "JSON", "_ts": "2026-02-16T02:20:29.659535+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.659937+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:29.674303+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:29.675268+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:29.702600+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "16", "_ts": "2026-02-16T02:20:29.703156+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}},", "_ts": "2026-02-16T02:20:29.727868+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:29.728355+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:29.742396+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:29.743077+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:29.743992+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:29.744469+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:29.757311+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.758303+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:29.758973+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.759296+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:29.759894+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:29.760386+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "a", "_ts": "2026-02-16T02:20:29.776262+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "2", "_ts": "2026-02-16T02:20:29.776736+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:29.789244+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:29.789707+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:29.818938+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "460", "_ts": "2026-02-16T02:20:29.819567+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:29.848720+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:29.849276+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:29.942328+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "190", "_ts": "2026-02-16T02:20:29.943319+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:30.050793+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:30.051452+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:30.171110+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.172235+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:30.202196+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:30.202800+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:30.235748+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:30.236332+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:30.255457+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "points", "_ts": "2026-02-16T02:20:30.256027+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:30.268921+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:30.269750+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "[", "_ts": "2026-02-16T02:20:30.270961+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.271567+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:30.289587+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.290068+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "],[", "_ts": "2026-02-16T02:20:30.291127+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.291519+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:30.304401+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:30.305367+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]],", "_ts": "2026-02-16T02:20:30.307100+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:30.307733+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:30.318880+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Arrow", "_ts": "2026-02-16T02:20:30.319439+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "head", "_ts": "2026-02-16T02:20:30.322755+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:30.323226+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:30.361264+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:30.361817+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "start", "_ts": "2026-02-16T02:20:30.371629+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:30.372408+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:30.396529+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:30.397511+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:30.405970+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:30.406262+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "api", "_ts": "2026-02-16T02:20:30.422276+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:30.422895+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:30.435016+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:30.435582+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:30.450514+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:30.451383+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:30.463455+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.464474+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:30.493252+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "33", "_ts": "2026-02-16T02:20:30.493874+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:30.524767+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:30.525509+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]},", "_ts": "2026-02-16T02:20:30.553969+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:30.555082+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:30.568494+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:30.569116+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:30.583248+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:30.584016+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:30.618428+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:30.618977+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "db", "_ts": "2026-02-16T02:20:30.634272+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:30.634804+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:30.648099+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:30.648709+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:30.682164+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:30.682814+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:30.683706+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.684075+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:30.712117+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "5", "_ts": "2026-02-16T02:20:30.712694+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:30.724236+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:30.724925+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]}", "_ts": "2026-02-16T02:20:30.750754+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:30.751255+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:30.804298+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:30.804956+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:30.899450+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:30.900418+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:30.997963+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:30.998267+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.096714+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:31.096987+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.130265+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:31.130575+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.131221+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "a", "_ts": "2026-02-16T02:20:31.131392+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "3", "_ts": "2026-02-16T02:20:31.143385+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.143615+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:31.162873+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:31.163209+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "570", "_ts": "2026-02-16T02:20:31.195282+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:31.195550+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:31.227847+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:31.228330+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "190", "_ts": "2026-02-16T02:20:31.259004+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:31.259883+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "width", "_ts": "2026-02-16T02:20:31.270618+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:31.271219+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:31.285768+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:31.286283+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "height", "_ts": "2026-02-16T02:20:31.374857+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:31.375790+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:31.471372+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:31.472339+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "points", "_ts": "2026-02-16T02:20:31.473193+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:31.473575+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:31.474010+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "[", "_ts": "2026-02-16T02:20:31.474282+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:31.474609+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:31.474866+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:31.493612+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "],[", "_ts": "2026-02-16T02:20:31.494015+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:31.510218+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:31.510756+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "60", "_ts": "2026-02-16T02:20:31.524970+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]],", "_ts": "2026-02-16T02:20:31.525616+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:31.595223+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:31.595879+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Arrow", "_ts": "2026-02-16T02:20:31.599141+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "head", "_ts": "2026-02-16T02:20:31.599761+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.610226+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "arrow", "_ts": "2026-02-16T02:20:31.611199+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.612060+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "start", "_ts": "2026-02-16T02:20:31.612494+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:31.633516+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:31.634061+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:31.634890+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:31.635716+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.675160+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "api", "_ts": "2026-02-16T02:20:31.675878+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:31.690055+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.690578+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:31.693602+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:31.694184+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:31.695067+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:31.695513+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:31.721004+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:31.721564+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "67", "_ts": "2026-02-16T02:20:31.736532+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:31.737545+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "1", "_ts": "2026-02-16T02:20:31.753680+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]},", "_ts": "2026-02-16T02:20:31.754547+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:31.781154+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "end", "_ts": "2026-02-16T02:20:31.781581+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Binding", "_ts": "2026-02-16T02:20:31.796090+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":{\\\"", "_ts": "2026-02-16T02:20:31.796813+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "element", "_ts": "2026-02-16T02:20:31.799320+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Id", "_ts": "2026-02-16T02:20:31.799660+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.811842+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "db", "_ts": "2026-02-16T02:20:31.812670+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "2", "_ts": "2026-02-16T02:20:31.830023+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.830501+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "fixed", "_ts": "2026-02-16T02:20:31.831517+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Point", "_ts": "2026-02-16T02:20:31.831813+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:31.848788+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\":[", "_ts": "2026-02-16T02:20:31.849059+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:31.863652+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:31.864116+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "5", "_ts": "2026-02-16T02:20:31.865800+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:31.866123+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "0", "_ts": "2026-02-16T02:20:31.878469+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]}", "_ts": "2026-02-16T02:20:31.878777+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "},", "_ts": "2026-02-16T02:20:31.881369+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\", "_ts": "2026-02-16T02:20:31.881660+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:31.910060+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\n", "_ts": "2026-02-16T02:20:31.910337+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " ", "_ts": "2026-02-16T02:20:31.925607+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " {", "_ts": "2026-02-16T02:20:31.925903+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:31.928640+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "type", "_ts": "2026-02-16T02:20:31.928848+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.954880+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:31.955185+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:31.970988+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "id", "_ts": "2026-02-16T02:20:31.971236+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:31.983976+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "t", "_ts": "2026-02-16T02:20:31.984437+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "leg", "_ts": "2026-02-16T02:20:32.027161+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\",\\\"", "_ts": "2026-02-16T02:20:32.027883+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "x", "_ts": "2026-02-16T02:20:32.057092+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:32.057934+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "360", "_ts": "2026-02-16T02:20:32.072332+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:32.073353+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "y", "_ts": "2026-02-16T02:20:32.146324+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:32.148441+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "340", "_ts": "2026-02-16T02:20:32.167765+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",\\\"", "_ts": "2026-02-16T02:20:32.168787+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "text", "_ts": "2026-02-16T02:20:32.262427+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":\\\"", "_ts": "2026-02-16T02:20:32.263469+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Fast", "_ts": "2026-02-16T02:20:32.501702+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "API", "_ts": "2026-02-16T02:20:32.502476+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " mo\u017ce", "_ts": "2026-02-16T02:20:32.541894+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " komunik", "_ts": "2026-02-16T02:20:32.542952+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "owa\u0107", "_ts": "2026-02-16T02:20:32.544333+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " si\u0119", "_ts": "2026-02-16T02:20:32.544926+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " z", "_ts": "2026-02-16T02:20:32.565363+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " d", "_ts": "2026-02-16T02:20:32.566236+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "wi", "_ts": "2026-02-16T02:20:32.599532+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ema", "_ts": "2026-02-16T02:20:32.601238+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " r\u00f3\u017c", "_ts": "2026-02-16T02:20:32.616819+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "nymi", "_ts": "2026-02-16T02:20:32.617433+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " baz", "_ts": "2026-02-16T02:20:32.644185+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ami", "_ts": "2026-02-16T02:20:32.645020+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " danych", "_ts": "2026-02-16T02:20:32.676154+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " (", "_ts": "2026-02-16T02:20:32.678302+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "np", "_ts": "2026-02-16T02:20:32.695467+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ".", "_ts": "2026-02-16T02:20:32.696217+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " Post", "_ts": "2026-02-16T02:20:32.711639+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "gres", "_ts": "2026-02-16T02:20:32.712639+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " +", "_ts": "2026-02-16T02:20:32.774888+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " Redis", "_ts": "2026-02-16T02:20:32.775606+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ",", "_ts": "2026-02-16T02:20:32.805347+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " lub", "_ts": "2026-02-16T02:20:32.806398+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " dw", "_ts": "2026-02-16T02:20:32.843072+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "ie", "_ts": "2026-02-16T02:20:32.843711+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " inst", "_ts": "2026-02-16T02:20:32.860529+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "anc", "_ts": "2026-02-16T02:20:32.861589+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "je", "_ts": "2026-02-16T02:20:32.896689+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": " SQL", "_ts": "2026-02-16T02:20:32.897804+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": ")\\", "_ts": "2026-02-16T02:20:32.927921+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\",", "_ts": "2026-02-16T02:20:32.928658+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\"", "_ts": "2026-02-16T02:20:32.948906+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "font", "_ts": "2026-02-16T02:20:32.949741+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "Size", "_ts": "2026-02-16T02:20:32.950807+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\\\":", "_ts": "2026-02-16T02:20:32.951348+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "16", "_ts": "2026-02-16T02:20:32.964217+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "}\\", "_ts": "2026-02-16T02:20:32.965343+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "n", "_ts": "2026-02-16T02:20:33.000998+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "]", "_ts": "2026-02-16T02:20:33.002010+00:00"}
+{"type": "tool_args_delta", "tool_name": "excalidraw_create_view", "args_delta": "\"}", "_ts": "2026-02-16T02:20:33.006337+00:00"}
+{"type": "tool_start", "tool_name": "excalidraw_create_view", "args": "{\"elements\":\"[\\n  {\\\"type\\\":\\\"cameraUpdate\\\",\\\"width\\\":800,\\\"height\\\":600,\\\"x\\\":0,\\\"y\\\":0},\\n  {\\\"type\\\":\\\"text\\\",\\\"id\\\":\\\"tt1\\\",\\\"x\\\":270,\\\"y\\\":20,\\\"text\\\":\\\"Architektura FastAPI + 2 bazy danych + React\\\",\\\"fontSize\\\":24},\\n\\n  {\\\"type\\\":\\\"rectangle\\\",\\\"id\\\":\\\"fe1\\\",\\\"x\\\":100,\\\"y\\\":100,\\\"width\\\":190,\\\"height\\\":70,\\\"roundness\\\":{\\\"type\\\":3},\\\"backgroundColor\\\":\\\"#a5d8ff\\\",\\\"label\\\":{\\\"text\\\":\\\"Frontend\\\\nReact\\\",\\\"fontSize\\\":20}},\\n\\n  {\\\"type\\\":\\\"rectangle\\\",\\\"id\\\":\\\"api1\\\",\\\"x\\\":350,\\\"y\\\":120,\\\"width\\\":220,\\\"height\\\":70,\\\"roundness\\\":{\\\"type\\\":3},\\\"backgroundColor\\\":\\\"#d0bfff\\\",\\\"label\\\":{\\\"text\\\":\\\"API\\\\nFastAPI app\\\",\\\"fontSize\\\":20}},\\n\\n  {\\\"type\\\":\\\"rectangle\\\",\\\"id\\\":\\\"db1\\\",\\\"x\\\":350,\\\"y\\\":250,\\\"width\\\":150,\\\"height\\\":60,\\\"roundness\\\":{\\\"type\\\":3},\\\"backgroundColor\\\":\\\"#c3fae8\\\",\\\"label\\\":{\\\"text\\\":\\\"Baza danych 1\\\",\\\"fontSize\\\":18}},\\n  {\\\"type\\\":\\\"rectangle\\\",\\\"id\\\":\\\"db2\\\",\\\"x\\\":530,\\\"y\\\":250,\\\"width\\\":150,\\\"height\\\":60,\\\"roundness\\\":{\\\"type\\\":3},\\\"backgroundColor\\\":\\\"#c3fae8\\\",\\\"label\\\":{\\\"text\\\":\\\"Baza danych 2\\\",\\\"fontSize\\\":18}},\\n\\n  {\\\"type\\\":\\\"arrow\\\",\\\"id\\\":\\\"a1\\\",\\\"x\\\":290,\\\"y\\\":135,\\\"width\\\":60,\\\"height\\\":10,\\\"points\\\":[[0,0],[60,10]],\\\"endArrowhead\\\":\\\"arrow\\\",\\\"startBinding\\\":{\\\"elementId\\\":\\\"fe1\\\",\\\"fixedPoint\\\":[1,0.5]},\\\"endBinding\\\":{\\\"elementId\\\":\\\"api1\\\",\\\"fixedPoint\\\":[0,0.5]},\\\"label\\\":{\\\"text\\\":\\\"REST/JSON\\\",\\\"fontSize\\\":16}},\\n  {\\\"type\\\":\\\"arrow\\\",\\\"id\\\":\\\"a2\\\",\\\"x\\\":460,\\\"y\\\":190,\\\"width\\\":0,\\\"height\\\":60,\\\"points\\\":[[0,0],[0,60]],\\\"endArrowhead\\\":\\\"arrow\\\",\\\"startBinding\\\":{\\\"elementId\\\":\\\"api1\\\",\\\"fixedPoint\\\":[0.33,1]},\\\"endBinding\\\":{\\\"elementId\\\":\\\"db1\\\",\\\"fixedPoint\\\":[0.5,0]}},\\n  {\\\"type\\\":\\\"arrow\\\",\\\"id\\\":\\\"a3\\\",\\\"x\\\":570,\\\"y\\\":190,\\\"width\\\":60,\\\"height\\\":60,\\\"points\\\":[[0,0],[60,60]],\\\"endArrowhead\\\":\\\"arrow\\\",\\\"startBinding\\\":{\\\"elementId\\\":\\\"api1\\\",\\\"fixedPoint\\\":[0.67,1]},\\\"endBinding\\\":{\\\"elementId\\\":\\\"db2\\\",\\\"fixedPoint\\\":[0.5,0]}},\\n\\n  {\\\"type\\\":\\\"text\\\",\\\"id\\\":\\\"tleg\\\",\\\"x\\\":360,\\\"y\\\":340,\\\"text\\\":\\\"FastAPI mo\u017ce komunikowa\u0107 si\u0119 z dwiema r\u00f3\u017cnymi bazami danych (np. Postgres + Redis, lub dwie instancje SQL)\\\",\\\"fontSize\\\":16}\\n]\"}", "_ts": "2026-02-16T02:20:33.011746+00:00"}
+{"type": "tool_output", "tool_name": "excalidraw_create_view", "output": "{'checkpointId': '5c5c50ad3cea46bc87'}", "_ts": "2026-02-16T02:20:33.248160+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "excalidraw_create_view", "total_calls": 2, "tools_breakdown": {"excalidraw_read_me": 1, "excalidraw_create_view": 1}, "_ts": "2026-02-16T02:20:33.248565+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T02:20:33.250362+00:00"}
+{"type": "text_delta", "content": "Stworzy\u0142em diagram architektury: Front", "_ts": "2026-02-16T02:20:34.470639+00:00"}
+{"type": "text_delta", "content": "end React wysy", "_ts": "2026-02-16T02:20:34.587996+00:00"}
+{"type": "text_delta", "content": "\u0142a \u017c\u0105dania REST/JSON do aplikacji", "_ts": "2026-02-16T02:20:34.760079+00:00"}
+{"type": "text_delta", "content": " FastAPI, kt\u00f3ra komuniku", "_ts": "2026-02-16T02:20:34.871967+00:00"}
+{"type": "text_delta", "content": "je si\u0119", "_ts": "2026-02-16T02:20:35.002950+00:00"}
+{"type": "text_delta", "content": " z dwiema bazami danych (np.", "_ts": "2026-02-16T02:20:35.115196+00:00"}
+{"type": "text_delta", "content": " Postgres i Redis lub dw", "_ts": "2026-02-16T02:20:35.245708+00:00"}
+{"type": "text_delta", "content": "ie osobne bazy SQL). \n\n", "_ts": "2026-02-16T02:20:35.357303+00:00"}
+{"type": "text_delta", "content": "- Frontend: React (po lewe", "_ts": "2026-02-16T02:20:35.496035+00:00"}
+{"type": "text_delta", "content": "j)\n- Backend: Fast", "_ts": "2026-02-16T02:20:35.618905+00:00"}
+{"type": "text_delta", "content": "API app (w", "_ts": "2026-02-16T02:20:35.761135+00:00"}
+{"type": "text_delta", "content": " centrum)\n- Dwie b", "_ts": "2026-02-16T02:20:35.915339+00:00"}
+{"type": "text_delta", "content": "azy danych (po prawej,", "_ts": "2026-02-16T02:20:36.032927+00:00"}
+{"type": "text_delta", "content": " poni\u017cej backendu)\n-", "_ts": "2026-02-16T02:20:36.168688+00:00"}
+{"type": "text_delta", "content": " Strza\u0142ki pokazuj\u0105 przep\u0142y", "_ts": "2026-02-16T02:20:36.276544+00:00"}
+{"type": "text_delta", "content": "w danych\n\nDiagram ilustruje", "_ts": "2026-02-16T02:20:36.404261+00:00"}
+{"type": "text_delta", "content": " typowy podzia\u0142 aplikacji SPA z", "_ts": "2026-02-16T02:20:36.553921+00:00"}
+{"type": "text_delta", "content": " backendem FastAPI i wiel", "_ts": "2026-02-16T02:20:36.689034+00:00"}
+{"type": "text_delta", "content": "oma bazami danych", "_ts": "2026-02-16T02:20:36.807512+00:00"}
+{"type": "text_delta", "content": ". Je\u015bli chcesz doda", "_ts": "2026-02-16T02:20:36.952276+00:00"}
+{"type": "text_delta", "content": "\u0107 wi\u0119cej szczeg\u00f3\u0142\u00f3w (np.", "_ts": "2026-02-16T02:20:37.110430+00:00"}
+{"type": "text_delta", "content": " przetwarzanie background tasks", "_ts": "2026-02-16T02:20:37.241105+00:00"}
+{"type": "text_delta", "content": ", cache, load", "_ts": "2026-02-16T02:20:37.373930+00:00"}
+{"type": "text_delta", "content": " balancer", "_ts": "2026-02-16T02:20:37.557468+00:00"}
+{"type": "text_delta", "content": "), da", "_ts": "2026-02-16T02:20:37.664209+00:00"}
+{"type": "text_delta", "content": "j zna\u0107!", "_ts": "2026-02-16T02:20:37.749171+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T02:20:37.751354+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "76e99236-8c0c-4ed7-910e-cfdfe01f0697", "label": "turn-3", "turn": 3, "message_count": 5, "metadata": {}, "_ts": "2026-02-16T02:20:37.751852+00:00"}
+{"type": "response", "content": "Stworzy\u0142em diagram architektury: Frontend React wysy\u0142a \u017c\u0105dania REST/JSON do aplikacji FastAPI, kt\u00f3ra komunikuje si\u0119 z dwiema bazami danych (np. Postgres i Redis lub dwie osobne bazy SQL). \n\n- Frontend: React (po lewej)\n- Backend: FastAPI app (w centrum)\n- Dwie bazy danych (po prawej, poni\u017cej backendu)\n- Strza\u0142ki pokazuj\u0105 przep\u0142yw danych\n\nDiagram ilustruje typowy podzia\u0142 aplikacji SPA z backendem FastAPI i wieloma bazami danych. Je\u015bli chcesz doda\u0107 wi\u0119cej szczeg\u00f3\u0142\u00f3w (np. przetwarzanie background tasks, cache, load balancer), daj zna\u0107!", "_ts": "2026-02-16T02:20:37.817928+00:00"}
+{"type": "done", "_ts": "2026-02-16T02:20:37.818174+00:00"}

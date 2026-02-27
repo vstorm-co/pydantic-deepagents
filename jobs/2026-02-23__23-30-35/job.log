@@ -1,8 +1,0 @@
-Trial fix-git__ZoiWBbF failed: Agent setup failed with exit code 1. See logs in jobs/2026-02-23__23-30-35/fix-git__ZoiWBbF/agent/setup
-Not retrying trial because the maximum number of retries has been reached
-Trial cobol-modernization__tPwK9ri failed: Agent setup failed with exit code 1. See logs in jobs/2026-02-23__23-30-35/cobol-modernization__tPwK9ri/agent/setup
-Not retrying trial because the maximum number of retries has been reached
-Trial prove-plus-comm__gZnWi2z failed: Agent setup failed with exit code 1. See logs in jobs/2026-02-23__23-30-35/prove-plus-comm__gZnWi2z/agent/setup
-Not retrying trial because the maximum number of retries has been reached
-Trial overfull-hbox__3tAUH4v failed: Agent setup failed with exit code 1. See logs in jobs/2026-02-23__23-30-35/overfull-hbox__3tAUH4v/agent/setup
-Not retrying trial because the maximum number of retries has been reached

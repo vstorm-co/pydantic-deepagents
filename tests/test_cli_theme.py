@@ -79,7 +79,6 @@ class TestDetectUnicodeSupport:
 
     def test_lang_var_utf8(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PYDANTIC_DEEP_CHARSET", "auto")
-        import sys
 
         mock_stdout = type("FakeStdout", (), {"encoding": "ascii"})()
         monkeypatch.setattr("sys.stdout", mock_stdout)
@@ -88,7 +87,6 @@ class TestDetectUnicodeSupport:
 
     def test_lc_all_utf8(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PYDANTIC_DEEP_CHARSET", "auto")
-        import sys
 
         mock_stdout = type("FakeStdout", (), {"encoding": "ascii"})()
         monkeypatch.setattr("sys.stdout", mock_stdout)
@@ -98,7 +96,6 @@ class TestDetectUnicodeSupport:
 
     def test_lc_ctype_utf8(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PYDANTIC_DEEP_CHARSET", "auto")
-        import sys
 
         mock_stdout = type("FakeStdout", (), {"encoding": "ascii"})()
         monkeypatch.setattr("sys.stdout", mock_stdout)
@@ -109,7 +106,6 @@ class TestDetectUnicodeSupport:
 
     def test_no_unicode_support(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PYDANTIC_DEEP_CHARSET", "auto")
-        import sys
 
         mock_stdout = type("FakeStdout", (), {"encoding": "ascii"})()
         monkeypatch.setattr("sys.stdout", mock_stdout)
@@ -120,7 +116,6 @@ class TestDetectUnicodeSupport:
 
     def test_no_encoding_attribute(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PYDANTIC_DEEP_CHARSET", "auto")
-        import sys
 
         mock_stdout = type("FakeStdout", (), {})()
         monkeypatch.setattr("sys.stdout", mock_stdout)

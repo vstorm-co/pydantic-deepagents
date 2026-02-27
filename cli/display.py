@@ -73,10 +73,18 @@ def print_welcome_banner(
     working_dir: str | None = None,
 ) -> None:
     """Print a styled welcome banner with version, model, and context info."""
+    from cli.local_context import (
+        detect_language,
+        detect_package_manager,
+        detect_runtimes,
+        detect_test_command,
+    )
     from pydantic_deep import __version__
 
     theme = get_theme()
     glyphs = get_glyphs()
+
+    root = Path(working_dir) if working_dir else Path.cwd()
 
     lines: list[str] = []
     lines.append(
@@ -95,6 +103,27 @@ def print_welcome_banner(
     branch = _get_git_branch()
     if branch:
         lines.append(f"[{theme.muted}]Git[/{theme.muted}]     {branch}")
+
+    # Project detection — language, package manager, runtimes, test command
+    lang = detect_language(root)
+    pm = detect_package_manager(root)
+    project_parts: list[str] = []
+    if lang:
+        project_parts.append(lang)
+    if pm:
+        project_parts.append(pm)
+    if project_parts:
+        lines.append(
+            f"[{theme.muted}]Project[/{theme.muted}] " + f" {glyphs.bullet} ".join(project_parts)
+        )
+
+    runtimes = detect_runtimes(root)
+    for name, version in runtimes.items():
+        lines.append(f"[{theme.muted}]{name}[/{theme.muted}]  {version}")
+
+    test_cmd = detect_test_command(root)
+    if test_cmd:
+        lines.append(f"[{theme.muted}]Test[/{theme.muted}]    `{test_cmd}`")
 
     lines.append("")
     lines.append(f"[{theme.primary}]Ready! What would you like to build?[/{theme.primary}]")

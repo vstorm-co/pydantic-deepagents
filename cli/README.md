@@ -31,6 +31,8 @@ pydantic-deep chat
 pydantic-deep chat --model anthropic:claude-sonnet-4-20250514
 ```
 
+Features: 17 slash commands (`/help`, `/compact`, `/context`, `/model`, ...), colored diff viewer for file approvals, visual progress bar, tool call timing, @file mentions, and Ctrl+V image paste.
+
 ### Non-Interactive (Benchmark Mode)
 
 ```bash
@@ -123,18 +125,25 @@ The CLI wraps the full pydantic-deep framework with **all features enabled by de
 - **Loop Detection** — break infinite tool call retries
 - **Cost Tracking** — real-time token/USD display
 - **Git Context** — branch, status, and directory tree in system prompt
+- **Rich Terminal UI** — colored diffs for file approvals, visual progress bar, tool timing
 
 ## Architecture
 
 ```
-pydantic_deep/cli/
-├── main.py              — Typer entry (run, chat, skills, threads, config)
+cli/
+├── main.py              — Typer entry (run, chat, init, skills, threads, config)
 ├── agent.py             — create_cli_agent() factory
 ├── prompts.py           — Modular system prompt (dynamic assembly)
 ├── config.py            — Config system (~/.pydantic-deep/config.toml)
+├── init.py              — Project initialization (pydantic-deep init)
 ├── non_interactive.py   — Headless execution (benchmark + sandbox)
-├── interactive.py       — Chat loop (Rich formatting + sandbox)
+├── interactive.py       — Chat loop (Rich streaming + tool approval)
 ├── local_context.py     — Git/directory context injection
+├── theme.py             — Color palette + Unicode/ASCII glyph system
+├── tool_display.py      — Smart tool call formatting + result previews
+├── diff_display.py      — Colored diffs + file previews for approval
+├── picker.py            — Interactive model/session picker
+├── providers.py         — Model provider registry
 ├── middleware/
 │   └── loop_detection.py
 └── skills/              — Built-in SKILL.md files
@@ -149,7 +158,7 @@ pydantic_deep/cli/
 
 - **[pydantic-deep SDK](https://github.com/vstorm-co/pydantic-deepagents)** — The underlying agent framework
 - **[Documentation](https://vstorm-co.github.io/pydantic-deepagents/)** — Full docs
-- **[DeepResearch](https://github.com/vstorm-co/pydantic-deepagents/tree/main/deepresearch)** — Full-featured reference app
+- **[DeepResearch](https://github.com/vstorm-co/pydantic-deepagents/tree/main/apps/deepresearch)** — Full-featured reference app
 - **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** — The foundation
 
 ## Contributing
@@ -167,3 +176,21 @@ See [CONTRIBUTING.md](https://github.com/vstorm-co/pydantic-deepagents/blob/main
 ## License
 
 MIT — see [LICENSE](https://github.com/vstorm-co/pydantic-deepagents/blob/main/LICENSE)
+
+---
+
+<div align="center">
+
+### Need help implementing this in your company?
+
+<p>We're <a href="https://vstorm.co"><b>Vstorm</b></a> — an Applied Agentic AI Engineering Consultancy<br>with 30+ production AI agent implementations.</p>
+
+<a href="https://vstorm.co/contact-us/">
+  <img src="https://img.shields.io/badge/Talk%20to%20us%20%E2%86%92-0066FF?style=for-the-badge&logoColor=white" alt="Talk to us">
+</a>
+
+<br><br>
+
+Made with ❤️ by <a href="https://vstorm.co"><b>Vstorm</b></a>
+
+</div>

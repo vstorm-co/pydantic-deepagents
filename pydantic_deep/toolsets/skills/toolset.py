@@ -158,6 +158,7 @@ class SkillsToolset(FunctionToolset):
         id: str | None = None,
         instruction_template: str | None = None,
         exclude_tools: set[str] | list[str] | None = None,
+        descriptions: dict[str, str] | None = None,
     ) -> None:
         """Initialize the skills toolset.
 
@@ -173,9 +174,13 @@ class SkillsToolset(FunctionToolset):
                 Must include ``{skills_list}`` placeholder.
             exclude_tools: Set or list of tool names to exclude from registration
                 (e.g., ``['run_skill_script']``).
+            descriptions: Optional mapping of tool name to custom description. Keys are
+                tool names (``list_skills``, ``load_skill``, ``read_skill_resource``,
+                ``run_skill_script``). Values override the built-in description constants.
         """
         super().__init__(id=id)
 
+        self._descs: dict[str, str] = descriptions or {}
         self._instruction_template = instruction_template
 
         # Validate and initialize exclude_tools
@@ -331,7 +336,7 @@ class SkillsToolset(FunctionToolset):
     def _register_list_skills(self) -> None:
         """Register the list_skills tool."""
 
-        @self.tool(description=LIST_SKILLS_DESCRIPTION)
+        @self.tool(description=self._descs.get("list_skills", LIST_SKILLS_DESCRIPTION))
         async def list_skills(
             _ctx: RunContext[Any],
         ) -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
@@ -341,7 +346,7 @@ class SkillsToolset(FunctionToolset):
     def _register_load_skill(self) -> None:
         """Register the load_skill tool."""
 
-        @self.tool(description=LOAD_SKILL_DESCRIPTION)
+        @self.tool(description=self._descs.get("load_skill", LOAD_SKILL_DESCRIPTION))
         async def load_skill(  # pyright: ignore[reportUnusedFunction]
             ctx: RunContext[Any],
             skill_name: str,
@@ -386,7 +391,9 @@ class SkillsToolset(FunctionToolset):
     def _register_read_skill_resource(self) -> None:
         """Register the read_skill_resource tool."""
 
-        @self.tool(description=READ_SKILL_RESOURCE_DESCRIPTION)
+        _desc = self._descs.get("read_skill_resource", READ_SKILL_RESOURCE_DESCRIPTION)
+
+        @self.tool(description=_desc)
         async def read_skill_resource(  # pyright: ignore[reportUnusedFunction]
             ctx: RunContext[Any],
             skill_name: str,
@@ -418,7 +425,7 @@ class SkillsToolset(FunctionToolset):
     def _register_run_skill_script(self) -> None:
         """Register the run_skill_script tool."""
 
-        @self.tool(description=RUN_SKILL_SCRIPT_DESCRIPTION)
+        @self.tool(description=self._descs.get("run_skill_script", RUN_SKILL_SCRIPT_DESCRIPTION))
         async def run_skill_script(  # pyright: ignore[reportUnusedFunction]
             ctx: RunContext[Any],
             skill_name: str,

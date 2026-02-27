@@ -1,0 +1,11 @@
+{"type": "session_created", "session_id": "2f74ba35-d263-4d9f-9428-7c2ebbc78937", "_ts": "2026-02-16T14:16:37.341389+00:00"}
+{"type": "canvas_ready", "session_id": "2f74ba35-d263-4d9f-9428-7c2ebbc78937", "_ts": "2026-02-16T14:16:37.481182+00:00"}
+{"type": "user_message", "content": "mam na imie Kacper", "_ts": "2026-02-16T14:16:37.481442+00:00"}
+{"type": "start", "_ts": "2026-02-16T14:16:37.481849+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T14:16:37.497232+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T14:16:37.500686+00:00"}
+{"type": "text_delta", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci dzi\u015b pom\u00f3c?", "_ts": "2026-02-16T14:16:39.012095+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T14:16:39.021102+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "35129dd9-834c-4c73-9ae4-0c31589cf5d0", "label": "turn-15", "turn": 15, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T14:16:39.021971+00:00"}
+{"type": "response", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci dzi\u015b pom\u00f3c?", "_ts": "2026-02-16T14:16:39.061193+00:00"}
+{"type": "done", "_ts": "2026-02-16T14:16:39.061349+00:00"}

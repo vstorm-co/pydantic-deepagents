@@ -1,0 +1,67 @@
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T04:04:31.115135+00:00"}
+{"type": "canvas_ready", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T04:04:31.197223+00:00"}
+{"type": "user_message", "content": "mam na imie kacper", "_ts": "2026-02-16T04:04:31.197682+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:04:31.198722+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:04:31.201871+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:04:31.203094+00:00"}
+{"type": "text_delta", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci pom\u00f3c?", "_ts": "2026-02-16T04:04:32.371809+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:04:32.375816+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "396c9dc8-bf91-400e-b750-b3f82abb1d6f", "label": "turn-6", "turn": 6, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T04:04:32.376561+00:00"}
+{"type": "response", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci pom\u00f3c?", "_ts": "2026-02-16T04:04:32.399516+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:04:32.399817+00:00"}
+{"type": "user_message", "content": "zapisz to do memory", "_ts": "2026-02-16T04:04:37.907386+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:04:37.910578+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:04:37.920282+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:04:37.925091+00:00"}
+{"type": "text_delta", "content": "Zapami\u0119ta\u0142em", "_ts": "2026-02-16T04:04:39.140456+00:00"}
+{"type": "text_delta", "content": ": masz na imi\u0119 Kacper. Je\u015bli", "_ts": "2026-02-16T04:04:39.295682+00:00"}
+{"type": "text_delta", "content": " chcesz", "_ts": "2026-02-16T04:04:39.470789+00:00"}
+{"type": "text_delta", "content": ", abym przechowy", "_ts": "2026-02-16T04:04:39.574760+00:00"}
+{"type": "text_delta", "content": "wa\u0142 wi\u0119cej informacji", "_ts": "2026-02-16T04:04:39.678091+00:00"}
+{"type": "text_delta", "content": " lub wykorzysta\u0142 to gdzie", "_ts": "2026-02-16T04:04:39.780238+00:00"}
+{"type": "text_delta", "content": "\u015b konkretnie, daj zna\u0107!", "_ts": "2026-02-16T04:04:39.847509+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:04:39.856051+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "deecfbd4-08a7-4e75-8b78-97a5827f6296", "label": "turn-7", "turn": 7, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T04:04:39.856989+00:00"}
+{"type": "response", "content": "Zapami\u0119ta\u0142em: masz na imi\u0119 Kacper. Je\u015bli chcesz, abym przechowywa\u0142 wi\u0119cej informacji lub wykorzysta\u0142 to gdzie\u015b konkretnie, daj zna\u0107!", "_ts": "2026-02-16T04:04:39.896141+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:04:39.896719+00:00"}
+{"type": "user_message", "content": "do MEMORY.md", "_ts": "2026-02-16T04:04:48.087189+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:04:48.088457+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:04:48.092446+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:04:48.093659+00:00"}
+{"type": "tool_call_start", "tool_name": "write_file", "tool_call_id": "call_LXBkO3nV0k3XOwW3beqLxnvd", "_ts": "2026-02-16T04:04:49.454542+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "{\"", "_ts": "2026-02-16T04:04:49.468053+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "path", "_ts": "2026-02-16T04:04:49.469057+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\":", "_ts": "2026-02-16T04:04:49.473305+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\"/", "_ts": "2026-02-16T04:04:49.474396+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "workspace", "_ts": "2026-02-16T04:04:49.507370+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "/M", "_ts": "2026-02-16T04:04:49.508340+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "EM", "_ts": "2026-02-16T04:04:49.530651+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "ORY", "_ts": "2026-02-16T04:04:49.531842+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": ".md", "_ts": "2026-02-16T04:04:49.532325+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\",\"", "_ts": "2026-02-16T04:04:49.532887+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "content", "_ts": "2026-02-16T04:04:49.561751+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\":\"", "_ts": "2026-02-16T04:04:49.562448+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "Im", "_ts": "2026-02-16T04:04:49.591797+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "i\u0119", "_ts": "2026-02-16T04:04:49.592865+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": ":", "_ts": "2026-02-16T04:04:49.593715+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": " K", "_ts": "2026-02-16T04:04:49.594174+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "ac", "_ts": "2026-02-16T04:04:49.613170+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "per", "_ts": "2026-02-16T04:04:49.613836+00:00"}
+{"type": "tool_args_delta", "tool_name": "write_file", "args_delta": "\"}", "_ts": "2026-02-16T04:04:49.622289+00:00"}
+{"type": "tool_start", "tool_name": "write_file", "args": "{\"path\":\"/workspace/MEMORY.md\",\"content\":\"Imi\u0119: Kacper\"}", "_ts": "2026-02-16T04:04:49.625190+00:00"}
+{"type": "tool_output", "tool_name": "write_file", "output": "Wrote 1 lines to /workspace/MEMORY.md", "_ts": "2026-02-16T04:04:49.697412+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "write_file", "total_calls": 1, "tools_breakdown": {"write_file": 1}, "_ts": "2026-02-16T04:04:49.697855+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:04:49.699322+00:00"}
+{"type": "text_delta", "content": "Twoje imi\u0119 zosta\u0142o zapisane do pliku MEMORY.md.", "_ts": "2026-02-16T04:04:50.984942+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:04:50.986977+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "6cbe0f60-a0a9-48d3-a933-2048cdff136b", "label": "turn-9", "turn": 9, "message_count": 7, "metadata": {}, "_ts": "2026-02-16T04:04:50.987652+00:00"}
+{"type": "response", "content": "Twoje imi\u0119 zosta\u0142o zapisane do pliku MEMORY.md.", "_ts": "2026-02-16T04:04:51.007298+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:04:51.007455+00:00"}
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:06.955407+00:00"}
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:09.823235+00:00"}
+{"type": "canvas_ready", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:09.823733+00:00"}
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:50.760967+00:00"}
+{"type": "canvas_ready", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:51.074000+00:00"}
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:52.520606+00:00"}
+{"type": "canvas_ready", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:52.521121+00:00"}
+{"type": "session_created", "session_id": "da4ec726-4da2-49ac-932d-41a688581fee", "_ts": "2026-02-16T10:41:54.577507+00:00"}

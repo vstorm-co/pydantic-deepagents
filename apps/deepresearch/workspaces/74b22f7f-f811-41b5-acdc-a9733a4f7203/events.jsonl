@@ -1,0 +1,23 @@
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:55:38.381297+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:55:38.450621+00:00"}
+{"type": "user_message", "content": "hey", "_ts": "2026-02-16T03:55:38.450799+00:00"}
+{"type": "start", "_ts": "2026-02-16T03:55:38.451360+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T03:55:38.455298+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T03:55:38.457012+00:00"}
+{"type": "text_delta", "content": "Hello! How can I help you today?", "_ts": "2026-02-16T03:55:39.618068+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T03:55:39.619670+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "4b7b1294-d794-44ba-9651-665b70ff0eeb", "label": "turn-10", "turn": 10, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T03:55:39.620066+00:00"}
+{"type": "response", "content": "Hello! How can I help you today?", "_ts": "2026-02-16T03:55:39.645370+00:00"}
+{"type": "done", "_ts": "2026-02-16T03:55:39.645519+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:56:07.666204+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:56:07.666780+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:56:10.864581+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:56:11.055110+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.293327+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.371259+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.390763+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.437978+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.772341+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:58:51.772912+00:00"}
+{"type": "session_created", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:59:25.211210+00:00"}
+{"type": "canvas_ready", "session_id": "74b22f7f-f811-41b5-acdc-a9733a4f7203", "_ts": "2026-02-16T03:59:25.479779+00:00"}

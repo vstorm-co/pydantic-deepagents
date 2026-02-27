@@ -1,4 +1,8 @@
-# pydantic-deep CLI
+<p align="center">
+  <img src="../assets/baner.png" alt="pydantic-deep">
+</p>
+
+# Pydantic Deep Agents CLI
 
 [![PyPI - Version](https://img.shields.io/pypi/v/pydantic-deep?label=%20)](https://pypi.org/project/pydantic-deep/#history)
 [![PyPI - License](https://img.shields.io/pypi/l/pydantic-deep)](https://opensource.org/licenses/MIT)
@@ -6,6 +10,10 @@
 [![Coverage](https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main)](https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main)
 
 A Claude Code-style AI coding assistant for your terminal — powered by the [pydantic-deep](https://github.com/vstorm-co/pydantic-deepagents) framework and [pydantic-ai](https://github.com/pydantic/pydantic-ai).
+
+<p align="center">
+  <img src="../assets/cli_demo.gif" alt="pydantic-deep CLI demo" width="700">
+</p>
 
 ## Quick Install
 
@@ -19,8 +27,6 @@ pydantic-deep chat
 The pydantic-deep CLI wraps the full [pydantic-deep](https://github.com/vstorm-co/pydantic-deepagents) agent framework into a terminal tool that works like Claude Code or LangChain's Deep Agents CLI. It gives an LLM full access to your local filesystem, shell, planning tools, and skills — so it can autonomously execute complex coding tasks.
 
 Unlike simple chat wrappers, pydantic-deep implements the **deep agent architecture**: planning, subagent delegation, persistent memory, and context management — the same patterns powering Claude Code, Manus AI, and Devin.
-
-**Key difference from LangChain's Deep Agents CLI:** pydantic-deep CLI reuses ~7,200 LOC of existing framework code and ships at ~1,400 LOC total. All features are enabled by default. Built on pydantic-ai instead of LangGraph.
 
 ## Usage
 
@@ -74,6 +80,21 @@ pydantic-deep threads list                    # List saved sessions
 pydantic-deep threads delete abc12345         # Delete by ID prefix
 ```
 
+### Custom Commands
+
+Built-in slash commands loaded from `.md` files:
+
+| Command | Description |
+|---------|-------------|
+| `/commit` | Stage and commit changes with a generated message |
+| `/pr` | Create a pull request from current branch |
+| `/review` | Review code changes for bugs, security, and style |
+| `/test` | Generate or run tests for the current code |
+| `/fix` | Find and fix bugs in the codebase |
+| `/explain` | Explain how code works |
+
+Three-scope discovery: built-in, user (`~/.pydantic-deep/commands/`), and project (`.pydantic-deep/commands/`).
+
 ### Configuration
 
 ```bash
@@ -88,7 +109,6 @@ model = "openai:gpt-4.1"
 include_skills = true
 include_plan = true
 include_memory = true
-include_checkpoints = true
 shell_allow_list = ["python", "pip", "npm", "make"]
 ```
 
@@ -119,9 +139,9 @@ The CLI wraps the full pydantic-deep framework with **all features enabled by de
 - **Subagents** — parallel delegation to specialist agents
 - **Skills** — 5 built-in + custom SKILL.md files
 - **Persistent Memory** — MEMORY.md across sessions
-- **Checkpointing** — save, rewind, and fork conversations
-- **Context Discovery** — auto-inject DEEP.md, CLAUDE.md, SOUL.md
+- **Context Discovery** — auto-inject AGENT.md into system prompt
 - **Context Management** — auto-compression when approaching token limits
+- **Custom Commands** — `/commit`, `/pr`, `/review`, `/test`, `/fix`, `/explain` + user/project commands
 - **Loop Detection** — break infinite tool call retries
 - **Cost Tracking** — real-time token/USD display
 - **Git Context** — branch, status, and directory tree in system prompt
@@ -139,11 +159,19 @@ cli/
 ├── non_interactive.py   — Headless execution (benchmark + sandbox)
 ├── interactive.py       — Chat loop (Rich streaming + tool approval)
 ├── local_context.py     — Git/directory context injection
+├── commands.py          — Custom command discovery and loading
 ├── theme.py             — Color palette + Unicode/ASCII glyph system
 ├── tool_display.py      — Smart tool call formatting + result previews
 ├── diff_display.py      — Colored diffs + file previews for approval
 ├── picker.py            — Interactive model/session picker
 ├── providers.py         — Model provider registry
+├── commands/            — Built-in command .md files
+│   ├── commit.md
+│   ├── pr.md
+│   ├── review.md
+│   ├── test.md
+│   ├── fix.md
+│   └── explain.md
 ├── middleware/
 │   └── loop_detection.py
 └── skills/              — Built-in SKILL.md files
@@ -191,6 +219,6 @@ MIT — see [LICENSE](https://github.com/vstorm-co/pydantic-deepagents/blob/main
 
 <br><br>
 
-Made with ❤️ by <a href="https://vstorm.co"><b>Vstorm</b></a>
+Made with &#10084;&#65039; by <a href="https://vstorm.co"><b>Vstorm</b></a>
 
 </div>

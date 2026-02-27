@@ -13,7 +13,7 @@
   <a href="https://vstorm-co.github.io/pydantic-deepagents/">Docs</a> •
   <a href="https://vstorm-co.github.io/pydantic-deepagents/examples/">Examples</a> •
   <a href="https://pypi.org/project/pydantic-deep/">PyPI</a> •
-  <a href="deepresearch/">DeepResearch</a>
+  <a href="apps/deepresearch/">DeepResearch</a>
 </p>
 
 <p align="center">
@@ -68,7 +68,22 @@ deps = create_default_deps(StateBackend())
 result = await agent.run("Create a todo list for building a REST API", deps=deps)
 ```
 
-**That's it.** Your agent can now:
+**That's it.** Or use the **CLI** directly from your terminal:
+
+```bash
+pip install pydantic-deep[cli]
+
+# Run a task
+pydantic-deep run "Create a REST API with FastAPI"
+
+# Interactive chat
+pydantic-deep chat
+
+# Run in Docker sandbox
+pydantic-deep run "Build a web scraper" --sandbox --runtime python-web
+```
+
+Your agent can now:
 
 - ✅ **Plan tasks** — break down complex work into steps
 - ✅ **Read & write files** — navigate and modify codebases
@@ -84,6 +99,8 @@ result = await agent.run("Create a todo list for building a REST API", deps=deps
 - ✅ **Middleware** — composable before/after hooks with permission handling
 - ✅ **Context files** — auto-inject DEEP.md, AGENTS.md, CLAUDE.md into system prompt
 - ✅ **Context manager** — hybrid summarization + sliding window middleware
+- ✅ **Custom tool descriptions** — override any tool's built-in description via `descriptions` parameter
+- ✅ **Custom commands** — user-defined slash commands from `.md` files (built-in, user, and project scopes)
 
 ---
 
@@ -103,16 +120,16 @@ pydantic-deep implements the **deep agent architecture** — the same patterns p
 
 ---
 
-### [DeepResearch](deepresearch/) — Full-Featured Reference App
+### [DeepResearch](apps/deepresearch/) — Full-Featured Reference App
 
 <table>
 <tr>
 <td width="50%">
-<a href="deepresearch/"><img src="assets/planner_asks_question.png" alt="Planner subagent asks clarifying questions"></a>
+<a href="apps/deepresearch/"><img src="assets/planner_asks_question.png" alt="Planner subagent asks clarifying questions"></a>
 <p align="center"><b>Plan Mode</b> — planner asks clarifying questions before research</p>
 </td>
 <td width="50%">
-<a href="deepresearch/"><img src="assets/spawn_subagents_deepresearch.png" alt="Parallel subagent research"></a>
+<a href="apps/deepresearch/"><img src="assets/spawn_subagents_deepresearch.png" alt="Parallel subagent research"></a>
 <p align="center"><b>Parallel Subagents</b> — 5 agents researching simultaneously</p>
 </td>
 </tr>
@@ -161,6 +178,10 @@ pydantic-deep implements the **deep agent architecture** — the same patterns p
 
 🔧 **Patch Tool Calls** — On session resume, patch stale tool call results so the model sees clean history without re-executing tools.
 
+🏷️ **Custom Tool Descriptions** — All toolset factories accept a `descriptions` parameter to override any tool's built-in description. Useful for tuning tool usage behavior without forking toolsets.
+
+⚡ **Custom Commands** — User-triggered slash commands from `.md` files. Built-in commands include `/commit`, `/pr`, `/review`, `/test`, `/fix`, `/explain`. Three-scope discovery: built-in, user (`~/.pydantic-deep/commands/`), and project (`.pydantic-deep/commands/`).
+
 ### Built-in Capabilities
 
 🎯 **Skills** — Load domain instructions from markdown files with YAML frontmatter.
@@ -182,13 +203,102 @@ pydantic-deep implements the **deep agent architecture** — the same patterns p
 | **AI Coding Assistant** | Planning + Filesystem + Skills + Memory + Hooks |
 | **Data Analysis Agent** | File Uploads + Structured Output + Teams |
 | **Document Processor** | Filesystem + Summarization + Eviction |
-| **Research Agent** | Subagents + Planning + Checkpointing — see [DeepResearch](deepresearch/) |
+| **Research Agent** | Subagents + Planning + Checkpointing — see [DeepResearch](apps/deepresearch/) |
 | **Project Scaffolder** | Planning + Filesystem + Output Styles |
 | **Test Generator** | Filesystem + Docker Sandbox + Cost Tracking |
 | **Multi-Agent Workflow** | Teams + Subagents + Middleware |
 | **Audited Enterprise Agent** | Hooks + Middleware + Cost Tracking |
 
-> **Reference app:** [**DeepResearch**](deepresearch/) is a full-featured research agent built with pydantic-deep. It includes a web UI, MCP-powered web search, Excalidraw diagrams, code execution in Docker, and more. See [deepresearch/README.md](deepresearch/README.md) for setup instructions.
+> **Reference app:** [**DeepResearch**](apps/deepresearch/) is a full-featured research agent built with pydantic-deep. It includes a web UI, MCP-powered web search, Excalidraw diagrams, code execution in Docker, and more. See [apps/deepresearch/README.md](apps/deepresearch/README.md) for setup instructions.
+
+---
+
+## CLI — Your Terminal AI Assistant
+
+The pydantic-deep CLI gives you a Claude Code-style experience powered by the full framework.
+
+```bash
+pip install pydantic-deep[cli]
+```
+
+### Commands
+
+```bash
+# Non-interactive (benchmark mode) — stdout is clean, diagnostics go to stderr
+pydantic-deep run "Fix the failing tests in src/" --model openai:gpt-4.1
+
+# Interactive chat with streaming and tool visibility
+pydantic-deep chat
+
+# Docker sandbox for isolated execution
+pydantic-deep run "Set up a Django project" --sandbox --runtime python-web
+
+# Manage skills
+pydantic-deep skills list                     # List built-in + user skills
+pydantic-deep skills info code-review         # Show skill details
+pydantic-deep skills create my-skill          # Scaffold a new skill
+
+# Manage conversation threads
+pydantic-deep threads list                    # List saved sessions
+pydantic-deep threads delete abc12345         # Delete a session
+
+# Configuration
+pydantic-deep config show                     # Show current config
+pydantic-deep config set model anthropic:claude-sonnet-4-20250514
+```
+
+### Configuration
+
+Config file: `~/.pydantic-deep/config.toml`
+
+```toml
+model = "openai:gpt-4.1"
+include_skills = true
+include_plan = true
+include_memory = true
+shell_allow_list = ["python", "pip", "npm", "make"]
+```
+
+CLI arguments override config file values.
+
+### Built-in Skills
+
+| Skill | Description |
+|-------|-------------|
+| `skill-creator` | Create new reusable skills from conversation context |
+| `code-review` | Systematic code review for bugs, security, style, and performance |
+| `test-writer` | Generate comprehensive test suites for existing code |
+| `refactor` | Refactor code to improve structure and maintainability |
+| `git-workflow` | Git operations: commits, branches, PRs, and conflict resolution |
+
+Skills are SKILL.md files — create your own with `pydantic-deep skills create my-skill`.
+
+### Sandbox Runtimes
+
+| Runtime | Description |
+|---------|-------------|
+| `python-minimal` | Python 3.12 (default) |
+| `python-datascience` | Python + numpy, pandas, matplotlib |
+| `python-web` | Python + FastAPI, Django, Flask |
+| `node-minimal` | Node.js 20 |
+| `node-react` | Node.js + React, Next.js |
+
+```bash
+pydantic-deep run "Analyze this CSV" --sandbox --runtime python-datascience
+```
+
+### What's Included
+
+The CLI wraps the full pydantic-deep framework with all features enabled by default:
+
+- Planning (TodoToolset) + delegation (SubAgentToolset)
+- Filesystem access (ConsoleToolset) + shell execution
+- Skills, memory, checkpoints, context files
+- Custom commands — `/commit`, `/pr`, `/review`, `/test`, `/fix`, `/explain` + user/project commands
+- Loop detection middleware + context management
+- Git/directory context injection into system prompt
+- Cost tracking with real-time display
+- Rich terminal UI — colored unified diffs for file approvals, context progress bar with threshold colors, tool call timing with success/error states, seamless streaming from spinner to Markdown
 
 ---
 
@@ -391,7 +501,35 @@ agent = create_deep_agent(
 )
 ```
 
+### Custom Tool Descriptions
+
+```python
+from pydantic_deep import create_deep_agent
+
+agent = create_deep_agent(
+    descriptions={
+        "write_file": "Create or overwrite a file. Always confirm with the user first.",
+        "execute": "Run a shell command in the working directory.",
+    },
+)
+```
+
+All toolset factories (`CheckpointToolset`, `AgentMemoryToolset`, `create_team_toolset()`, `create_plan_toolset()`, `SkillsToolset`, `create_web_toolset()`) also accept a `descriptions` parameter individually.
+
 ---
+
+## Project Structure
+
+```
+pydantic_deep/          # Core library — agent factory, toolsets, processors, types
+cli/                    # CLI frontend — terminal UI, commands, interactive chat
+apps/                   # Applications built on pydantic-deep
+  swebench_agent/       #   SWE-bench evaluation runner
+  harbor_agent/         #   Harbor benchmark adapter
+  deepresearch/         #   Full-featured research agent with web UI
+tests/                  # Unit tests (100% coverage required)
+docs/                   # MkDocs documentation source
+```
 
 ## Architecture
 
@@ -431,7 +569,9 @@ agent = create_deep_agent(
 - **[subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)** - Multi-agent orchestration
 - **[summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai)** - Context management
 - **[pydantic-ai-middleware](https://github.com/vstorm-co/pydantic-ai-middleware)** - Middleware system with lifecycle hooks
-- **[DeepResearch](deepresearch/)** - Full-featured research agent built with pydantic-deep (included in this repo)
+- **[DeepResearch](apps/deepresearch/)** - Full-featured research agent built with pydantic-deep (included in this repo)
+- **[SWE-bench Agent](apps/swebench_agent/)** - SWE-bench evaluation runner (included in this repo)
+- **[Harbor Agent](apps/harbor_agent/)** - Harbor benchmark adapter (included in this repo)
 - **[fastapi-fullstack](https://github.com/vstorm-co/full-stack-fastapi-nextjs-llm-template)** - Full-stack AI app template
 - **[deepagents](https://github.com/langchain-ai/deepagents)** - Deep Agent implementation by LangChain (inspiration)
 
@@ -465,6 +605,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 MIT — see [LICENSE](LICENSE)
 
-<p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/vstorm-co">vstorm-co</a></sub>
-</p>
+---
+
+<div align="center">
+
+### Need help implementing this in your company?
+
+<p>We're <a href="https://vstorm.co"><b>Vstorm</b></a> — an Applied Agentic AI Engineering Consultancy<br>with 30+ production AI agent implementations.</p>
+
+<a href="https://vstorm.co/contact-us/">
+  <img src="https://img.shields.io/badge/Talk%20to%20us%20%E2%86%92-0066FF?style=for-the-badge&logoColor=white" alt="Talk to us">
+</a>
+
+<br><br>
+
+Made with ❤️ by <a href="https://vstorm.co"><b>Vstorm</b></a>
+
+</div>

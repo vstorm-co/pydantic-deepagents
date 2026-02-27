@@ -1,0 +1,161 @@
+{"type": "session_created", "session_id": "ed6f61e1-8a94-48a4-b083-7986a9ff8acf", "_ts": "2026-02-16T01:11:38.490232+00:00"}
+{"type": "user_message", "content": "poszukaj informacji o Pythonie i napisz mi kr\u00f3tki raport na jego temat", "_ts": "2026-02-16T01:11:38.490791+00:00"}
+{"type": "start", "_ts": "2026-02-16T01:11:38.492592+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T01:11:38.540436+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T01:11:38.542799+00:00"}
+{"type": "tool_call_start", "tool_name": "tavily_tavily_research", "tool_call_id": "call_lS4msYYZpzsVgxCHlSHryp0E", "_ts": "2026-02-16T01:11:39.662725+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "{\"", "_ts": "2026-02-16T01:11:39.668294+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "input", "_ts": "2026-02-16T01:11:39.668618+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "\":\"", "_ts": "2026-02-16T01:11:39.684636+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "Python", "_ts": "2026-02-16T01:11:39.684864+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " programming", "_ts": "2026-02-16T01:11:39.729419+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " language", "_ts": "2026-02-16T01:11:39.729663+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ":", "_ts": "2026-02-16T01:11:39.754267+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " historia", "_ts": "2026-02-16T01:11:39.755057+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:39.827620+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " zastos", "_ts": "2026-02-16T01:11:39.828193+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "owania", "_ts": "2026-02-16T01:11:39.880524+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:39.881197+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " ce", "_ts": "2026-02-16T01:11:40.150138+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "chy", "_ts": "2026-02-16T01:11:40.150425+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:40.160113+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " popular", "_ts": "2026-02-16T01:11:40.160656+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "no\u015b\u0107", "_ts": "2026-02-16T01:11:40.163115+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:40.163355+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " zal", "_ts": "2026-02-16T01:11:40.168340+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ety", "_ts": "2026-02-16T01:11:40.169251+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:40.174721+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " w", "_ts": "2026-02-16T01:11:40.175303+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ady", "_ts": "2026-02-16T01:11:40.178785+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ",", "_ts": "2026-02-16T01:11:40.180023+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " ciek", "_ts": "2026-02-16T01:11:40.185807+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "aw", "_ts": "2026-02-16T01:11:40.186406+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ost", "_ts": "2026-02-16T01:11:40.190666+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ki", "_ts": "2026-02-16T01:11:40.191213+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ".", "_ts": "2026-02-16T01:11:40.198956+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " Kr", "_ts": "2026-02-16T01:11:40.199534+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "\u00f3t", "_ts": "2026-02-16T01:11:40.206887+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ki", "_ts": "2026-02-16T01:11:40.207378+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " raport", "_ts": "2026-02-16T01:11:40.211751+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " z", "_ts": "2026-02-16T01:11:40.212318+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " r", "_ts": "2026-02-16T01:11:40.240033+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "zet", "_ts": "2026-02-16T01:11:40.240708+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "eln", "_ts": "2026-02-16T01:11:40.243603+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ymi", "_ts": "2026-02-16T01:11:40.244123+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": " \u017a", "_ts": "2026-02-16T01:11:40.295805+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "r\u00f3d", "_ts": "2026-02-16T01:11:40.296501+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "\u0142", "_ts": "2026-02-16T01:11:40.296934+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "ami", "_ts": "2026-02-16T01:11:40.297389+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": ".\",\"", "_ts": "2026-02-16T01:11:40.351233+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "model", "_ts": "2026-02-16T01:11:40.351820+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "\":\"", "_ts": "2026-02-16T01:11:40.656223+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "mini", "_ts": "2026-02-16T01:11:40.656816+00:00"}
+{"type": "tool_args_delta", "tool_name": "tavily_tavily_research", "args_delta": "\"}", "_ts": "2026-02-16T01:11:40.665076+00:00"}
+{"type": "tool_start", "tool_name": "tavily_tavily_research", "args": "{\"input\":\"Python programming language: historia, zastosowania, cechy, popularno\u015b\u0107, zalety, wady, ciekawostki. Kr\u00f3tki raport z rzetelnymi \u017ar\u00f3d\u0142ami.\",\"model\":\"mini\"}", "_ts": "2026-02-16T01:11:40.668331+00:00"}
+{"type": "tool_output", "tool_name": "tavily_tavily_research", "output": "# Python \u2013 kr\u00f3tki raport  \n\n## 1. Historia i najwa\u017cniejsze kamienie milowe  \n| Rok | Wydanie | Kluczowe nowo\u015bci | \u0179r\u00f3d\u0142o |\n|-----|---------|------------------|--------|\n| 1991 | 0.9.0 \u2013 pierwsza publiczna wersja (publikacja na alt.sources) \u2013 wprowadzi\u0142 wyj\u0105tki, funkcje, typy podstawowe, mechanizm modu\u0142\u00f3w | [1] |\n| 1994 | 1.0 \u2013 oficjalny start, dodano **lambda, map, filter, reduce**, obs\u0142ug\u0119 wyj\u0105tk\u00f3w | [1] |\n| 2000 | 2.0 \u2013 list comprehensions, garbage collector, wsparcie Unicode, unifikacja typ\u00f3w i klas | [1] |\n| 2008 | 3.0 (\u201ePython\u202f3000\u201d) \u2013 **print** jako funkcja, pe\u0142na obs\u0142uga Unicode, usuni\u0119cie przestarza\u0142ych konstrukcji | [1] |\n| 2015 | 3.5 \u2013 **type hints**, **async/await** wprowadzaj\u0105ce asynchroniczne programowanie | [2] |\n| 2016 | 3.6 \u2013 f\u2011strings, formatowanie liczb, uporz\u0105dkowane s\u0142owniki | [2] |\n| 2020 | 3.9 \u2013 operatory \u0142\u0105czenia s\u0142ownik\u00f3w (`|`), nowe metody string (`removeprefix`, `removesuffix`) | [2] |\n| 2021 | 3.10 \u2013 **pattern matching** (match\u2011case) oraz wielokrotne mened\u017cery kontekstu w `with` | [2] |\n| 2022 | 3.11 \u2013 dalsze usprawnienia wydajno\u015bci, lepsze komunikaty b\u0142\u0119d\u00f3w | [2] |\n| 2023 | 3.12 \u2013 stabilna wersja, dalsze optymalizacje | [2] |\n| 2024 | 3.13 \u2013 wydanie planowane na pa\u017adziernik 2024 | [3] |\n| 2025 | 3.14 \u2013 wydanie pa\u017adziernik 2025 | [3] |\n| 2026 | 3.14.3 \u2013 najnowsza stabilna wersja (marzec 2026) | [4] |\n\n## 2. Zastosowania (przyk\u0142ady)  \n- **Web development** \u2013 frameworki Django, Flask, FastAPI (szybkie API)\u202f[5][6][8]  \n- **Data Science & Machine Learning** \u2013 NumPy, pandas, scikit\u2011learn, TensorFlow, PyTorch\u202f[5][7][8]  \n- **Automatyzacja i skrypty** \u2013 administracja systemami, web scraping (BeautifulSoup, Scrapy)\u202f[7][8]  \n- **Aplikacje desktopowe** \u2013 Tkinter, PyQt, Kivy\u202f[8][9]  \n- **Nauki przyrodnicze i in\u017cynieria** \u2013 SciPy, IPython, Jupyter\u202f[9]  \n- **IoT i embedded** \u2013 MicroPython, Raspberry\u202fPi\u202f[8]  \n- **DevOps / Cloud** \u2013 automatyzacja CI/CD, integracja z AWS, Azure\u202f[8]  \n\n## 3. Charakterystyczne cechy j\u0119zyka  \n- **Wysoki poziom, interpretowany** \u2013 kod uruchamiany linia po linii, co przyspiesza prototypowanie\u202f[12]  \n- **Dynamiczne typowanie** \u2013 typy okre\u015blane w czasie wykonania\u202f[11]  \n- **Wieloparadygmatowy** \u2013 obiektowy, imperatywny, funkcyjny\u202f[10][11]  \n- **Czytelna sk\u0142adnia** (angielsko\u2011zorientowane s\u0142owa kluczowe)\u202f[10]  \n- **Rozbudowana biblioteka standardowa** (\u201ebatteries\u2011included\u201d)\u202f[12]  \n- **Portowalno\u015b\u0107** \u2013 dzia\u0142a na Windows, macOS, Linux, a tak\u017ce w przegl\u0105darkach (Brython)\u202f[10]  \n- **Open\u2011source, du\u017ca spo\u0142eczno\u015b\u0107** \u2013 ponad 2\u202f500 grup na Meetup, aktywne fora, PSF\u202f[19][24]  \n\n## 4. Popularno\u015b\u0107 i trendy (2024\u20112026)  \n- **Stack\u202fOverflow 2024** \u2013 Python najpopularniejszy w\u015br\u00f3d os\u00f3b ucz\u0105cych si\u0119 programowania (66\u202f%) i drugi pod wzgl\u0119dem u\u017cycia w\u015br\u00f3d profesjonalist\u00f3w\u202f[13]  \n- **JetBrains Python Survey 2024** \u2013 49\u202f% respondent\u00f3w u\u017cywa Pythona g\u0142\u00f3wnie do analizy danych, 34\u202f% do web\u2011dev, 33\u202f% do ML\u202f[14]  \n- **TIOBE Index \u2013 luty\u202f2026** \u2013 Python pozostaje j\u0119zykiem nr\u202f1 (21,81\u202f% udzia\u0142u), cho\u0107 od lipca\u202f2025 obserwuje spadek z 26,98\u202f%\u202f[16]  \n- **PYPL i GitHub Octoverse 2024** \u2013 Python przewy\u017csza JavaScript pod wzgl\u0119dem liczby wyszukiwa\u0144 i repozytori\u00f3w, ro\u015bnie udzia\u0142 w projektach AI\u202f[23]  \n- **Polska** \u2013 w ofercie pracy IT Python jest wymieniany w ~19\u202f% og\u0142osze\u0144, drugi najpopularniejszy backendowy j\u0119zyk po Javie\u202f[28]  \n\n## 5. Zalety (przewaga nad innymi j\u0119zykami)  \n- **Prostota i czytelno\u015b\u0107** \u2013 szybka nauka, niska bariera wej\u015bcia\u202f[17][19]  \n- **Szybki rozw\u00f3j aplikacji** \u2013 du\u017ca liczba gotowych bibliotek i framework\u00f3w\u202f[8][19]  \n- **Wszechstronno\u015b\u0107** \u2013 od webu, przez data science, po automatyzacj\u0119\u202f[5][6][7]  \n- **Silna spo\u0142eczno\u015b\u0107 i bogata dokumentacja** (oficjalny tutorial, liczne kursy)\u202f[12][11]  \n- **\u0141atwa integracja** z innymi j\u0119zykami (C/C++, Java, .NET) oraz z narz\u0119dziami AI (Hugging\u202fFace, LangChain)\u202f[14][18]  \n\n## 6. Wady i ograniczenia  \n- **Wolniejsze wykonanie** ni\u017c j\u0119zyki kompilowane (C++, Java) \u2013 problem przy zadaniach wymagaj\u0105cych wysokiej wydajno\u015bci\u202f[17][18]  \n- **Wy\u017csze zu\u017cycie pami\u0119ci** \u2013 nieoptymalne dla bardzo du\u017cych zbior\u00f3w danych w \u015brodowiskach o ograniczonych zasobach\u202f[17][18]  \n- **Brak natywnego wsparcia dla mobilnych i gier** \u2013 nie jest pierwszym wyborem przy tworzeniu aplikacji mobilnych czy gier AAA\u202f[17][19]  \n- **Zale\u017cno\u015bci i zarz\u0105dzanie pakietami** \u2013 konflikty wersji mog\u0105 by\u0107 uci\u0105\u017cliwe, wymaga wirtualnych \u015brodowisk (venv, poetry)\u202f[18]  \n\n## 7. Ciekawostki  \n- **Nazwa** pochodzi od brytyjskiego serialu \u201eMonty\u202fPython\u2019s Flying Circus\u201d, a nie od w\u0119\u017ca\u202f[20][21]  \n- **\u201eZen Pythona\u201d** \u2013 kr\u00f3tkie motto dost\u0119pne po wpisaniu `import this` w interpreterze\u202f[20]  \n- **30\u2011letnia rocznica** w 2021\u202fr.; od tego czasu j\u0119zyk \u015bwi\u0119towa\u0142 liczne aktualizacje i rosn\u0105c\u0105 popularno\u015b\u0107\u202f[20]  \n- **Wykorzystanie w wielkich projektach** \u2013 YouTube, Instagram, Spotify, Netflix, Google, NASA i wiele innych firm u\u017cywa Pythona do backendu, analizy danych i AI\u202f[8][19]  \n- **R\u00f3\u017cne implementacje** \u2013 CPython (domy\u015blna), PyPy (szybsza JIT), Jython, IronPython, MicroPython, Brython\u202f[9]  \n\n---\n\n### \u0179r\u00f3d\u0142a  \n[1] https://learnpython.com/blog/history-of-python/  \n[2] https://www.geeksforgeeks.org/python/python-version-history/  \n[3] https://pythondev.readthedocs.io/history.html  \n[4] https://en.wikipedia.org/wiki/History_of_Python  \n[5] https://mobilunity.com/blog/python-use-cases/  \n[6] https://medium.com/@piyali.bhadra/top-10-python-use-cases-in-2024-ee38c6eb7264  \n[7] https://www.datacamp.com/blog/what-is-python-used-for  \n[8] https://www.geeksforgeeks.org/python/python-language-advantages-applications/  \n[9] https://www.python.org/about/apps/  \n[10] https://www.tokioschool.com/en/news/main-characteristics-python/  \n[11] https://imarticus.org/blog/key-features-of-python/  \n[12] https://docs.python.org/3/tutorial/index.html  \n[13] https://www.codecademy.com/resources/blog/most-popular-programming-language-2024-stack-overflow  \n[14] https://lp.jetbrains.com/python-developers-survey-2024/  \n[15] https://www.infoworld.com/article/4129615/python-is-slipping-in-popularity-tiobe.html  \n[16] https://www.tiobe.com/tiobe-index/  \n[17] https://www.squareboat.com/blog/advantages-and-disadvantages-of-python  \n[18] https://redwerk.com/blog/pros-and-cons-of-python/  \n[19] https://www.analyticsvidhya.com/blog/2024/01/advantages-of-python-over-other-programming-languages/  \n[20] https://data-flair.training/blogs/facts-about-python-programming/  \n[21] https://python.plainenglish.io/10-python-facts-youve-probably-never-heard-of-but-should-know-26f5635ea6ab  \n[22] https://realpython.com/python-news-september-2024/  \n[23] https://github.blog/news-insights/octoverse/octoverse-2024/  \n[24] https://pl.pycon.org/2024/  \n[25] https://robisz.to/pakt-dla-kobiet25-python/  \n[26] https://bulldogjob.pl/readme/najpopularniejsze-jezyki-programowania  \n[27] https://www.computerworld.pl/article/3568852/python-nadal-najpopularniejszym-jezykiem-programowania-oto-lista-top-20.html  \n[28] https://itcompare.pl/pl-pl/articles/63/najbardziej-poszukiwane-technologie-it-w-polsce-brop20252026brcl  \n[29] https://justjoin.it/blog/jezyki-programowania-ktore-trzeba-znac-w-2025-roku  \n[30] https://justjoin.it/blog/historia-pythona  \n[31] https://pl.wikipedia.org/wiki/Python  \n[32] https://www.superprof.pl/blog/skad-sie-wzial-python/  ", "_ts": "2026-02-16T01:12:29.190816+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "tavily_tavily_research", "total_calls": 3, "tools_breakdown": {"task": 1, "write_todos": 1, "tavily_tavily_research": 1}, "_ts": "2026-02-16T01:12:29.191413+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T01:12:29.192960+00:00"}
+{"type": "text_delta", "content": "Oto kr\u00f3tki raport o Python", "_ts": "2026-02-16T01:12:30.268585+00:00"}
+{"type": "text_delta", "content": "ie:\n\n---\n\n# Python \u2013 raport\n\n## 1.", "_ts": "2026-02-16T01:12:30.387152+00:00"}
+{"type": "text_delta", "content": " Historia\nPython powsta\u0142 w 1991 roku (", "_ts": "2026-02-16T01:12:30.511653+00:00"}
+{"type": "text_delta", "content": "tw\u00f3rca: Guido van Rossum). J\u0119zyk przes", "_ts": "2026-02-16T01:12:30.647874+00:00"}
+{"type": "text_delta", "content": "zed\u0142 wiele ewolucji: od wers", "_ts": "2026-02-16T01:12:30.784144+00:00"}
+{"type": "text_delta", "content": "ji 1.0 (", "_ts": "2026-02-16T01:12:30.892854+00:00"}
+{"type": "text_delta", "content": "1994), przez popularn\u0105", "_ts": "2026-02-16T01:12:31.006255+00:00"}
+{"type": "text_delta", "content": " seri\u0119 2.x,", "_ts": "2026-02-16T01:12:31.139118+00:00"}
+{"type": "text_delta", "content": " a\u017c po wsp\u00f3\u0142czesne", "_ts": "2026-02-16T01:12:31.271592+00:00"}
+{"type": "text_delta", "content": " wydania 3.x.", "_ts": "2026-02-16T01:12:31.373516+00:00"}
+{"type": "text_delta", "content": " Nazwa pochodzi od serial", "_ts": "2026-02-16T01:12:31.479717+00:00"}
+{"type": "text_delta", "content": "u \u201eMonty Python\u2019s", "_ts": "2026-02-16T01:12:31.598648+00:00"}
+{"type": "text_delta", "content": " Flying Circus\u201d[1][", "_ts": "2026-02-16T01:12:31.718353+00:00"}
+{"type": "text_delta", "content": "20][31].\n\n## ", "_ts": "2026-02-16T01:12:31.824150+00:00"}
+{"type": "text_delta", "content": "2. Zastosowania\n", "_ts": "2026-02-16T01:12:31.930533+00:00"}
+{"type": "text_delta", "content": "Python jest u\u017cywany w:\n", "_ts": "2026-02-16T01:12:32.035003+00:00"}
+{"type": "text_delta", "content": "- web developmencie (", "_ts": "2026-02-16T01:12:32.141681+00:00"}
+{"type": "text_delta", "content": "Django, Flask),\n- data science i machine", "_ts": "2026-02-16T01:12:32.249620+00:00"}
+{"type": "text_delta", "content": " learningu (NumPy, pandas, TensorFlow),\n- automatyzacji", "_ts": "2026-02-16T01:12:32.356546+00:00"}
+{"type": "text_delta", "content": ",\n- tworzeniu aplikacji desktopowych (Tkinter),\n", "_ts": "2026-02-16T01:12:32.472221+00:00"}
+{"type": "text_delta", "content": "- analizie danych, nauce, IoT", "_ts": "2026-02-16T01:12:32.677528+00:00"}
+{"type": "text_delta", "content": ".\n\nDu\u017ce organizacje (", "_ts": "2026-02-16T01:12:32.814419+00:00"}
+{"type": "text_delta", "content": "Google, YouTube, NASA, Spotify", "_ts": "2026-02-16T01:12:32.928134+00:00"}
+{"type": "text_delta", "content": ") korzystaj\u0105 z Pyth", "_ts": "2026-02-16T01:12:33.032138+00:00"}
+{"type": "text_delta", "content": "ona w projektach", "_ts": "2026-02-16T01:12:33.142398+00:00"}
+{"type": "text_delta", "content": " backendowych i analitycznych[7][8][19].\n\n##", "_ts": "2026-02-16T01:12:33.425412+00:00"}
+{"type": "text_delta", "content": " 3. Cechy\n- Wysoki poziom,", "_ts": "2026-02-16T01:12:33.536094+00:00"}
+{"type": "text_delta", "content": " interpretowany, dynamicznie typowany", "_ts": "2026-02-16T01:12:33.640970+00:00"}
+{"type": "text_delta", "content": "\n- Prosta, czytelna", "_ts": "2026-02-16T01:12:33.765341+00:00"}
+{"type": "text_delta", "content": " sk\u0142adnia", "_ts": "2026-02-16T01:12:33.936482+00:00"}
+{"type": "text_delta", "content": " (\u201eczytelno\u015b\u0107", "_ts": "2026-02-16T01:12:34.038557+00:00"}
+{"type": "text_delta", "content": " ponad wszystko\u201d \u2013", "_ts": "2026-02-16T01:12:34.148274+00:00"}
+{"type": "text_delta", "content": " Zen Pythona)\n- Wieloparadygmatowy (obiekt", "_ts": "2026-02-16T01:12:34.283945+00:00"}
+{"type": "text_delta", "content": "owy, funkcyjny, imperatywny)\n- Ogrom", "_ts": "2026-02-16T01:12:34.397505+00:00"}
+{"type": "text_delta", "content": "na biblioteka standardowa i wiele zewn", "_ts": "2026-02-16T01:12:34.510247+00:00"}
+{"type": "text_delta", "content": "\u0119trznych pakiet\u00f3w\n", "_ts": "2026-02-16T01:12:34.615551+00:00"}
+{"type": "text_delta", "content": "- Open-source, szeroka", "_ts": "2026-02-16T01:12:34.888214+00:00"}
+{"type": "text_delta", "content": " spo\u0142eczno\u015b\u0107[10", "_ts": "2026-02-16T01:12:35.055573+00:00"}
+{"type": "text_delta", "content": "][11][12][19]\n\n## 4. Popular", "_ts": "2026-02-16T01:12:35.159811+00:00"}
+{"type": "text_delta", "content": "no\u015b\u0107\n", "_ts": "2026-02-16T01:12:35.271907+00:00"}
+{"type": "text_delta", "content": "Python od lat znajduje si\u0119 na", "_ts": "2026-02-16T01:12:35.405650+00:00"}
+{"type": "text_delta", "content": " szczycie ranking\u00f3w (TIO", "_ts": "2026-02-16T01:12:35.522346+00:00"}
+{"type": "text_delta", "content": "BE, Stack Overflow). Szcz", "_ts": "2026-02-16T01:12:35.660544+00:00"}
+{"type": "text_delta", "content": "eg\u00f3lnie popularny w nauce, anality", "_ts": "2026-02-16T01:12:35.765670+00:00"}
+{"type": "text_delta", "content": "ce i aplikacjach AI. W", "_ts": "2026-02-16T01:12:35.901653+00:00"}
+{"type": "text_delta", "content": " Polsce to jeden z najcz\u0119\u015bciej poszukiwanych j\u0119", "_ts": "2026-02-16T01:12:36.004781+00:00"}
+{"type": "text_delta", "content": "zyk\u00f3w na rynku pracy[13][14", "_ts": "2026-02-16T01:12:36.119054+00:00"}
+{"type": "text_delta", "content": "][16][28].\n\n## 5. Zalety i", "_ts": "2026-02-16T01:12:36.258301+00:00"}
+{"type": "text_delta", "content": " wady\nZalety:\n- \u0141at", "_ts": "2026-02-16T01:12:36.360883+00:00"}
+{"type": "text_delta", "content": "wy do nauki i u\u017cycia\n", "_ts": "2026-02-16T01:12:36.491276+00:00"}
+{"type": "text_delta", "content": "- Wszechstronny", "_ts": "2026-02-16T01:12:36.601255+00:00"}
+{"type": "text_delta", "content": ", szybki rozw\u00f3j oprogramowania\n-", "_ts": "2026-02-16T01:12:36.708359+00:00"}
+{"type": "text_delta", "content": " Du\u017ca liczba bibliotek i \u015bwietna dokumentacja", "_ts": "2026-02-16T01:12:36.828160+00:00"}
+{"type": "text_delta", "content": "\n\nWady:\n- Wolniejszy", "_ts": "2026-02-16T01:12:36.935880+00:00"}
+{"type": "text_delta", "content": " od j\u0119zyk\u00f3w kompilowanych (np. C++", "_ts": "2026-02-16T01:12:37.067470+00:00"}
+{"type": "text_delta", "content": "),\n-", "_ts": "2026-02-16T01:12:37.408118+00:00"}
+{"type": "text_delta", "content": " Z wi\u0119ks", "_ts": "2026-02-16T01:12:37.714812+00:00"}
+{"type": "text_delta", "content": "zym zu", "_ts": "2026-02-16T01:12:38.037368+00:00"}
+{"type": "text_delta", "content": "\u017cyciem", "_ts": "2026-02-16T01:12:38.414894+00:00"}
+{"type": "text_delta", "content": " pami\u0119ci", "_ts": "2026-02-16T01:12:38.721841+00:00"}
+{"type": "text_delta", "content": ",\n-", "_ts": "2026-02-16T01:12:39.072296+00:00"}
+{"type": "text_delta", "content": " Nie jest", "_ts": "2026-02-16T01:12:39.448403+00:00"}
+{"type": "text_delta", "content": " pierwszym", "_ts": "2026-02-16T01:12:39.849196+00:00"}
+{"type": "text_delta", "content": " wyborem przy tworzeniu gier AAA i mobil", "_ts": "2026-02-16T01:12:40.196884+00:00"}
+{"type": "text_delta", "content": "nych aplikacji[17][18][", "_ts": "2026-02-16T01:12:40.315998+00:00"}
+{"type": "text_delta", "content": "19].\n\n## 6. Ciekawostki\n- \u201eZen Pythona", "_ts": "2026-02-16T01:12:40.419240+00:00"}
+{"type": "text_delta", "content": "\u201d to zbi\u00f3r zasad", "_ts": "2026-02-16T01:12:40.531132+00:00"}
+{"type": "text_delta", "content": " filozofii j\u0119zyka (", "_ts": "2026-02-16T01:12:40.661152+00:00"}
+{"type": "text_delta", "content": "import this)\n- Istnieje wiele", "_ts": "2026-02-16T01:12:40.779908+00:00"}
+{"type": "text_delta", "content": " implementacji: CPython, PyPy, Jython, MicroPython", "_ts": "2026-02-16T01:12:40.940385+00:00"}
+{"type": "text_delta", "content": "\n- Python osi\u0105gn\u0105\u0142 ", "_ts": "2026-02-16T01:12:41.056610+00:00"}
+{"type": "text_delta", "content": "30 lat w 2021 roku[", "_ts": "2026-02-16T01:12:41.183596+00:00"}
+{"type": "text_delta", "content": "9][20][21][", "_ts": "2026-02-16T01:12:41.296529+00:00"}
+{"type": "text_delta", "content": "31]\n\n---\n\n### Wybrane \u017ar\u00f3d\u0142a:\n", "_ts": "2026-02-16T01:12:41.427621+00:00"}
+{"type": "text_delta", "content": "[1] https://learnpython.com/blog/history-of-python/  \n", "_ts": "2026-02-16T01:12:41.536794+00:00"}
+{"type": "text_delta", "content": "[7] https://www.datac", "_ts": "2026-02-16T01:12:41.650000+00:00"}
+{"type": "text_delta", "content": "amp.com/blog/what-is-python-used-for  \n[8", "_ts": "2026-02-16T01:12:41.752797+00:00"}
+{"type": "text_delta", "content": "] https://www.geeksforgeeks.org/python/python-language-advantages-applications", "_ts": "2026-02-16T01:12:41.870786+00:00"}
+{"type": "text_delta", "content": "/  \n[9] https://www.python.org/about/apps/  \n", "_ts": "2026-02-16T01:12:42.006261+00:00"}
+{"type": "text_delta", "content": "[10] https://www.tokioschool", "_ts": "2026-02-16T01:12:42.108168+00:00"}
+{"type": "text_delta", "content": ".com/en/news/main-characteristics-python/  \n[", "_ts": "2026-02-16T01:12:42.261653+00:00"}
+{"type": "text_delta", "content": "11] https://imarticus.org/blog/key-features-of-python", "_ts": "2026-02-16T01:12:42.452364+00:00"}
+{"type": "text_delta", "content": "/  \n[12] https://docs.python.org/3/tutorial/index.html  \n[13", "_ts": "2026-02-16T01:12:42.564183+00:00"}
+{"type": "text_delta", "content": "] https://www.codecademy.com", "_ts": "2026-02-16T01:12:42.702441+00:00"}
+{"type": "text_delta", "content": "/resources/blog/most-popular-programming", "_ts": "2026-02-16T01:12:42.828799+00:00"}
+{"type": "text_delta", "content": "-language-2024-stack-overflow  \n[14] https://lp.jetbrains.com/python-developers-survey-202", "_ts": "2026-02-16T01:12:42.931694+00:00"}
+{"type": "text_delta", "content": "4/  \n[", "_ts": "2026-02-16T01:12:43.035751+00:00"}
+{"type": "text_delta", "content": "16] https://www.tiobe.com/tiobe-index/  \n[17] https://www.squareboat.com/blog/", "_ts": "2026-02-16T01:12:43.149503+00:00"}
+{"type": "text_delta", "content": "advantages-and-disadvantages-of-python  \n[18] https://redwerk.com/blog/pros", "_ts": "2026-02-16T01:12:43.257300+00:00"}
+{"type": "text_delta", "content": "-and-cons-of-python/  \n[19] https://www.analyticsvidhya.com/blog/2024/01/advantages-of-python-over", "_ts": "2026-02-16T01:12:43.359449+00:00"}
+{"type": "text_delta", "content": "-other-programming-languages/  \n[20] https://data-flair.training/blogs/facts", "_ts": "2026-02-16T01:12:43.468738+00:00"}
+{"type": "text_delta", "content": "-about-python-programming/  \n[21] https://python", "_ts": "2026-02-16T01:12:43.580436+00:00"}
+{"type": "text_delta", "content": ".plainenglish.io/10-python-facts-youve-probably-never-heard", "_ts": "2026-02-16T01:12:43.690909+00:00"}
+{"type": "text_delta", "content": "-of-but-should-know-26f5635ea6ab  \n[28] https://", "_ts": "2026-02-16T01:12:43.798351+00:00"}
+{"type": "text_delta", "content": "itcompare.pl/pl-pl/articles/63/naj", "_ts": "2026-02-16T01:12:43.904063+00:00"}
+{"type": "text_delta", "content": "bardziej-poszukiwane-technologie-it-w-polsce-brop20252026brcl  \n", "_ts": "2026-02-16T01:12:44.029241+00:00"}
+{"type": "text_delta", "content": "[31] https://pl.wikipedia.org/wiki/Python  \n\n", "_ts": "2026-02-16T01:12:44.157558+00:00"}
+{"type": "text_delta", "content": "Chcesz rozwin\u0105\u0107 kt\u00f3ry\u015b z punkt\u00f3w lub interes", "_ts": "2026-02-16T01:12:44.284707+00:00"}
+{"type": "text_delta", "content": "uje Ci\u0119 konkretny aspekt P", "_ts": "2026-02-16T01:12:44.389062+00:00"}
+{"type": "text_delta", "content": "ythona?", "_ts": "2026-02-16T01:12:44.421094+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T01:12:44.424840+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "cc03edb6-2fc3-467e-9bd9-b192591cf153", "label": "turn-7", "turn": 7, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T01:12:44.425501+00:00"}
+{"type": "response", "content": "Oto kr\u00f3tki raport o Pythonie:\n\n---\n\n# Python \u2013 raport\n\n## 1. Historia\nPython powsta\u0142 w 1991 roku (tw\u00f3rca: Guido van Rossum). J\u0119zyk przeszed\u0142 wiele ewolucji: od wersji 1.0 (1994), przez popularn\u0105 seri\u0119 2.x, a\u017c po wsp\u00f3\u0142czesne wydania 3.x. Nazwa pochodzi od serialu \u201eMonty Python\u2019s Flying Circus\u201d[1][20][31].\n\n## 2. Zastosowania\nPython jest u\u017cywany w:\n- web developmencie (Django, Flask),\n- data science i machine learningu (NumPy, pandas, TensorFlow),\n- automatyzacji,\n- tworzeniu aplikacji desktopowych (Tkinter),\n- analizie danych, nauce, IoT.\n\nDu\u017ce organizacje (Google, YouTube, NASA, Spotify) korzystaj\u0105 z Pythona w projektach backendowych i analitycznych[7][8][19].\n\n## 3. Cechy\n- Wysoki poziom, interpretowany, dynamicznie typowany\n- Prosta, czytelna sk\u0142adnia (\u201eczytelno\u015b\u0107 ponad wszystko\u201d \u2013 Zen Pythona)\n- Wieloparadygmatowy (obiektowy, funkcyjny, imperatywny)\n- Ogromna biblioteka standardowa i wiele zewn\u0119trznych pakiet\u00f3w\n- Open-source, szeroka spo\u0142eczno\u015b\u0107[10][11][12][19]\n\n## 4. Popularno\u015b\u0107\nPython od lat znajduje si\u0119 na szczycie ranking\u00f3w (TIOBE, Stack Overflow). Szczeg\u00f3lnie popularny w nauce, analityce i aplikacjach AI. W Polsce to jeden z najcz\u0119\u015bciej poszukiwanych j\u0119zyk\u00f3w na rynku pracy[13][14][16][28].\n\n## 5. Zalety i wady\nZalety:\n- \u0141atwy do nauki i u\u017cycia\n- Wszechstronny, szybki rozw\u00f3j oprogramowania\n- Du\u017ca liczba bibliotek i \u015bwietna dokumentacja\n\nWady:\n- Wolniejszy od j\u0119zyk\u00f3w kompilowanych (np. C++),\n- Z wi\u0119kszym zu\u017cyciem pami\u0119ci,\n- Nie jest pierwszym wyborem przy tworzeniu gier AAA i mobilnych aplikacji[17][18][19].\n\n## 6. Ciekawostki\n- \u201eZen Pythona\u201d to zbi\u00f3r zasad filozofii j\u0119zyka (import this)\n- Istnieje wiele implementacji: CPython, PyPy, Jython, MicroPython\n- Python osi\u0105gn\u0105\u0142 30 lat w 2021 roku[9][20][21][31]\n\n---\n\n### Wybrane \u017ar\u00f3d\u0142a:\n[1] https://learnpython.com/blog/history-of-python/  \n[7] https://www.datacamp.com/blog/what-is-python-used-for  \n[8] https://www.geeksforgeeks.org/python/python-language-advantages-applications/  \n[9] https://www.python.org/about/apps/  \n[10] https://www.tokioschool.com/en/news/main-characteristics-python/  \n[11] https://imarticus.org/blog/key-features-of-python/  \n[12] https://docs.python.org/3/tutorial/index.html  \n[13] https://www.codecademy.com/resources/blog/most-popular-programming-language-2024-stack-overflow  \n[14] https://lp.jetbrains.com/python-developers-survey-2024/  \n[16] https://www.tiobe.com/tiobe-index/  \n[17] https://www.squareboat.com/blog/advantages-and-disadvantages-of-python  \n[18] https://redwerk.com/blog/pros-and-cons-of-python/  \n[19] https://www.analyticsvidhya.com/blog/2024/01/advantages-of-python-over-other-programming-languages/  \n[20] https://data-flair.training/blogs/facts-about-python-programming/  \n[21] https://python.plainenglish.io/10-python-facts-youve-probably-never-heard-of-but-should-know-26f5635ea6ab  \n[28] https://itcompare.pl/pl-pl/articles/63/najbardziej-poszukiwane-technologie-it-w-polsce-brop20252026brcl  \n[31] https://pl.wikipedia.org/wiki/Python  \n\nChcesz rozwin\u0105\u0107 kt\u00f3ry\u015b z punkt\u00f3w lub interesuje Ci\u0119 konkretny aspekt Pythona?", "_ts": "2026-02-16T01:12:44.454285+00:00"}
+{"type": "done", "_ts": "2026-02-16T01:12:44.454485+00:00"}

@@ -128,20 +128,18 @@ class TestDiscoverContextFiles:
     def test_discover_at_root(self):
         """Test discovering context files at root."""
         backend = StateBackend()
-        backend.write("/DEEP.md", "# Deep")
-        backend.write("/AGENTS.md", "# Agents")
+        backend.write("/AGENT.md", "# Agent")
 
         found = discover_context_files(backend)
-        assert "/DEEP.md" in found
-        assert "/AGENTS.md" in found
+        assert "/AGENT.md" in found
 
     def test_discover_partial(self):
         """Test discovering when only some files exist."""
         backend = StateBackend()
-        backend.write("/DEEP.md", "# Deep")
+        backend.write("/AGENT.md", "# Agent")
 
         found = discover_context_files(backend)
-        assert found == ["/DEEP.md"]
+        assert found == ["/AGENT.md"]
 
     def test_discover_none_found(self):
         """Test discovering when no files exist."""
@@ -163,18 +161,18 @@ class TestDiscoverContextFiles:
     def test_discover_custom_search_path(self):
         """Test discovering at a custom search path."""
         backend = StateBackend()
-        backend.write("/project/DEEP.md", "# Deep")
+        backend.write("/project/AGENT.md", "# Agent")
 
         found = discover_context_files(backend, search_path="/project")
-        assert found == ["/project/DEEP.md"]
+        assert found == ["/project/AGENT.md"]
 
     def test_discover_trailing_slash(self):
         """Test that trailing slash is handled correctly."""
         backend = StateBackend()
-        backend.write("/project/DEEP.md", "# Deep")
+        backend.write("/project/AGENT.md", "# Agent")
 
         found = discover_context_files(backend, search_path="/project/")
-        assert found == ["/project/DEEP.md"]
+        assert found == ["/project/AGENT.md"]
 
 
 # --- Unit Tests: _truncate_content ---
@@ -254,15 +252,13 @@ class TestFormatContextPrompt:
     def test_subagent_filtering(self):
         """Test that subagent mode filters out non-allowed files."""
         files = [
-            ContextFile(name="DEEP.md", path="/DEEP.md", content="# Deep"),
-            ContextFile(name="AGENTS.md", path="/AGENTS.md", content="# Agents"),
+            ContextFile(name="AGENT.md", path="/AGENT.md", content="# Agent"),
             ContextFile(name="SOUL.md", path="/SOUL.md", content="# Soul"),
             ContextFile(name="CLAUDE.md", path="/CLAUDE.md", content="# Claude"),
         ]
         result = format_context_prompt(files, is_subagent=True)
 
-        assert "### DEEP.md" in result
-        assert "### AGENTS.md" in result
+        assert "### AGENT.md" in result
         assert "SOUL.md" not in result
         assert "CLAUDE.md" not in result
 
@@ -340,16 +336,14 @@ class TestContextToolset:
     async def test_get_instructions_discovery(self):
         """Test get_instructions with auto-discovery."""
         backend = StateBackend()
-        backend.write("/DEEP.md", "# Deep rules")
-        backend.write("/AGENTS.md", "# Agent instructions")
+        backend.write("/AGENT.md", "# Agent instructions")
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_discovery=True)
         result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "### DEEP.md" in result
-        assert "### AGENTS.md" in result
+        assert "### AGENT.md" in result
 
     async def test_get_instructions_no_config(self):
         """Test get_instructions with no files or discovery returns None."""
@@ -370,18 +364,18 @@ class TestContextToolset:
     async def test_get_instructions_subagent(self):
         """Test get_instructions with is_subagent=True filters files."""
         backend = StateBackend()
-        backend.write("/DEEP.md", "# Deep")
+        backend.write("/AGENT.md", "# Agent")
         backend.write("/SOUL.md", "# Soul")
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(
-            context_files=["/DEEP.md", "/SOUL.md"],
+            context_files=["/AGENT.md", "/SOUL.md"],
             is_subagent=True,
         )
         result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "### DEEP.md" in result
+        assert "### AGENT.md" in result
         assert "SOUL.md" not in result
 
     async def test_get_instructions_subagent_all_filtered(self):
@@ -565,15 +559,11 @@ class TestContextConstants:
 
     def test_default_filenames(self):
         """Test DEFAULT_CONTEXT_FILENAMES contains expected values."""
-        assert "DEEP.md" in DEFAULT_CONTEXT_FILENAMES
-        assert "AGENTS.md" in DEFAULT_CONTEXT_FILENAMES
-        assert "CLAUDE.md" in DEFAULT_CONTEXT_FILENAMES
-        assert "SOUL.md" in DEFAULT_CONTEXT_FILENAMES
+        assert DEFAULT_CONTEXT_FILENAMES == ["AGENT.md"]
 
     def test_subagent_allowlist(self):
         """Test SUBAGENT_CONTEXT_ALLOWLIST."""
-        assert "DEEP.md" in SUBAGENT_CONTEXT_ALLOWLIST
-        assert "AGENTS.md" in SUBAGENT_CONTEXT_ALLOWLIST
+        assert frozenset({"AGENT.md"}) == SUBAGENT_CONTEXT_ALLOWLIST
         assert "SOUL.md" not in SUBAGENT_CONTEXT_ALLOWLIST
         assert "CLAUDE.md" not in SUBAGENT_CONTEXT_ALLOWLIST
 

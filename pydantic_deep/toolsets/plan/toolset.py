@@ -52,12 +52,25 @@ Use `ask_user` when you need to:
 - Get user preferences on technical decisions
 - Confirm assumptions about the codebase
 
-Guidelines:
-- Provide 2-4 clear options per question
+CRITICAL guidelines for `ask_user`:
+- You MUST ALWAYS provide 2-4 options with `label` and `description` keys
+- NEVER pass an empty options list — always suggest the most likely answers
 - Mark one option as `"recommended": "true"` when you have a preference
-- Include a brief description for each option explaining trade-offs
+- Even for open-ended questions, provide concrete suggestions as options
 - Ask the most important questions first
 - You can ask multiple questions sequentially
+
+Example call:
+```
+ask_user(
+    question="Which auth method should we use?",
+    options=[
+        {"label": "JWT", "description": "Stateless, good for APIs", "recommended": "true"},
+        {"label": "Session-based", "description": "Traditional, server-side state"},
+        {"label": "OAuth2", "description": "Third-party auth providers"}
+    ]
+)
+```
 
 ## Plan Format
 
@@ -101,10 +114,33 @@ Write plans in this markdown format:
 """
 
 
+ASK_USER_DESCRIPTION = """\
+Ask the user a question with predefined answer options.
+
+Use this to clarify requirements, choose between approaches, or get \
+user preferences during planning. The user sees your question with \
+selectable options in an interactive picker.
+
+IMPORTANT: You MUST always provide 2-4 concrete options. Never pass \
+an empty options list. Even for open-ended questions, suggest the most \
+likely answers — the user can always type a custom answer."""
+
+SAVE_PLAN_DESCRIPTION = """\
+Save the implementation plan to a markdown file.
+
+Call this when you have finished planning and have a complete plan. \
+The plan is saved as a markdown file for reference during implementation.
+
+Never end with only a plan — plans guide your edits; the deliverable \
+is working code. Before finishing, reconcile all plan items: mark each \
+as completed or cancelled with a reason."""
+
+
 def create_plan_toolset(
     plans_dir: str = DEFAULT_PLANS_DIR,
     *,
     id: str | None = None,
+    descriptions: dict[str, str] | None = None,
 ) -> FunctionToolset[Any]:
     """Create a plan toolset with ask_user and save_plan tools.
 
@@ -118,13 +154,17 @@ def create_plan_toolset(
     Args:
         plans_dir: Directory to save plan files (default: ``/plans``).
         id: Toolset ID (default: ``deep-plan``).
+        descriptions: Optional mapping of tool name to custom description.
+            Supported keys: ``ask_user``, ``save_plan``.
+            When a key is absent the built-in default is used.
 
     Returns:
         FunctionToolset with ``ask_user`` and ``save_plan`` tools.
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-plan")
+    _descs = descriptions or {}
 
-    @toolset.tool
+    @toolset.tool(description=_descs.get("ask_user", ASK_USER_DESCRIPTION))
     async def ask_user(  # pragma: no cover
         ctx: RunContext[Any],
         question: str,
@@ -132,19 +172,12 @@ def create_plan_toolset(
     ) -> str:
         """Ask the user a question with predefined answer options.
 
-        Use this to clarify requirements, choose between approaches, or get
-        user preferences during planning. The user sees your question with
-        clickable option buttons and can also type a custom answer.
-
         Args:
             question: The question to ask. Be specific and concise.
-            options: List of answer options. Each option should have:
+            options: REQUIRED list of 2-4 answer options. Each option MUST have:
                 - 'label': Short option text (1-5 words)
                 - 'description': What this option means or implies
                 - 'recommended': Set to 'true' to highlight as recommended (optional)
-
-        Returns:
-            The user's selected option label or their custom text answer.
         """
         callback = getattr(ctx.deps, "ask_user", None)
         if callback is None:
@@ -158,7 +191,7 @@ def create_plan_toolset(
 
         return str(await callback(question, options))
 
-    @toolset.tool
+    @toolset.tool(description=_descs.get("save_plan", SAVE_PLAN_DESCRIPTION))
     async def save_plan(  # pragma: no cover
         ctx: RunContext[Any],
         title: str,
@@ -166,15 +199,9 @@ def create_plan_toolset(
     ) -> str:
         """Save the implementation plan to a markdown file.
 
-        Call this when you have finished planning and have a complete plan.
-        The plan is saved as a markdown file for reference during implementation.
-
         Args:
             title: Plan title (used to generate the filename).
             content: Full markdown content of the plan.
-
-        Returns:
-            Confirmation with the file path where the plan was saved.
         """
         # Generate filename from title
         slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:50]

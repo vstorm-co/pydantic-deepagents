@@ -13,6 +13,7 @@ the local filesystem implementations in ``local.py``:
 from __future__ import annotations
 
 import json
+import shlex
 import warnings
 from dataclasses import dataclass, field
 from typing import Any
@@ -153,7 +154,7 @@ class BackendSkillScriptExecutor:
                 f"Script '{script.name}' has no URI for backend execution"
             )
 
-        cmd_parts = ["python", script.uri]
+        cmd_parts = ["python", shlex.quote(script.uri)]
 
         if args:
             for key, value in args.items():
@@ -163,10 +164,10 @@ class BackendSkillScriptExecutor:
                 elif isinstance(value, list):
                     for item in value:
                         cmd_parts.append(f"--{key}")
-                        cmd_parts.append(str(item))
+                        cmd_parts.append(shlex.quote(str(item)))
                 elif value is not None:
                     cmd_parts.append(f"--{key}")
-                    cmd_parts.append(str(value))
+                    cmd_parts.append(shlex.quote(str(value)))
 
         command = " ".join(cmd_parts)
 

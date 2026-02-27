@@ -69,9 +69,11 @@ def create_deep_agent(
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
-    context_manager_max_tokens: int = 200_000,
+    context_manager_max_tokens: int | None = None,
     on_context_update: Any | None = None,
+    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
     include_memory: bool = False,
@@ -84,6 +86,10 @@ def create_deep_agent(
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
+    include_web: bool = False,
+    web_search_provider: Any | None = None,
+    include_history_archive: bool = True,
+    history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
     cost_budget_usd: float | None = None,
     on_cost_update: Any | None = None,
@@ -91,6 +97,8 @@ def create_deep_agent(
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
 
@@ -126,9 +134,11 @@ def create_deep_agent(
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
-    context_manager_max_tokens: int = 200_000,
+    context_manager_max_tokens: int | None = None,
     on_context_update: Any | None = None,
+    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
     include_memory: bool = False,
@@ -141,6 +151,10 @@ def create_deep_agent(
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
+    include_web: bool = False,
+    web_search_provider: Any | None = None,
+    include_history_archive: bool = True,
+    history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
     cost_budget_usd: float | None = None,
     on_cost_update: Any | None = None,
@@ -148,6 +162,8 @@ def create_deep_agent(
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
 
@@ -181,9 +197,11 @@ def create_deep_agent(  # noqa: C901
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = None,
     image_support: bool = False,
+    edit_format: str = "hashline",
     context_manager: bool = True,
-    context_manager_max_tokens: int = 200_000,
+    context_manager_max_tokens: int | None = None,
     on_context_update: Any | None = None,
+    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
     include_memory: bool = False,
@@ -196,6 +214,10 @@ def create_deep_agent(  # noqa: C901
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
+    include_web: bool = False,
+    web_search_provider: Any | None = None,
+    include_history_archive: bool = True,
+    history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
     cost_budget_usd: float | None = None,
     on_cost_update: Any | None = None,
@@ -203,6 +225,8 @@ def create_deep_agent(  # noqa: C901
     permission_handler: Any | None = None,
     middleware_context: Any | None = None,
     plans_dir: str | None = None,
+    model_settings: dict[str, Any] | None = None,
+    instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
@@ -272,6 +296,8 @@ def create_deep_agent(  # noqa: C901
             summarization when approaching the token budget. Also provides
             tool output truncation when middleware wrapping is active.
         context_manager_max_tokens: Maximum token budget for the conversation.
+            When None (default), auto-detected from genai-prices based on
+            the model name. Falls back to 200,000 if model is not found.
             Used by ContextManagerMiddleware to calculate usage percentage and
             determine when to trigger auto-compression. Defaults to 200,000.
         on_context_update: Callback for context usage updates. Called with
@@ -280,6 +306,10 @@ def create_deep_agent(  # noqa: C901
             When True, reading image files (.png, .jpg, .jpeg, .gif, .webp)
             returns a BinaryContent object that multimodal models can see,
             instead of garbled text. Defaults to False.
+        summarization_model: Model to use for LLM-based context compression
+            summaries (e.g., ``"openai:gpt-4.1-mini"``). When None (default),
+            the middleware uses its own default. Passed through to
+            ``ContextManagerMiddleware.summarization_model``.
         context_files: List of paths to context files in the backend
             (e.g., ["/project/DEEP.md", "/project/SOUL.md"]).
             Files are loaded from the runtime backend (ctx.deps.backend)
@@ -340,6 +370,21 @@ def create_deep_agent(  # noqa: C901
             When True, adds tools for spawning agent teams, assigning
             tasks via shared todo lists, messaging teammates, and
             dissolving teams. Defaults to False.
+        include_web: Whether to include the web toolset (web_search,
+            fetch_url, http_request). Requires ``pip install
+            'pydantic-deep[web-tools]'``. Defaults to False.
+        web_search_provider: Custom search provider implementing
+            :class:`~pydantic_deep.toolsets.web.SearchProvider`. Defaults
+            to :class:`~pydantic_deep.toolsets.web.TavilySearchProvider`
+            (requires ``TAVILY_API_KEY`` env var).
+        include_history_archive: Whether to persist full conversation history
+            before context compression discards messages. Adds a
+            ``search_conversation_history`` tool so the agent can look up
+            details from before compression. Only active when
+            ``context_manager=True``. Defaults to True.
+        history_messages_path: Path to the messages.json file that stores
+            the full conversation history. Defaults to
+            ``".pydantic-deep/messages.json"``.
         middleware: List of AgentMiddleware instances to wrap the agent with.
             Requires pydantic-ai-middleware package (install with
             ``pip install pydantic-deep[middleware]``). When provided, the
@@ -351,6 +396,14 @@ def create_deep_agent(  # noqa: C901
             between middleware hooks. Optional.
         plans_dir: Directory to save plan files from the planner subagent.
             Defaults to ``/plans`` (relative to backend root).
+        model_settings: Provider-specific model settings (temperature, thinking,
+            etc.). Passed directly to the pydantic-ai Agent. Common keys:
+            ``temperature``, ``max_tokens``, ``anthropic_thinking``,
+            ``openai_reasoning_effort``. See pydantic-ai ModelSettings docs.
+        instrument: Enable OpenTelemetry/Logfire instrumentation. When True,
+            the agent emits spans for LLM calls, tool invocations, and token
+            usage. Requires ``logfire`` or OpenTelemetry SDK. None (default)
+            means no instrumentation.
         **agent_kwargs: Additional arguments passed to Agent constructor.
 
     Returns:
@@ -450,6 +503,7 @@ def create_deep_agent(  # noqa: C901
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
             image_support=image_support,
+            edit_format=edit_format,  # type: ignore[arg-type,unused-ignore]
         )
         _set_toolset_retries(console_toolset, retries)
         all_toolsets.append(console_toolset)
@@ -469,6 +523,7 @@ def create_deep_agent(  # noqa: C901
                 require_write_approval=False,
                 require_execute_approval=False,
                 image_support=image_support,
+                edit_format=edit_format,  # type: ignore[arg-type,unused-ignore]
             )
             _set_toolset_retries(sub_console, _retries)
             result: list[Any] = [sub_console, create_todo_toolset()]
@@ -620,6 +675,16 @@ def create_deep_agent(  # noqa: C901
         team_toolset = create_team_toolset()
         all_toolsets.append(team_toolset)
 
+    if include_web:  # pragma: no cover
+        from pydantic_deep.toolsets.web import create_web_toolset
+
+        _web_approval = interrupt_on.get("web_search", True) if interrupt_on else True
+        web_toolset = create_web_toolset(
+            search_provider=web_search_provider,
+            require_approval=_web_approval,
+        )
+        all_toolsets.append(web_toolset)
+
     # Build base instructions
     base_instructions = instructions or DEFAULT_INSTRUCTIONS
 
@@ -666,15 +731,36 @@ def create_deep_agent(  # noqa: C901
         # Eviction runs FIRST (before summarization reduces context)
         all_processors.insert(0, eviction)
 
-    # Context manager middleware (token tracking + auto-compression)
+    # Resolve history_messages_path to absolute for the middleware
+    abs_messages_path: str | None = None
+    if include_history_archive and context_manager:
+        import os
+
+        if os.path.isabs(history_messages_path):  # pragma: no cover
+            abs_messages_path = history_messages_path
+        elif hasattr(backend, "root_dir"):
+            abs_messages_path = str(backend.root_dir / history_messages_path)  # type: ignore[union-attr,operator,unused-ignore]
+        else:
+            abs_messages_path = os.path.join(os.getcwd(), history_messages_path)
+
+        # Register the search tool (reads the same file the middleware writes to)
+        from pydantic_deep.processors.history_archive import create_history_search_toolset
+
+        all_toolsets.append(create_history_search_toolset(abs_messages_path))
+
+    # Context manager middleware (token tracking + auto-compression + persistence)
     context_mw: Any | None = None
     if context_manager:
         from pydantic_ai_summarization import create_context_manager_middleware
 
-        context_mw = create_context_manager_middleware(
-            max_tokens=context_manager_max_tokens,
-            on_usage_update=on_context_update,
-        )
+        _cm_kwargs: dict[str, Any] = {
+            "on_usage_update": on_context_update,
+        }
+        if context_manager_max_tokens:
+            _cm_kwargs["max_tokens"] = context_manager_max_tokens
+        if summarization_model is not None:  # pragma: no cover
+            _cm_kwargs["summarization_model"] = summarization_model
+        context_mw = create_context_manager_middleware(**_cm_kwargs)
         all_processors.append(context_mw)
 
     # Cost tracking middleware
@@ -691,6 +777,14 @@ def create_deep_agent(  # noqa: C901
 
     if all_processors:
         agent_create_kwargs["history_processors"] = all_processors
+
+    # Apply model_settings (explicit param takes priority over agent_kwargs)
+    if model_settings is not None:  # pragma: no cover
+        agent_create_kwargs["model_settings"] = model_settings
+
+    # Apply instrumentation
+    if instrument is not None:  # pragma: no cover
+        agent_create_kwargs["instrument"] = instrument
 
     agent_create_kwargs.update(agent_kwargs)
 
@@ -717,7 +811,7 @@ def create_deep_agent(  # noqa: C901
                 parts.append(todo_prompt)
 
         if include_filesystem:
-            console_prompt = get_console_system_prompt()
+            console_prompt = get_console_system_prompt(edit_format=edit_format)  # type: ignore[arg-type,unused-ignore]
             if console_prompt:
                 parts.append(console_prompt)
 
@@ -779,13 +873,18 @@ def create_deep_agent(  # noqa: C901
         if cost_mw is not None:
             all_middleware.append(cost_mw)
 
-        return MiddlewareAgent(  # type: ignore[no-any-return]
+        result = MiddlewareAgent(
             agent=agent,
             middleware=all_middleware or None,
             context=middleware_context,
             permission_handler=permission_handler,
         )
+        # Expose context middleware for CLI /compact and /context commands
+        result._context_middleware = context_mw  # type: ignore[attr-defined,unused-ignore]
+        return result  # type: ignore[return-value,no-any-return,unused-ignore]
 
+    # Expose context middleware for CLI /compact and /context commands
+    agent._context_middleware = context_mw  # type: ignore[attr-defined]
     return agent
 
 

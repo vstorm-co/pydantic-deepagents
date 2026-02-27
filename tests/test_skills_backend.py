@@ -302,6 +302,17 @@ class TestBackendSkillScriptExecutor:
         result = await executor.run(script)
         assert result == "(no output)"
 
+    async def test_run_shell_injection_escaped(self):
+        """Verify shell metacharacters in args are escaped (issue #31)."""
+        backend = MockSandboxBackend(ExecuteResponse(output="safe", exit_code=0))
+        executor = BackendSkillScriptExecutor(backend=backend)
+        script = self._make_script()
+
+        await executor.run(script, args={"filename": "$(whoami)"})
+        cmd = backend._last_command
+        # shlex.quote wraps the value — shell will NOT expand $(whoami)
+        assert "'$(whoami)'" in cmd  # type: ignore[operator]
+
     async def test_run_no_uri_raises(self):
         backend = MockSandboxBackend()
         executor = BackendSkillScriptExecutor(backend=backend)

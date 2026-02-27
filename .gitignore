@@ -102,3 +102,6 @@ Thumbs.db
 # Local development
 playground/
 *.local
+
+# pydantic-deep CLI data (per-project)
+.pydantic-deep/

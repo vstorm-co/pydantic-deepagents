@@ -1,0 +1,56 @@
+{"type": "session_created", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T14:28:24.526718+00:00"}
+{"type": "session_created", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T14:28:24.599482+00:00"}
+{"type": "canvas_ready", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T14:28:24.639076+00:00"}
+{"type": "user_message", "content": "mam na imie Kacper", "_ts": "2026-02-16T14:28:24.639349+00:00"}
+{"type": "start", "_ts": "2026-02-16T14:28:24.640239+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T14:28:24.655913+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T14:28:24.656764+00:00"}
+{"type": "canvas_ready", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T14:28:24.672997+00:00"}
+{"type": "tool_call_start", "tool_name": "edit_file", "tool_call_id": "call_VXPv71L8TiWH4rzB8KaM9bOw", "_ts": "2026-02-16T14:28:25.671003+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "{\"", "_ts": "2026-02-16T14:28:25.695626+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "path", "_ts": "2026-02-16T14:28:25.699254+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\":", "_ts": "2026-02-16T14:28:25.719647+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\"/", "_ts": "2026-02-16T14:28:25.720241+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "workspace", "_ts": "2026-02-16T14:28:25.735763+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "/M", "_ts": "2026-02-16T14:28:25.736636+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "EM", "_ts": "2026-02-16T14:28:25.744913+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "ORY", "_ts": "2026-02-16T14:28:25.745375+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": ".md", "_ts": "2026-02-16T14:28:25.773193+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\",\"", "_ts": "2026-02-16T14:28:25.773749+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "old", "_ts": "2026-02-16T14:28:25.785773+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "_string", "_ts": "2026-02-16T14:28:25.786766+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\":\"", "_ts": "2026-02-16T14:28:25.808591+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "##", "_ts": "2026-02-16T14:28:25.809308+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " User", "_ts": "2026-02-16T14:28:25.822472+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " Preferences", "_ts": "2026-02-16T14:28:25.823084+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\",\"", "_ts": "2026-02-16T14:28:25.824183+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "new", "_ts": "2026-02-16T14:28:25.824970+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "_string", "_ts": "2026-02-16T14:28:25.832643+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\":\"", "_ts": "2026-02-16T14:28:25.833339+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "##", "_ts": "2026-02-16T14:28:25.834889+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " User", "_ts": "2026-02-16T14:28:25.835409+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " Preferences", "_ts": "2026-02-16T14:28:25.845057+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\\n", "_ts": "2026-02-16T14:28:25.845655+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "-", "_ts": "2026-02-16T14:28:25.849614+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " Name", "_ts": "2026-02-16T14:28:25.850200+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": ":", "_ts": "2026-02-16T14:28:25.880840+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": " K", "_ts": "2026-02-16T14:28:25.881562+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "ac", "_ts": "2026-02-16T14:28:25.889029+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "per", "_ts": "2026-02-16T14:28:25.889596+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\",\"", "_ts": "2026-02-16T14:28:25.905698+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "replace", "_ts": "2026-02-16T14:28:25.906563+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "_all", "_ts": "2026-02-16T14:28:25.928708+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "\":", "_ts": "2026-02-16T14:28:25.929322+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "false", "_ts": "2026-02-16T14:28:25.956387+00:00"}
+{"type": "tool_args_delta", "tool_name": "edit_file", "args_delta": "}", "_ts": "2026-02-16T14:28:25.957113+00:00"}
+{"type": "tool_start", "tool_name": "edit_file", "args": "{\"path\":\"/workspace/MEMORY.md\",\"old_string\":\"## User Preferences\",\"new_string\":\"## User Preferences\\n- Name: Kacper\",\"replace_all\":false}", "_ts": "2026-02-16T14:28:25.980732+00:00"}
+{"type": "tool_output", "tool_name": "edit_file", "output": "Edited /workspace/MEMORY.md: replaced 1 occurrence(s)", "_ts": "2026-02-16T14:28:26.075110+00:00"}
+{"type": "middleware_event", "event": "tool_audit", "tool_name": "edit_file", "total_calls": 2, "tools_breakdown": {"edit_file": 2}, "_ts": "2026-02-16T14:28:26.075577+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T14:28:26.077492+00:00"}
+{"type": "text_delta", "content": "Zapisa\u0142em: masz na imi\u0119 Kacper.", "_ts": "2026-02-16T14:28:27.293290+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T14:28:27.311183+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "88cd5661-3495-4429-b04b-84cc97575307", "label": "turn-4", "turn": 4, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T14:28:27.312031+00:00"}
+{"type": "response", "content": "Zapisa\u0142em: masz na imi\u0119 Kacper.", "_ts": "2026-02-16T14:28:27.339220+00:00"}
+{"type": "done", "_ts": "2026-02-16T14:28:27.339312+00:00"}
+{"type": "session_created", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T16:22:22.647917+00:00"}
+{"type": "canvas_ready", "session_id": "c2c96d86-5baf-4230-b1f5-b40b3cefa7ee", "_ts": "2026-02-16T16:22:22.651810+00:00"}

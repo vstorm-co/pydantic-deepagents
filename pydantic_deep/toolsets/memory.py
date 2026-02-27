@@ -27,6 +27,32 @@ DEFAULT_MEMORY_FILENAME: str = "MEMORY.md"
 DEFAULT_MAX_MEMORY_LINES: int = 200
 """Default max lines to inject into system prompt."""
 
+# ── Tool description constants ────────────────────────────────────────────
+
+READ_MEMORY_DESCRIPTION = """\
+Read your persistent memory from previous sessions.
+
+Returns the full content of your MEMORY.md file. Use this to recall \
+what you've learned, user preferences, project patterns, and observations \
+from earlier sessions."""
+
+WRITE_MEMORY_DESCRIPTION = """\
+Append new content to your persistent memory.
+
+Use this to save important observations that should persist across sessions:
+- User preferences and coding style
+- Project-specific patterns and conventions
+- Key decisions and their rationale
+- Recurring issues and their solutions
+
+Each write appends to the existing memory file. Use markdown for structure."""
+
+UPDATE_MEMORY_DESCRIPTION = """\
+Find and replace text in your persistent memory.
+
+Use this to correct outdated information or update specific entries. \
+The old_text must match exactly."""
+
 
 @dataclass
 class MemoryFile:
@@ -122,6 +148,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         agent_name: str = "main",
         memory_dir: str = DEFAULT_MEMORY_DIR,
         max_lines: int = DEFAULT_MAX_MEMORY_LINES,
+        descriptions: dict[str, str] | None = None,
     ) -> None:
         """Initialize the memory toolset.
 
@@ -129,43 +156,33 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             agent_name: Name of the agent (used for path and prompt label).
             memory_dir: Base directory for memory files in the backend.
             max_lines: Max lines to inject into system prompt.
+            descriptions: Optional mapping of tool name to custom description.
+                Supported keys: ``read_memory``, ``write_memory``, ``update_memory``.
+                Any key not present falls back to the built-in description constant.
         """
         super().__init__(id="deep-memory")
         self._agent_name = agent_name
         self._memory_dir = memory_dir
         self._max_lines = max_lines
+        self._descs = descriptions or {}
         self._path = get_memory_path(memory_dir, agent_name)
 
         # Register tools
-        @self.tool
+        @self.tool(description=self._descs.get("read_memory", READ_MEMORY_DESCRIPTION))
         async def read_memory(ctx: RunContext[Any]) -> str:
-            """Read your persistent memory.
-
-            Returns the full content of your MEMORY.md file.
-            Use this to recall what you've learned in previous sessions.
-
-            Returns:
-                The memory content, or a message if no memory exists yet.
-            """
+            """Read your persistent memory."""
             backend: BackendProtocol = ctx.deps.backend
             mem = load_memory(backend, self._path, self._agent_name)
             if mem is None:
                 return "No memory saved yet."
             return mem.content
 
-        @self.tool
+        @self.tool(description=self._descs.get("write_memory", WRITE_MEMORY_DESCRIPTION))
         async def write_memory(ctx: RunContext[Any], content: str) -> str:
             """Append new content to your persistent memory.
 
-            Use this to save important observations, patterns, or insights
-            that should persist across sessions. Each write appends to the
-            existing memory file.
-
             Args:
                 content: Text to append to memory (markdown recommended).
-
-            Returns:
-                Confirmation message.
             """
             backend: BackendProtocol = ctx.deps.backend
             existing = load_memory(backend, self._path, self._agent_name)
@@ -174,7 +191,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             line_count = len(new_content.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
-        @self.tool
+        @self.tool(description=self._descs.get("update_memory", UPDATE_MEMORY_DESCRIPTION))
         async def update_memory(
             ctx: RunContext[Any],
             old_text: str,
@@ -182,14 +199,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         ) -> str:
             """Find and replace text in your persistent memory.
 
-            Use this to correct or update specific entries in your memory.
-
             Args:
                 old_text: The exact text to find in memory.
                 new_text: The text to replace it with.
-
-            Returns:
-                Confirmation or error message.
             """
             backend: BackendProtocol = ctx.deps.backend
             mem = load_memory(backend, self._path, self._agent_name)

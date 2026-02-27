@@ -19,6 +19,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
+### Repository Layout
+
+- `pydantic_deep/` — Core library (agent, deps, toolsets, middleware, processors)
+- `cli/` — CLI application (terminal AI assistant)
+- `apps/swebench_agent/` — SWE-bench evaluation agent
+- `apps/harbor_agent/` — Harbor benchmark agent
+- `apps/deepresearch/` — Full-featured research reference app
+- `tests/` — Unit tests
+- `docs/` — Documentation source (MkDocs)
+
 ### Core Components
 
 **Agent Factory (`pydantic_deep/agent.py`)**

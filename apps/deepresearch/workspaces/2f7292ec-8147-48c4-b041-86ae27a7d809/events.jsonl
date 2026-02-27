@@ -1,0 +1,29 @@
+{"type": "session_created", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T04:02:36.081863+00:00"}
+{"type": "canvas_ready", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T04:02:36.131769+00:00"}
+{"type": "user_message", "content": "mam na imie kacper", "_ts": "2026-02-16T04:02:36.132051+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:02:36.133104+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:02:36.136711+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:02:36.138863+00:00"}
+{"type": "text_delta", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci dzisiaj", "_ts": "2026-02-16T04:02:37.354840+00:00"}
+{"type": "text_delta", "content": " pom\u00f3c?", "_ts": "2026-02-16T04:02:37.374162+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:02:37.375529+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "a7e2181a-8528-4ab6-be63-d4825cd6cf19", "label": "turn-2", "turn": 2, "message_count": 1, "metadata": {}, "_ts": "2026-02-16T04:02:37.375963+00:00"}
+{"type": "response", "content": "Cze\u015b\u0107 Kacper! Jak mog\u0119 Ci dzisiaj pom\u00f3c?", "_ts": "2026-02-16T04:02:37.392815+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:02:37.393034+00:00"}
+{"type": "user_message", "content": "zapamietaj to", "_ts": "2026-02-16T04:02:43.226171+00:00"}
+{"type": "start", "_ts": "2026-02-16T04:02:43.227882+00:00"}
+{"type": "status", "content": "Processing...", "_ts": "2026-02-16T04:02:43.237179+00:00"}
+{"type": "status", "content": "Researching...", "_ts": "2026-02-16T04:02:43.241322+00:00"}
+{"type": "text_delta", "content": "Zapami\u0119ta\u0142em", "_ts": "2026-02-16T04:02:44.323166+00:00"}
+{"type": "text_delta", "content": " \u2013 masz na imi\u0119 Kacper. Jakie jest", "_ts": "2026-02-16T04:02:44.427918+00:00"}
+{"type": "text_delta", "content": " nast\u0119pne zadanie?", "_ts": "2026-02-16T04:02:44.515668+00:00"}
+{"type": "status", "content": "Completed!", "_ts": "2026-02-16T04:02:44.517328+00:00"}
+{"type": "checkpoint_saved", "checkpoint_id": "dd720fbd-e7f1-4c4b-9bd4-18b47411321c", "label": "turn-3", "turn": 3, "message_count": 3, "metadata": {}, "_ts": "2026-02-16T04:02:44.518123+00:00"}
+{"type": "response", "content": "Zapami\u0119ta\u0142em \u2013 masz na imi\u0119 Kacper. Jakie jest nast\u0119pne zadanie?", "_ts": "2026-02-16T04:02:44.533521+00:00"}
+{"type": "done", "_ts": "2026-02-16T04:02:44.533605+00:00"}
+{"type": "session_created", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:13.316373+00:00"}
+{"type": "canvas_ready", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:16.335803+00:00"}
+{"type": "session_created", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:55.031574+00:00"}
+{"type": "session_created", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:55.199804+00:00"}
+{"type": "canvas_ready", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:55.217217+00:00"}
+{"type": "canvas_ready", "session_id": "2f7292ec-8147-48c4-b041-86ae27a7d809", "_ts": "2026-02-16T10:41:55.233055+00:00"}

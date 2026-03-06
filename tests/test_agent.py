@@ -252,11 +252,14 @@ class TestDeepAgentDeps:
 
     def test_upload_file_binary(self):
         """Test uploading a binary file (non-UTF-8)."""
+        from unittest.mock import patch
+
         deps = DeepAgentDeps(backend=StateBackend())
 
-        # Binary content that is not valid UTF-8
+        # Binary content — mock chardet to return no encoding (platform-dependent)
         content = bytes([0x80, 0x81, 0x82, 0xFF])
-        path = deps.upload_file("binary.dat", content)
+        with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
+            path = deps.upload_file("binary.dat", content)
 
         assert path == "/uploads/binary.dat"
         # Binary files should have line_count = None
@@ -286,10 +289,13 @@ class TestDeepAgentDeps:
 
     def test_get_uploads_summary_with_binary_files(self):
         """Test uploads summary with binary files (no line count)."""
+        from unittest.mock import patch
+
         deps = DeepAgentDeps(backend=StateBackend())
 
-        # Binary file (non-UTF-8)
-        deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
+        # Binary file — mock chardet to return no encoding (platform-dependent)
+        with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
+            deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
 
         summary = deps.get_uploads_summary()
 

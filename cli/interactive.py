@@ -1400,8 +1400,35 @@ def _read_raw_key() -> str:
         new[6][termios.VMIN] = 1
         new[6][termios.VTIME] = 0
         termios.tcsetattr(fd, termios.TCSADRAIN, new)
+        
+        # Read first byte
+        first_byte = os.read(fd, 1)
+        if not first_byte:
+            return ""
 
-        ch = os.read(fd, 1).decode("utf-8", errors="replace")
+        # Determine UTF-8 sequence length
+        byte_val = first_byte[0]
+        if byte_val & 0x80 == 0:
+            num_bytes = 1
+        elif byte_val & 0xE0 == 0xC0:
+            num_bytes = 2
+        elif byte_val & 0xF0 == 0xE0:
+            num_bytes = 3
+        elif byte_val & 0xF8 == 0xF0:
+            num_bytes = 4
+        else:
+            num_bytes = 1  # Invalid start byte, fall back
+
+        # Read remaining bytes
+        full_bytes = first_byte
+        for _ in range(num_bytes - 1):
+            full_bytes += os.read(fd, 1)
+
+        try:
+            ch = full_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            ch = full_bytes.decode("utf-8", errors="replace")
+
         if ch == "\x1b":
             if _sel.select([fd], [], [], 0.05)[0]:
                 ch2 = os.read(fd, 1).decode("utf-8", errors="replace")

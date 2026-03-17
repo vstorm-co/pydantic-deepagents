@@ -1,6 +1,9 @@
 ---
 name: git-workflow
-description: "Git operations: commits, branches, PRs, and conflict resolution"
+description: >
+  Create and amend commits, manage branches, open pull requests, and resolve
+  merge conflicts. Use when the user mentions "git", "commit", "branch",
+  "merge", "pull request", "rebase", "push", "checkout", or "staged changes".
 tags: [git, workflow]
 version: "1.0.0"
 ---

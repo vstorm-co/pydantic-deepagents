@@ -850,6 +850,24 @@ def create_deep_agent(  # noqa: C901
             if skills_instructions:
                 parts.append(skills_instructions)
 
+        if (context_files or context_discovery) and context_toolset:
+            context_instructions = context_toolset.get_instructions(ctx)
+            if context_instructions:
+                parts.append(context_instructions)
+
+        if include_memory and memory_toolset:
+            memory_instructions = memory_toolset.get_instructions(ctx)
+            if memory_instructions:
+                parts.append(memory_instructions)
+
+        if toolsets:
+            for _ts in toolsets:
+                _get = getattr(_ts, "get_instructions", None)
+                if _get is not None:
+                    _instr = _get(ctx)
+                    if _instr:
+                        parts.append(_instr)
+
         if include_subagents:
             # Build configs list for prompt generation
             prompt_configs: list[SubAgentConfig] = list(effective_subagents or [])

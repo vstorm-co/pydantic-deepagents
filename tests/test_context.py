@@ -326,7 +326,7 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_files=["/DEEP.md"])
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "## Project Context" in result
@@ -340,7 +340,7 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_discovery=True)
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "### AGENT.md" in result
@@ -350,7 +350,7 @@ class TestContextToolset:
         ctx = _make_ctx()
 
         toolset = ContextToolset()
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_missing_files(self):
@@ -358,7 +358,7 @@ class TestContextToolset:
         ctx = _make_ctx()
 
         toolset = ContextToolset(context_files=["/MISSING.md"])
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_subagent(self):
@@ -372,7 +372,7 @@ class TestContextToolset:
             context_files=["/AGENT.md", "/SOUL.md"],
             is_subagent=True,
         )
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "### AGENT.md" in result
@@ -388,7 +388,7 @@ class TestContextToolset:
             context_files=["/SOUL.md"],
             is_subagent=True,
         )
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_custom_max_chars(self):
@@ -398,7 +398,7 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_files=["/DEEP.md"], max_chars=1000)
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "chars truncated" in result
@@ -408,7 +408,7 @@ class TestContextToolset:
         ctx = _make_ctx()
 
         toolset = ContextToolset(context_discovery=True)
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
         assert result is None
 
 

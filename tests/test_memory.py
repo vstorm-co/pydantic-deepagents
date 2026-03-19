@@ -225,7 +225,7 @@ class TestAgentMemoryToolset:
         """Test get_instructions when no memory file exists."""
         ctx = _make_ctx()
         toolset = AgentMemoryToolset()
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_with_memory(self):
@@ -235,7 +235,7 @@ class TestAgentMemoryToolset:
         ctx = _make_ctx(backend)
 
         toolset = AgentMemoryToolset()
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "## Agent Memory (main)" in result
@@ -249,7 +249,7 @@ class TestAgentMemoryToolset:
         ctx = _make_ctx(backend)
 
         toolset = AgentMemoryToolset(max_lines=50)
-        result = await toolset.get_instructions(ctx)
+        result = toolset.get_instructions(ctx)
 
         assert result is not None
         assert "250 more lines in memory" in result

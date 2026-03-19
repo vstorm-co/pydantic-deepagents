@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.21] - 2026-03-19
+
+### Fixed
+
+- **Toolset instructions not injected into system prompt** — `SkillsToolset`, `ContextToolset`, `AgentMemoryToolset`, and user-provided toolsets (e.g. `LocalContextToolset`) defined `get_instructions()` but pydantic-ai's `AbstractToolset` does not call it automatically. Instructions were silently missing from the agent's system prompt. Fixed by calling `get_instructions()` explicitly in `dynamic_instructions()` and removing unnecessary `async` from the method signatures. ([#42](https://github.com/vstorm-co/pydantic-deepagents/pull/42), by [@ilayu-blip](https://github.com/ilayu-blip))
+
 ## [0.2.20] - 2026-03-11
 
 ### Fixed

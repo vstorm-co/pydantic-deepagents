@@ -474,13 +474,13 @@ class TestGetInstructions:
 
     async def test_no_skills_returns_none(self) -> None:
         toolset = SkillsToolset(skills=[])
-        result = await toolset.get_instructions(ctx=None)
+        result = toolset.get_instructions(ctx=None)
         assert result is None
 
     async def test_with_skills_returns_xml(self) -> None:
         skill = Skill(name="test", description="desc", content="instr")
         toolset = SkillsToolset(skills=[skill])
-        result = await toolset.get_instructions(ctx=None)
+        result = toolset.get_instructions(ctx=None)
         assert result is not None
         assert "<name>test</name>" in result
         assert "<description>desc</description>" in result
@@ -491,14 +491,14 @@ class TestGetInstructions:
             skills=[skill],
             instruction_template="Custom: {skills_list}",
         )
-        result = await toolset.get_instructions(ctx=None)
+        result = toolset.get_instructions(ctx=None)
         assert result is not None
         assert result.startswith("Custom:")
 
     async def test_with_uri(self) -> None:
         skill = Skill(name="test", description="desc", content="instr", uri="/path/to/skill")
         toolset = SkillsToolset(skills=[skill])
-        result = await toolset.get_instructions(ctx=None)
+        result = toolset.get_instructions(ctx=None)
         assert result is not None
         assert "<uri>/path/to/skill</uri>" in result
 

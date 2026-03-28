@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Pydantic AI capabilities support** — `create_deep_agent()` now accepts a `capabilities` parameter for passing pydantic-ai capabilities (e.g. `Thinking`, `WebSearch`, `MCP`) directly to the underlying Agent. ([#48](https://github.com/vstorm-co/pydantic-deepagents/pull/48))
+- **`SkillsCapability`**, **`ContextCapability`**, **`MemoryCapability`** — capability wrappers for `SkillsToolset`, `ContextToolset`, and `AgentMemoryToolset`. Their tools and dynamic instructions are now delivered via the pydantic-ai capabilities API instead of manual `@agent.instructions` stitching.
+
+### Changed
+
+- **Context manager migrated from middleware to capability** — `ContextManagerMiddleware` replaced by `ContextManagerCapability` from `summarization-pydantic-ai`, removing it from the middleware chain. CLI `/compact` and `/context` commands continue to work via `_context_middleware` attribute.
+- Updated `pydantic-ai-slim` dependency to `>=1.71.0` (capabilities API)
+- Updated `pydantic-ai-todo` dependency to `>=0.2.0`
+- Updated `pydantic-ai-backend` dependency to `>=0.2.0`
+- Updated `subagents-pydantic-ai` dependency to `>=0.1.0`
+- Updated `summarization-pydantic-ai` dependency to `>=0.1.0`
+- Replaced `ContextManagerMiddleware` and `UsageCallback` exports with `ContextManagerCapability`
+
 ## [0.2.21] - 2026-03-19
 
 ### Fixed

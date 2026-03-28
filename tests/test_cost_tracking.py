@@ -108,7 +108,8 @@ class TestCostTrackingIntegration:
         assert isinstance(agent, MiddlewareAgent)
         from pydantic_ai_middleware.cost_tracking import CostTrackingMiddleware
 
-        # Should have: DummyMiddleware + ContextManagerMiddleware + CostTrackingMiddleware
+        # Should have: DummyMiddleware + CostTrackingMiddleware
+        # (ContextManager is now a capability, not middleware)
         assert any(isinstance(m, DummyMiddleware) for m in agent.middleware)
         assert any(isinstance(m, CostTrackingMiddleware) for m in agent.middleware)
 
@@ -116,11 +117,12 @@ class TestCostTrackingIntegration:
         """Cost tracking and context manager work together."""
         agent = _minimal_agent()
         from pydantic_ai_middleware.cost_tracking import CostTrackingMiddleware
-        from pydantic_ai_summarization import ContextManagerMiddleware
+        from pydantic_ai_summarization import ContextManagerCapability
 
-        mw_types = [type(m) for m in agent.middleware]
-        assert ContextManagerMiddleware in mw_types
-        assert CostTrackingMiddleware in mw_types
+        # CostTracking is middleware, ContextManager is now a capability
+        assert any(isinstance(m, CostTrackingMiddleware) for m in agent.middleware)
+        cm = getattr(agent, "_context_middleware", None)
+        assert isinstance(cm, ContextManagerCapability)
 
     def test_cost_tracking_without_context_manager(self):
         """Cost tracking works when context_manager is disabled."""

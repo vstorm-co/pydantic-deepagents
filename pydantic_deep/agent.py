@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from pydantic_ai import Agent
 from pydantic_ai._agent_graph import HistoryProcessor
+from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.models import Model
 from pydantic_ai.output import OutputSpec
 from pydantic_ai.tools import DeferredToolRequests, Tool
@@ -72,6 +73,7 @@ def create_deep_agent(
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    capabilities: Sequence[AbstractCapability[DeepAgentDeps]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory]
@@ -136,6 +138,7 @@ def create_deep_agent(
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    capabilities: Sequence[AbstractCapability[DeepAgentDeps]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory]
@@ -200,6 +203,7 @@ def create_deep_agent(  # noqa: C901
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    capabilities: Sequence[AbstractCapability[DeepAgentDeps]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
     skills: list[Skill] | None = None,
     skill_directories: list[SkillDirectory]
@@ -278,6 +282,8 @@ def create_deep_agent(  # noqa: C901
             YAML frontmatter (name, description) in the directory root.
         tools: Additional tools to register.
         toolsets: Additional toolsets to register.
+        capabilities: Pydantic AI capabilities to pass through to the Agent.
+            Supports any AbstractCapability (e.g., Thinking, WebSearch, MCP).
         subagents: Subagent configurations for the task tool.
         skills: Pre-loaded skills to make available (new Skill dataclass instances).
         skill_directories: Directories to discover skills from.
@@ -502,8 +508,9 @@ def create_deep_agent(  # noqa: C901
             for tool in toolset.tools.values():
                 tool.max_retries = max_retries
 
-    # Build toolsets list
+    # Build toolsets and capabilities lists
     all_toolsets: list[AbstractToolset[DeepAgentDeps]] = []
+    internal_capabilities: list[AbstractCapability[DeepAgentDeps]] = []
 
     _todo_proxy: _DepsTodoProxy | None = None
     if include_todo:
@@ -620,7 +627,7 @@ def create_deep_agent(  # noqa: C901
         )
         all_toolsets.append(subagent_toolset)
 
-    # Skills toolset
+    # Skills toolset → capability
     skills_toolset = None
     if include_skills:
         # Convert legacy SkillDirectory dicts to string paths, pass through BackendSkillsDirectory
@@ -658,9 +665,11 @@ def create_deep_agent(  # noqa: C901
             skills=converted_skills or None,
             directories=directories,  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         )
-        all_toolsets.append(skills_toolset)  # type: ignore[arg-type]
+        from pydantic_deep.capabilities.skills import SkillsCapability
 
-    # Context toolset
+        internal_capabilities.append(SkillsCapability(toolset=skills_toolset))
+
+    # Context toolset → capability (instructions-only, no tools)
     context_toolset = None
     if context_files or context_discovery:
         from pydantic_deep.toolsets.context import ContextToolset
@@ -670,9 +679,11 @@ def create_deep_agent(  # noqa: C901
             context_discovery=context_discovery,
             is_subagent=False,
         )
-        all_toolsets.append(context_toolset)
+        from pydantic_deep.capabilities.context import ContextCapability
 
-    # Memory toolset
+        internal_capabilities.append(ContextCapability(toolset=context_toolset))
+
+    # Memory toolset → capability
     memory_toolset = None
     if include_memory:
         from pydantic_deep.toolsets.memory import DEFAULT_MEMORY_DIR, AgentMemoryToolset
@@ -682,7 +693,9 @@ def create_deep_agent(  # noqa: C901
             agent_name="main",
             memory_dir=_memory_dir,
         )
-        all_toolsets.append(memory_toolset)
+        from pydantic_deep.capabilities.memory import MemoryCapability
+
+        internal_capabilities.append(MemoryCapability(toolset=memory_toolset))
 
     # Add user-provided toolsets
     if toolsets:
@@ -734,6 +747,10 @@ def create_deep_agent(  # noqa: C901
         "retries": retries,
     }
 
+    all_capabilities = internal_capabilities + list(capabilities or [])
+    if all_capabilities:
+        agent_create_kwargs["capabilities"] = all_capabilities
+
     # Determine if any tools require approval (interrupt_on has True values)
     has_interrupt_tools = any(interrupt_on.values())
 
@@ -779,10 +796,10 @@ def create_deep_agent(  # noqa: C901
 
         all_toolsets.append(create_history_search_toolset(abs_messages_path))
 
-    # Context manager middleware (token tracking + auto-compression + persistence)
+    # Context manager capability (token tracking + auto-compression)
     context_mw: Any | None = None
     if context_manager:
-        from pydantic_ai_summarization import create_context_manager_middleware
+        from pydantic_ai_summarization import ContextManagerCapability
 
         _cm_kwargs: dict[str, Any] = {
             "on_usage_update": on_context_update,
@@ -791,8 +808,8 @@ def create_deep_agent(  # noqa: C901
             _cm_kwargs["max_tokens"] = context_manager_max_tokens
         if summarization_model is not None:  # pragma: no cover
             _cm_kwargs["summarization_model"] = summarization_model
-        context_mw = create_context_manager_middleware(**_cm_kwargs)
-        all_processors.append(context_mw)
+        context_mw = ContextManagerCapability(**_cm_kwargs)
+        internal_capabilities.append(context_mw)
 
     # Cost tracking middleware
     cost_mw: Any | None = None
@@ -825,12 +842,13 @@ def create_deep_agent(  # noqa: C901
         **agent_create_kwargs,
     )
 
-    # Build list of toolsets whose get_instructions() should be called.
-    # pydantic-ai's AbstractToolset does NOT call this automatically.
+    # Build list of user-provided toolsets whose get_instructions() should be called.
+    # Skills, context, and memory are now capabilities — their instructions are
+    # handled automatically by pydantic-ai. Only user-provided toolsets need manual injection.
     _instruction_toolsets: list[Any] = [
         ts
-        for ts in [skills_toolset, context_toolset, memory_toolset, *(toolsets or [])]
-        if ts is not None and hasattr(ts, "get_instructions")
+        for ts in (toolsets or [])
+        if hasattr(ts, "get_instructions")
     ]
 
     # Add dynamic system prompts
@@ -855,8 +873,7 @@ def create_deep_agent(  # noqa: C901
             if console_prompt:
                 parts.append(console_prompt)
 
-        # Collect instructions from toolsets that define get_instructions().
-        # pydantic-ai's AbstractToolset does NOT call this automatically.
+        # Collect instructions from user-provided toolsets that define get_instructions().
         for _ts in _instruction_toolsets:
             _instr = _ts.get_instructions(ctx)
             if _instr:
@@ -915,8 +932,6 @@ def create_deep_agent(  # noqa: C901
         from pydantic_ai_middleware import MiddlewareAgent
 
         all_middleware = list(middleware) if middleware else []
-        if context_mw is not None:
-            all_middleware.append(context_mw)
         if cost_mw is not None:
             all_middleware.append(cost_mw)
 

@@ -784,8 +784,8 @@ class TestCreateDeepAgentWithHooks:
             middleware=[MyMiddleware()],
         )
         assert isinstance(agent, MiddlewareAgent)
-        # MyMiddleware + Hooks + ContextManager + CostTracking
-        assert len(agent.middleware) == 4
+        # MyMiddleware + Hooks + CostTracking (ContextManager is now a capability)
+        assert len(agent.middleware) == 3
 
     def test_no_hooks_returns_plain_agent(self):
         agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)

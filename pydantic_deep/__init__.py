@@ -93,16 +93,15 @@ from pydantic_ai_middleware import (
     on_tool_error,
 )
 from pydantic_ai_summarization import (
-    ContextManagerMiddleware,
+    ContextManagerCapability,
     SlidingWindowProcessor,
     SummarizationProcessor,
-    UsageCallback,
-    create_context_manager_middleware,
     create_sliding_window_processor,
     create_summarization_processor,
 )
 
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
+from pydantic_deep.capabilities import ContextCapability, MemoryCapability, SkillsCapability
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.middleware.hooks import (
     EXIT_ALLOW,
@@ -232,6 +231,10 @@ __all__ = [
     "get_runtime",
     # Session Management
     "SessionManager",
+    # Capabilities
+    "SkillsCapability",
+    "ContextCapability",
+    "MemoryCapability",
     # Toolsets
     "TodoToolset",
     "create_console_toolset",
@@ -292,11 +295,9 @@ __all__ = [
     # Processors (from summarization-pydantic-ai)
     "SummarizationProcessor",
     "SlidingWindowProcessor",
-    "ContextManagerMiddleware",
-    "UsageCallback",
+    "ContextManagerCapability",
     "create_summarization_processor",
     "create_sliding_window_processor",
-    "create_context_manager_middleware",
     # Hooks (Claude Code-style lifecycle hooks)
     "Hook",
     "HookEvent",

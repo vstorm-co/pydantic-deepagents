@@ -23,11 +23,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pydantic-ai-slim>=0.1.0",
-    "pydantic-ai-todo>=0.1.9",
-    "pydantic-ai-backend[console]>=0.1.14",
-    "summarization-pydantic-ai[hybrid]>=0.0.4",
-    "subagents-pydantic-ai>=0.0.8",
+    "pydantic-ai-slim>=1.71.0",
+    "pydantic-ai-todo>=0.2.0",
+    "pydantic-ai-backend[console]>=0.2.0",
+    "summarization-pydantic-ai[hybrid]>=0.1.0",
+    "subagents-pydantic-ai>=0.1.0",
     "pydantic-ai-middleware>=0.2.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",

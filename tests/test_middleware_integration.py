@@ -122,8 +122,8 @@ class TestCreateWithMiddleware:
         )
         assert isinstance(agent, MiddlewareAgent)
         assert agent.context is ctx
-        # 1 user middleware + 1 ContextManagerMiddleware + 1 CostTrackingMiddleware (defaults)
-        assert len(agent.middleware) == 3
+        # 1 user middleware + 1 CostTrackingMiddleware (ContextManager is now a capability)
+        assert len(agent.middleware) == 2
 
     def test_middleware_with_chain(self):
         """MiddlewareChain works with create_deep_agent."""

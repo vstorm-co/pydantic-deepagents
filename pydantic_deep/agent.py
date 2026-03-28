@@ -747,10 +747,6 @@ def create_deep_agent(  # noqa: C901
         "retries": retries,
     }
 
-    all_capabilities = internal_capabilities + list(capabilities or [])
-    if all_capabilities:
-        agent_create_kwargs["capabilities"] = all_capabilities
-
     # Determine if any tools require approval (interrupt_on has True values)
     has_interrupt_tools = any(interrupt_on.values())
 
@@ -835,6 +831,11 @@ def create_deep_agent(  # noqa: C901
         agent_create_kwargs["instrument"] = instrument
 
     agent_create_kwargs.update(agent_kwargs)
+
+    # Merge internal + user capabilities (after all internal capabilities are appended)
+    all_capabilities = internal_capabilities + list(capabilities or [])
+    if all_capabilities:
+        agent_create_kwargs["capabilities"] = all_capabilities
 
     # Create the agent
     agent: Agent[DeepAgentDeps, Any] = Agent(

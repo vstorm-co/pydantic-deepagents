@@ -203,6 +203,10 @@ from pydantic_deep.types import (
     UploadedFile,
 )
 
+# Deprecated alias — ContextManagerMiddleware was renamed to ContextManagerCapability
+# in summarization-pydantic-ai 0.1.0. Kept for backward compatibility.
+ContextManagerMiddleware = ContextManagerCapability
+
 try:
     from importlib.metadata import version
 
@@ -296,6 +300,7 @@ __all__ = [
     "SummarizationProcessor",
     "SlidingWindowProcessor",
     "ContextManagerCapability",
+    "ContextManagerMiddleware",  # deprecated alias
     "create_summarization_processor",
     "create_sliding_window_processor",
     # Hooks (Claude Code-style lifecycle hooks)

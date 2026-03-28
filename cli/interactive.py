@@ -1157,7 +1157,7 @@ async def _cmd_context(deps: DeepAgentDeps, history: list[ModelMessage]) -> None
     console.print(f"[bold {theme.primary}]Context Usage[/bold {theme.primary}]")
 
     if ctx_mw is not None:
-        max_tokens = getattr(ctx_mw, "max_tokens", 0)
+        max_tokens = getattr(ctx_mw, "_resolved_max_tokens", None) or getattr(ctx_mw, "max_tokens", 0) or 200_000
         token_counter = getattr(ctx_mw, "token_counter", None)
         compress_threshold = getattr(ctx_mw, "compress_threshold", 0.9)
         compression_count = getattr(ctx_mw, "_compression_count", 0)

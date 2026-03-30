@@ -314,7 +314,8 @@ async def _save_and_prune(
         await store.remove_oldest()
 
 
-from dataclasses import dataclass, field as dataclass_field  # noqa: E402
+from dataclasses import dataclass  # noqa: E402
+from dataclasses import field as dataclass_field  # noqa: E402
 
 from pydantic_ai.capabilities import AbstractCapability  # noqa: E402
 from pydantic_ai.messages import ToolCallPart  # noqa: E402

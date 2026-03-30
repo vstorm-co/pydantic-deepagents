@@ -43,4 +43,4 @@ class TeamCapability(AbstractCapability[Any]):
         )
 
     def get_toolset(self) -> AbstractToolset[Any] | None:
-        return self._toolset
+        return self._toolset  # type: ignore[no-any-return]

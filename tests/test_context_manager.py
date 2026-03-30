@@ -33,17 +33,17 @@ class TestContextManagerIntegration:
         agent = _minimal_agent()
         # Context middleware is exposed on agent
         assert hasattr(agent, "_context_middleware")
-        assert agent._context_middleware is not None  # type: ignore[attr-defined]
+        assert agent._context_middleware is not None
 
     def test_context_manager_disabled(self):
         """context_manager=False excludes context capability."""
         agent = _minimal_agent(context_manager=False)
-        assert agent._context_middleware is None  # type: ignore[attr-defined]
+        assert agent._context_middleware is None
 
     def test_custom_max_tokens(self):
         """context_manager_max_tokens is passed through."""
         agent = _minimal_agent(context_manager_max_tokens=128_000)
-        cm = agent._context_middleware  # type: ignore[attr-defined]
+        cm = agent._context_middleware
         assert isinstance(cm, ContextManagerCapability)
         assert cm._resolved_max_tokens == 128_000
 
@@ -51,27 +51,27 @@ class TestContextManagerIntegration:
         """on_context_update callback is wired."""
         callback = MagicMock()
         agent = _minimal_agent(on_context_update=callback)
-        cm = agent._context_middleware  # type: ignore[attr-defined]
+        cm = agent._context_middleware
         assert isinstance(cm, ContextManagerCapability)
         assert cm.on_usage_update is callback
 
     def test_no_callback_by_default(self):
         """No usage callback is set by default."""
         agent = _minimal_agent()
-        cm = agent._context_middleware  # type: ignore[attr-defined]
+        cm = agent._context_middleware
         assert isinstance(cm, ContextManagerCapability)
         assert cm.on_usage_update is None
 
     def test_disabled_has_no_context_middleware(self):
         """Agent with context_manager=False has None context_middleware."""
         agent = _minimal_agent(context_manager=False)
-        assert agent._context_middleware is None  # type: ignore[attr-defined]
+        assert agent._context_middleware is None
 
     def test_on_before_compress_forwarded(self):
         """on_before_compress callback is wired to ContextManagerCapability."""
         callback = MagicMock()
         agent = _minimal_agent(on_before_compress=callback)
-        cm = agent._context_middleware  # type: ignore[attr-defined]
+        cm = agent._context_middleware
         assert isinstance(cm, ContextManagerCapability)
         assert cm.on_before_compress is callback
 
@@ -79,6 +79,6 @@ class TestContextManagerIntegration:
         """on_after_compress callback is wired to ContextManagerCapability."""
         callback = MagicMock()
         agent = _minimal_agent(on_after_compress=callback)
-        cm = agent._context_middleware  # type: ignore[attr-defined]
+        cm = agent._context_middleware
         assert isinstance(cm, ContextManagerCapability)
         assert cm.on_after_compress is callback

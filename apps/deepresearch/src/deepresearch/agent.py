@@ -7,8 +7,8 @@ from typing import Any
 
 from pydantic_ai import RunContext
 from pydantic_ai.agent import Agent
-from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 from pydantic_ai.capabilities import AbstractCapability
+from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 from subagents_pydantic_ai import (
     DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
     DynamicAgentRegistry,

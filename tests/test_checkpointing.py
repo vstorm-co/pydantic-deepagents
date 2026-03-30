@@ -761,7 +761,7 @@ class TestCreateDeepAgentCheckpoints:
         """Checkpoints work alongside other capabilities."""
         from pydantic_ai.capabilities import AbstractCapability
 
-        class DummyCapability(AbstractCapability[DeepAgentDeps]):  # type: ignore[misc]
+        class DummyCapability(AbstractCapability[DeepAgentDeps]):
             pass
 
         agent = _minimal_agent(

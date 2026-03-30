@@ -412,7 +412,7 @@ def create_team_toolset(  # noqa: C901
                     model=member.model,
                 )
                 if agent_factory is not None:
-                    config["agent_factory"] = agent_factory
+                    config["agent_factory"] = agent_factory  # type: ignore[typeddict-unknown-key]
                 from subagents_pydantic_ai.toolset import _compile_subagent
 
                 compiled = _compile_subagent(config, member.model)

@@ -9,8 +9,8 @@ from pydantic_ai_backends import LocalBackend
 
 from apps.cli.prompts import build_cli_instructions
 from pydantic_deep.agent import create_deep_agent
-from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+from pydantic_deep.deps import DeepAgentDeps
 
 
 def _make_shell_allow_list_hook(allow_list: list[str]) -> Hook:

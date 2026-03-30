@@ -778,7 +778,7 @@ class TestCreateDeepAgentWithHooks:
     def test_hooks_with_existing_capabilities(self):
         from pydantic_ai.capabilities import AbstractCapability
 
-        class MyCapability(AbstractCapability[DeepAgentDeps]):  # type: ignore[misc]
+        class MyCapability(AbstractCapability[DeepAgentDeps]):
             pass
 
         async def handler(hi: HookInput) -> HookResult:

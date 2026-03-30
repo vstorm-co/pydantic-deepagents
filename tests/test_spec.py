@@ -17,7 +17,7 @@ TEST_MODEL = TestModel()
 class TestDeepAgentSpec:
     """Tests for the DeepAgentSpec Pydantic model."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """All defaults match create_deep_agent() defaults."""
         spec = DeepAgentSpec()
         assert spec.model is None
@@ -39,7 +39,7 @@ class TestDeepAgentSpec:
         assert spec.eviction_token_limit is None
         assert spec.max_nesting_depth == 0
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         """Custom values are stored correctly."""
         spec = DeepAgentSpec(
             model="openai:gpt-4.1",
@@ -56,18 +56,18 @@ class TestDeepAgentSpec:
         assert spec.retries == 5
         assert spec.model_settings == {"temperature": 0.7}
 
-    def test_extra_fields_rejected(self):
+    def test_extra_fields_rejected(self) -> None:
         """Unknown fields raise ValidationError."""
         with pytest.raises(ValidationError, match="extra_forbidden"):
             DeepAgentSpec(unknown_field="value")  # type: ignore[call-arg]
 
-    def test_model_dump_excludes_defaults(self):
+    def test_model_dump_excludes_defaults(self) -> None:
         """model_dump(exclude_defaults=True) only includes changed values."""
         spec = DeepAgentSpec(include_memory=True, retries=5)
         dumped = spec.model_dump(exclude_defaults=True)
         assert dumped == {"include_memory": True, "retries": 5}
 
-    def test_model_dump_excludes_none(self):
+    def test_model_dump_excludes_none(self) -> None:
         """model_dump(exclude_none=True) skips None values."""
         spec = DeepAgentSpec()
         dumped = spec.model_dump(exclude_none=True)
@@ -77,7 +77,7 @@ class TestDeepAgentSpec:
         # Non-None defaults should remain
         assert dumped["include_todo"] is True
 
-    def test_subagents_list(self):
+    def test_subagents_list(self) -> None:
         """Subagents can be specified as list of dicts."""
         spec = DeepAgentSpec(
             subagents=[
@@ -85,10 +85,10 @@ class TestDeepAgentSpec:
                 {"name": "coder", "description": "Code writer"},
             ]
         )
-        assert len(spec.subagents) == 2  # type: ignore[arg-type]
+        assert len(spec.subagents) == 2
         assert spec.subagents[0]["name"] == "researcher"  # type: ignore[index]
 
-    def test_skill_directories_list(self):
+    def test_skill_directories_list(self) -> None:
         """Skill directories as list of strings."""
         spec = DeepAgentSpec(skill_directories=["./skills", "/opt/skills"])
         assert spec.skill_directories == ["./skills", "/opt/skills"]
@@ -97,7 +97,7 @@ class TestDeepAgentSpec:
 class TestDeepAgentFromSpec:
     """Tests for DeepAgent.from_spec()."""
 
-    def test_from_spec_creates_agent(self):
+    def test_from_spec_creates_agent(self) -> None:
         """from_spec() creates an agent with specified params."""
         agent, deps = DeepAgent.from_spec(
             {"include_subagents": False, "include_skills": False},
@@ -107,7 +107,7 @@ class TestDeepAgentFromSpec:
         assert agent is not None
         assert deps is not None
 
-    def test_from_spec_overrides_win(self):
+    def test_from_spec_overrides_win(self) -> None:
         """Override kwargs take precedence over spec data."""
         agent, deps = DeepAgent.from_spec(
             {"include_memory": True},
@@ -120,7 +120,7 @@ class TestDeepAgentFromSpec:
         # The agent should be created successfully with include_memory=False
         assert agent is not None
 
-    def test_from_spec_with_backend(self):
+    def test_from_spec_with_backend(self) -> None:
         """Non-serializable params (backend) passed as overrides."""
         from pydantic_ai_backends import StateBackend
 
@@ -133,7 +133,7 @@ class TestDeepAgentFromSpec:
         )
         assert deps.backend is backend
 
-    def test_from_spec_empty_dict(self):
+    def test_from_spec_empty_dict(self) -> None:
         """Empty dict uses all defaults."""
         agent, deps = DeepAgent.from_spec(
             {},
@@ -148,7 +148,7 @@ class TestDeepAgentFromSpec:
 class TestDeepAgentFromFile:
     """Tests for DeepAgent.from_file()."""
 
-    def test_from_yaml_file(self, tmp_path: Path):
+    def test_from_yaml_file(self, tmp_path: Path) -> None:
         """Load agent from YAML file."""
         yaml_content = "include_subagents: false\ninclude_skills: false\ncost_tracking: false\n"
         spec_file = tmp_path / "agent.yaml"
@@ -157,7 +157,7 @@ class TestDeepAgentFromFile:
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL)
         assert agent is not None
 
-    def test_from_json_file(self, tmp_path: Path):
+    def test_from_json_file(self, tmp_path: Path) -> None:
         """Load agent from JSON file."""
         spec_data = {
             "include_subagents": False,
@@ -170,7 +170,7 @@ class TestDeepAgentFromFile:
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL)
         assert agent is not None
 
-    def test_from_yml_extension(self, tmp_path: Path):
+    def test_from_yml_extension(self, tmp_path: Path) -> None:
         """Load agent from .yml extension (not just .yaml)."""
         yaml_content = "include_subagents: false\ninclude_skills: false\ncost_tracking: false\n"
         spec_file = tmp_path / "agent.yml"
@@ -179,7 +179,7 @@ class TestDeepAgentFromFile:
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL)
         assert agent is not None
 
-    def test_from_file_with_overrides(self, tmp_path: Path):
+    def test_from_file_with_overrides(self, tmp_path: Path) -> None:
         """File values can be overridden with kwargs."""
         yaml_content = (
             "include_subagents: false\ninclude_skills: false\ncost_tracking: false\nretries: 5\n"
@@ -190,7 +190,7 @@ class TestDeepAgentFromFile:
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL, retries=10)
         assert agent is not None
 
-    def test_unknown_extension_tries_yaml(self, tmp_path: Path):
+    def test_unknown_extension_tries_yaml(self, tmp_path: Path) -> None:
         """Unknown extension tries YAML, then JSON."""
         yaml_content = "include_subagents: false\ninclude_skills: false\ncost_tracking: false\n"
         spec_file = tmp_path / "agent.conf"
@@ -199,7 +199,7 @@ class TestDeepAgentFromFile:
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL)
         assert agent is not None
 
-    def test_unknown_extension_falls_back_to_json(self, tmp_path: Path):
+    def test_unknown_extension_falls_back_to_json(self, tmp_path: Path) -> None:
         """Unknown extension falls back to JSON if YAML parsing gives wrong type."""
         # Write JSON that YAML would parse as a string (not a dict)
         # by putting it on a single line with leading spaces that YAML
@@ -218,7 +218,7 @@ class TestDeepAgentFromFile:
 class TestDeepAgentToFile:
     """Tests for DeepAgent.to_file()."""
 
-    def test_to_yaml_file(self, tmp_path: Path):
+    def test_to_yaml_file(self, tmp_path: Path) -> None:
         """Save spec as YAML."""
         out = tmp_path / "agent.yaml"
         DeepAgent.to_file(out, model="openai:gpt-4.1", include_memory=True)
@@ -227,7 +227,7 @@ class TestDeepAgentToFile:
         assert "model: openai:gpt-4.1" in content
         assert "include_memory: true" in content
 
-    def test_to_json_file(self, tmp_path: Path):
+    def test_to_json_file(self, tmp_path: Path) -> None:
         """Save spec as JSON."""
         out = tmp_path / "agent.json"
         DeepAgent.to_file(out, model="openai:gpt-4.1", include_memory=True)
@@ -236,7 +236,7 @@ class TestDeepAgentToFile:
         assert data["model"] == "openai:gpt-4.1"
         assert data["include_memory"] is True
 
-    def test_to_file_excludes_defaults(self, tmp_path: Path):
+    def test_to_file_excludes_defaults(self, tmp_path: Path) -> None:
         """Only non-default values are saved."""
         out = tmp_path / "agent.yaml"
         DeepAgent.to_file(out, include_memory=True)
@@ -247,7 +247,7 @@ class TestDeepAgentToFile:
         assert "include_todo" not in content
         assert "include_filesystem" not in content
 
-    def test_to_file_ignores_non_spec_params(self, tmp_path: Path):
+    def test_to_file_ignores_non_spec_params(self, tmp_path: Path) -> None:
         """Non-serializable params are silently ignored."""
         out = tmp_path / "agent.yaml"
         # 'backend' and 'on_cost_update' are not in DeepAgentSpec
@@ -262,7 +262,7 @@ class TestDeepAgentToFile:
         assert "backend" not in content
         assert "on_cost_update" not in content
 
-    def test_roundtrip_yaml(self, tmp_path: Path):
+    def test_roundtrip_yaml(self, tmp_path: Path) -> None:
         """Save then load produces equivalent spec."""
         out = tmp_path / "agent.yaml"
         DeepAgent.to_file(
@@ -281,7 +281,7 @@ class TestDeepAgentToFile:
         assert spec.retries == 5
         assert spec.cost_tracking is False
 
-    def test_roundtrip_json(self, tmp_path: Path):
+    def test_roundtrip_json(self, tmp_path: Path) -> None:
         """JSON roundtrip preserves values."""
         out = tmp_path / "agent.json"
         DeepAgent.to_file(
@@ -301,12 +301,12 @@ class TestDeepAgentToFile:
 class TestLoadYaml:
     """Tests for _load_yaml helper."""
 
-    def test_load_yaml_basic(self):
+    def test_load_yaml_basic(self) -> None:
         """Basic YAML loading works."""
         data = _load_yaml("model: openai:gpt-4.1\nretries: 5\n")
         assert data == {"model": "openai:gpt-4.1", "retries": 5}
 
-    def test_load_yaml_empty(self):
+    def test_load_yaml_empty(self) -> None:
         """Empty YAML returns None."""
         data = _load_yaml("")
         assert data is None

@@ -34,12 +34,13 @@ class TestSkillsCapability:
         instr = cap.get_instructions()
         assert callable(instr)
 
-    def test_instructions_contain_skill_names(self):
+    @pytest.mark.anyio
+    async def test_instructions_contain_skill_names(self):
         skill = Skill(name="my-skill", description="does stuff", content="content")
         cap = SkillsCapability(skills=[skill])
         instr_fn = cap.get_instructions()
         ctx = type("FakeCtx", (), {"deps": None})()
-        result = instr_fn(ctx)
+        result = await instr_fn(ctx)
         assert result is not None
         assert "my-skill" in result
 
@@ -56,11 +57,12 @@ class TestSkillsCapability:
 
 
 class TestContextFilesCapability:
-    def test_no_files_no_toolset(self):
+    @pytest.mark.anyio
+    async def test_no_files_no_toolset(self):
         cap = ContextFilesCapability()
         instr_fn = cap.get_instructions()
         ctx = type("FakeCtx", (), {"deps": None})()
-        assert instr_fn(ctx) is None
+        assert await instr_fn(ctx) is None
 
     def test_with_files(self):
         cap = ContextFilesCapability(context_files=["/DEEP.md"])
@@ -140,24 +142,27 @@ class TestCapabilityComposition:
 class TestInstructionCallables:
     """Test the get_instructions() callables execute properly."""
 
-    def test_skills_instructions_with_no_skills(self):
+    @pytest.mark.anyio
+    async def test_skills_instructions_with_no_skills(self):
         cap = SkillsCapability()
         fn = cap.get_instructions()
         ctx = type("Ctx", (), {"deps": None})()
-        result = fn(ctx)
+        result = await fn(ctx)
         # Empty skills → None or empty
         assert result is None or result == ""
 
-    def test_context_instructions_no_backend(self):
+    @pytest.mark.anyio
+    async def test_context_instructions_no_backend(self):
         cap = ContextFilesCapability(context_files=["/test.md"])
         fn = cap.get_instructions()
         ctx = type("Ctx", (), {"deps": None})()
-        result = fn(ctx)
+        result = await fn(ctx)
         assert result is None
 
-    def test_memory_instructions_no_backend(self):
+    @pytest.mark.anyio
+    async def test_memory_instructions_no_backend(self):
         cap = MemoryCapability()
         fn = cap.get_instructions()
         ctx = type("Ctx", (), {"deps": None})()
-        result = fn(ctx)
+        result = await fn(ctx)
         assert result is None

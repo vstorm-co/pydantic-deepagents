@@ -305,12 +305,13 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_files=["/DEEP.md"])
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "## Project Context" in result
-        assert "### DEEP.md" in result
-        assert "# Project Rules" in result
+        joined = "\n\n".join(result)
+        assert "## Project Context" in joined
+        assert "### DEEP.md" in joined
+        assert "# Project Rules" in joined
 
     async def test_get_instructions_discovery(self):
         """Test get_instructions with auto-discovery."""
@@ -319,17 +320,18 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_discovery=True)
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "### AGENT.md" in result
+        joined = "\n\n".join(result)
+        assert "### AGENT.md" in joined
 
     async def test_get_instructions_no_config(self):
         """Test get_instructions with no files or discovery returns None."""
         ctx = _make_ctx()
 
         toolset = ContextToolset()
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_missing_files(self):
@@ -337,7 +339,7 @@ class TestContextToolset:
         ctx = _make_ctx()
 
         toolset = ContextToolset(context_files=["/MISSING.md"])
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_subagent(self):
@@ -351,11 +353,12 @@ class TestContextToolset:
             context_files=["/AGENT.md", "/SOUL.md"],
             is_subagent=True,
         )
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "### AGENT.md" in result
-        assert "SOUL.md" not in result
+        joined = "\n\n".join(result)
+        assert "### AGENT.md" in joined
+        assert "SOUL.md" not in joined
 
     async def test_get_instructions_subagent_all_filtered(self):
         """Test subagent with only non-allowed files returns None."""
@@ -367,7 +370,7 @@ class TestContextToolset:
             context_files=["/SOUL.md"],
             is_subagent=True,
         )
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
         assert result is None
 
     async def test_get_instructions_custom_max_chars(self):
@@ -377,17 +380,18 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         toolset = ContextToolset(context_files=["/DEEP.md"], max_chars=1000)
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
 
         assert result is not None
-        assert "chars truncated" in result
+        joined = "\n\n".join(result)
+        assert "chars truncated" in joined
 
     async def test_get_instructions_discovery_empty_backend(self):
         """Test discovery on empty backend returns None."""
         ctx = _make_ctx()
 
         toolset = ContextToolset(context_discovery=True)
-        result = toolset.get_instructions(ctx)
+        result = await toolset.get_instructions(ctx)
         assert result is None
 
 

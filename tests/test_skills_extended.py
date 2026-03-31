@@ -460,16 +460,17 @@ class TestGetInstructions:
 
     async def test_no_skills_returns_none(self) -> None:
         toolset = SkillsToolset(skills=[])
-        result = toolset.get_instructions(ctx=None)
+        result = await toolset.get_instructions(ctx=None)
         assert result is None
 
     async def test_with_skills_returns_xml(self) -> None:
         skill = Skill(name="test", description="desc", content="instr")
         toolset = SkillsToolset(skills=[skill])
-        result = toolset.get_instructions(ctx=None)
+        result = await toolset.get_instructions(ctx=None)
         assert result is not None
-        assert "<name>test</name>" in result
-        assert "<description>desc</description>" in result
+        joined = "\n\n".join(result)
+        assert "<name>test</name>" in joined
+        assert "<description>desc</description>" in joined
 
     async def test_custom_template(self) -> None:
         skill = Skill(name="test", description="desc", content="instr")
@@ -477,18 +478,19 @@ class TestGetInstructions:
             skills=[skill],
             instruction_template="Custom: {skills_list}",
         )
-        result = toolset.get_instructions(ctx=None)
+        result = await toolset.get_instructions(ctx=None)
         assert result is not None
-        assert result.startswith("Custom:")
+        assert result[0].startswith("Custom:")
 
     async def test_with_uri_not_exposed(self) -> None:
         """URI is NOT exposed in system prompt to prevent sandbox confusion."""
         skill = Skill(name="test", description="desc", content="instr", uri="/path/to/skill")
         toolset = SkillsToolset(skills=[skill])
-        result = toolset.get_instructions(ctx=None)
+        result = await toolset.get_instructions(ctx=None)
         assert result is not None
-        assert "<uri>" not in result
-        assert "<name>test</name>" in result
+        joined = "\n\n".join(result)
+        assert "<uri>" not in joined
+        assert "<name>test</name>" in joined
 
 
 # Toolset — Tool functions (via TestModel)

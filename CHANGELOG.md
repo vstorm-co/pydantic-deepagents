@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-03-31
+
+### Changed
+
+- Bump minimum `pydantic-ai-slim` to `>=1.74.0`
+- Toolset `get_instructions()` methods are now `async` and return `list[str] | None` to match pydantic-ai 1.74.0's `AbstractToolset` signature
+- Removed manual `get_instructions()` calls from `create_deep_agent()` — pydantic-ai 1.74.0's `CombinedToolset` handles this automatically
+- Capability inner instruction callables are now `async` to properly `await` toolset `get_instructions()`
+
+### Fixed
+
+- Compatibility with pydantic-ai 1.74.0 which changed `CombinedToolset.get_instructions()` to use `asyncio.gather` ([#53](https://github.com/vstorm-co/pydantic-deepagents/issues/53))
+
 ## [0.3.0] - 2026-03-30
 
 ### Breaking Changes

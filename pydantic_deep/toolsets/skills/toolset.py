@@ -452,7 +452,7 @@ class SkillsToolset(FunctionToolset):
 
             return str(await script.run(ctx=ctx, args=args))
 
-    def get_instructions(self, ctx: RunContext[Any]) -> str | None:
+    async def get_instructions(self, ctx: RunContext[Any]) -> list[str] | None:
         """Return instructions to inject into the agent's system prompt.
 
         Args:
@@ -474,9 +474,9 @@ class SkillsToolset(FunctionToolset):
         skills_list = "\n".join(skills_list_lines)
 
         if self._instruction_template:
-            return self._instruction_template.format(skills_list=skills_list)
+            return [self._instruction_template.format(skills_list=skills_list)]
 
-        return _INSTRUCTION_SKILLS_HEADER.format(skills_list=skills_list)
+        return [_INSTRUCTION_SKILLS_HEADER.format(skills_list=skills_list)]
 
     def skill(
         self,

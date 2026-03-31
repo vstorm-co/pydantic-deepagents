@@ -60,9 +60,10 @@ class SkillsCapability(AbstractCapability[Any]):
     def get_instructions(self) -> Any:
         toolset = self._toolset
 
-        def _instructions(ctx: RunContext[Any]) -> str | None:  # pragma: no cover
+        async def _instructions(ctx: RunContext[Any]) -> str | None:  # pragma: no cover
             if toolset is None:
                 return None
-            return toolset.get_instructions(ctx)  # pragma: no cover
+            parts = await toolset.get_instructions(ctx)  # pragma: no cover
+            return "\n\n".join(parts) if parts else None  # pragma: no cover
 
         return _instructions

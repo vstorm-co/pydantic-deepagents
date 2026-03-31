@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import subprocess
-
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from apps.cli.local_context import (
     IGNORE_PATTERNS,

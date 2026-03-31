@@ -178,7 +178,7 @@ class ContextToolset(FunctionToolset[Any]):
         self._is_subagent = is_subagent
         self._max_chars = max_chars
 
-    def get_instructions(self, ctx: RunContext[Any]) -> str | None:
+    async def get_instructions(self, ctx: RunContext[Any]) -> list[str] | None:
         """Load and format context files for system prompt injection.
 
         Args:
@@ -204,4 +204,4 @@ class ContextToolset(FunctionToolset[Any]):
             is_subagent=self._is_subagent,
             max_chars=self._max_chars,
         )
-        return result or None
+        return [result] if result else None

@@ -896,14 +896,6 @@ def create_deep_agent(  # noqa: C901
         **agent_create_kwargs,
     )
 
-    # Build list of toolsets whose get_instructions() should be called.
-    # pydantic-ai's AbstractToolset does NOT call this automatically.
-    _instruction_toolsets: list[Any] = [
-        ts
-        for ts in [skills_toolset, context_toolset, memory_toolset, *(toolsets or [])]
-        if ts is not None and hasattr(ts, "get_instructions")
-    ]
-
     # Add dynamic system prompts
     @agent.instructions
     def dynamic_instructions(ctx: Any) -> str:  # pragma: no cover
@@ -926,12 +918,8 @@ def create_deep_agent(  # noqa: C901
             if console_prompt:
                 parts.append(console_prompt)
 
-        # Collect instructions from toolsets that define get_instructions().
-        # pydantic-ai's AbstractToolset does NOT call this automatically.
-        for _ts in _instruction_toolsets:
-            _instr = _ts.get_instructions(ctx)
-            if _instr:
-                parts.append(_instr)
+        # NOTE: Toolset get_instructions() are called automatically by
+        # pydantic-ai's CombinedToolset since v1.74.0.
 
         if include_subagents:
             # Build configs list for prompt generation

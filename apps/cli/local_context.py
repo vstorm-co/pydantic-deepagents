@@ -432,9 +432,9 @@ class LocalContextToolset(FunctionToolset[DeepAgentDeps]):
             )
         return self._cached_context
 
-    def get_instructions(self, ctx: RunContext[DeepAgentDeps]) -> str:
+    async def get_instructions(self, ctx: RunContext[DeepAgentDeps]) -> list[str] | None:
         """Inject local context into the system prompt."""
-        return self._build_context()
+        return [self._build_context()]
 
 
 __all__ = [

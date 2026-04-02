@@ -79,7 +79,7 @@ async def main():
 
     # Create the main agent with subagents
     agent = create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions="""
         You are a senior software engineer.
         Delegate specialized tasks to the appropriate subagents:
@@ -90,7 +90,7 @@ async def main():
         Coordinate the work and synthesize results.
         """,
         subagents=subagents,
-        include_general_purpose_subagent=False,  # Only use our custom subagents
+        include_builtin_subagents=False,  # Only use our custom subagents
     )
 
     deps = DeepAgentDeps(backend=StateBackend())
@@ -177,7 +177,7 @@ SubAgentConfig(
     name="code-reviewer",           # Unique identifier
     description="...",              # Shown to main agent for delegation
     instructions="...",             # System prompt for the subagent
-    model="openai:gpt-4.1",         # Optional: override model
+    model="anthropic:claude-sonnet-4-6",         # Optional: override model
     toolsets=[my_toolset],          # Optional: custom toolsets
     agent_kwargs={"builtin_tools": [...]},  # Optional: additional Agent kwargs
 )
@@ -211,11 +211,11 @@ content = deps.backend.read("/src/app.py")
 ```python
 agent = create_deep_agent(
     subagents=subagents,
-    include_general_purpose_subagent=True,  # Default
+    include_builtin_subagents=True,  # Default — includes "research" subagent
 )
 ```
 
-The general-purpose subagent can handle tasks that don't fit specialized subagents.
+The built-in research subagent handles exploration, code search, and web research tasks.
 
 ### Different Models per Subagent
 
@@ -225,7 +225,7 @@ subagents = [
         name="quick-helper",
         description="Fast responses for simple tasks",
         instructions="...",
-        model="openai:gpt-4o-mini",  # Faster, cheaper
+        model="anthropic:claude-haiku-4-5-20251001",  # Faster, cheaper
     ),
     SubAgentConfig(
         name="deep-analyst",

@@ -35,7 +35,7 @@ write_todos(todos=[
     from pydantic_ai_todo import create_todo_toolset, TodoStorage
 
     storage = TodoStorage()
-    agent = Agent("openai:gpt-4.1", toolsets=[create_todo_toolset(storage)])
+    agent = Agent("anthropic:claude-sonnet-4-6", toolsets=[create_todo_toolset(storage)])
     ```
 
 ### Console Toolset (from pydantic-ai-backend)
@@ -115,7 +115,8 @@ task(
 
 **Built-in Subagent Types:**
 
-- `general-purpose` - Default agent for any task (if enabled)
+- `research` - Research agent for exploring codebases and the web
+- `planner` - Planning agent with ask_user + save_plan tools
 - Custom types from `subagents` configuration
 
 ### SkillsToolset
@@ -194,10 +195,10 @@ agent = create_deep_agent(include_plan=True)  # Default: True
 
 ### ContextToolset
 
-Injects project context files (DEEP.md, AGENTS.md, etc.) into the system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions.
+Injects project context files (AGENTS.md, SOUL.md) into the system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions.
 
 ```python
-agent = create_deep_agent(context_files=["/DEEP.md"], context_discovery=True)
+agent = create_deep_agent(context_discovery=True)  # Auto-discover AGENTS.md, SOUL.md
 ```
 
 ## Enabling/Disabling Toolsets
@@ -214,7 +215,7 @@ agent = create_deep_agent(
     include_plan=True,           # PlanToolset (default: True)
     include_checkpoints=False,   # CheckpointToolset
     include_teams=False,         # TeamToolset
-    include_memory=False,        # MemoryToolset
+    include_memory=True,         # MemoryToolset (enabled by default)
 )
 ```
 

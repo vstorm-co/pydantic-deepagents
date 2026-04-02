@@ -4,12 +4,18 @@ The eviction processor automatically saves large tool outputs to files and repla
 
 ## Quick Start
 
+Eviction is **enabled by default** with a 20,000 token threshold:
+
 ```python
 from pydantic_deep import create_deep_agent
 
-agent = create_deep_agent(
-    eviction_token_limit=20000,  # Evict outputs > 20K tokens
-)
+agent = create_deep_agent()  # eviction_token_limit=20_000 by default
+
+# Custom threshold
+agent = create_deep_agent(eviction_token_limit=50_000)
+
+# Disable
+agent = create_deep_agent(eviction_token_limit=None)
 ```
 
 ## How It Works
@@ -66,7 +72,7 @@ processor = EvictionProcessor(
     tail_lines=5,
 )
 
-agent = Agent("openai:gpt-4.1", history_processors=[processor])
+agent = Agent("anthropic:claude-sonnet-4-6", history_processors=[processor])
 ```
 
 ### Factory Function

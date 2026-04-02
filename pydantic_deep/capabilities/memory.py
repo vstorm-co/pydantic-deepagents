@@ -24,7 +24,7 @@ class MemoryCapability(AbstractCapability[Any]):
         from pydantic_ai import Agent
         from pydantic_deep.capabilities.memory import MemoryCapability
 
-        agent = Agent("openai:gpt-4.1", capabilities=[MemoryCapability()])
+        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[MemoryCapability()])
         ```
     """
 

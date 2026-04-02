@@ -214,7 +214,7 @@ class AnalysisResult(BaseModel):
 async def main():
     # Create agent with structured output
     agent = create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         output_type=AnalysisResult,
         instructions="""
         You are a data analyst. When analyzing files:

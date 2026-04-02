@@ -7,10 +7,29 @@ Web tools give agents the ability to search the web and fetch pages. pydantic-de
 ```python
 from pydantic_deep import create_deep_agent
 
-agent = create_deep_agent(include_web=True)
+agent = create_deep_agent()  # web_search=True, web_fetch=True by default
 ```
 
-This adds both `WebSearch()` and `WebFetch()` capabilities to the agent. The capabilities automatically use the model's built-in web tools when supported (e.g. OpenAI's `web_search_preview`, Anthropic's web tools), falling back to local tool implementations when they are not.
+Both are enabled by default and independently controllable:
+
+```python
+agent = create_deep_agent(web_search=True, web_fetch=False)   # Search only
+agent = create_deep_agent(web_search=False, web_fetch=True)   # Fetch only
+agent = create_deep_agent(web_search=False, web_fetch=False)  # Offline mode
+```
+
+For custom configuration (domain restrictions, custom implementations), disable the default and pass your own via `capabilities`:
+
+```python
+from pydantic_ai.capabilities import WebSearch
+
+agent = create_deep_agent(
+    web_search=False,  # Disable default
+    capabilities=[WebSearch(allowed_domains=["docs.python.org"])],
+)
+```
+
+This adds `WebSearch()` and `WebFetch()` capabilities to the agent. The capabilities automatically use the model's built-in web tools when supported (e.g. OpenAI's `web_search_preview`, Anthropic's web tools), falling back to local tool implementations when they are not.
 
 ## Capabilities
 
@@ -28,7 +47,7 @@ from pydantic_ai import Agent
 from pydantic_ai.capabilities import WebSearch, WebFetch
 
 agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-sonnet-4-6",
     capabilities=[WebSearch(), WebFetch()],
 )
 ```
@@ -119,7 +138,7 @@ from pydantic_ai import Agent
 from pydantic_ai.capabilities import WebSearch, WebFetch
 
 agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-sonnet-4-6",
     capabilities=[
         WebSearch(
             search_context_size="high",

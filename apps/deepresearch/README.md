@@ -85,7 +85,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MODEL_NAME` | No | LLM model (default: `openai:gpt-4.1`) |
+| `MODEL_NAME` | No | LLM model (default: `anthropic:claude-sonnet-4-6`) |
 | `TAVILY_API_KEY` | Recommended | Tavily AI search |
 | `BRAVE_API_KEY` | No | Brave Search |
 | `JINA_API_KEY` | No | Jina URL reader |

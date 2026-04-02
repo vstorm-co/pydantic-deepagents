@@ -1642,7 +1642,6 @@ async def get_config():
                     ),
                 },
                 "context_files": ["/workspace/DEEP.md", "/workspace/MEMORY.md"],
-                "image_support": True,
                 "subagents": [
                     "code-reviewer",
                     "general-purpose",

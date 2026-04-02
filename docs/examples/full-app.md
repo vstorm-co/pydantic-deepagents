@@ -114,7 +114,7 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
     github_toolset = create_github_toolset(id="github")
 
     return create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions=MAIN_INSTRUCTIONS,
         backend=None,  # Backend comes from deps at runtime
 
@@ -128,7 +128,7 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
 
         # Subagents
         subagents=SUBAGENT_CONFIGS,
-        include_general_purpose_subagent=False,
+        include_builtin_subagents=False,
 
         # Skills
         skill_directories=[{"path": str(SKILLS_DIR), "recursive": True}],

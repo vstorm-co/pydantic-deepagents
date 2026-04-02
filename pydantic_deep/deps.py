@@ -146,6 +146,42 @@ class DeepAgentDeps:
 
         return path
 
+    def upload_files(
+        self,
+        files: list[tuple[str, bytes]],
+        *,
+        upload_dir: str = "/uploads",
+    ) -> list[str]:
+        """Upload multiple files to the backend.
+
+        Each file is written independently — failures on one file don't
+        affect others. Failed uploads are silently skipped.
+
+        Args:
+            files: List of (filename, content) tuples.
+            upload_dir: Directory to store uploads (default: "/uploads").
+
+        Returns:
+            List of paths for successfully uploaded files.
+
+        Example:
+            ```python
+            deps = DeepAgentDeps(backend=StateBackend())
+            paths = deps.upload_files([
+                ("data.csv", csv_bytes),
+                ("config.json", json_bytes),
+            ])
+            ```
+        """
+        paths: list[str] = []
+        for name, content in files:
+            try:
+                path = self.upload_file(name, content, upload_dir=upload_dir)
+                paths.append(path)
+            except RuntimeError:  # pragma: no cover
+                pass  # Skip failed uploads
+        return paths
+
     def get_uploads_summary(self) -> str:
         """Generate summary of uploaded files for system prompt."""
         if not self.uploads:

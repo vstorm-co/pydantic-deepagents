@@ -247,7 +247,7 @@ async def run_chat() -> None:
     print_header()
 
     agent = create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions="""You are a helpful AI assistant. You have access to:
 - TODO list for planning and tracking tasks
 - Filesystem for reading/writing files

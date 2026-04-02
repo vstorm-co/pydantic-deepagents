@@ -97,11 +97,11 @@ from pydantic_ai import Agent
 from pydantic_ai_todo import create_todo_toolset, TodoStorage
 
 # Simple usage
-agent = Agent("openai:gpt-4.1", toolsets=[create_todo_toolset()])
+agent = Agent("anthropic:claude-sonnet-4-6", toolsets=[create_todo_toolset()])
 
 # With storage access
 storage = TodoStorage()
-agent = Agent("openai:gpt-4.1", toolsets=[create_todo_toolset(storage)])
+agent = Agent("anthropic:claude-sonnet-4-6", toolsets=[create_todo_toolset(storage)])
 result = await agent.run("Create 3 tasks")
 print(storage.todos)  # Access todos directly
 ```
@@ -538,7 +538,7 @@ Injects project context files into system prompt. See [Context Files](../advance
 from pydantic_deep.toolsets.context import ContextToolset
 
 toolset = ContextToolset(
-    context_files=["/DEEP.md", "/AGENTS.md"],
+    context_files=["/AGENTS.md", "/SOUL.md"],
     context_discovery=False,
     is_subagent=False,
     max_chars=20_000,

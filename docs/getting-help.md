@@ -71,13 +71,13 @@ Yes! Pydantic AI supports multiple providers:
 
 ```python
 # OpenAI
-agent = create_deep_agent(model="openai:gpt-4")
+agent = create_deep_agent(model="openai:gpt-4.1")
 
 # Google
 agent = create_deep_agent(model="google:gemini-1.5-pro")
 
 # Anthropic (default)
-agent = create_deep_agent(model="openai:gpt-4.1")
+agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
 ```
 
 ### How do I run without API calls (for testing)?

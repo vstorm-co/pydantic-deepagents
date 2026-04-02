@@ -56,7 +56,7 @@ async def main():
 
     # Create the main agent with subagents
     agent = create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions="""
         You are a senior software engineer.
         Delegate specialized tasks to the appropriate subagents:
@@ -67,7 +67,7 @@ async def main():
         Coordinate the work and synthesize results.
         """,
         subagents=subagents,
-        include_general_purpose_subagent=False,  # Only use our custom subagents
+        include_builtin_subagents=False,  # Only use our custom subagents
     )
 
     deps = DeepAgentDeps(backend=StateBackend())

@@ -206,7 +206,7 @@ from pydantic_ai_backends import create_console_toolset
 from pydantic_ai_todo import create_todo_toolset
 
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     toolsets=[create_todo_toolset(), create_console_toolset()],
 )
 ```
@@ -218,7 +218,7 @@ from pydantic_ai_shields import CostTracking
 from pydantic_deep.capabilities.hooks import HooksCapability, Hook, HookEvent
 
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     capabilities=[
         CostTracking(cost_budget_usd=5.0),
         HooksCapability(hooks=[

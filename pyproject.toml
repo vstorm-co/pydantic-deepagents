@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.2"
+version = "0.3.3"
 description = "Deep Agent framework built on Pydantic-ai with planning, filesystem, and subagent capabilities"
 readme = "README.md"
 license = "MIT"
@@ -26,7 +26,7 @@ dependencies = [
     "pydantic-ai-slim>=1.74.0",
     "pydantic-ai-todo>=0.2.1",
     "pydantic-ai-backend[console]>=0.2.2",
-    "summarization-pydantic-ai>=0.1.2",
+    "summarization-pydantic-ai>=0.1.3",
     "subagents-pydantic-ai>=0.2.1",
     "pydantic-ai-shields>=0.3.1",
     "pydantic>=2.0",
@@ -45,6 +45,7 @@ cli = [
     "prompt-toolkit>=3.0.0",
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
+    "pydantic-ai-slim[anthropic,openai,openrouter]>=1.74.0",
 ]
 # Web server support (for full_app example)
 web = [
@@ -52,11 +53,13 @@ web = [
     "uvicorn>=0.38.0",
     "python-multipart>=0.0.21",
 ]
+# ACP (Agent Client Protocol) support for editor integration
+acp = ["agent-client-protocol>=0.8.0"]
 # Logfire tracing support
 logfire = ["logfire>=4.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml,logfire]",
+    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire]",
 ]
 
 [project.urls]

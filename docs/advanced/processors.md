@@ -1,12 +1,52 @@
-# History Processors
+# History Processors & Context Management
 
-pydantic-deep supports history processors for managing conversation context. These processors are powered by [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) and provide two strategies:
+pydantic-deep uses a layered system for managing conversation context. Understanding how the layers work together is key to configuring long-running agents.
 
-- **SummarizationProcessor** - Intelligent LLM-based summarization
-- **SlidingWindowProcessor** - Zero-cost message trimming
+## How the Layers Work Together
+
+```
+Message history
+    │
+    ▼
+┌─────────────────────────────┐
+│  EvictionProcessor          │  Saves large tool outputs to files (default: on, 20K tokens)
+│  (history_processors)       │
+├─────────────────────────────┤
+│  PatchToolCallsProcessor    │  Fixes orphaned tool calls (default: on)
+│  (history_processors)       │
+├─────────────────────────────┤
+│  User history_processors    │  Custom: SlidingWindow, Summarization, etc.
+│  (history_processors=[...]) │
+├─────────────────────────────┤
+│  ContextManagerCapability   │  Token tracking + auto-compression at 90% (default: on)
+│  (context_manager=True)     │
+└─────────────────────────────┘
+    │
+    ▼
+  Model request
+```
+
+| Layer | Parameter | Default | Purpose |
+|-------|-----------|---------|---------|
+| **ContextManagerCapability** | `context_manager=True` | On | Token tracking + LLM-based auto-compression when reaching 90% of token budget |
+| **EvictionProcessor** | `eviction_token_limit=20_000` | On (20K) | Saves oversized tool outputs to files, replaces with preview |
+| **PatchToolCallsProcessor** | `patch_tool_calls=True` | On | Fixes orphaned tool calls from interrupted conversations |
+| **Custom processors** | `history_processors=[...]` | None | User-provided: SlidingWindow, Summarization, custom |
+
+**You don't need to configure anything for most use cases.** The defaults handle context management, large outputs, and interrupted sessions automatically.
 
 !!! info "Coming to pydantic-ai"
-    This feature will be added to pydantic-ai core in late January 2025 ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). Once available, we will migrate to use the upstream implementation. The API will remain compatible.
+    History processors will be added to pydantic-ai core ([pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780)). Once available, we will migrate to use the upstream implementation. The API will remain compatible.
+
+## Context Manager vs History Processors
+
+These are **complementary, not alternatives**:
+
+- **`context_manager`** is a **Capability** (pydantic-ai native). It tracks token usage across the conversation, reports it via `on_context_update` callback, and triggers LLM-based summarization when approaching the token budget. It's the **smart, high-level** layer.
+
+- **`history_processors`** are **low-level transformations** applied to the message list before each model request. They don't track tokens or make decisions — they just transform. The built-in ones (eviction, patching) run automatically; you add custom ones for special needs.
+
+Both run simultaneously. The context manager handles the "are we running out of space?" question; processors handle "clean up the data before sending."
 
 ## Summarization Processor
 
@@ -210,7 +250,7 @@ from pydantic_deep import SummarizationProcessor, SlidingWindowProcessor
 
 # Summarization processor
 summarizer = SummarizationProcessor(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     trigger=("tokens", 100000),
     keep=("messages", 20),
     max_input_tokens=None,
@@ -326,18 +366,29 @@ middleware = create_context_manager_middleware(
 
 ## Eviction Processor
 
-The `EvictionProcessor` saves large tool outputs to files, replacing them with a preview and file reference. See [Eviction](eviction.md) for full details.
+The `EvictionProcessor` saves large tool outputs to files, replacing them with a preview and file reference. **Enabled by default** with a 20,000 token threshold. See [Eviction](eviction.md) for full details.
 
 ```python
-agent = create_deep_agent(eviction_token_limit=20000)
+# Default: enabled at 20K tokens
+agent = create_deep_agent()
+
+# Custom threshold
+agent = create_deep_agent(eviction_token_limit=50_000)
+
+# Disable
+agent = create_deep_agent(eviction_token_limit=None)
 ```
 
 ## Patch Tool Calls Processor
 
-The `patch_tool_calls_processor` fixes orphaned tool calls in message history — useful when resuming interrupted conversations.
+The `patch_tool_calls_processor` fixes orphaned tool calls in message history. **Enabled by default.** Essential for resuming interrupted conversations where tool calls were sent but responses never received.
 
 ```python
-agent = create_deep_agent(patch_tool_calls=True)
+# Default: enabled
+agent = create_deep_agent()
+
+# Disable
+agent = create_deep_agent(patch_tool_calls=False)
 ```
 
 ## Best Practices

@@ -132,10 +132,10 @@ and an **AgentMiddleware** (`after_tool_call`).
 | Field | Default | Description |
 |-------|---------|-------------|
 | `max_tokens` | `None` (auto) | Token budget. Auto-detected from `genai-prices` using `model_name`, falls back to 200,000 |
-| `model_name` | `None` | Model identifier for auto-detecting `max_tokens` (e.g., `"openai:gpt-4.1"`) |
+| `model_name` | `None` | Model identifier for auto-detecting `max_tokens` (e.g., `"anthropic:claude-sonnet-4-6"`) |
 | `compress_threshold` | 0.9 | Fraction at which auto-compression triggers |
 | `keep` | `("messages", 0)` | How much context to retain after compression. Default 0 = only summary survives |
-| `summarization_model` | `"openai:gpt-4.1-mini"` | Model used for summary generation (passthrough from CLI/agent) |
+| `summarization_model` | `"anthropic:claude-haiku-4-5-20251001"` | Model used for summary generation (passthrough from CLI/agent) |
 | `token_counter` | `count_tokens_approximately` | Sync or async callable for counting tokens |
 | `messages_path` | `None` | Path to `messages.json` for persistent history |
 | `on_usage_update` | `None` | Callback: `(pct, current, max)` |
@@ -147,7 +147,7 @@ and an **AgentMiddleware** (`after_tool_call`).
 When `max_tokens=None` (default), the middleware resolves the context window
 from the `genai-prices` package using `model_name`. The resolution:
 
-1. Parse `"openai:gpt-4.1"` → `provider_id="openai"`, `model_ref="gpt-4.1"`
+1. Parse `"anthropic:claude-sonnet-4-6"` → `provider_id="openai"`, `model_ref="gpt-4.1"`
 2. Call `calc_price()` with dummy usage to resolve the model
 3. Read `result.model.context_window`
 4. Fall back to 200,000 if model not found or genai-prices not installed
@@ -399,7 +399,7 @@ flowchart LR
    history remains in `messages.json` for search.
 
 4. **Auto-detect context window:** `max_tokens` is auto-detected from `genai-prices`
-   based on the model name (e.g., `"openai:gpt-4.1"` → 1,047,576 tokens). Falls back
+   based on the model name (e.g., `"anthropic:claude-sonnet-4-6"` → 1,047,576 tokens). Falls back
    to 200,000 if the model is not found. This eliminates hardcoded limits and adapts
    automatically when switching models.
 

@@ -73,11 +73,11 @@ from pydantic_ai import Agent
 from pydantic_ai_shields import CostTracking
 
 tracking = CostTracking(
-    model_name="openai:gpt-4.1",
+    model_name="anthropic:claude-sonnet-4-6",
     budget_usd=5.0,
 )
 
-agent = Agent("openai:gpt-4.1", capabilities=[tracking])
+agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[tracking])
 
 result = await agent.run("Hello")
 print(f"Cost so far: ${tracking.total_cost:.4f}")
@@ -88,7 +88,7 @@ print(f"Total tokens: {tracking.total_request_tokens} in / {tracking.total_respo
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model_name` | `str \| None` | `None` | Model name for cost lookup (e.g. `"openai:gpt-4.1"`). Auto-detected if None. |
+| `model_name` | `str \| None` | `None` | Model name for cost lookup (e.g. `"anthropic:claude-sonnet-4-6"`). Auto-detected if None. |
 | `budget_usd` | `float \| None` | `None` | Maximum allowed cumulative cost. None = unlimited. |
 | `on_cost_update` | `CostCallback` | `None` | Callback invoked after each run with `CostInfo`. |
 

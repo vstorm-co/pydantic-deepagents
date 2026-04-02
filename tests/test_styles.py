@@ -335,16 +335,18 @@ class TestCreateDeepAgentWithStyle:
         assert "Be awesome." in static
 
     def test_style_appended_to_instructions(self) -> None:
-        """Style is appended after base instructions."""
+        """Style is appended after BASE_PROMPT + custom instructions."""
         agent = _minimal_agent(instructions="Base prompt.", output_style="formal")
         static = self._get_static_instructions(agent)
-        assert static.startswith("Base prompt.")
+        assert "You are a Deep Agent" in static  # BASE_PROMPT always present
+        assert "Base prompt." in static
         assert "## Output Style: formal" in static
 
     def test_style_with_custom_instructions(self) -> None:
-        """Custom instructions + style both present."""
+        """Custom instructions + style + BASE_PROMPT all present."""
         agent = _minimal_agent(instructions="You are helpful.", output_style="explanatory")
         static = self._get_static_instructions(agent)
+        assert "You are a Deep Agent" in static
         assert "You are helpful." in static
         assert "## Output Style: explanatory" in static
 

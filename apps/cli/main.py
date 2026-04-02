@@ -77,9 +77,14 @@ def _main_callback(
 ) -> None:
     """Deep Agent CLI — AI coding assistant powered by pydantic-ai."""
     try:
+        from pathlib import Path
+
         from dotenv import load_dotenv
 
-        load_dotenv()
+        # Load .env files: user-level, project-level, CWD (later overrides)
+        load_dotenv(Path.home() / ".pydantic-deep" / ".env", override=False)
+        load_dotenv(Path.cwd() / ".pydantic-deep" / ".env", override=True)
+        load_dotenv()  # CWD .env
     except ImportError:  # pragma: no cover
         pass
 
@@ -345,39 +350,43 @@ def _get_builtin_skills_dir() -> Path:
 
 
 def _discover_all_skills(user_dir: str | None = None) -> list[dict[str, str]]:
-    """Discover all skills (built-in + user) and return name/description pairs."""
+    """Discover all skills from all sources.
+
+    Discovery order (later sources override earlier by name):
+    1. Built-in skills (shipped with CLI)
+    2. User-level skills (~/.pydantic-deep/skills/)
+    3. Project-level skills (.pydantic-deep/skills/)
+    4. Explicit directory (--dir flag)
+    """
+    seen_names: set[str] = set()
     skills: list[dict[str, str]] = []
 
-    builtin_dir = _get_builtin_skills_dir()
-    if builtin_dir.is_dir():
-        for skill_dir in sorted(builtin_dir.iterdir()):
+    def _scan_dir(directory: Path, source: str) -> None:
+        if not directory.is_dir():
+            return
+        for skill_dir in sorted(directory.iterdir()):
             skill_file = skill_dir / "SKILL.md"
             if skill_file.is_file():
                 name, desc = _parse_skill_frontmatter(skill_file)
+                if name in seen_names:
+                    # Later source overrides earlier
+                    skills[:] = [s for s in skills if s["name"] != name]
+                seen_names.add(name)
                 skills.append(
                     {
                         "name": name,
                         "description": desc,
                         "path": str(skill_file),
-                        "source": "built-in",
+                        "source": source,
                     }
                 )
 
+    _scan_dir(_get_builtin_skills_dir(), "built-in")
+    _scan_dir(Path.home() / ".pydantic-deep" / "skills", "user")
+    _scan_dir(Path.cwd() / ".pydantic-deep" / "skills", "project")
+
     if user_dir:
-        user_path = Path(user_dir)
-        if user_path.is_dir():
-            for skill_dir in sorted(user_path.iterdir()):
-                skill_file = skill_dir / "SKILL.md"
-                if skill_file.is_file():
-                    name, desc = _parse_skill_frontmatter(skill_file)
-                    skills.append(
-                        {
-                            "name": name,
-                            "description": desc,
-                            "path": str(skill_file),
-                            "source": "user",
-                        }
-                    )
+        _scan_dir(Path(user_dir), "custom")
 
     return skills
 

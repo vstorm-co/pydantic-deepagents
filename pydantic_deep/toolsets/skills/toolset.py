@@ -127,7 +127,7 @@ class SkillsToolset(FunctionToolset):
         from pydantic_deep.toolsets.skills import SkillsToolset
 
         agent = Agent(
-            model='openai:gpt-4.1',
+            model='anthropic:claude-sonnet-4-6',
             instructions="You are a helpful assistant.",
             toolsets=[SkillsToolset(directories=["./skills"])]
         )
@@ -141,7 +141,7 @@ class SkillsToolset(FunctionToolset):
             content="Instructions here",
         )
         agent = Agent(
-            model='openai:gpt-4.1',
+            model='anthropic:claude-sonnet-4-6',
             toolsets=[SkillsToolset(skills=[custom_skill])]
         )
         ```

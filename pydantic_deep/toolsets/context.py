@@ -1,7 +1,7 @@
 """Project context file loading and injection.
 
-Loads the project context file (AGENT.md) from the backend and injects
-it into the agent's system prompt.
+Discovers and loads project context files (AGENTS.md, SOUL.md) from the
+backend and injects them into the agent's system prompt.
 
 Uses FunctionToolset.get_instructions() for native pydantic-ai integration.
 Works with both main agents and subagents (with configurable filtering).
@@ -17,16 +17,28 @@ from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import BackendProtocol
 
 DEFAULT_CONTEXT_FILENAMES: list[str] = [
-    "AGENT.md",
+    "AGENTS.md",
+    "SOUL.md",
 ]
-"""Default filenames to scan for during auto-discovery."""
+"""Default filenames to scan for during auto-discovery.
+
+- ``AGENTS.md`` — Project instructions, conventions, architecture.
+  Compatible with the `agents.md spec <https://agents.md/>`_.
+  Visible to main agent and subagents.
+- ``SOUL.md`` — Agent personality, style, user preferences.
+  Visible to main agent only (filtered for subagents).
+"""
 
 SUBAGENT_CONTEXT_ALLOWLIST: frozenset[str] = frozenset(
     {
-        "AGENT.md",
+        "AGENTS.md",
     }
 )
-"""Context files that subagents are allowed to see."""
+"""Context files that subagents are allowed to see.
+
+Subagents don't see SOUL.md — it contains personality and user
+preferences intended for the main agent only.
+"""
 
 DEFAULT_MAX_CONTEXT_CHARS: int = 20_000
 """Default max chars per context file before truncation."""
@@ -37,9 +49,9 @@ class ContextFile:
     """A loaded project context file."""
 
     name: str
-    """Filename: "DEEP.md"."""
+    """Filename: "AGENTS.md"."""
     path: str
-    """Full path: "/project/DEEP.md"."""
+    """Full path: "/project/AGENTS.md"."""
     content: str
     """File content."""
 

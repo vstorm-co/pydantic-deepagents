@@ -26,7 +26,7 @@ async def basic_example():
 
     try:
         agent = create_deep_agent(
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             instructions="""
             You are a Python development assistant.
             You can write code, save it to files, and execute it in a sandbox.
@@ -63,7 +63,7 @@ async def runtime_example():
 
     try:
         agent = create_deep_agent(
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             instructions="""
             You are a data science assistant.
             You have pandas, numpy, matplotlib, and other packages available.
@@ -111,7 +111,7 @@ async def custom_runtime_example():
 
     try:
         agent = create_deep_agent(
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             instructions="""
             You are a FastAPI development assistant.
             You have FastAPI, uvicorn, and httpx available.

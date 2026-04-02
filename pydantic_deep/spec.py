@@ -12,18 +12,18 @@ Example:
 
     # Load from dict
     agent, deps = DeepAgent.from_spec({
-        "model": "openai:gpt-4.1",
+        "model": "anthropic:claude-opus-4-6",
         "include_todo": True,
         "include_memory": True,
     })
 
     # Save spec to file
-    DeepAgent.to_file("agent.yaml", model="openai:gpt-4.1", include_memory=True)
+    DeepAgent.to_file("agent.yaml", model="anthropic:claude-opus-4-6", include_memory=True)
     ```
 
 YAML format:
     ```yaml
-    model: openai:gpt-4.1
+    model: anthropic:claude-opus-4-6
     instructions: You are a helpful coding assistant.
     include_todo: true
     include_filesystem: true
@@ -73,27 +73,28 @@ class DeepAgentSpec(BaseModel):
     include_filesystem: bool = True
     include_subagents: bool = True
     include_skills: bool = True
-    include_general_purpose_subagent: bool = True
+    include_builtin_subagents: bool = True
     include_plan: bool = True
     include_execute: bool | None = None
-    include_memory: bool = False
+    include_memory: bool = True
     include_checkpoints: bool = False
     include_teams: bool = False
-    include_web: bool = False
+    web_search: bool = True
+    web_fetch: bool = True
+    thinking: bool | str = "high"
     include_history_archive: bool = True
 
     # Subagent config
-    max_nesting_depth: int = 0
+    max_nesting_depth: int = 1
 
     # Interrupt
     interrupt_on: dict[str, bool] | None = None
 
     # Processors
-    eviction_token_limit: int | None = None
-    patch_tool_calls: bool = False
+    eviction_token_limit: int | None = 20_000
+    patch_tool_calls: bool = True
 
     # Filesystem
-    image_support: bool = False
     edit_format: str = "hashline"
 
     # Context management
@@ -170,7 +171,7 @@ class DeepAgent:
 
         Args:
             path: Path to YAML (.yaml/.yml) or JSON (.json) file.
-            **overrides: Override spec values (e.g., ``model="openai:gpt-4.1"``).
+            **overrides: Override spec values (e.g., ``model="anthropic:claude-opus-4-6"``).
                 Non-serializable params like ``backend``, ``tools``, ``on_cost_update``
                 can only be passed here.
 
@@ -217,7 +218,7 @@ class DeepAgent:
         Example:
             ```python
             agent, deps = DeepAgent.from_spec({
-                "model": "openai:gpt-4.1",
+                "model": "anthropic:claude-opus-4-6",
                 "include_todo": True,
                 "include_memory": True,
             })
@@ -228,7 +229,6 @@ class DeepAgent:
             "backend",
             "tools",
             "toolsets",
-            "skills",
             "hooks",
             "on_context_update",
             "on_before_compress",
@@ -290,7 +290,7 @@ class DeepAgent:
             ```python
             DeepAgent.to_file(
                 "agent.yaml",
-                model="openai:gpt-4.1",
+                model="anthropic:claude-opus-4-6",
                 include_todo=True,
                 include_memory=True,
                 memory_dir=".pydantic-deep",

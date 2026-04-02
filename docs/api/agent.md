@@ -12,7 +12,7 @@
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str \| Model \| None` | `"openai:gpt-4.1"` | LLM model identifier |
+| `model` | `str \| Model \| None` | `"anthropic:claude-sonnet-4-6"` | LLM model identifier |
 | `instructions` | `str \| None` | Default instructions | System prompt for the agent |
 | `output_style` | `str \| OutputStyle \| None` | `None` | Output style (built-in name or custom) |
 | `styles_dir` | `str \| list[str] \| None` | `None` | Directories for custom style files |
@@ -30,28 +30,29 @@
 | `include_filesystem` | `bool` | `True` | Include Console Toolset |
 | `include_subagents` | `bool` | `True` | Include SubAgentToolset |
 | `include_skills` | `bool` | `True` | Include SkillsToolset |
-| `include_general_purpose_subagent` | `bool` | `True` | Include general-purpose subagent |
+| `include_builtin_subagents` | `bool` | `True` | Include built-in subagents (research) |
 | `include_plan` | `bool` | `True` | Include planner subagent |
 | `include_execute` | `bool \| None` | `None` | Include execute tool (auto-detected) |
-| `include_memory` | `bool` | `False` | Persistent agent memory |
+| `include_memory` | `bool` | `True` | Persistent agent memory |
 | `include_checkpoints` | `bool` | `False` | Conversation checkpointing |
 | `include_teams` | `bool` | `False` | Agent teams with shared todos |
-| `image_support` | `bool` | `False` | Image file handling |
-| `patch_tool_calls` | `bool` | `False` | Fix orphaned tool calls |
+| `patch_tool_calls` | `bool` | `True` | Fix orphaned tool calls |
+| `web_search` | `bool` | `True` | WebSearch capability |
+| `web_fetch` | `bool` | `True` | WebFetch capability |
+| `thinking` | `bool \| str` | `"high"` | Thinking effort (True/False/"minimal"/"low"/"medium"/"high"/"xhigh") |
 
 #### Subagents
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `subagents` | `list[SubAgentConfig] \| None` | `None` | Subagent configurations |
-| `max_nesting_depth` | `int` | `0` | Max subagent nesting depth |
+| `max_nesting_depth` | `int` | `1` | Max subagent nesting depth |
 | `subagent_registry` | `DynamicAgentRegistry \| None` | `None` | Dynamic agent registry |
 
 #### Skills
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `skills` | `list[Skill] \| None` | `None` | Pre-loaded skills |
 | `skill_directories` | `list \| None` | `None` | Skill discovery directories |
 
 #### Context Management
@@ -62,9 +63,9 @@
 | `context_manager_max_tokens` | `int` | `200,000` | Token budget |
 | `on_context_update` | `Callable \| None` | `None` | Callback: `(pct, current, max)` |
 | `context_files` | `list[str] \| None` | `None` | Context file paths |
-| `context_discovery` | `bool` | `False` | Auto-discover DEEP.md, AGENTS.md, etc. |
+| `context_discovery` | `bool` | `False` | Auto-discover AGENTS.md, SOUL.md |
 | `history_processors` | `Sequence \| None` | `None` | History processors |
-| `eviction_token_limit` | `int \| None` | `None` | Large output eviction threshold |
+| `eviction_token_limit` | `int \| None` | `20_000` | Large output eviction threshold |
 
 #### Checkpointing
 
@@ -117,7 +118,7 @@ When `output_type` is provided, returns an agent typed with the output model.
 from pydantic_deep import create_deep_agent, SubAgentConfig
 
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     instructions="You are a coding assistant.",
     subagents=[
         SubAgentConfig(

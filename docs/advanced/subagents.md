@@ -71,13 +71,20 @@ task(
 
 This:
 
-1. Creates a new agent with the subagent's instructions
+1. Creates a **deep agent** (`create_deep_agent()`) with:
+   - `BASE_PROMPT` + subagent's `instructions` as system prompt
+   - Filesystem, web, todo, memory tools
+   - Eviction and patch tool calls support
 2. Clones dependencies with:
    - Same backend (shared files)
    - Empty todo list (isolated planning)
-   - No nested subagents
-3. Runs the subagent with the description as prompt
+3. Runs the subagent with the task description as user prompt
 4. Returns the subagent's output to the main agent
+
+!!! tip "System prompt composition"
+    Every subagent gets `BASE_PROMPT` (core deep agent behavior) plus the
+    `instructions` you provide. You only need to write the **specialized part** —
+    the framework handles the base behavior automatically.
 
 ## Context Isolation
 
@@ -105,33 +112,40 @@ This prevents:
 - Infinite recursion from nested delegation (unless explicitly allowed)
 - Confusion from mixed responsibilities
 
-## General-Purpose Subagent
+## Built-in Subagents
 
-By default, a general-purpose subagent is included:
+By default, pydantic-deep includes a **research** subagent — a full deep agent with filesystem, web search, and memory tools:
 
 ```python
 agent = create_deep_agent(
-    include_general_purpose_subagent=True,  # Default: True
+    include_builtin_subagents=True,  # Default: True
 )
 ```
 
-This allows delegation for tasks without a specialized subagent:
+The main agent can delegate research tasks:
 
 ```python
 task(
     description="Research the best Python logging libraries",
-    subagent_type="general-purpose",
+    subagent_type="research",
 )
 ```
 
-Disable if you only want specific subagents:
+Disable if you only want your own custom subagents:
 
 ```python
 agent = create_deep_agent(
     subagents=subagents,
-    include_general_purpose_subagent=False,
+    include_builtin_subagents=False,
 )
 ```
+
+!!! note "Subagents are deep agents"
+    All subagents (built-in and custom) are created as full deep agents via
+    `create_deep_agent()` by default. They have filesystem tools, web tools,
+    memory, eviction, and patch support. Only nested subagents, skills, plans,
+    teams, context management, and cost tracking are disabled to avoid recursion
+    and overhead.
 
 ## Custom Model per Subagent
 
@@ -143,7 +157,7 @@ subagents = [
         name="code-reviewer",
         description="Reviews code (uses powerful model)",
         instructions="...",
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
     ),
     SubAgentConfig(
         name="simple-formatter",
@@ -332,12 +346,12 @@ subagents = [
 
 ## Nested Subagents
 
-By default, subagents cannot spawn their own subagents (`max_nesting_depth=0`). Enable nesting for complex multi-level delegation:
+By default, subagents can spawn one level of their own subagents (`max_nesting_depth=1`). Increase for deeper delegation or set to 0 to disable:
 
 ```python
 agent = create_deep_agent(
     subagents=subagents,
-    max_nesting_depth=1,  # Subagents can spawn one level of sub-subagents
+    max_nesting_depth=2,  # Allow two levels of nested subagents
 )
 ```
 

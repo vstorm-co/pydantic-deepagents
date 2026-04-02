@@ -53,7 +53,7 @@ async def main():
     try:
         # Create agent with sandbox backend
         agent = create_deep_agent(
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             instructions="""
             You are a Python development assistant.
             You can write code, save it to files, and execute it.

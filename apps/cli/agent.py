@@ -67,7 +67,6 @@ def create_cli_agent(  # noqa: C901
     include_subagents: bool = True,
     include_todo: bool = True,
     include_local_context: bool = True,
-    include_web: bool = False,
     context_discovery: bool = True,
     non_interactive: bool = False,
     lean: bool = False,
@@ -82,7 +81,7 @@ def create_cli_agent(  # noqa: C901
     Configuration precedence: explicit arguments > config file > defaults.
 
     Args:
-        model: Model to use. Falls back to config, then ``"openrouter:openai/gpt-4.1"``.
+        model: Model to use. Falls back to config, then ``"anthropic:claude-sonnet-4-6"``.
         working_dir: Filesystem root directory. Defaults to cwd.
         shell_allow_list: Allowed shell command prefixes. None = all allowed.
         on_cost_update: Callback for cost updates.
@@ -114,16 +113,6 @@ def create_cli_agent(  # noqa: C901
     effective_model = model or config.model
     effective_working_dir = working_dir or config.working_dir
     effective_allow_list = shell_allow_list or config.shell_allow_list or None
-
-    # Warn (but don't block) if provider env vars are missing
-    from apps.cli.providers import format_provider_error
-
-    provider_error = format_provider_error(effective_model)
-    if provider_error:
-        import sys
-
-        print(f"Warning: {provider_error}", file=sys.stderr)
-        print("Run 'pydantic-deep providers list' to see all providers.", file=sys.stderr)
 
     root = Path(effective_working_dir) if effective_working_dir else Path.cwd()
     effective_backend = backend or LocalBackend(root_dir=root)
@@ -167,28 +156,42 @@ def create_cli_agent(  # noqa: C901
 
         local_context = LocalContextToolset(root_dir=root)
 
-    # Skills directory — explicit override > project root > bundled fallback
+    # Skills directories — searched in order, all matching dirs included:
+    # 1. Bundled skills (shipped with CLI package)
+    # 2. User-level skills (~/.pydantic-deep/skills/)
+    # 3. Project-level skills (.pydantic-deep/skills/)
+    # 4. Explicit override (--skills-dir flag)
     skill_dirs: list[str] = []
     if include_skills:
+        # Bundled skills (always available)
+        bundled = Path(__file__).resolve().parent / "skills"
+        if bundled.is_dir():
+            skill_dirs.append(str(bundled))
+
+        # User-level skills (home directory)
+        user_skills = Path.home() / ".pydantic-deep" / "skills"
+        if user_skills.is_dir():
+            skill_dirs.append(str(user_skills))
+
+        # Project-level skills (working directory)
+        project_skills_dir = root / ".pydantic-deep" / "skills"
+        if project_skills_dir.is_dir():
+            skill_dirs.append(str(project_skills_dir))
+
+        # Explicit override (highest priority — appended last)
         if skills_dir:
             sd = Path(skills_dir)
             if sd.is_dir():
                 skill_dirs.append(str(sd))
-        else:
-            project_skills_dir = root / ".pydantic-deep" / "skills"
-            if project_skills_dir.is_dir():
-                skill_dirs.append(str(project_skills_dir))
-
-        # Fallback to bundled skills shipped with the package
-        if not skill_dirs:
-            bundled = Path(__file__).resolve().parent.parent / "pydantic_deep" / "bundled_skills"
-            if bundled.is_dir():
-                skill_dirs.append(str(bundled))
 
     # In non-interactive mode: no approval needed, disable interactive features
     # (memory, plan, subagents). Skills stay ON — they're static
     # instructions that improve benchmark performance.
-    interrupt_on = {"execute": False} if non_interactive else None
+    if non_interactive:
+        interrupt_on: dict[str, bool] | None = {"execute": False}
+    else:
+        # Build interrupt_on from config.approve_tools
+        interrupt_on = {tool: True for tool in config.approve_tools} if config.approve_tools else None
 
     effective_memory = include_memory and not non_interactive
     effective_skills = include_skills if not lean else False  # Lean: no skills noise
@@ -205,19 +208,7 @@ def create_cli_agent(  # noqa: C901
         effective_model_settings["temperature"] = config.temperature
     if config.reasoning_effort and "openai_reasoning_effort" not in (model_settings or {}):
         effective_model_settings["openai_reasoning_effort"] = config.reasoning_effort
-    if config.thinking and "anthropic_thinking" not in (model_settings or {}):
-        if config.thinking_budget:
-            effective_model_settings["anthropic_thinking"] = {
-                "type": "enabled",
-                "budget_tokens": config.thinking_budget,
-            }
-        else:
-            effective_model_settings["anthropic_thinking"] = {"type": "adaptive"}
-    elif config.thinking_budget and "anthropic_thinking" not in (model_settings or {}):
-        effective_model_settings["anthropic_thinking"] = {
-            "type": "enabled",
-            "budget_tokens": config.thinking_budget,
-        }
+    # Thinking is handled via Thinking capability, not model_settings
     # Explicit CLI flags override everything
     if model_settings:
         effective_model_settings.update(model_settings)
@@ -251,18 +242,21 @@ def create_cli_agent(  # noqa: C901
         plans_dir=plans_dir,
         # Delegation
         include_subagents=effective_subagents,
-        include_general_purpose_subagent=effective_subagents,
+        include_builtin_subagents=effective_subagents,
         # Skills
         include_skills=effective_skills,
         # Memory (store in .pydantic-deep/main/MEMORY.md)
         include_memory=effective_memory,
         memory_dir=".pydantic-deep",
-        # Context files (auto-discover AGENT.md)
+        # Context files (auto-discover AGENTS.md, SOUL.md)
         context_discovery=context_discovery if not lean else False,
-        # Teams (not needed for CLI single-agent use)
-        include_teams=False,
-        # Web tools (search, fetch, HTTP)
-        include_web=include_web,
+        # Teams
+        include_teams=config.include_teams,
+        # Web tools
+        web_search=config.web_search if not lean else False,
+        web_fetch=config.web_fetch if not lean else False,
+        # Thinking
+        thinking=config.thinking_effort if not lean else False,
         # History persistence — per-session messages.json
         history_messages_path=(
             f".pydantic-deep/sessions/{session_id}/messages.json"

@@ -21,10 +21,10 @@ result = await agent.run("Hello!", deps=deps)
 
 ```python
 # Anthropic (default)
-agent = create_deep_agent(model="openai:gpt-4.1")
+agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
 
 # OpenAI
-agent = create_deep_agent(model="openai:gpt-4")
+agent = create_deep_agent(model="openai:gpt-4.1")
 
 # For testing (no API calls)
 from pydantic_ai.models.test import TestModel
@@ -56,16 +56,19 @@ agent = create_deep_agent(
     include_subagents=True,      # Task delegation
     include_skills=True,         # Skill packages
     include_plan=True,           # Plan mode subagent
-    include_general_purpose_subagent=True,  # General-purpose subagent
+    include_builtin_subagents=True,  # Built-in subagents (research)
 
-    # Optional features (all default: False unless noted)
-    include_memory=False,        # Persistent agent memory (MEMORY.md)
+    # Optional features (disabled by default)
     include_checkpoints=False,   # Conversation checkpointing & rewind
     include_teams=False,         # Agent teams with shared todos
-    patch_tool_calls=False,      # Fix orphaned tool calls on resume
-    image_support=False,         # Image file handling in read_file
 
     # Enabled by default
+    include_memory=True,         # Persistent agent memory (MEMORY.md)
+    web_search=True,             # WebSearch capability
+    web_fetch=True,              # WebFetch capability
+    thinking="high",             # Thinking/reasoning effort
+    patch_tool_calls=True,       # Fix orphaned tool calls on resume
+    eviction_token_limit=20_000, # Save large tool outputs to files
     cost_tracking=True,          # Token/USD cost tracking
     context_manager=True,        # Token tracking + auto-compression
 )
@@ -102,10 +105,10 @@ Inject project context into the system prompt:
 ```python
 # Explicit paths
 agent = create_deep_agent(
-    context_files=["/project/DEEP.md", "/project/AGENTS.md"],
+    context_files=["/project/AGENTS.md", "/project/SOUL.md"],
 )
 
-# Auto-discover DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md
+# Auto-discover AGENTS.md, SOUL.md
 agent = create_deep_agent(context_discovery=True)
 ```
 
@@ -281,7 +284,7 @@ The `create_deep_agent()` function accepts `**agent_kwargs` which are passed dir
 
 ```python
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     # Advanced pydantic-ai options via **agent_kwargs
     retries=3,                    # Number of retries on failure
     result_retries=2,             # Retries for result validation
@@ -547,22 +550,16 @@ agent = create_deep_agent(
 )
 ```
 
-Or provide skills directly:
+Or provide skills directly via a `SkillsToolset`:
 
 ```python
-skills = [
-    {
-        "name": "code-review",
-        "description": "Review code for quality",
-        "path": "/path/to/skill",
-        "tags": ["code", "review"],
-        "version": "1.0.0",
-        "author": "",
-        "frontmatter_loaded": True,
-    }
-]
+from pydantic_deep.toolsets.skills import Skill, SkillsToolset
 
-agent = create_deep_agent(skills=skills)
+skill = Skill(name="code-review", description="Review code for quality", content="...")
+agent = create_deep_agent(
+    toolsets=[SkillsToolset(skills=[skill])],
+    include_skills=False,  # avoid duplicate skills toolset
+)
 ```
 
 ## Usage Statistics

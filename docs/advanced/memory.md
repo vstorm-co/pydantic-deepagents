@@ -4,10 +4,12 @@ Persistent memory gives agents a `MEMORY.md` file stored in the backend that sur
 
 ## Quick Start
 
+Memory is enabled by default. Every agent gets persistent memory out of the box:
+
 ```python
 from pydantic_deep import create_deep_agent
 
-agent = create_deep_agent(include_memory=True)
+agent = create_deep_agent()  # include_memory=True by default
 ```
 
 The agent gets three memory tools:
@@ -24,7 +26,7 @@ Memory is also automatically injected into the system prompt (first 200 lines) s
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `include_memory` | `bool` | `False` | Enable persistent memory |
+| `include_memory` | `bool` | `True` | Enable persistent memory |
 | `memory_dir` | `str` | `"/.deep/memory"` | Base directory for memory files |
 
 ### Storage Layout
@@ -168,6 +170,6 @@ memory_toolset = AgentMemoryToolset(
 
 ## Next Steps
 
-- [Context Files](context-files.md) — Project context (DEEP.md, AGENTS.md)
+- [Context Files](context-files.md) — Project context (AGENTS.md, SOUL.md)
 - [Hooks](hooks.md) — Claude Code-style lifecycle hooks
 - [Checkpointing](checkpointing.md) — Save and rewind conversation state

@@ -59,11 +59,11 @@ from pydantic_deep.toolsets.teams import create_team_toolset
 
 def my_factory(config):
     return create_deep_agent(
-        model=config.get("model", "openai:gpt-4.1"),
+        model=config.get("model", "anthropic:claude-sonnet-4-6"),
         instructions=config["instructions"],
         include_filesystem=True,
         include_todo=True,
-        include_web=True,  # give members web access
+        web_search=True, web_fetch=True,  # give members web access
     )
 
 team_toolset = create_team_toolset(

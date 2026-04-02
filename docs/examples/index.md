@@ -91,6 +91,24 @@ uv run python examples/<example_name>.py
 </div>
 
 <div class="feature-card">
+<h3>:material-brain: Thinking</h3>
+<p>Configure reasoning effort for different complexity levels.</p>
+<a href="thinking/">View Example →</a>
+</div>
+
+<div class="feature-card">
+<h3>:material-web: Web Tools</h3>
+<p>Web search, fetch, and custom domain restrictions.</p>
+<a href="web-tools/">View Example →</a>
+</div>
+
+<div class="feature-card">
+<h3>:material-lan-connect: MCP Servers</h3>
+<p>Connect to MCP servers for external tool integration.</p>
+<a href="mcp/">View Example →</a>
+</div>
+
+<div class="feature-card">
 <h3>:material-star: Full Application</h3>
 <p>Complete FastAPI app with WebSocket streaming, Docker, uploads, and more.</p>
 <a href="full-app/">View Example →</a>

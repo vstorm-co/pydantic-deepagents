@@ -31,7 +31,7 @@ Full-featured interactive chat with streaming, tool approval, slash commands, an
 ```bash
 # stdout = response only (clean for piping), stderr = diagnostics
 pydantic-deep run "Fix the failing tests in src/"
-pydantic-deep run "Create a REST API" --model openai:gpt-4.1
+pydantic-deep run "Create a REST API" --model anthropic:claude-sonnet-4-6
 pydantic-deep run "Refactor the auth module" --quiet
 ```
 
@@ -195,7 +195,7 @@ The transition is instant with no visual gap.
 Config file: `~/.pydantic-deep/config.toml`
 
 ```toml
-model = "openai:gpt-4.1"
+model = "anthropic:claude-sonnet-4-6"
 include_skills = true
 include_plan = true
 include_memory = true

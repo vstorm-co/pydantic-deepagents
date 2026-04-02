@@ -30,7 +30,7 @@ class SkillsCapability(AbstractCapability[Any]):
         from pydantic_ai import Agent
         from pydantic_deep.capabilities.skills import SkillsCapability
 
-        agent = Agent("openai:gpt-4.1", capabilities=[SkillsCapability(
+        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[SkillsCapability(
             directories=["./skills"],
         )])
         ```

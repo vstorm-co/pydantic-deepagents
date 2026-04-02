@@ -465,7 +465,7 @@ MAIN_INSTRUCTIONS = f"""{BASE_PROMPT}
 5. **Code Review**: Delegate to the 'code-reviewer' subagent for code quality review
 6. **Entertainment**: Delegate to the 'joke-generator' subagent for humor
 7. **Quick Reference**: Load the 'quick-reference' skill for command shortcuts
-8. **Dynamic Agents**: Create new specialized agents at runtime with `create_agent(name, description, instructions)`, then delegate tasks to them. Use `list_agents()` to see created agents, `remove_agent(name)` to delete them. Allowed models: openai:gpt-4.1, openai:gpt-4o-mini, openai:gpt-4.1-mini.
+8. **Dynamic Agents**: Create new specialized agents at runtime with `create_agent(name, description, instructions)`, then delegate tasks to them. Use `list_agents()` to see created agents, `remove_agent(name)` to delete them. Allowed models: anthropic:claude-sonnet-4-6, anthropic:claude-haiku-4-5-20251001, anthropic:claude-haiku-4-5-20251001.
 9. **Plan Mode**: For complex tasks, delegate to the 'planner' subagent which will \
 analyze the codebase, ask clarifying questions with options, and create a step-by-step \
 implementation plan. Trigger when the user says 'use plan mode' or for tasks requiring \
@@ -571,8 +571,8 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
     agent_registry = DynamicAgentRegistry()
     factory_toolset = create_agent_factory_toolset(
         registry=agent_registry,
-        allowed_models=["openai:gpt-4.1", "openai:gpt-4o-mini", "openai:gpt-4.1-mini"],
-        default_model="openai:gpt-4.1-mini",
+        allowed_models=["anthropic:claude-sonnet-4-6", "anthropic:claude-haiku-4-5-20251001", "anthropic:claude-haiku-4-5-20251001"],
+        default_model="anthropic:claude-haiku-4-5-20251001",
         max_agents=5,
         id="agent-factory",
     )
@@ -584,7 +584,7 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
     )
 
     return create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions=MAIN_INSTRUCTIONS,
         backend=None,  # Backend comes from deps at runtime (per-session Docker container)
         # --- Toolsets ---
@@ -596,7 +596,7 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
         toolsets=[github_toolset, factory_toolset],
         # --- Subagents (joke-generator + code-reviewer + general-purpose + dynamic) ---
         subagents=SUBAGENT_CONFIGS,
-        include_general_purpose_subagent=True,
+        include_builtin_subagents=True,
         max_nesting_depth=2,  # Subagents can spawn their own subagents (2 levels deep)
         subagent_registry=agent_registry,  # Share registry so task() can find dynamic agents
         # --- Skills (filesystem directory + programmatic Skill instances) ---
@@ -612,8 +612,6 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
         history_processors=[sliding_window],
         # --- Context files (DEEP.md auto-injection into system prompt) ---
         context_files=["/workspace/DEEP.md"],
-        # --- Image support (multimodal read_file) ---
-        image_support=True,
         # --- Checkpointing (conversation save/rewind/fork) ---
         include_checkpoints=True,
         checkpoint_frequency="every_turn",
@@ -1712,7 +1710,6 @@ async def get_config():
                     "description": "Auto-saves after every model turn, rewind/fork via Timeline tab",
                 },
                 "context_files": ["/workspace/DEEP.md"],
-                "image_support": True,
                 "subagents": [
                     "joke-generator",
                     "code-reviewer",

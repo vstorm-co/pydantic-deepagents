@@ -62,7 +62,7 @@ from pydantic_deep.toolsets import SubAgentToolset, SkillsToolset
 
 ```python
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     instructions="You are a helpful assistant.",
     include_todo=True,
     include_filesystem=True,

@@ -30,9 +30,13 @@ The agent reads and updates this file across sessions.
 """
 
 _DEFAULT_CONFIG_TOML = """\
-model = "openrouter:openai/gpt-4.1"
+model = "anthropic:claude-sonnet-4-6"
 show_cost = true
 show_tokens = true
+
+# Tools that require user approval before execution
+# Use /config set approve_tools "execute,write_file" to change
+approve_tools = ["execute"]
 """
 
 

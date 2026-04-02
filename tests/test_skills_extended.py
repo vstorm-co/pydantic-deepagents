@@ -616,12 +616,12 @@ class TestToolFunctions:
 class TestAgentIntegration:
     """Tests for skills integration with create_deep_agent."""
 
-    def test_create_agent_with_skills(self) -> None:
+    def test_create_agent_with_skills_toolset(self) -> None:
         skill = Skill(name="test-skill", description="Test", content="Instructions")
         agent = create_deep_agent(
             model=TestModel(),
-            skills=[skill],
-            include_skills=True,
+            toolsets=[SkillsToolset(skills=[skill])],
+            include_skills=False,
         )
         assert agent is not None
 

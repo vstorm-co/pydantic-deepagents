@@ -143,7 +143,7 @@ class EvictionProcessor:
 
         backend = StateBackend()
         processor = EvictionProcessor(backend=backend)
-        agent = Agent("openai:gpt-4.1", history_processors=[processor])
+        agent = Agent("anthropic:claude-sonnet-4-6", history_processors=[processor])
         ```
     """
 

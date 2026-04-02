@@ -460,7 +460,7 @@ class TestTeamMember:
             description="QA tester",
             instructions="Test thoroughly",
         )
-        assert member.model == "openai:gpt-4.1"
+        assert member.model == "anthropic:claude-sonnet-4-6"
         assert member.toolsets == []
 
 

@@ -7,7 +7,7 @@ Define agents declaratively using YAML or JSON files instead of Python code.
 Create an `agent.yaml` file:
 
 ```yaml
-model: openai:gpt-4.1
+model: anthropic:claude-sonnet-4-6
 instructions: You are a helpful coding assistant.
 include_todo: true
 include_filesystem: true
@@ -57,7 +57,7 @@ Load an agent from a Python dict.
 
 ```python
 agent, deps = DeepAgent.from_spec({
-    "model": "openai:gpt-4.1",
+    "model": "anthropic:claude-sonnet-4-6",
     "include_todo": True,
     "include_memory": True,
     "memory_dir": ".pydantic-deep",
@@ -71,7 +71,7 @@ Save agent configuration to a file. Only non-default values are saved.
 ```python
 DeepAgent.to_file(
     "agent.yaml",
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     include_memory=True,
     memory_dir=".pydantic-deep",
 )
@@ -85,7 +85,7 @@ All keys correspond 1:1 to [`create_deep_agent()`][pydantic_deep.agent.create_de
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `model` | string | `"openai:gpt-4.1"` | Model identifier |
+| `model` | string | `"anthropic:claude-sonnet-4-6"` | Model identifier |
 | `instructions` | string | Base prompt | Custom system prompt |
 | `retries` | int | `3` | Max tool call retries |
 | `output_style` | string | `null` | Output style name |
@@ -99,10 +99,12 @@ All keys correspond 1:1 to [`create_deep_agent()`][pydantic_deep.agent.create_de
 | `include_subagents` | bool | `true` | Subagent delegation |
 | `include_skills` | bool | `true` | Skill discovery |
 | `include_plan` | bool | `true` | Plan mode subagent |
-| `include_memory` | bool | `false` | Persistent memory |
+| `include_memory` | bool | `true` | Persistent memory |
 | `include_checkpoints` | bool | `false` | Conversation checkpointing |
 | `include_teams` | bool | `false` | Agent team management |
-| `include_web` | bool | `false` | Web search/fetch |
+| `web_search` | bool | `true` | WebSearch capability |
+| `web_fetch` | bool | `true` | WebFetch capability |
+| `thinking` | bool/str | `"high"` | Thinking effort level |
 | `include_history_archive` | bool | `true` | History persistence |
 
 ### Context Management
@@ -111,7 +113,7 @@ All keys correspond 1:1 to [`create_deep_agent()`][pydantic_deep.agent.create_de
 |-----|------|---------|-------------|
 | `context_manager` | bool | `true` | Auto-compression |
 | `context_manager_max_tokens` | int | auto | Token budget |
-| `eviction_token_limit` | int | `null` | Large output eviction |
+| `eviction_token_limit` | int | `20000` | Large output eviction |
 
 ### Model Settings
 
@@ -131,7 +133,7 @@ subagents:
   - name: researcher
     description: Research assistant
     instructions: You research topics thoroughly.
-    model: openai:gpt-4.1-mini
+    model: anthropic:claude-haiku-4-5-20251001
   - name: coder
     description: Code writer
     instructions: You write clean Python code.
@@ -162,7 +164,7 @@ The same spec works in JSON:
 
 ```json
 {
-  "model": "openai:gpt-4.1",
+  "model": "anthropic:claude-sonnet-4-6",
   "include_todo": true,
   "include_memory": true,
   "memory_dir": ".pydantic-deep",

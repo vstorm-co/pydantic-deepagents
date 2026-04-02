@@ -25,7 +25,7 @@ Features that write to the backend:
 | Memory | `/.deep/memory/{agent}/MEMORY.md` | Users see each other's memories |
 | Plans | `/plans/{slug}-{uuid}.md` | Low — UUIDs prevent collisions, but users see all plans |
 | Eviction | `/large_tool_results/{call_id}` | Low — unique IDs, but files accumulate |
-| Context files | `/DEEP.md`, `/AGENTS.md` | None — typically read-only, shared by design |
+| Context files | `/AGENTS.md`, `/SOUL.md` | None — typically read-only, shared by design |
 | Checkpoints | `CheckpointStore` (separate) | Users see each other's checkpoints |
 
 ## Isolation Strategies

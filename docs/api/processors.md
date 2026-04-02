@@ -10,7 +10,7 @@ Factory function for creating a summarization processor with sensible defaults.
 
 ```python
 def create_summarization_processor(
-    model: str = "openai:gpt-4.1",
+    model: str = "anthropic:claude-sonnet-4-6",
     trigger: ContextSize | list[ContextSize] | None = ("tokens", 170000),
     keep: ContextSize = ("messages", 20),
     max_input_tokens: int | None = None,
@@ -23,7 +23,7 @@ def create_summarization_processor(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `"openai:gpt-4.1"` | Model for generating summaries |
+| `model` | `str` | `"anthropic:claude-sonnet-4-6"` | Model for generating summaries |
 | `trigger` | `ContextSize \| list[ContextSize] \| None` | `("tokens", 170000)` | When to trigger summarization |
 | `keep` | `ContextSize` | `("messages", 20)` | How much context to keep |
 | `max_input_tokens` | `int \| None` | `None` | Max tokens (required for fraction triggers) |
@@ -95,7 +95,7 @@ Process messages and summarize if needed. This is called automatically by pydant
 from pydantic_deep import SummarizationProcessor
 
 processor = SummarizationProcessor(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     trigger=[
         ("messages", 50),
         ("tokens", 100000),
@@ -264,7 +264,7 @@ History processor that fixes orphaned tool calls in message history.
 from pydantic_deep.processors.patch import patch_tool_calls_processor
 
 # Use as history processor
-agent = Agent("openai:gpt-4.1", history_processors=[patch_tool_calls_processor])
+agent = Agent("anthropic:claude-sonnet-4-6", history_processors=[patch_tool_calls_processor])
 
 # Or via create_deep_agent
 agent = create_deep_agent(patch_tool_calls=True)

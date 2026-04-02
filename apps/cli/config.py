@@ -54,13 +54,17 @@ _BOOL_FIELDS = frozenset(
         "include_memory",
         "include_subagents",
         "include_todo",
+        "web_search",
+        "web_fetch",
+        "include_teams",
         "context_discovery",
         "show_cost",
         "show_tokens",
-        "thinking",
         "logfire",
     }
 )
+
+_STR_FIELDS = frozenset({"model", "theme", "charset", "reasoning_effort", "thinking_effort"})
 
 _INT_FIELDS = frozenset({"max_history", "thinking_budget"})
 
@@ -71,7 +75,7 @@ _FLOAT_FIELDS = frozenset({"temperature"})
 class CliConfig:
     """CLI configuration loaded from config.toml."""
 
-    model: str = "openrouter:openai/gpt-4.1"
+    model: str = "anthropic:claude-sonnet-4-6"
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
     theme: str = "default"
@@ -85,11 +89,15 @@ class CliConfig:
     include_memory: bool = True
     include_subagents: bool = True
     include_todo: bool = True
+    web_search: bool = True
+    web_fetch: bool = True
+    include_teams: bool = False
     context_discovery: bool = True
+    thinking_effort: str = "high"
+    approve_tools: list[str] = field(default_factory=lambda: ["execute"])
+    """Tool names that require user approval before execution."""
     temperature: float | None = None
     reasoning_effort: str | None = None
-    thinking: bool = False
-    thinking_budget: int | None = None
     logfire: bool = False
 
 
@@ -133,7 +141,7 @@ def validate_config(config: CliConfig) -> list[str]:
     """Validate config values, returning a list of warning messages."""
     warnings: list[str] = []
     if config.model and ":" not in config.model:
-        warnings.append(f"Model '{config.model}' missing provider prefix (e.g. 'openai:gpt-4.1')")
+        warnings.append(f"Model '{config.model}' missing provider prefix (e.g. 'anthropic:claude-sonnet-4-6')")
     if config.working_dir:
         from pathlib import Path as _Path
 
@@ -202,7 +210,7 @@ def _coerce_value(key: str, value: str) -> Any:
         return int(value)
     if key in _FLOAT_FIELDS:
         return float(value)
-    if key == "shell_allow_list":
+    if key in ("shell_allow_list", "approve_tools"):
         return [v.strip() for v in value.split(",") if v.strip()]
     if key == "working_dir" and value.lower() in ("none", "null", ""):
         return None

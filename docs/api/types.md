@@ -374,7 +374,7 @@ class TeamMember:
     role: str
     description: str
     instructions: str
-    model: str = "openai:gpt-4.1"
+    model: str = "anthropic:claude-sonnet-4-6"
     toolsets: list[Any] = []
 ```
 
@@ -469,8 +469,8 @@ Loaded project context file.
 ```python
 @dataclass
 class ContextFile:
-    name: str                        # Filename: "DEEP.md"
-    path: str                        # Full path: "/project/DEEP.md"
+    name: str                        # Filename: "AGENTS.md"
+    path: str                        # Full path: "/project/AGENTS.md"
     content: str                     # File content
 ```
 

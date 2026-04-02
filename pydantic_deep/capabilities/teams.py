@@ -24,7 +24,7 @@ class TeamCapability(AbstractCapability[Any]):
         from pydantic_ai import Agent
         from pydantic_deep.capabilities.teams import TeamCapability
 
-        agent = Agent("openai:gpt-4.1", capabilities=[TeamCapability()])
+        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[TeamCapability()])
         ```
     """
 

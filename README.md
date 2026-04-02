@@ -53,11 +53,12 @@ pydantic-deep implements the **deep agent pattern** -- the same architecture pow
 
 ---
 
-**pydantic-deep** is three things:
+**pydantic-deep** is four things:
 
 1. **A Python framework** for building Claude Code-style agents with planning, filesystem access, subagents, memory, and unlimited context
 2. **A CLI** that gives you a terminal AI assistant out of the box
-3. **DeepResearch** -- a full-featured research agent with web UI, web search, diagrams, and sandboxed code execution
+3. **An ACP adapter** that runs deep agents inside editors like Zed
+4. **DeepResearch** -- a full-featured research agent with web UI, web search, diagrams, and sandboxed code execution
 
 ---
 
@@ -96,7 +97,7 @@ pydantic-deep run "Build a web scraper" --sandbox
 pydantic-deep chat --model anthropic:claude-sonnet-4-20250514
 
 # Manage config
-pydantic-deep config set model openai:gpt-4.1
+pydantic-deep config set model anthropic:claude-sonnet-4-6
 ```
 
 > See [CLI docs](docs/cli/index.md) for the full reference.
@@ -125,7 +126,7 @@ One function call gives you an agent with planning, filesystem tools, subagents,
 
 ```python
 agent = create_deep_agent(
-    model="openai:gpt-4.1",
+    model="anthropic:claude-sonnet-4-6",
     include_todo=True,          # Task planning
     include_filesystem=True,    # File read/write/edit/execute
     include_subagents=True,     # Delegate to subagents
@@ -133,7 +134,9 @@ agent = create_deep_agent(
     include_memory=True,        # Persistent MEMORY.md across sessions
     include_plan=True,          # Structured planning before execution
     include_teams=True,         # Multi-agent teams with shared TODOs
-    include_web=True,           # Built-in WebSearch() and WebFetch() capabilities
+    web_search=True,            # WebSearch capability
+    web_fetch=True,             # WebFetch capability
+    thinking="high",            # Thinking/reasoning effort
     context_manager=True,       # Auto-summarization for unlimited context
     cost_tracking=True,         # Token/USD budget enforcement
     include_checkpoints=True,   # Save, rewind, and fork conversations
@@ -192,7 +195,23 @@ agent = create_deep_agent(
 )
 ```
 
-### Custom Subagents
+### MCP Servers
+
+Connect to any [MCP](https://modelcontextprotocol.io/) server via pydantic-ai's `MCP` capability:
+
+```python
+from pydantic_ai.capabilities import MCP
+
+agent = create_deep_agent(
+    capabilities=[
+        MCP(url="https://mcp.example.com/api"),
+    ],
+)
+```
+
+### Subagents
+
+A built-in **research** subagent is included by default. Add your own:
 
 ```python
 agent = create_deep_agent(
@@ -200,14 +219,71 @@ agent = create_deep_agent(
         {
             "name": "code-reviewer",
             "description": "Reviews code for quality issues",
-            "instructions": "You are a senior code reviewer...",
-            "preferred_mode": "sync",
+            "instructions": "Check for security, performance, error handling...",
         },
     ],
 )
+# The main agent delegates: task(description="Review auth.py", subagent_type="code-reviewer")
 ```
 
+All subagents are full deep agents with filesystem, web, and memory tools. You only provide the specialized `instructions` — the framework adds `BASE_PROMPT` automatically.
+
+### Project Files
+
+pydantic-deep recognizes three special markdown files:
+
+| File | Purpose | Who Sees It |
+|------|---------|-------------|
+| `AGENTS.md` | Project instructions, conventions, architecture | Main agent + subagents |
+| `SOUL.md` | Agent personality, style, user preferences | Main agent only |
+| `MEMORY.md` | Persistent memory across sessions (read/write/update tools) | Per-agent (isolated) |
+
+```python
+agent = create_deep_agent(
+    context_discovery=True,  # Auto-discover AGENTS.md and SOUL.md at backend root
+    include_memory=True,     # MEMORY.md with read/write/update tools (on by default)
+)
+```
+
+`AGENTS.md` follows the [agents.md spec](https://agents.md/) — compatible with other agent frameworks.
+
 > See the full [API reference](https://vstorm-co.github.io/pydantic-deepagents/api/toolsets/) for all options.
+
+---
+
+## ACP -- Editor Integration (Zed)
+![zed.png](assets/zed.png)
+
+Run pydantic-deep agents inside [Zed](https://zed.dev) via the [Agent Client Protocol](https://agentclientprotocol.com):
+
+```bash
+pip install pydantic-deep[acp]
+python -m apps.acp
+```
+
+Add to Zed settings (`Cmd+,`):
+
+```json
+{
+  "agent_servers": {
+    "pydantic-deep": {
+      "type": "custom",
+      "command": "/path/to/venv/bin/python",
+      "args": ["-m", "apps.acp"],
+      "cwd": "/path/to/pydantic-deep"
+    }
+  }
+}
+```
+
+API keys are loaded from `~/.pydantic-deep/.env` (global) or `.pydantic-deep/.env` (per-project):
+
+```bash
+mkdir -p ~/.pydantic-deep
+echo 'OPENROUTER_API_KEY=sk-or-your-key' > ~/.pydantic-deep/.env
+```
+
+> See [ACP README](apps/acp/README.md) for full configuration.
 
 ---
 

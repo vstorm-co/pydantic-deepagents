@@ -389,7 +389,7 @@ def create_research_agent(
     agent_registry = DynamicAgentRegistry()
     factory_toolset = create_agent_factory_toolset(
         registry=agent_registry,
-        default_model="openai:gpt-4.1-mini",
+        default_model="anthropic:claude-haiku-4-5-20251001",
         max_agents=5,
         id="agent-factory",
     )
@@ -409,7 +409,7 @@ def create_research_agent(
         include_skills=True,
         include_plan=False,
         subagents=SUBAGENT_CONFIGS,
-        include_general_purpose_subagent=False,
+        include_builtin_subagents=False,
         max_nesting_depth=2,
         subagent_registry=agent_registry,
         subagent_extra_toolsets=mcp_servers,
@@ -421,7 +421,6 @@ def create_research_agent(
         context_manager_max_tokens=200_000,
         patch_tool_calls=True,
         context_files=["/workspace/DEEP.md", "/workspace/MEMORY.md"],
-        image_support=True,
         include_checkpoints=True,
         checkpoint_frequency="every_turn",
         max_checkpoints=50,

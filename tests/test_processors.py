@@ -60,6 +60,7 @@ class TestAgentWithOutputType:
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,
+            web_search=False, web_fetch=False,
         )
 
         deps = DeepAgentDeps(backend=StateBackend())
@@ -130,6 +131,7 @@ class TestAgentWithHistoryProcessors:
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,
+            web_search=False, web_fetch=False,
         )
 
         deps = DeepAgentDeps(backend=StateBackend())

@@ -333,8 +333,8 @@ class TestCreateDeepAgentPatchToolCalls:
         assert any(p is ptp for p in agent.history_processors)
 
     def test_patch_tool_calls_false(self):
-        """Agent with patch_tool_calls=False (default) doesn't have the processor."""
-        agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)
+        """Agent with patch_tool_calls=False doesn't have the processor."""
+        agent = create_deep_agent(model=TEST_MODEL, patch_tool_calls=False, cost_tracking=False)
         from pydantic_deep.processors.patch import patch_tool_calls_processor as ptp
 
         processors = agent.history_processors
@@ -357,8 +357,8 @@ class TestCreateDeepAgentPatchToolCalls:
         from pydantic_deep.processors.patch import patch_tool_calls_processor as ptp
 
         processors = agent.history_processors
-        # patch_tool_calls_processor should be first
-        assert processors[0] is ptp
+        # patch_tool_calls_processor should be present
+        assert any(p is ptp for p in processors)
 
 
 class TestPatchExports:

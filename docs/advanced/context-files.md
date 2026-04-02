@@ -1,41 +1,86 @@
 # Context Files
 
-Context files (DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md) are project-level configuration files that are loaded from the backend and injected into the agent's system prompt. They provide project-specific instructions, conventions, and personality.
+Context files are project-level markdown files that are loaded from the backend and injected into the agent's system prompt. They provide project-specific instructions, conventions, and personality.
+
+## Supported Files
+
+pydantic-deep recognizes three special files:
+
+| File | Purpose | Shared with Subagents |
+|------|---------|----------------------|
+| `AGENTS.md` | Project instructions, conventions, architecture. Compatible with the [agents.md spec](https://agents.md/) | Yes |
+| `SOUL.md` | Agent personality, tone, style, user preferences | No (main agent only) |
+| `MEMORY.md` | Persistent agent memory (read/write/update) | Per-agent (isolated) |
+
+!!! note "`MEMORY.md` uses a separate system"
+    `MEMORY.md` is managed by the [memory system](memory.md) (`include_memory=True`), not by context discovery. It has dedicated tools (`read_memory`, `write_memory`, `update_memory`) and per-agent isolation.
 
 ## Quick Start
-
-=== "Explicit Paths"
-    ```python
-    from pydantic_deep import create_deep_agent
-
-    agent = create_deep_agent(
-        context_files=["/project/DEEP.md", "/project/AGENTS.md"],
-    )
-    ```
 
 === "Auto-Discovery"
     ```python
     from pydantic_deep import create_deep_agent
 
     agent = create_deep_agent(context_discovery=True)
-    # Scans backend root for DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md
+    # Scans backend root for AGENTS.md, SOUL.md
     ```
 
-## Context File Types
+=== "Explicit Paths"
+    ```python
+    from pydantic_deep import create_deep_agent
 
-| File | Purpose | Shared with Subagents |
-|------|---------|----------------------|
-| `DEEP.md` | Project conventions, architecture, coding standards | Yes |
-| `AGENTS.md` | Agent-specific instructions, team roles | Yes |
-| `CLAUDE.md` | Claude Code-style project instructions | No |
-| `SOUL.md` | Agent personality, tone, values | No |
+    agent = create_deep_agent(
+        context_files=["/project/AGENTS.md", "/project/SOUL.md"],
+    )
+    ```
 
 ## Configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `context_files` | `list[str] \| None` | `None` | Explicit list of file paths to load |
-| `context_discovery` | `bool` | `False` | Auto-discover context files at backend root |
+| `context_discovery` | `bool` | `False` | Auto-discover AGENTS.md and SOUL.md at backend root |
+
+## Writing Context Files
+
+### AGENTS.md
+
+Project instructions visible to the main agent and all subagents:
+
+```markdown
+# Project: MyApp
+
+## Architecture
+- FastAPI backend with PostgreSQL
+- React frontend with TypeScript
+
+## Conventions
+- Use snake_case for Python, camelCase for TypeScript
+- All API endpoints return JSON
+- Tests required for all new features
+
+## Build & Test
+- `make test` to run tests
+- `make lint` to check code style
+```
+
+### SOUL.md
+
+Agent personality and user preferences. Only the main agent sees this file — subagents don't have access:
+
+```markdown
+# Personality
+
+- Be concise and direct
+- Prefer functional programming patterns
+- Always explain trade-offs when suggesting solutions
+
+# User Preferences
+
+- Senior Python developer, no need for beginner explanations
+- Prefers pytest over unittest
+- Uses vim keybindings
+```
 
 ## How It Works
 
@@ -46,13 +91,13 @@ The [`ContextToolset`][pydantic_deep.toolsets.context.ContextToolset] uses `get_
 ```
 ## Project Context
 
-### DEEP.md
-
-[content of DEEP.md]
-
 ### AGENTS.md
 
 [content of AGENTS.md]
+
+### SOUL.md
+
+[content of SOUL.md]
 ```
 
 Missing files are silently skipped.
@@ -71,14 +116,7 @@ Files exceeding 20,000 characters are truncated with a head/tail split (70% head
 
 ### Subagent Filtering
 
-Subagents only receive `DEEP.md` and `AGENTS.md`. Sensitive files (`CLAUDE.md`, `SOUL.md`) are filtered out for security isolation:
-
-```python
-# Main agent sees all context files
-# Subagents only see DEEP.md and AGENTS.md
-```
-
-This filtering is automatic — no configuration needed.
+Subagents only receive `AGENTS.md`. `SOUL.md` is filtered out automatically — it contains personality and user preferences intended for the main agent only.
 
 ## Per-Subagent Context Files
 
@@ -98,32 +136,8 @@ subagents = [
 
 agent = create_deep_agent(
     subagents=subagents,
-    context_files=["/project/DEEP.md"],
+    context_files=["/project/AGENTS.md"],
 )
-```
-
-## Writing Context Files
-
-Context files are simple markdown. Write them to your backend:
-
-```python
-from pydantic_ai_backends import LocalBackend
-
-backend = LocalBackend("/workspace")
-
-# Write a DEEP.md file
-backend.write("/DEEP.md", """
-# Project: MyApp
-
-## Architecture
-- FastAPI backend with PostgreSQL
-- React frontend with TypeScript
-
-## Conventions
-- Use snake_case for Python, camelCase for TypeScript
-- All API endpoints return JSON
-- Tests required for all new features
-""".encode())
 ```
 
 ## Components
@@ -135,11 +149,11 @@ backend.write("/DEEP.md", """
 | [`discover_context_files`][pydantic_deep.toolsets.context.discover_context_files] | Auto-discover context files in backend |
 | [`load_context_files`][pydantic_deep.toolsets.context.load_context_files] | Load context files from backend |
 | [`format_context_prompt`][pydantic_deep.toolsets.context.format_context_prompt] | Format files for system prompt |
-| `DEFAULT_CONTEXT_FILENAMES` | Default filenames: DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md |
-| `SUBAGENT_CONTEXT_ALLOWLIST` | Files allowed for subagents: DEEP.md, AGENTS.md |
+| `DEFAULT_CONTEXT_FILENAMES` | Default filenames: AGENTS.md, SOUL.md |
+| `SUBAGENT_CONTEXT_ALLOWLIST` | Files allowed for subagents: AGENTS.md |
 
 ## Next Steps
 
-- [Memory](memory.md) — Persistent agent memory
-- [Output Styles](output-styles.md) — Control response formatting
-- [Hooks](hooks.md) — Claude Code-style lifecycle hooks
+- [Memory](memory.md) -- Persistent agent memory (MEMORY.md)
+- [Output Styles](output-styles.md) -- Control response formatting
+- [Hooks](hooks.md) -- Claude Code-style lifecycle hooks

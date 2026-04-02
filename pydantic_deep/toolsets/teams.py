@@ -221,7 +221,7 @@ class TeamMember:
     role: str
     description: str
     instructions: str
-    model: str = "openai:gpt-4.1"
+    model: str = "anthropic:claude-sonnet-4-6"
     toolsets: list[Any] = field(default_factory=list)
 
 
@@ -384,7 +384,7 @@ def create_team_toolset(  # noqa: C901
                 role=m.get("role", "worker"),
                 description=m.get("description", ""),
                 instructions=m.get("instructions", ""),
-                model=m.get("model", "openai:gpt-4.1"),
+                model=m.get("model", "anthropic:claude-sonnet-4-6"),
             )
             for m in members
         ]

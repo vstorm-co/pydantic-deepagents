@@ -127,26 +127,11 @@ class TestBasePrompt:
 
 
 class TestImageSupport:
-    """Tests for image_support parameter in create_deep_agent."""
+    """Tests that image support is always enabled."""
 
-    def test_create_agent_with_image_support(self):
-        """Test creating an agent with image_support=True."""
-        agent = create_deep_agent(model=TEST_MODEL, image_support=True)
-        assert agent is not None
-
-    def test_create_agent_without_image_support(self):
-        """Test that image_support defaults to False."""
+    def test_agent_has_image_support(self):
+        """Test that agents are created with image support enabled."""
         agent = create_deep_agent(model=TEST_MODEL)
-        assert agent is not None
-
-    def test_create_agent_image_support_with_output_type(self):
-        """Test image_support works with structured output."""
-        from pydantic import BaseModel
-
-        class Result(BaseModel):
-            summary: str
-
-        agent = create_deep_agent(model=TEST_MODEL, image_support=True, output_type=Result)
         assert agent is not None
 
 
@@ -351,7 +336,7 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_uploads_files(self):
         """Test that run_with_files uploads files before running agent."""
-        agent = create_deep_agent(model=TEST_MODEL)
+        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
         deps = DeepAgentDeps(backend=StateBackend())
 
         files = [
@@ -373,7 +358,7 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_custom_upload_dir(self):
         """Test run_with_files with custom upload directory."""
-        agent = create_deep_agent(model=TEST_MODEL)
+        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
         deps = DeepAgentDeps(backend=StateBackend())
 
         files = [("test.txt", b"content")]
@@ -391,7 +376,7 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_no_files(self):
         """Test run_with_files with no files."""
-        agent = create_deep_agent(model=TEST_MODEL)
+        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
         deps1 = DeepAgentDeps(backend=StateBackend())
         deps2 = DeepAgentDeps(backend=StateBackend())
 

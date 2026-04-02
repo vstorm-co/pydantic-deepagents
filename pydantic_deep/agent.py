@@ -30,12 +30,12 @@ from pydantic_deep.types import SubAgentConfig
 if TYPE_CHECKING:
     from pydantic_ai.toolsets import AbstractToolset
 
-    from pydantic_deep.toolsets.skills.types import Skill
-
 OutputDataT = TypeVar("OutputDataT")
 
 
-DEFAULT_MODEL = "openai:gpt-4.1"
+DEFAULT_MODEL = "anthropic:claude-opus-4-6"
+DEFAULT_SUBAGENT_MODEL = "anthropic:claude-sonnet-4-6"
+DEFAULT_SUMMARIZATION_MODEL = "anthropic:claude-haiku-4-5-20251001"
 
 DEFAULT_INSTRUCTIONS = BASE_PROMPT
 
@@ -68,6 +68,8 @@ class _DepsTodoProxy:
 @overload
 def create_deep_agent(
     model: str | Model | None = None,
+    model_settings: dict[str, Any] | None = None,
+    summarization_model: str | None = None,
     instructions: str | None = None,
     output_style: str | Any | None = None,
     styles_dir: str | list[str] | None = None,
@@ -75,7 +77,6 @@ def create_deep_agent(
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
-    skills: list[Skill] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
     | list[BackendSkillsDirectory]
@@ -85,17 +86,16 @@ def create_deep_agent(
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
-    include_general_purpose_subagent: bool = True,
+    include_builtin_subagents: bool = True,
     include_plan: bool = True,
-    max_nesting_depth: int = 0,
+    max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
-    eviction_token_limit: int | None = None,
-    image_support: bool = False,
+    eviction_token_limit: int | None = 20_000,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -103,20 +103,21 @@ def create_deep_agent(
     on_before_compress: Any | None = None,
     on_after_compress: Any | None = None,
     on_eviction: Any | None = None,
-    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
-    include_memory: bool = False,
+    include_memory: bool = True,
     memory_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
-    patch_tool_calls: bool = False,
+    patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
     checkpoint_frequency: str = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
-    include_web: bool = False,
+    web_search: bool = True,
+    web_fetch: bool = True,
+    thinking: bool | str = "high",
     include_history_archive: bool = True,
     history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
@@ -124,7 +125,6 @@ def create_deep_agent(
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
-    model_settings: dict[str, Any] | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
@@ -133,6 +133,8 @@ def create_deep_agent(
 @overload
 def create_deep_agent(
     model: str | Model | None = None,
+    model_settings: dict[str, Any] | None = None,
+    summarization_model: str | None = None,
     instructions: str | None = None,
     output_style: str | Any | None = None,
     styles_dir: str | list[str] | None = None,
@@ -140,7 +142,6 @@ def create_deep_agent(
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
-    skills: list[Skill] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
     | list[BackendSkillsDirectory]
@@ -150,9 +151,9 @@ def create_deep_agent(
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
-    include_general_purpose_subagent: bool = True,
+    include_builtin_subagents: bool = True,
     include_plan: bool = True,
-    max_nesting_depth: int = 0,
+    max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     include_execute: bool | None = None,
@@ -160,8 +161,7 @@ def create_deep_agent(
     *,
     output_type: OutputSpec[OutputDataT],
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
-    eviction_token_limit: int | None = None,
-    image_support: bool = False,
+    eviction_token_limit: int | None = 20_000,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -169,20 +169,21 @@ def create_deep_agent(
     on_before_compress: Any | None = None,
     on_after_compress: Any | None = None,
     on_eviction: Any | None = None,
-    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
-    include_memory: bool = False,
+    include_memory: bool = True,
     memory_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
-    patch_tool_calls: bool = False,
+    patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
     checkpoint_frequency: str = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
-    include_web: bool = False,
+    web_search: bool = True,
+    web_fetch: bool = True,
+    thinking: bool | str = "high",
     include_history_archive: bool = True,
     history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
@@ -190,7 +191,6 @@ def create_deep_agent(
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
-    model_settings: dict[str, Any] | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
@@ -198,6 +198,8 @@ def create_deep_agent(
 
 def create_deep_agent(  # noqa: C901
     model: str | Model | None = None,
+    model_settings: dict[str, Any] | None = None,
+    summarization_model: str | None = None,
     instructions: str | None = None,
     output_style: str | Any | None = None,
     styles_dir: str | list[str] | None = None,
@@ -205,7 +207,6 @@ def create_deep_agent(  # noqa: C901
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
-    skills: list[Skill] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
     | list[BackendSkillsDirectory]
@@ -215,17 +216,16 @@ def create_deep_agent(  # noqa: C901
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
-    include_general_purpose_subagent: bool = True,
+    include_builtin_subagents: bool = True,
     include_plan: bool = True,
-    max_nesting_depth: int = 0,
+    max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: OutputSpec[OutputDataT] | None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
-    eviction_token_limit: int | None = None,
-    image_support: bool = False,
+    eviction_token_limit: int | None = 20_000,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -233,20 +233,21 @@ def create_deep_agent(  # noqa: C901
     on_before_compress: Any | None = None,
     on_after_compress: Any | None = None,
     on_eviction: Any | None = None,
-    summarization_model: str | None = None,
     context_files: list[str] | None = None,
     context_discovery: bool = False,
-    include_memory: bool = False,
+    include_memory: bool = True,
     memory_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
-    patch_tool_calls: bool = False,
+    patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
     checkpoint_frequency: str = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
-    include_web: bool = False,
+    web_search: bool = True,
+    web_fetch: bool = True,
+    thinking: bool | str = "high",
     include_history_archive: bool = True,
     history_messages_path: str = ".pydantic-deep/messages.json",
     cost_tracking: bool = True,
@@ -254,7 +255,6 @@ def create_deep_agent(  # noqa: C901
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
-    model_settings: dict[str, Any] | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
@@ -270,7 +270,7 @@ def create_deep_agent(  # noqa: C901
     - Optional history processing (e.g., summarization)
 
     Args:
-        model: Model to use (default: openai:gpt-4.1).
+        model: Model to use (default: anthropic:claude-opus-4-6).
         instructions: Custom instructions for the agent.
         output_style: Output style to apply to agent responses. Can be a
             string name of a built-in style ("concise", "explanatory",
@@ -284,7 +284,6 @@ def create_deep_agent(  # noqa: C901
         toolsets: Additional toolsets to register.
         capabilities: Additional capabilities to register.
         subagents: Subagent configurations for the task tool.
-        skills: Pre-loaded skills to make available (new Skill dataclass instances).
         skill_directories: Directories to discover skills from.
             Accepts plain string paths or BackendSkillsDirectory instances.
         backend: File storage backend (default: StateBackend).
@@ -292,15 +291,15 @@ def create_deep_agent(  # noqa: C901
         include_filesystem: Whether to include the filesystem toolset.
         include_subagents: Whether to include the subagent toolset.
         include_skills: Whether to include the skills toolset.
-        include_general_purpose_subagent: Whether to include a general-purpose subagent.
+        include_builtin_subagents: Whether to include built-in subagents (research).
         include_plan: Whether to include the built-in 'planner' subagent that
             provides Claude Code-style plan mode. The planner analyzes code,
             asks clarifying questions via ``ask_user``, and creates step-by-step
             implementation plans saved to markdown files. Requires
             ``include_subagents=True``. Defaults to True.
-        max_nesting_depth: Maximum subagent nesting depth. 0 (default) means
-            subagents cannot spawn their own subagents. Set to 1+ to allow
-            nested delegation (subagents creating subagents).
+        max_nesting_depth: Maximum subagent nesting depth. 1 (default) means
+            subagents can spawn one level of their own subagents. Set to 0
+            to disable nested delegation.
         subagent_registry: Optional DynamicAgentRegistry instance. When provided,
             the task tool will also look up dynamically created agents from
             the registry (created via create_agent_factory_toolset).
@@ -315,10 +314,9 @@ def create_deep_agent(  # noqa: C901
         history_processors: Sequence of history processors to apply to messages
             before sending to the model. Useful for summarization, filtering, etc.
         eviction_token_limit: Token threshold for large tool output eviction.
-            When set, tool outputs exceeding this limit are saved to files and
-            replaced with a preview + file reference. None (default) disables
-            eviction. Typical value: 20000.
-        image_support: Whether to enable image file handling in read_file.
+            Tool outputs exceeding this limit are saved to files and
+            replaced with a preview + file reference. Defaults to 20,000.
+            Set to None to disable eviction.
         context_manager: Whether to enable the ContextManagerMiddleware for
             automatic token tracking and auto-compression. When True (default),
             the middleware monitors token usage and triggers LLM-based
@@ -336,7 +334,7 @@ def create_deep_agent(  # noqa: C901
             returns a BinaryContent object that multimodal models can see,
             instead of garbled text. Defaults to False.
         summarization_model: Model to use for LLM-based context compression
-            summaries (e.g., ``"openai:gpt-4.1-mini"``). When None (default),
+            summaries. Defaults to ``anthropic:claude-haiku-4-5-20251001``. When set,
             the middleware uses its own default. Passed through to
             ``ContextManagerMiddleware.summarization_model``.
         context_files: List of paths to context files in the backend
@@ -345,8 +343,8 @@ def create_deep_agent(  # noqa: C901
             and injected into the system prompt. Missing files are
             silently skipped.
         context_discovery: Whether to auto-discover context files at the
-            backend root (/). Scans for DEEP.md, AGENTS.md, CLAUDE.md,
-            SOUL.md. Defaults to False.
+            backend root (/). Scans for AGENTS.md, SOUL.md.
+            Defaults to False.
         include_memory: Whether to include the agent memory toolset.
             When True, the main agent and all subagents get persistent
             memory stored as MEMORY.md files in the backend. Memory is
@@ -375,7 +373,7 @@ def create_deep_agent(  # noqa: C901
             token/cost data. Supports sync and async callables.
         patch_tool_calls: Whether to enable PatchToolCallsProcessor that
             fixes orphaned tool calls in message history. Useful when
-            resuming interrupted conversations. Defaults to False.
+            resuming interrupted conversations. Defaults to True.
         include_checkpoints: Whether to enable conversation checkpointing.
             When True, adds CheckpointMiddleware (auto-saves snapshots)
             and CheckpointToolset (save_checkpoint, list_checkpoints,
@@ -396,9 +394,14 @@ def create_deep_agent(  # noqa: C901
             When True, adds tools for spawning agent teams, assigning
             tasks via shared todo lists, messaging teammates, and
             dissolving teams. Defaults to False.
-        include_web: Whether to include web tools. When True, adds
-            pydantic-ai's built-in ``WebSearch()`` and ``WebFetch()``
-            capabilities. Defaults to False.
+        web_search: Whether to include the ``WebSearch`` capability.
+            Defaults to True.
+        web_fetch: Whether to include the ``WebFetch`` capability.
+            Defaults to True.
+        thinking: Thinking/reasoning effort level. ``True`` enables with
+            provider default, ``False`` disables, or a string level:
+            ``"minimal"``, ``"low"``, ``"medium"``, ``"high"``, ``"xhigh"``.
+            Defaults to ``"high"``.
         include_history_archive: Whether to persist full conversation history
             before context compression discards messages. Adds a
             ``search_conversation_history`` tool so the agent can look up
@@ -434,7 +437,6 @@ def create_deep_agent(  # noqa: C901
 
         # Basic usage with string output
         agent = create_deep_agent(
-            model="openai:gpt-4.1",
             instructions="You are a coding assistant",
         )
 
@@ -464,7 +466,7 @@ def create_deep_agent(  # noqa: C901
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}
 
-    # Build effective subagents list (user-provided + built-in planner)
+    # Build effective subagents list (user-provided + built-ins)
     effective_subagents: list[SubAgentConfig] = list(subagents or [])
     if include_plan and include_subagents:
         from pydantic_deep.toolsets.plan import (
@@ -482,6 +484,15 @@ def create_deep_agent(  # noqa: C901
             "toolsets": [plan_toolset],
         }
         effective_subagents.append(planner_config)
+
+    # Built-in research subagent (deep agent with web + filesystem)
+    if include_builtin_subagents and include_subagents:
+        from pydantic_deep.subagents import RESEARCH_SUBAGENT
+
+        # Only add if user hasn't already defined a "research" subagent
+        existing_names = {sa["name"] for sa in effective_subagents}
+        if RESEARCH_SUBAGENT["name"] not in existing_names:
+            effective_subagents.append(dict(RESEARCH_SUBAGENT))
 
     def _set_toolset_retries(toolset: AbstractToolset[DeepAgentDeps], max_retries: int) -> None:
         """Set max_retries on a FunctionToolset and all its registered tools."""
@@ -519,7 +530,7 @@ def create_deep_agent(  # noqa: C901
             include_execute=should_include_execute,
             require_write_approval=require_write_approval,
             require_execute_approval=require_execute_approval,
-            image_support=image_support,
+            image_support=True,
             edit_format=edit_format,  # type: ignore[arg-type,unused-ignore]
         )
         _set_toolset_retries(console_toolset, retries)
@@ -528,38 +539,51 @@ def create_deep_agent(  # noqa: C901
     _subagent_task_manager: Any | None = None
     subagent_toolset: Any | None = None
     if include_subagents:
-        # Pass model through to subagents (supports both str and Model objects)
-        subagent_model = model or DEFAULT_MODEL
+        # Subagents use the same model as the main agent
+        subagent_model = model
 
-        # Create toolsets factory for subagents - they get console, todo, and extra tools
-        _retries = retries  # capture for closure
+        # Deep agent factory for subagents — subagents are full deep agents
+        # with filesystem, web, memory, eviction, and patch support
+        _sub_model = subagent_model
+        _sub_edit_fmt = edit_format
         _sub_extra = list(subagent_extra_toolsets) if subagent_extra_toolsets else []
+        _sub_context_files = context_files
+        _sub_context_discovery = context_discovery
+        _sub_memory = include_memory
+        _sub_memory_dir = memory_dir
 
-        def subagent_toolsets_factory(deps: DeepAgentDeps) -> list[Any]:  # pragma: no cover
-            """Provide console, todo, extra, and context toolsets for subagents."""
-            sub_console = create_console_toolset(
+        def _default_deep_agent_factory(cfg: dict[str, Any]) -> Any:  # pragma: no cover
+            """Create a deep agent for subagent execution."""
+            return create_deep_agent(
+                model=cfg.get("model", _sub_model),
+                instructions=cfg["instructions"],
+                include_filesystem=True,
                 include_execute=True,
-                require_write_approval=False,
-                require_execute_approval=False,
-                image_support=image_support,
-                edit_format=edit_format,  # type: ignore[arg-type,unused-ignore]
+                include_todo=True,
+                web_search=True,
+                web_fetch=True,
+                thinking=False,  # Save tokens on subagents
+                include_subagents=False,
+                include_skills=False,
+                include_plan=False,
+                include_teams=False,
+                include_builtin_subagents=False,
+                context_manager=False,
+                cost_tracking=False,
+                include_memory=_sub_memory,
+                memory_dir=_sub_memory_dir,
+                context_files=_sub_context_files,
+                context_discovery=_sub_context_discovery,
+                edit_format=_sub_edit_fmt,
+                subagent_extra_toolsets=_sub_extra or None,
             )
-            _set_toolset_retries(sub_console, _retries)
-            sub_todo_proxy = _DepsTodoProxy()
-            sub_todo_proxy._deps = deps
-            result: list[Any] = [sub_console, create_todo_toolset(storage=sub_todo_proxy)]
-            # Include extra toolsets (e.g., MCP servers for web search)
-            result.extend(_sub_extra)
-            if context_files or context_discovery:
-                from pydantic_deep.toolsets.context import ContextToolset
 
-                sub_context = ContextToolset(
-                    context_files=context_files,
-                    context_discovery=context_discovery,
-                    is_subagent=True,
-                )
-                result.append(sub_context)
-            return result
+        # Inject agent_factory on subagents that don't have one already
+        for sa_config in effective_subagents:
+            if sa_config.get("agent") is None and sa_config.get("agent_factory") is None:
+                sa_config["agent_factory"] = _default_deep_agent_factory
+
+
 
         # Inject per-subagent ContextToolset for configs with context_files
         if effective_subagents:  # pragma: no branch
@@ -605,8 +629,7 @@ def create_deep_agent(  # noqa: C901
             id="deep-subagents",
             subagents=effective_subagents if effective_subagents else None,
             default_model=subagent_model,
-            include_general_purpose=include_general_purpose_subagent,
-            toolsets_factory=subagent_toolsets_factory,
+            include_general_purpose=False,  # We use our own built-in subagents
             max_nesting_depth=max_nesting_depth,
             registry=subagent_registry,
         )
@@ -628,27 +651,8 @@ def create_deep_agent(  # noqa: C901
                 else:
                     directories.append(sd)
 
-        # Normalize skills to Skill dataclass instances
-        from pydantic_deep.toolsets.skills.types import Skill as SkillDataclass
-
-        converted_skills: list[SkillDataclass] | None = None
-        if skills:
-            converted_skills = []
-            for s in skills:
-                if isinstance(s, dict):
-                    converted_skills.append(
-                        SkillDataclass(
-                            name=s["name"],
-                            description=s.get("description", ""),
-                            content=s.get("content", ""),
-                        )
-                    )
-                else:
-                    converted_skills.append(s)
-
         skills_toolset = SkillsToolset(
             id="deep-skills",
-            skills=converted_skills or None,
             directories=directories,  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         )
         all_toolsets.append(skills_toolset)  # type: ignore[arg-type]
@@ -715,7 +719,6 @@ def create_deep_agent(  # noqa: C901
 
             # Factory that creates deep agents for team members
             _team_model = model
-            _team_image = image_support
             _team_edit_fmt = edit_format
 
             def _deep_agent_factory(cfg: dict[str, Any]) -> Any:  # pragma: no cover
@@ -730,7 +733,6 @@ def create_deep_agent(  # noqa: C901
                     include_teams=False,
                     context_manager=False,
                     cost_tracking=False,
-                    image_support=_team_image,
                     edit_format=_team_edit_fmt,
                 )
 
@@ -739,8 +741,10 @@ def create_deep_agent(  # noqa: C901
         team_toolset = create_team_toolset(**_team_kwargs)
         all_toolsets.append(team_toolset)
 
-    # Build base instructions
-    base_instructions = instructions or DEFAULT_INSTRUCTIONS
+    # Build base instructions — always include BASE_PROMPT, append user instructions
+    base_instructions = DEFAULT_INSTRUCTIONS
+    if instructions:
+        base_instructions = base_instructions + "\n\n" + instructions
 
     # Inject output style into instructions
     if output_style is not None:
@@ -814,12 +818,12 @@ def create_deep_agent(  # noqa: C901
         }
         if context_manager_max_tokens:
             _cm_kwargs["max_tokens"] = context_manager_max_tokens
-        if summarization_model is not None:  # pragma: no cover
-            _cm_kwargs["summarization_model"] = summarization_model
+        _cm_kwargs["summarization_model"] = summarization_model or DEFAULT_SUMMARIZATION_MODEL
         if on_before_compress is not None:
             _cm_kwargs["on_before_compress"] = on_before_compress
         if on_after_compress is not None:
             _cm_kwargs["on_after_compress"] = on_after_compress
+        _cm_kwargs["include_compact_tool"] = True
         context_mw = ContextManagerCapability(**_cm_kwargs)
 
     # Cost tracking capability
@@ -837,9 +841,18 @@ def create_deep_agent(  # noqa: C901
     if all_processors:
         agent_create_kwargs["history_processors"] = all_processors
 
-    # Apply model_settings (explicit param takes priority over agent_kwargs)
-    if model_settings is not None:  # pragma: no cover
-        agent_create_kwargs["model_settings"] = model_settings
+    # Build effective model_settings with prompt caching defaults.
+    # Anthropic-specific keys are silently ignored by non-Anthropic models,
+    # so we always set them — no provider detection needed.
+    effective_model_settings: dict[str, Any] = {
+        "anthropic_cache_instructions": True,
+        "anthropic_cache_tool_definitions": True,
+        "anthropic_cache_messages": True,
+    }
+    # User-provided settings override defaults
+    if model_settings:
+        effective_model_settings.update(model_settings)
+    agent_create_kwargs["model_settings"] = effective_model_settings
 
     # Apply instrumentation
     if instrument is not None:  # pragma: no cover
@@ -875,11 +888,21 @@ def create_deep_agent(  # noqa: C901
     if cost_cap is not None:
         all_capabilities.append(cost_cap)
 
-    if include_web:  # pragma: no cover
-        from pydantic_ai.capabilities import WebFetch, WebSearch
+    if web_search:  # pragma: no cover
+        from pydantic_ai.capabilities import WebSearch
 
         all_capabilities.append(WebSearch())
+
+    if web_fetch:  # pragma: no cover
+        from pydantic_ai.capabilities import WebFetch
+
         all_capabilities.append(WebFetch())
+
+    if thinking is not False:  # pragma: no cover
+        from pydantic_ai.capabilities import Thinking
+
+        effort = thinking if isinstance(thinking, str) else True
+        all_capabilities.append(Thinking(effort=effort))
 
     # Add user-provided capabilities
     if capabilities:
@@ -924,16 +947,6 @@ def create_deep_agent(  # noqa: C901
         if include_subagents:
             # Build configs list for prompt generation
             prompt_configs: list[SubAgentConfig] = list(effective_subagents or [])
-            if include_general_purpose_subagent:
-                from subagents_pydantic_ai import DEFAULT_GENERAL_PURPOSE_DESCRIPTION
-
-                prompt_configs.append(
-                    SubAgentConfig(
-                        name="general-purpose",
-                        description=DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
-                        instructions="",
-                    )
-                )
             if prompt_configs:
                 subagent_prompt = get_subagent_system_prompt(prompt_configs)
                 if subagent_prompt:
@@ -1011,9 +1024,9 @@ async def run_with_files(
             )
         ```
     """
-    # Upload files (synchronous)
-    for name, content in files or []:
-        deps.upload_file(name, content, upload_dir=upload_dir)
+    # Upload files (batch)
+    if files:
+        deps.upload_files(files, upload_dir=upload_dir)
 
     # Run agent
     result = await agent.run(query, deps=deps)

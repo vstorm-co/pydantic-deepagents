@@ -44,7 +44,7 @@ Features: 17 slash commands (`/help`, `/compact`, `/context`, `/model`, ...), co
 ```bash
 # stdout = response only (clean for piping), stderr = diagnostics
 pydantic-deep run "Fix the failing tests in src/"
-pydantic-deep run "Create a REST API with FastAPI" --model openai:gpt-4.1
+pydantic-deep run "Create a REST API with FastAPI" --model anthropic:claude-sonnet-4-6
 pydantic-deep run "Refactor the auth module" --quiet
 ```
 
@@ -105,7 +105,7 @@ pydantic-deep config set model anthropic:claude-sonnet-4-20250514
 Config file: `~/.pydantic-deep/config.toml`
 
 ```toml
-model = "openai:gpt-4.1"
+model = "anthropic:claude-sonnet-4-6"
 include_skills = true
 include_plan = true
 include_memory = true

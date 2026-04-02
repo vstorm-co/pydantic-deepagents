@@ -22,7 +22,7 @@ class PlanCapability(AbstractCapability[Any]):
         from pydantic_ai import Agent
         from pydantic_deep.capabilities.plan import PlanCapability
 
-        agent = Agent("openai:gpt-4.1", capabilities=[PlanCapability()])
+        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[PlanCapability()])
         ```
     """
 

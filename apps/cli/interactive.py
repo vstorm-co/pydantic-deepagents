@@ -101,6 +101,8 @@ _SLASH_COMMANDS = [
     "/remember",
     "/skills",
     "/diff",
+    "/provider",
+    "/config",
     "/version",
     "/bug",
     "/quit",
@@ -109,7 +111,7 @@ _SLASH_COMMANDS = [
 
 
 def _get_all_slash_commands() -> list[str]:
-    """Merge built-in slash commands with discovered custom commands."""
+    """Merge built-in slash commands with discovered custom commands and skills."""
     from apps.cli.commands import discover_commands
 
     all_cmds = list(_SLASH_COMMANDS)
@@ -117,7 +119,34 @@ def _get_all_slash_commands() -> list[str]:
         slash = f"/{cmd.name}"
         if slash not in all_cmds:
             all_cmds.append(slash)
+
+    # Add skills as slash commands (e.g., /code-review, /test-writer)
+    from apps.cli.main import _discover_all_skills
+
+    for skill in _discover_all_skills():
+        slash = f"/{skill['name']}"
+        if slash not in all_cmds:
+            all_cmds.append(slash)
+
     return all_cmds
+
+
+def _try_skill_command(user_input: str) -> str | None:
+    """Check if user_input matches a skill name. Returns prompt to load it or None."""
+    from apps.cli.main import _discover_all_skills
+
+    parts = user_input.strip().split(maxsplit=1)
+    skill_name = parts[0].lstrip("/")
+    extra_context = parts[1].strip() if len(parts) > 1 else ""
+
+    skills = _discover_all_skills()
+    for skill in skills:
+        if skill["name"] == skill_name:
+            prompt = f"Load the '{skill_name}' skill and follow its instructions."
+            if extra_context:
+                prompt += f" Context: {extra_context}"
+            return prompt
+    return None
 
 
 def _try_custom_command(user_input: str) -> str | None:
@@ -573,6 +602,139 @@ async def _cmd_load(arg: str, history: list[ModelMessage]) -> list[ModelMessage]
     return history
 
 
+def _cmd_provider(on_model_change: Any | None = None) -> None:
+    """Handle /provider command — switch provider and model."""
+    from apps.cli.provider_setup import run_provider_setup
+
+    theme = get_theme()
+    selected = run_provider_setup(console, theme)
+    if selected and on_model_change:
+        on_model_change(selected)
+        console.print(
+            f"[{theme.success}]Switched to {selected}.[/{theme.success}]\n"
+            f"[{theme.muted}]Note: the agent will use the new model on the next message.[/{theme.muted}]\n"
+        )
+
+
+def _cmd_config(arg: str) -> None:
+    """Handle /config command — view or update config.toml settings.
+
+    Usage:
+        /config              — show current config
+        /config set key val  — set a config value (persists to config.toml)
+    """
+    from apps.cli.config import get_config_path, load_config
+
+    theme = get_theme()
+    config = load_config()
+
+    if not arg:
+        # Show current config as table
+        from dataclasses import fields as dc_fields
+
+        from rich.table import Table
+
+        table = Table(title="Configuration", show_header=True)
+        table.add_column("Setting", style=theme.primary)
+        table.add_column("Value")
+        for f in dc_fields(config):
+            val = getattr(config, f.name)
+            table.add_row(f.name, str(val))
+        console.print(table)
+        console.print(f"[{theme.muted}]Config file: {get_config_path()}[/{theme.muted}]")
+        console.print(
+            f"[{theme.muted}]Use /config set <key> <value> to change "
+            f"(e.g., /config set include_teams true)[/{theme.muted}]\n"
+        )
+        return
+
+    parts = arg.split(maxsplit=2)
+    if parts[0] != "set" or len(parts) < 3:
+        console.print(
+            f"[{theme.muted}]Usage: /config set <key> <value>[/{theme.muted}]"
+        )
+        return
+
+    key, value = parts[1], parts[2]
+
+    # Validate key exists
+    from dataclasses import fields as dc_fields
+
+    valid_keys = {f.name for f in dc_fields(config)}
+    if key not in valid_keys:
+        console.print(
+            f"[{theme.error}]Unknown config key: {key}[/{theme.error}]\n"
+            f"[{theme.muted}]Valid keys: {', '.join(sorted(valid_keys))}[/{theme.muted}]"
+        )
+        return
+
+    # Parse value to correct type
+    from apps.cli.config import _BOOL_FIELDS, _FLOAT_FIELDS, _INT_FIELDS
+
+    if key in _BOOL_FIELDS:
+        parsed: Any = value.lower() in ("true", "1", "yes", "on")
+    elif key in _INT_FIELDS:
+        try:
+            parsed = int(value)
+        except ValueError:
+            console.print(f"[{theme.error}]Expected integer for {key}[/{theme.error}]")
+            return
+    elif key in _FLOAT_FIELDS:
+        try:
+            parsed = float(value)
+        except ValueError:
+            console.print(f"[{theme.error}]Expected number for {key}[/{theme.error}]")
+            return
+    else:
+        parsed = value
+
+    # Write to config.toml
+    config_path = get_config_path()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing TOML or start fresh
+    if config_path.exists():
+        with open(config_path, "rb") as f:
+            import sys
+
+            if sys.version_info >= (3, 11):
+                import tomllib
+            else:  # pragma: no cover
+                try:
+                    import tomllib  # type: ignore[import-not-found,no-redefine]
+                except ImportError:
+                    import tomli as tomllib  # type: ignore[import-not-found,no-redefine]
+
+            data = tomllib.load(f)
+    else:
+        data = {}
+
+    data[key] = parsed
+
+    # Write back (simple TOML serialization)
+    lines = []
+    for k, v in sorted(data.items()):
+        if isinstance(v, bool):
+            lines.append(f"{k} = {str(v).lower()}")
+        elif isinstance(v, str):
+            lines.append(f'{k} = "{v}"')
+        elif isinstance(v, list):
+            items = ", ".join(f'"{i}"' for i in v)
+            lines.append(f"{k} = [{items}]")
+        else:
+            lines.append(f"{k} = {v}")
+
+    config_path.write_text("\n".join(lines) + "\n")
+
+    console.print(
+        f"[{theme.success}]{key} = {parsed}[/{theme.success}] "
+        f"[{theme.muted}](saved to {config_path})[/{theme.muted}]"
+    )
+    console.print(
+        f"[{theme.muted}]Restart the session for changes to take effect.[/{theme.muted}]\n"
+    )
+
+
 def _cmd_version() -> None:
     """Handle /version command."""
     from pydantic_deep import __version__
@@ -882,13 +1044,12 @@ def _cmd_model_picker(
     # Build model list from known providers
     items: list[PickerItem] = []
     popular_models = [
-        ("openrouter:openai/gpt-4.1", "OpenAI GPT-4.1 via OpenRouter"),
-        ("openrouter:anthropic/claude-sonnet-4", "Anthropic Claude Sonnet 4"),
-        ("openrouter:anthropic/claude-opus-4", "Anthropic Claude Opus 4"),
-        ("openrouter:google/gemini-2.5-pro", "Google Gemini 2.5 Pro"),
-        ("openai:gpt-4.1", "OpenAI GPT-4.1 (direct)"),
-        ("anthropic:claude-sonnet-4-5", "Anthropic Claude Sonnet 4.5 (direct)"),
-        ("google:gemini-2.5-pro", "Google Gemini 2.5 Pro (direct)"),
+        ("anthropic:claude-opus-4-6", "Claude Opus 4.6"),
+        ("anthropic:claude-sonnet-4-6", "Claude Sonnet 4.6"),
+        ("anthropic:claude-haiku-4-5-20251001", "Claude Haiku 4.5"),
+        ("openai:gpt-4.1", "OpenAI GPT-4.1"),
+        ("openai:gpt-4.1-mini", "OpenAI GPT-4.1 Mini"),
+        ("google:gemini-2.5-pro", "Google Gemini 2.5 Pro"),
     ]
 
     for model_id, desc in popular_models:
@@ -973,6 +1134,8 @@ def _cmd_help() -> None:
         ("/load [id]", "Browse & resume a previous session"),
         ("/remember [text]", "View or save to persistent memory"),
         ("/skills", "List available skills"),
+        ("/provider", "Switch AI provider and model (setup wizard)"),
+        ("/config", "View or change settings (e.g., /config set include_teams true)"),
         ("/diff", "Show git diff of uncommitted changes"),
         ("/version", "Show version"),
         ("/bug", "Report a bug (opens GitHub)"),
@@ -1240,6 +1403,10 @@ async def _handle_command(  # noqa: C901
         _cmd_bug()
     elif cmd_name == "/copy":
         _cmd_copy(history)
+    elif cmd_name == "/provider":
+        _cmd_provider(on_model_change)
+    elif cmd_name == "/config":
+        _cmd_config(cmd_arg)
     elif cmd_name == "/help":
         _cmd_help()
     else:
@@ -1272,10 +1439,12 @@ def _create_agent_with_retry(
     model: str | None = None,
     **kwargs: Any,
 ) -> tuple[Any, DeepAgentDeps] | tuple[None, None]:
-    """Try to create the CLI agent, prompting for a model if it fails.
+    """Try to create the CLI agent. On failure, offer provider setup wizard.
 
     Returns (agent, deps) on success, or (None, None) if the user quits.
     """
+    from apps.cli.provider_setup import run_provider_setup
+
     effective_model = model
     while True:
         try:
@@ -1285,16 +1454,34 @@ def _create_agent_with_retry(
             _print_model_error(e)
             theme = get_theme()
             console.print(
-                f"\n[{theme.muted}]Enter a model "
-                f"(e.g. openrouter:openai/gpt-4.1) or 'q' to quit:[/{theme.muted}]"
+                f"\n[{theme.muted}]Options:[/{theme.muted}]"
+                f"\n  [{theme.primary}]1[/{theme.primary}] Run provider setup wizard"
+                f"\n  [{theme.primary}]2[/{theme.primary}] Enter model string manually"
+                f"\n  [{theme.primary}]q[/{theme.primary}] Quit"
             )
             try:
-                choice = input("> ").strip()
+                choice = input("\n> ").strip()
             except (EOFError, KeyboardInterrupt):
                 return None, None
-            if choice.lower() in ("q", "quit", "exit", ""):
+
+            if choice == "1" or choice == "":
+                selected = run_provider_setup(console, theme)
+                if selected is None:
+                    return None, None
+                effective_model = selected
+            elif choice == "2":
+                console.print(
+                    f"[{theme.muted}]Enter model (e.g. anthropic:claude-sonnet-4-6):[/{theme.muted}]"
+                )
+                try:
+                    manual = input("> ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    return None, None
+                if not manual or manual.lower() in ("q", "quit"):
+                    return None, None
+                effective_model = manual
+            else:
                 return None, None
-            effective_model = choice
 
 
 def _create_sandbox_backend(runtime: str) -> Any | None:
@@ -2061,6 +2248,17 @@ async def _chat_loop(  # noqa: C901
                         _print_todos(deps)
                     continue
 
+                # Try skill activation (e.g., /code-review, /test-writer)
+                skill_prompt = _try_skill_command(user_input)
+                if skill_prompt is not None:
+                    print()
+                    message_history[:] = await _process_stream(
+                        agent, skill_prompt, deps, message_history
+                    )
+                    if deps.todos:
+                        _print_todos(deps)
+                    continue
+
                 should_break, message_history[:] = await _handle_command(
                     user_input,
                     deps,
@@ -2200,8 +2398,18 @@ async def run_interactive(  # noqa: C901
                 # Continue: reuse old session_id
                 session_id = resumed_id
 
+        # First-run: check if any provider is configured
+        from apps.cli.provider_setup import has_any_provider_configured, run_provider_setup
+
+        setup_model = model
+        if not model and not has_any_provider_configured():
+            theme = get_theme()
+            setup_model = run_provider_setup(console, theme)
+            if setup_model is None:
+                return
+
         result = _create_agent_with_retry(
-            model=model,
+            model=setup_model,
             working_dir=working_dir,
             on_cost_update=_on_cost,
             on_context_update=_on_context,

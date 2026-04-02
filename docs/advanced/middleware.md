@@ -180,8 +180,8 @@ pydantic-deep uses these capabilities internally:
 | `HooksCapability` | `hooks=[...]` | Claude Code-style lifecycle hooks |
 | `CheckpointMiddleware` | `include_checkpoints=True` | Auto-save conversation checkpoints (now `AbstractCapability`) |
 | `ContextManagerCapability` | `context_manager=True` (default) | Token tracking + auto-compression |
-| `WebSearch` | `include_web=True` | Built-in web search capability |
-| `WebFetch` | `include_web=True` | Built-in URL fetching capability |
+| `WebSearch` | `web_search=True, web_fetch=True` | Built-in web search capability |
+| `WebFetch` | `web_search=True, web_fetch=True` | Built-in URL fetching capability |
 
 ## Configuration
 
@@ -202,7 +202,7 @@ agent = create_deep_agent(
 )
 ```
 
-Additional capabilities provided by feature flags (e.g. `cost_tracking=True`, `hooks=[...]`, `include_web=True`) are appended automatically.
+Additional capabilities provided by feature flags (e.g. `cost_tracking=True`, `hooks=[...]`, `web_search=True, web_fetch=True`) are appended automatically.
 
 ## How It Works
 
@@ -214,7 +214,7 @@ from pydantic_ai.capabilities import AbstractCapability
 
 # This is what create_deep_agent() does internally:
 agent = Agent(
-    "openai:gpt-4.1",
+    "anthropic:claude-sonnet-4-6",
     capabilities=[cost_cap, hooks_cap, context_cap, ...],
 )
 ```

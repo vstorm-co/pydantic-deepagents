@@ -7,7 +7,7 @@ from pydantic_deep import (
     StateBackend,
     create_deep_agent,
 )
-from pydantic_deep.types import Skill
+from pydantic_deep.toolsets.skills import Skill as SkillDataclass, SkillsToolset
 
 TEST_MODEL = TestModel()
 
@@ -20,11 +20,11 @@ class TestCreateDeepAgentExtended:
         agent = create_deep_agent(model=TEST_MODEL, include_skills=False)
         assert agent is not None
 
-    def test_create_without_general_purpose_subagent(self):
-        """Test creating without general-purpose subagent."""
+    def test_create_without_builtin_subagents(self):
+        """Test creating without built-in subagents."""
         agent = create_deep_agent(
             model=TEST_MODEL,
-            include_general_purpose_subagent=False,
+            include_builtin_subagents=False,
         )
         assert agent is not None
 
@@ -58,22 +58,17 @@ class TestCreateDeepAgentExtended:
         )
         assert agent is not None
 
-    def test_create_with_skills_list(self):
-        """Test creating with pre-loaded skills."""
-        skills: list[Skill] = [
-            {
-                "name": "test-skill",
-                "description": "A test skill",
-                "path": "/tmp/test-skill",
-                "tags": ["test"],
-                "version": "1.0.0",
-                "author": "Test",
-                "frontmatter_loaded": True,
-            },
-        ]
+    def test_create_with_skills_toolset(self):
+        """Test creating with pre-loaded skills via SkillsToolset."""
+        skill = SkillDataclass(
+            name="test-skill",
+            description="A test skill",
+            content="Instructions",
+        )
         agent = create_deep_agent(
             model=TEST_MODEL,
-            skills=skills,
+            toolsets=[SkillsToolset(skills=[skill])],
+            include_skills=False,
         )
         assert agent is not None
 

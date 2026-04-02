@@ -132,6 +132,23 @@ backend = CompositeBackend(
 backend.write("/project/src/main.py", "code")
 ```
 
+## Backend-Aware Skills
+
+Backends also integrate with the [skills system](skills.md#skills-with-backends).
+Use `BackendSkillsDirectory` to discover skills stored inside any backend
+(StateBackend, DockerSandbox, etc.) instead of the local filesystem:
+
+```python
+from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+
+agent = create_deep_agent(
+    skill_directories=[BackendSkillsDirectory(backend=sandbox, path="/skills")],
+    backend=sandbox,
+)
+```
+
+See [Skills with Backends](skills.md#skills-with-backends) for full examples.
+
 ## Learn More
 
 - **[Backends Documentation](https://vstorm-co.github.io/pydantic-ai-backend/concepts/backends/)** - Full backend reference

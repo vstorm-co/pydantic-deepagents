@@ -15,7 +15,7 @@ from pydantic_deep.toolsets.context import ContextToolset
 class ContextFilesCapability(AbstractCapability[Any]):
     """Capability that injects project context files into the agent's system prompt.
 
-    Loads files like DEEP.md, AGENT.md, CLAUDE.md and injects their content
+    Loads files like AGENTS.md, SOUL.md and injects their content
     as instructions.
 
     Example:
@@ -23,8 +23,8 @@ class ContextFilesCapability(AbstractCapability[Any]):
         from pydantic_ai import Agent
         from pydantic_deep.capabilities.context import ContextFilesCapability
 
-        agent = Agent("openai:gpt-4.1", capabilities=[ContextFilesCapability(
-            context_files=["/workspace/DEEP.md"],
+        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[ContextFilesCapability(
+            context_files=["/workspace/AGENTS.md"],
         )])
         ```
     """

@@ -22,7 +22,7 @@ async def main():
 
     # Create the agent
     agent = create_deep_agent(
-        model="openai:gpt-4.1",
+        model="anthropic:claude-sonnet-4-6",
         instructions="You are a file organization assistant.",
     )
 

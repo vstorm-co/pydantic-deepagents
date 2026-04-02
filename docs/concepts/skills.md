@@ -215,20 +215,16 @@ for skill in skills:
 
 ### Pre-loaded Skills
 
-```python
-skills = [
-    {
-        "name": "code-review",
-        "description": "Review code for quality",
-        "path": "/path/to/skill",
-        "tags": ["code"],
-        "version": "1.0.0",
-        "author": "",
-        "frontmatter_loaded": True,
-    }
-]
+To pass skills directly (without filesystem discovery), use a `SkillsToolset`:
 
-agent = create_deep_agent(skills=skills)
+```python
+from pydantic_deep.toolsets.skills import Skill, SkillsToolset
+
+skill = Skill(name="code-review", description="Review code for quality", content="...")
+agent = create_deep_agent(
+    toolsets=[SkillsToolset(skills=[skill])],
+    include_skills=False,  # avoid duplicate skills toolset
+)
 ```
 
 ## Example: Code Review Skill
@@ -385,11 +381,14 @@ Skill discovery (`discover_skills()`) scans directories on agent creation:
 
 1. **Limit directories**: Only include directories with actual skills
 2. **Use `recursive: False`** when skills are in known locations
-3. **Pre-load skills**: Pass skills directly to avoid discovery
+3. **Pre-load skills**: Pass `Skill` objects via `SkillsToolset` to avoid discovery
 
 ```python
-# Fast: Pre-loaded skills (no disk scan)
-agent = create_deep_agent(skills=my_skills)
+# Fast: Pre-loaded skills via toolset (no disk scan)
+agent = create_deep_agent(
+    toolsets=[SkillsToolset(skills=[my_skill])],
+    include_skills=False,
+)
 
 # Moderate: Single directory, non-recursive
 agent = create_deep_agent(
@@ -430,6 +429,123 @@ agent = create_deep_agent(include_skills=True)
 # Equivalent to:
 agent = create_deep_agent(
     skill_directories=[{"path": "~/.pydantic-deep/skills", "recursive": True}]
+)
+```
+
+## Skills with Backends
+
+By default, `skill_directories` accepts local filesystem paths (strings or dicts).
+For non-local backends (in-memory, Docker, remote storage), use
+[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory]
+which discovers skills via the backend's file operations.
+
+### StateBackend (In-Memory)
+
+Useful for testing or ephemeral sessions. Write skill files to the backend first,
+then point `BackendSkillsDirectory` at them:
+
+```python
+from pydantic_ai_backends import StateBackend
+from pydantic_deep import create_deep_agent
+from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+
+backend = StateBackend()
+
+# Write skill files into the in-memory backend
+backend.write("/skills/code-review/SKILL.md", """\
+---
+name: code-review
+description: Review Python code for quality and security
+---
+
+# Code Review Skill
+
+When reviewing code, follow these guidelines...
+""")
+
+# Optionally add resources
+backend.write("/skills/code-review/checklist.md", "# Review Checklist\n...")
+
+# Discover skills from the backend
+agent = create_deep_agent(
+    skill_directories=[BackendSkillsDirectory(backend=backend, path="/skills")],
+    backend=backend,
+)
+```
+
+### LocalBackend
+
+With `LocalBackend`, skills are read through the backend abstraction layer
+instead of direct filesystem access. This ensures consistent path resolution:
+
+```python
+from pydantic_ai_backends import LocalBackend
+from pydantic_deep import create_deep_agent
+from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+
+backend = LocalBackend(root_dir="/home/user/project")
+
+agent = create_deep_agent(
+    skill_directories=[BackendSkillsDirectory(backend=backend, path="/skills")],
+    backend=backend,
+)
+```
+
+### DockerSandbox
+
+Inside a Docker sandbox, `BackendSkillsDirectory` automatically enables
+**script execution** via `SandboxProtocol.execute()`. Skill scripts (`.py` files)
+run inside the container:
+
+```python
+from pydantic_ai_backends import DockerSandbox
+from pydantic_deep import create_deep_agent
+from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+
+sandbox = DockerSandbox(runtime="python-minimal")
+
+# Upload skills into the sandbox
+sandbox.write("/skills/deploy/SKILL.md", skill_content)
+sandbox.write("/skills/deploy/scripts/validate.py", script_content)
+
+agent = create_deep_agent(
+    skill_directories=[
+        BackendSkillsDirectory(
+            backend=sandbox,
+            path="/skills",
+            script_timeout=60,  # seconds
+        ),
+    ],
+    backend=sandbox,
+)
+```
+
+!!! note "Script execution requires SandboxProtocol"
+    Skill scripts (`.py` files in skill directories) are only discovered when the
+    backend implements `SandboxProtocol` (e.g., `DockerSandbox`, `LocalBackend` with execute).
+    With `StateBackend`, only resources (`.md`, `.json`, `.yaml`, etc.) are available.
+
+### BackendSkillsDirectory Options
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `backend` | `BackendProtocol` | *required* | Backend to discover skills from |
+| `path` | `str` | `"/skills"` | Base path to search for skills |
+| `validate` | `bool` | `True` | Validate skill structure on discovery |
+| `max_depth` | `int \| None` | `3` | Maximum directory depth (`None` for unlimited) |
+| `script_timeout` | `int` | `30` | Timeout for script execution in seconds |
+
+### Mixing Local and Backend Directories
+
+You can combine local paths and `BackendSkillsDirectory` in the same agent:
+
+```python
+agent = create_deep_agent(
+    skill_directories=[
+        "~/.pydantic-deep/skills",  # Local filesystem
+        BackendSkillsDirectory(backend=sandbox, path="/skills"),  # Backend
+    ],
+    backend=sandbox,
 )
 ```
 

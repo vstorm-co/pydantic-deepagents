@@ -157,7 +157,7 @@ def parse_model_string(model: str) -> tuple[str, str]:
 
     Examples::
 
-        >>> parse_model_string("openai:gpt-4.1")
+        >>> parse_model_string("anthropic:claude-sonnet-4-6")
         ('openai', 'gpt-4.1')
         >>> parse_model_string("openrouter:openai/gpt-5.2-codex")
         ('openrouter', 'openai/gpt-5.2-codex')

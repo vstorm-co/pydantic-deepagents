@@ -27,29 +27,31 @@ class TestDeepAgentSpec:
         assert spec.include_subagents is True
         assert spec.include_skills is True
         assert spec.include_plan is True
-        assert spec.include_memory is False
+        assert spec.include_memory is True
         assert spec.include_teams is False
-        assert spec.include_web is False
+        assert spec.web_search is True
+        assert spec.web_fetch is True
+        assert spec.thinking == "high"
         assert spec.include_checkpoints is False
         assert spec.include_history_archive is True
         assert spec.context_manager is True
         assert spec.cost_tracking is True
         assert spec.retries == 3
         assert spec.edit_format == "hashline"
-        assert spec.eviction_token_limit is None
-        assert spec.max_nesting_depth == 0
+        assert spec.eviction_token_limit == 20_000
+        assert spec.max_nesting_depth == 1
 
     def test_custom_values(self) -> None:
         """Custom values are stored correctly."""
         spec = DeepAgentSpec(
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             include_todo=False,
             include_memory=True,
             memory_dir=".deep/memory",
             retries=5,
             model_settings={"temperature": 0.7},
         )
-        assert spec.model == "openai:gpt-4.1"
+        assert spec.model == "anthropic:claude-sonnet-4-6"
         assert spec.include_todo is False
         assert spec.include_memory is True
         assert spec.memory_dir == ".deep/memory"
@@ -63,9 +65,9 @@ class TestDeepAgentSpec:
 
     def test_model_dump_excludes_defaults(self) -> None:
         """model_dump(exclude_defaults=True) only includes changed values."""
-        spec = DeepAgentSpec(include_memory=True, retries=5)
+        spec = DeepAgentSpec(include_memory=False, retries=5)
         dumped = spec.model_dump(exclude_defaults=True)
-        assert dumped == {"include_memory": True, "retries": 5}
+        assert dumped == {"include_memory": False, "retries": 5}
 
     def test_model_dump_excludes_none(self) -> None:
         """model_dump(exclude_none=True) skips None values."""
@@ -221,28 +223,28 @@ class TestDeepAgentToFile:
     def test_to_yaml_file(self, tmp_path: Path) -> None:
         """Save spec as YAML."""
         out = tmp_path / "agent.yaml"
-        DeepAgent.to_file(out, model="openai:gpt-4.1", include_memory=True)
+        DeepAgent.to_file(out, model="anthropic:claude-sonnet-4-6", include_memory=False)
 
         content = out.read_text()
-        assert "model: openai:gpt-4.1" in content
-        assert "include_memory: true" in content
+        assert "model: anthropic:claude-sonnet-4-6" in content
+        assert "include_memory: false" in content
 
     def test_to_json_file(self, tmp_path: Path) -> None:
         """Save spec as JSON."""
         out = tmp_path / "agent.json"
-        DeepAgent.to_file(out, model="openai:gpt-4.1", include_memory=True)
+        DeepAgent.to_file(out, model="anthropic:claude-sonnet-4-6", include_memory=False)
 
         data = json.loads(out.read_text())
-        assert data["model"] == "openai:gpt-4.1"
-        assert data["include_memory"] is True
+        assert data["model"] == "anthropic:claude-sonnet-4-6"
+        assert data["include_memory"] is False
 
     def test_to_file_excludes_defaults(self, tmp_path: Path) -> None:
         """Only non-default values are saved."""
         out = tmp_path / "agent.yaml"
-        DeepAgent.to_file(out, include_memory=True)
+        DeepAgent.to_file(out, include_memory=False)
 
         content = out.read_text()
-        assert "include_memory: true" in content
+        assert "include_memory: false" in content
         # Defaults should NOT appear
         assert "include_todo" not in content
         assert "include_filesystem" not in content
@@ -253,12 +255,12 @@ class TestDeepAgentToFile:
         # 'backend' and 'on_cost_update' are not in DeepAgentSpec
         DeepAgent.to_file(
             out,
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             backend="some_object",  # ignored
             on_cost_update="callback",  # ignored
         )
         content = out.read_text()
-        assert "model: openai:gpt-4.1" in content
+        assert "model: anthropic:claude-sonnet-4-6" in content
         assert "backend" not in content
         assert "on_cost_update" not in content
 
@@ -267,7 +269,7 @@ class TestDeepAgentToFile:
         out = tmp_path / "agent.yaml"
         DeepAgent.to_file(
             out,
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             include_memory=True,
             retries=5,
             cost_tracking=False,
@@ -276,7 +278,7 @@ class TestDeepAgentToFile:
         # Load the saved file back
         data = _load_yaml(out.read_text())
         spec = DeepAgentSpec(**data)
-        assert spec.model == "openai:gpt-4.1"
+        assert spec.model == "anthropic:claude-sonnet-4-6"
         assert spec.include_memory is True
         assert spec.retries == 5
         assert spec.cost_tracking is False
@@ -286,14 +288,14 @@ class TestDeepAgentToFile:
         out = tmp_path / "agent.json"
         DeepAgent.to_file(
             out,
-            model="openai:gpt-4.1",
+            model="anthropic:claude-sonnet-4-6",
             include_teams=True,
             model_settings={"temperature": 0.5},
         )
 
         data = json.loads(out.read_text())
         spec = DeepAgentSpec(**data)
-        assert spec.model == "openai:gpt-4.1"
+        assert spec.model == "anthropic:claude-sonnet-4-6"
         assert spec.include_teams is True
         assert spec.model_settings == {"temperature": 0.5}
 
@@ -303,8 +305,8 @@ class TestLoadYaml:
 
     def test_load_yaml_basic(self) -> None:
         """Basic YAML loading works."""
-        data = _load_yaml("model: openai:gpt-4.1\nretries: 5\n")
-        assert data == {"model": "openai:gpt-4.1", "retries": 5}
+        data = _load_yaml("model: anthropic:claude-sonnet-4-6\nretries: 5\n")
+        assert data == {"model": "anthropic:claude-sonnet-4-6", "retries": 5}
 
     def test_load_yaml_empty(self) -> None:
         """Empty YAML returns None."""

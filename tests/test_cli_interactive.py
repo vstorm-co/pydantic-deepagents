@@ -380,6 +380,17 @@ class TestProcessStream:
 class TestRunInteractive:
     """Tests for run_interactive()."""
 
+    # All tests need provider check skipped to avoid wizard
+    _provider_patch = patch(
+        "apps.cli.provider_setup.has_any_provider_configured", return_value=True
+    )
+
+    def setup_method(self) -> None:
+        self._provider_patch.start()
+
+    def teardown_method(self) -> None:
+        self._provider_patch.stop()
+
     @patch("apps.cli.interactive._process_stream")
     @patch("apps.cli.interactive.create_cli_agent")
     @patch("apps.cli.interactive.print_welcome_banner")
@@ -671,6 +682,16 @@ class TestStreamModelRequest:
 
 
 class TestRunInteractiveSandbox:
+
+    _provider_patch = patch(
+        "apps.cli.provider_setup.has_any_provider_configured", return_value=True
+    )
+
+    def setup_method(self) -> None:
+        self._provider_patch.start()
+
+    def teardown_method(self) -> None:
+        self._provider_patch.stop()
     """Tests for sandbox-related paths in run_interactive()."""
 
     @patch("apps.cli.interactive._create_sandbox_backend", return_value=None)

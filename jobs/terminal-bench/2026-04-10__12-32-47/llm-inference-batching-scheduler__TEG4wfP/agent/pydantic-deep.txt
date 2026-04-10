@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+{
+  "output": "All constraints met. Here's the summary:\n\n**Strategy:** Group requests by aligned prompt length, sort by gen_len within each group, split into sub-batches (max gen_len spread=10, max batch size=10). Use only 4 unique shapes {128, 640, 704, 2048} to minimize compile cost.\n\n**Results:**\n\n| Metric | B1 Result | B1 Threshold | B2 Result | B2 Threshold |\n|--------|-----------|--------------|-----------|--------------|\n| Cost | 2.87e11 | 3.0e11 \u2713 | 4.37e10 | 4.8e10 \u2713 |\n| Pad Ratio | 0.0534 | 0.055 \u2713 | 0.1403 | 0.15 \u2713 |\n| P95 Latency | 2.04e6 | 2.1e6 \u2713 | 1.95e5 | 2.1e5 \u2713 |\n| Seq Timecost | 2.53e8 | 2.7e8 \u2713 | 3.15e7 | 3.2e7 \u2713 |\n\n- 800 requests \u2192 244 batches (B1), 160 batches (B2)\n- 4 unique shapes across both buckets (max allowed: 8)\n- All request IDs present exactly once, no duplicates",
+  "usage": {
+    "total_tokens": 1949512,
+    "request_tokens": 1896088,
+    "response_tokens": 53424,
+    "requests": 35
+  }
+}

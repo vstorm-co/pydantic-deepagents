@@ -30,7 +30,7 @@ The agent reads and updates this file across sessions.
 """
 
 _DEFAULT_CONFIG_TOML = """\
-model = "anthropic:claude-sonnet-4-6"
+model = "anthropic:claude-opus-4-6"
 show_cost = true
 show_tokens = true
 
@@ -119,19 +119,16 @@ def _copy_builtin_skills(target_dir: Path, *, quiet: bool = False) -> None:
 
 
 def ensure_initialized(root: Path | None = None) -> Path:
-    """Ensure ``.pydantic-deep/`` exists, creating it if needed.
+    """Ensure ``.pydantic-deep/`` exists with all scaffolding.
 
-    Lightweight wrapper — only runs ``init_project`` if the directory
-    doesn't exist yet.
+    Idempotent — calls ``init_project`` which only creates missing
+    files and directories, never overwrites existing ones.
 
     Returns:
         Path to the ``.pydantic-deep/`` directory.
     """
     root = root or Path.cwd()
-    pd_dir = root / ".pydantic-deep"
-    if not pd_dir.exists():
-        return init_project(root)
-    return pd_dir
+    return init_project(root, quiet=True)
 
 
 def _log(msg: str) -> None:

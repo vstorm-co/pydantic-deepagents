@@ -41,12 +41,20 @@ class ContextViewModal(ModalScreen[str | None]):
         current: int = 0,
         maximum: int = 0,
         message_count: int = 0,
+        total_input_tokens: int = 0,
+        total_output_tokens: int = 0,
+        total_requests: int = 0,
+        total_cost: float = 0.0,
     ) -> None:
         super().__init__()
         self._pct = pct
         self._current = current
         self._max = maximum
         self._msg_count = message_count
+        self._total_input = total_input_tokens
+        self._total_output = total_output_tokens
+        self._total_requests = total_requests
+        self._total_cost = total_cost
 
     def compose(self) -> ComposeResult:
         threshold = int(self._max * 0.9) if self._max else 0
@@ -59,6 +67,20 @@ class ContextViewModal(ModalScreen[str | None]):
                 f"  Max tokens:       {_format_tokens(self._max)}\n"
                 f"  Compression at:   90% ({_format_tokens(threshold)} tokens)\n"
                 f"  Messages:         {self._msg_count}"
+            )
+
+            yield Static("\n[bold]Session Usage[/bold]\n")
+            cost_str = (
+                f"${self._total_cost:.4f}"
+                if self._total_cost < 0.01
+                else f"${self._total_cost:.2f}"
+            )
+            yield Static(
+                f"  Input tokens:     {_format_tokens(self._total_input)}\n"
+                f"  Output tokens:    {_format_tokens(self._total_output)}\n"
+                f"  Total tokens:     {_format_tokens(self._total_input + self._total_output)}\n"
+                f"  Requests:         {self._total_requests}\n"
+                f"  Cost:             {cost_str}"
             )
 
             if self._pct >= 0.7:

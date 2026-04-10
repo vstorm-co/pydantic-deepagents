@@ -11,6 +11,16 @@ from textual.widgets import Static
 _SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
 
+def _fmt(count: int) -> str:
+    """Format token count compactly."""
+    if count < 1000:
+        return str(count)
+    elif count < 100_000:
+        return f"{count / 1000:.1f}K"
+    else:
+        return f"{count // 1000}K"
+
+
 class DeepHeader(Widget):
     """Fixed one-line header: version · branch · model | separator line.
 
@@ -34,6 +44,9 @@ class DeepHeader(Widget):
     is_streaming: reactive[bool] = reactive(False)
     is_thinking: reactive[bool] = reactive(False)
     elapsed: reactive[float] = reactive(0.0)
+    total_input_tokens: reactive[int] = reactive(0)
+    total_output_tokens: reactive[int] = reactive(0)
+    total_cost: reactive[float] = reactive(0.0)
 
     _spinner_index: int = 0
     _timer_handle: object | None = None
@@ -73,6 +86,12 @@ class DeepHeader(Widget):
     def watch_is_thinking(self) -> None:
         self._refresh_content()
 
+    def watch_total_input_tokens(self) -> None:
+        self._refresh_content()
+
+    def watch_total_cost(self) -> None:
+        self._refresh_content()
+
     def _refresh_content(self) -> None:
         try:
             content = self.query_one("#header-content", Static)
@@ -85,7 +104,6 @@ class DeepHeader(Widget):
             parts.append(self.branch)
 
         if self.is_streaming:
-            # Hide model name when streaming to save space for spinner
             frame = _SPINNER_FRAMES[self._spinner_index]
             if self.is_thinking:
                 parts.append(
@@ -97,6 +115,19 @@ class DeepHeader(Widget):
         else:
             if self.model_name:
                 parts.append(self.model_name)
+            # Token usage and cost
+            total = self.total_input_tokens + self.total_output_tokens
+            if total > 0:
+                parts.append(
+                    f"in:{_fmt(self.total_input_tokens)} out:{_fmt(self.total_output_tokens)}"
+                )
+            if self.total_cost > 0:
+                cost_str = (
+                    f"${self.total_cost:.4f}"
+                    if self.total_cost < 0.01
+                    else f"${self.total_cost:.2f}"
+                )
+                parts.append(cost_str)
             info_text = "  ·  ".join(parts)
             # Calculate plain text length (strip Rich markup for length calc)
             plain_len = len(info_text.replace("[bold]", "").replace("[/bold]", ""))

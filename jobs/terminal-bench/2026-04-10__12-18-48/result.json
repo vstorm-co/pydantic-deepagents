@@ -1,0 +1,30 @@
+{
+    "id": "bf99349b-f8c0-4fb3-b710-fca6be342ef4",
+    "started_at": "2026-04-10T12:18:50.875650",
+    "finished_at": "2026-04-10T12:26:34.876429",
+    "n_total_trials": 2,
+    "stats": {
+        "n_trials": 2,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__openai-gpt-5.4__terminal-bench": {
+                "n_trials": 2,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 1.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "1.0": [
+                            "prove-plus-comm__NhzNVcF",
+                            "fix-git__6Md34tL"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

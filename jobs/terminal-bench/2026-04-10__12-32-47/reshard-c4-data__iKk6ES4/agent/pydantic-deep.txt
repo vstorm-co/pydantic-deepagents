@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+{
+  "output": "All done. Here's the summary:\n\n**`/app/compress.py`** \u2014 Reshards a directory into tar.gz shards organized in a tree:\n- Estimates compression ratio from a sample, then packs files into ~14MB gzip tar archives\n- Assigns shards to subdirectories if needed to enforce the 30-entry-per-directory limit\n- Writes a `manifest.json` at the output root for reconstruction\n- Result for c4_sample: 23 shards (max 14.1MB) + 1 manifest = 24 entries in root\n\n**`/app/decompress.py`** \u2014 Reverses resharding in-place:\n- Reads `manifest.json`, extracts all shards to a temp dir, removes shard artifacts, then moves original files back\n- Verified byte-perfect: all 9898 files match original checksums\n\n**`/app/pyproject.toml`** \u2014 No external dependencies needed (stdlib only: `tarfile`, `json`, `os`, `shutil`). `uv sync` sets up the venv; `uv run` doesn't install anything extra.",
+  "usage": {
+    "total_tokens": 1077877,
+    "request_tokens": 1064348,
+    "response_tokens": 13529,
+    "requests": 36
+  }
+}

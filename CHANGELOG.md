@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Headless runner (`pydantic-deep run`)** — new CLI command for non-interactive task execution. Designed for benchmarks (Terminal Bench), CI/CD pipelines, and scripted automation. Supports `--task-file`, `--json` (structured output with usage stats), `--max-turns`, `--timeout`, `--model`, and `--working-dir`. Thin wrapper over `create_cli_agent(non_interactive=True)` — no separate prompt logic
-- **`apps/cli/run.py`** — `execute_headless()` async function with timeout support, JSON output mode, and proper exit codes
-- **Harbor adapter (`apps/harbor/`)** — `BaseInstalledAgent` implementation for Terminal Bench evaluation via Harbor. Installs pydantic-deep in the container via `uv`, runs tasks with `pydantic-deep run --json`, parses JSON output for usage stats. Supports model name conversion (`provider/model` to `provider:model`), API key forwarding, custom git ref via `PYDANTIC_DEEP_GIT_REF` env var
+- **Headless runner (`pydantic-deep run`)** — new CLI command for non-interactive task execution. Designed for benchmarks (Terminal Bench), CI/CD pipelines, and scripted automation. All feature flags mirror the TUI and default from `.pydantic-deep/config.toml`. Supports `--task-file`, `--json`, `--max-turns`, `--timeout`, `--model`, `--working-dir`, `--web-search/--no-web-search`, `--web-fetch/--no-web-fetch`, `--thinking`, `--todo/--no-todo`, `--subagents/--no-subagents`, `--skills/--no-skills`, `--plan/--no-plan`, `--memory/--no-memory`, `--teams/--no-teams`, `--context/--no-context`, `--temperature`
+- **Harbor adapter (`apps/harbor/`)** — `BaseInstalledAgent` implementation for Terminal Bench evaluation via Harbor. Installs pydantic-deep in the container via `uv`, runs tasks with `pydantic-deep run --json`, parses JSON output for usage stats. Supports model name conversion (`provider/model` to `provider:model`), API key forwarding, custom git ref via `PYDANTIC_DEEP_GIT_REF` env var. All headless feature flags configurable via Harbor `--ak` kwargs (e.g. `--ak web_search=false`)
+- **`DEFAULT_USAGE_LIMITS`** — framework-wide `UsageLimits(request_limit=None)` exported from `pydantic_deep.deps`. Removes pydantic-ai's default 50-request limit which caused `UsageLimitExceeded` crashes on complex benchmark tasks. Applied in both headless runner and TUI
+
+### Changed
+
+- **`create_cli_agent()` feature flags now read from config.toml** — `include_skills`, `include_plan`, `include_memory`, `include_subagents`, `include_todo`, `context_discovery`, `web_search`, `web_fetch`, `thinking`, `include_teams`, and `temperature` all default to `None` (= read from config). Previously hardcoded to `True`, ignoring config.toml values. Explicit parameters still override config
+- **Headless runner uses same defaults as TUI** — `pydantic-deep run` no longer hardcodes `include_plan=False` and `include_memory=False`. All features inherit from config.toml, overridable via CLI flags
+- **Headless runner auto-initializes `.pydantic-deep/`** — `pydantic-deep run` now calls `ensure_initialized()` before creating the agent, ensuring config, skills, and memory scaffolding exist in the working directory
+
+### Fixed
+
+- **`ensure_initialized()` now always populates missing scaffolding** — previously only ran `init_project` when `.pydantic-deep/` didn't exist at all. Now always runs idempotent init, so missing built-in skills, config, or memory templates are added to existing directories
 
 ## [0.3.4] - 2026-04-09
 

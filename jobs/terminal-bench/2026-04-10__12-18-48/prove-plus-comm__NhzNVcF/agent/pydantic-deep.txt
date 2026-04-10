@@ -1,0 +1,21 @@
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+{
+  "output": "Completed.\n\n- Fixed `/workspace/plus_comm.v`\n- Compiled successfully with `coqc`\n- Verified `/workspace/plus_comm.vo` exists\n\nKey proof lines:\n- `/workspace/plus_comm.v:9` `rewrite <- plus_n_O.`\n- `/workspace/plus_comm.v:12` `rewrite IHn'.`\n- `/workspace/plus_comm.v:13` `rewrite <- plus_n_Sm.`",
+  "usage": {
+    "total_tokens": 169961,
+    "request_tokens": 168139,
+    "response_tokens": 1822,
+    "requests": 11
+  }
+}

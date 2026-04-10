@@ -154,16 +154,69 @@ def run(
         int | None,
         typer.Option("--timeout", help="Timeout in seconds"),
     ] = None,
+    # Feature flags — None means "use config.toml default" (same as TUI)
+    web_search: Annotated[
+        bool | None,
+        typer.Option("--web-search/--no-web-search", help="Enable web search (from config)"),
+    ] = None,
+    web_fetch: Annotated[
+        bool | None,
+        typer.Option("--web-fetch/--no-web-fetch", help="Enable web fetch (default: from config)"),
+    ] = None,
+    thinking: Annotated[
+        str | None,
+        typer.Option("--thinking", help="Thinking effort: minimal/low/medium/high/xhigh or false"),
+    ] = None,
+    include_todo: Annotated[
+        bool | None,
+        typer.Option("--todo/--no-todo", help="Enable task planning (default: from config)"),
+    ] = None,
+    include_subagents: Annotated[
+        bool | None,
+        typer.Option(
+            "--subagents/--no-subagents", help="Enable subagent delegation (default: from config)"
+        ),
+    ] = None,
+    include_skills: Annotated[
+        bool | None,
+        typer.Option("--skills/--no-skills", help="Enable skills (default: from config)"),
+    ] = None,
+    include_plan: Annotated[
+        bool | None,
+        typer.Option("--plan/--no-plan", help="Enable plan mode (default: from config)"),
+    ] = None,
+    include_memory: Annotated[
+        bool | None,
+        typer.Option("--memory/--no-memory", help="Enable persistent memory (from config)"),
+    ] = None,
+    include_teams: Annotated[
+        bool | None,
+        typer.Option("--teams/--no-teams", help="Enable agent teams (from config)"),
+    ] = None,
+    context_discovery: Annotated[
+        bool | None,
+        typer.Option("--context/--no-context", help="Auto-discover AGENTS.md (from config)"),
+    ] = None,
+    temperature: Annotated[
+        float | None,
+        typer.Option("--temperature", help="Sampling temperature (default: 0.0)"),
+    ] = None,
 ) -> None:
     """Run a task non-interactively (headless mode).
 
     Executes a single task and prints the result to stdout.
     Designed for benchmarks, CI/CD pipelines, and scripted automation.
 
+    All feature flags default to the same values as the TUI (from
+    .pydantic-deep/config.toml). Use --no-web-search, --no-thinking,
+    etc. to override specific features.
+
     Examples:
         pydantic-deep run "Fix the failing test in test_auth.py"
         pydantic-deep run --task-file task.md --json
         pydantic-deep run "Refactor utils.py" --max-turns 50 --timeout 300
+        pydantic-deep run "Research X" --web-search --web-fetch
+        pydantic-deep run "Fix bug" --no-web-search --no-web-fetch --thinking false
     """
     from apps.cli.run import execute_headless
 
@@ -194,6 +247,17 @@ def run(
             output_json=output_json,
             max_turns=max_turns,
             timeout=timeout,
+            web_search=web_search,
+            web_fetch=web_fetch,
+            thinking=thinking,
+            include_todo=include_todo,
+            include_subagents=include_subagents,
+            include_skills=include_skills,
+            include_plan=include_plan,
+            include_memory=include_memory,
+            include_teams=include_teams,
+            context_discovery=context_discovery,
+            temperature=temperature,
         )
     )
     raise typer.Exit(result)

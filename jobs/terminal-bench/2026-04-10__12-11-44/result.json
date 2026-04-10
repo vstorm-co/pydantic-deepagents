@@ -1,0 +1,30 @@
+{
+    "id": "0c3af064-06a8-47b1-9dff-643b2e1fdb4b",
+    "started_at": "2026-04-10T12:11:47.152689",
+    "finished_at": "2026-04-10T12:16:50.337270",
+    "n_total_trials": 2,
+    "stats": {
+        "n_trials": 2,
+        "n_errors": 0,
+        "evals": {
+            "pydantic-deep__anthropic-claude-opus-4-6__terminal-bench": {
+                "n_trials": 2,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 1.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "1.0": [
+                            "prove-plus-comm__GV4tNto",
+                            "fix-git__itArQwQ"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

@@ -93,6 +93,21 @@ class DeepApp(App):
         # Apply theme from config
         self._apply_configured_theme()
 
+    def notify(  # type: ignore[override]
+        self,
+        message: str,
+        *,
+        title: str = "",
+        severity: str = "information",
+        timeout: float = 5,
+    ) -> None:
+        """Show notification and log it to the session log file."""
+        from apps.cli.debug_log import get_logger
+
+        level = "info" if severity == "information" else severity
+        getattr(get_logger(), level, get_logger().info)(f"[notify] {message}")
+        super().notify(message, title=title, severity=severity, timeout=timeout)  # type: ignore[arg-type]
+
     def _apply_configured_theme(self) -> None:
         """Read theme from config and apply it."""
         try:

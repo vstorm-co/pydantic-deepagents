@@ -40,19 +40,33 @@ pydantic-deep run "Fix the failing test in test_auth.py"
 pydantic-deep run --task-file task.md --json
 pydantic-deep run "Refactor utils.py" --max-turns 50 --timeout 300
 pydantic-deep run -f task.md -w /path/to/project -m openai:gpt-5.4
+pydantic-deep run "Fix bug" --no-web-search --no-web-fetch --thinking false
 ```
 
 Executes a single task non-interactively and prints the result to stdout. Designed for benchmarks (Terminal Bench), CI/CD pipelines, and scripted automation.
+
+All feature flags default from `.pydantic-deep/config.toml` — the same defaults as the TUI. Use flags to override specific features.
 
 | Option | Description |
 |--------|-------------|
 | `TASK` (argument) | Task description |
 | `--task-file`, `-f` | Read task from file |
-| `--model`, `-m` | Model override |
+| `--model`, `-m` | Model override (from config) |
 | `--working-dir`, `-w` | Working directory (default: cwd) |
 | `--json` | Output result as JSON with usage stats |
 | `--max-turns` | Maximum number of agent turns |
 | `--timeout` | Timeout in seconds |
+| `--temperature` | Sampling temperature (default: 0.0 in headless) |
+| `--web-search` / `--no-web-search` | Web search (from config) |
+| `--web-fetch` / `--no-web-fetch` | Web fetch (from config) |
+| `--thinking` | Thinking effort: minimal/low/medium/high/xhigh/false (from config) |
+| `--todo` / `--no-todo` | Task planning (from config) |
+| `--subagents` / `--no-subagents` | Subagent delegation (from config) |
+| `--skills` / `--no-skills` | Skills system (from config) |
+| `--plan` / `--no-plan` | Plan mode (from config) |
+| `--memory` / `--no-memory` | Persistent memory (from config) |
+| `--teams` / `--no-teams` | Agent teams (from config) |
+| `--context` / `--no-context` | Auto-discover AGENTS.md/SOUL.md (from config) |
 
 JSON output includes the agent's response and token usage:
 

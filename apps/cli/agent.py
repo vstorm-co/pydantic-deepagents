@@ -61,13 +61,13 @@ def create_cli_agent(  # noqa: C901
     extra_middleware: list[Any] | None = None,
     backend: Any | None = None,
     *,
-    include_skills: bool = True,
-    include_plan: bool = True,
-    include_memory: bool = True,
-    include_subagents: bool = True,
-    include_todo: bool = True,
+    include_skills: bool | None = None,
+    include_plan: bool | None = None,
+    include_memory: bool | None = None,
+    include_subagents: bool | None = None,
+    include_todo: bool | None = None,
     include_local_context: bool = True,
-    context_discovery: bool = True,
+    context_discovery: bool | None = None,
     non_interactive: bool = False,
     lean: bool = False,
     config_path: Path | None = None,
@@ -75,6 +75,11 @@ def create_cli_agent(  # noqa: C901
     session_id: str | None = None,
     skills_dir: str | None = None,
     extra_instructions: str | None = None,
+    web_search: bool | None = None,
+    web_fetch: bool | None = None,
+    thinking: bool | str | None = None,
+    include_teams: bool | None = None,
+    temperature: float | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -191,25 +196,33 @@ def create_cli_agent(  # noqa: C901
             {tool: True for tool in config.approve_tools} if config.approve_tools else None
         )
 
-    effective_memory = include_memory and not non_interactive
-    effective_skills = include_skills if not lean else False  # Lean: no skills noise
-    effective_plan = include_plan and not non_interactive
-    effective_subagents = include_subagents if not lean else False  # Lean: no subagents
-    effective_todo = include_todo if not lean else False  # Lean: no todo overhead
+    # Resolve feature flags: explicit param > config.toml > lean override
+    _skills = include_skills if include_skills is not None else config.include_skills
+    _plan = include_plan if include_plan is not None else config.include_plan
+    _memory = include_memory if include_memory is not None else config.include_memory
+    _subagents = include_subagents if include_subagents is not None else config.include_subagents
+    _todo = include_todo if include_todo is not None else config.include_todo
+    _context_disc = context_discovery if context_discovery is not None else config.context_discovery
 
-    # Model settings — non-interactive defaults, then config, then explicit overrides
+    effective_skills = _skills if not lean else False
+    effective_plan = _plan if not lean else False
+    effective_memory = _memory if not lean else False
+    effective_subagents = _subagents if not lean else False
+    effective_todo = _todo if not lean else False
+
+    # Model settings — explicit param > model_settings dict > non-interactive > config
     effective_model_settings: dict[str, Any] = {}
     if non_interactive:
         effective_model_settings["temperature"] = 0.0
-    # Config-level defaults (lowest priority after non-interactive)
     if config.temperature is not None and "temperature" not in (model_settings or {}):
         effective_model_settings["temperature"] = config.temperature
     if config.reasoning_effort and "openai_reasoning_effort" not in (model_settings or {}):
         effective_model_settings["openai_reasoning_effort"] = config.reasoning_effort
-    # Thinking is handled via Thinking capability, not model_settings
-    # Explicit CLI flags override everything
     if model_settings:
         effective_model_settings.update(model_settings)
+    # Explicit temperature param has highest priority
+    if temperature is not None:
+        effective_model_settings["temperature"] = temperature
 
     # Per-session plans directory (relative to backend root)
     if session_id:
@@ -247,16 +260,22 @@ def create_cli_agent(  # noqa: C901
         include_memory=effective_memory,
         memory_dir=".pydantic-deep",
         # Context files (auto-discover AGENTS.md, SOUL.md)
-        context_discovery=context_discovery if not lean else False,
+        context_discovery=_context_disc if not lean else False,
         # Teams
-        include_teams=config.include_teams,
+        include_teams=(include_teams if include_teams is not None else config.include_teams),
         # Self-improvement
         include_improve=True,
-        # Web tools
-        web_search=config.web_search if not lean else False,
-        web_fetch=config.web_fetch if not lean else False,
+        # Web tools — explicit params override config
+        web_search=(
+            web_search if web_search is not None else (config.web_search if not lean else False)
+        ),
+        web_fetch=(
+            web_fetch if web_fetch is not None else (config.web_fetch if not lean else False)
+        ),
         # Thinking
-        thinking=config.thinking_effort if not lean else False,
+        thinking=(
+            thinking if thinking is not None else (config.thinking_effort if not lean else False)
+        ),
         # History persistence — per-session messages.json
         history_messages_path=(
             f".pydantic-deep/sessions/{session_id}/messages.json"

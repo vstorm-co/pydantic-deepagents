@@ -1,0 +1,103 @@
+{
+    "id": "b3d22118-682b-4764-a2f3-e18b0cd9d24c",
+    "task_name": "break-filter-js-from-html",
+    "trial_name": "break-filter-js-from-html__DnjFXPG",
+    "trial_uri": "file:///Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/jobs/terminal-bench/2026-04-10__12-32-47/break-filter-js-from-html__DnjFXPG",
+    "task_id": {
+        "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+        "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+        "path": "break-filter-js-from-html"
+    },
+    "source": "terminal-bench",
+    "task_checksum": "b33421492e86b07de2a01bc2205f7e7d2fdc36446a84787265d99e5e138fdaaa",
+    "config": {
+        "task": {
+            "path": "break-filter-js-from-html",
+            "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+            "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": "terminal-bench"
+        },
+        "trial_name": "break-filter-js-from-html__DnjFXPG",
+        "trials_dir": "jobs/terminal-bench/2026-04-10__12-32-47",
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": null,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": null,
+            "import_path": "apps.harbor.agent:PydanticDeepAgent",
+            "model_name": "openrouter/anthropic/claude-opus-4-6",
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "kwargs": {},
+            "env": {}
+        },
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "suppress_override_warnings": false,
+            "mounts_json": null,
+            "env": {},
+            "kwargs": {}
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "artifacts": [],
+        "job_id": "c9a19b89-deca-47c9-9258-7957e3533ec5"
+    },
+    "agent_info": {
+        "name": "pydantic-deep",
+        "version": "unknown",
+        "model_info": {
+            "name": "anthropic/claude-opus-4-6",
+            "provider": "openrouter"
+        }
+    },
+    "agent_result": {
+        "n_input_tokens": null,
+        "n_cache_tokens": null,
+        "n_output_tokens": null,
+        "cost_usd": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 1.0
+        }
+    },
+    "exception_info": null,
+    "started_at": "2026-04-10T10:51:23.240758Z",
+    "finished_at": "2026-04-10T11:00:19.478393Z",
+    "environment_setup": {
+        "started_at": "2026-04-10T10:51:23.274855Z",
+        "finished_at": "2026-04-10T10:51:51.755138Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-04-10T10:51:51.755223Z",
+        "finished_at": "2026-04-10T10:52:34.072374Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-04-10T10:52:34.075702Z",
+        "finished_at": "2026-04-10T10:59:16.179993Z"
+    },
+    "verifier": {
+        "started_at": "2026-04-10T10:59:16.203444Z",
+        "finished_at": "2026-04-10T11:00:10.615382Z"
+    }
+}

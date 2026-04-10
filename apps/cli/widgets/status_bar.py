@@ -53,6 +53,8 @@ class StatusBar(Widget):
     context_pct: reactive[float] = reactive(0.0)
     context_current: reactive[int] = reactive(0)
     context_max: reactive[int] = reactive(0)
+    total_input_tokens: reactive[int] = reactive(0)
+    total_output_tokens: reactive[int] = reactive(0)
     message_count: reactive[int] = reactive(0)
     model_name: reactive[str] = reactive("")
 
@@ -75,6 +77,12 @@ class StatusBar(Widget):
         self._refresh_content()
 
     def watch_context_pct(self) -> None:
+        self._refresh_content()
+
+    def watch_total_input_tokens(self) -> None:
+        self._refresh_content()
+
+    def watch_total_output_tokens(self) -> None:
         self._refresh_content()
 
     def watch_message_count(self) -> None:
@@ -110,15 +118,18 @@ class StatusBar(Widget):
             else:
                 parts.append(f"${cost_val:.2f}")
 
-        # Context usage — show tokens used
-        if self.context_max > 0:
-            tokens = f"{_format_tokens(self.context_current)}/{_format_tokens(self.context_max)}"
-            if self.context_pct >= 0.05:
-                # Show bar only when meaningful
-                bar = _context_bar(self.context_pct)
-                parts.append(f"{bar} ({tokens})")
-            else:
-                parts.append(tokens)
+        # Token usage — show input/output breakdown
+        total_tokens = self.total_input_tokens + self.total_output_tokens
+        if total_tokens > 0:
+            parts.append(
+                f"in:{_format_tokens(self.total_input_tokens)} "
+                f"out:{_format_tokens(self.total_output_tokens)}"
+            )
+
+        # Context usage — show bar when meaningful
+        if self.context_max > 0 and self.context_pct >= 0.05:
+            bar = _context_bar(self.context_pct)
+            parts.append(bar)
 
         # Message count — always show
         parts.append(f"{self.message_count} msgs")

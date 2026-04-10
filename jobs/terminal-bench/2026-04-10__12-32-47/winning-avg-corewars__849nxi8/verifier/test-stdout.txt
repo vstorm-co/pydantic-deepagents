@@ -1,0 +1,114 @@
+Hit:1 http://deb.debian.org/debian stable InRelease
+Hit:2 http://deb.debian.org/debian trixie InRelease
+Hit:3 http://deb.debian.org/debian trixie-updates InRelease
+Hit:4 http://deb.debian.org/debian-security trixie-security InRelease
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (8.14.1-2+deb13u2).
+curl set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 46 not upgraded.
+downloading uv 0.9.5 x86_64-unknown-linux-gnu
+no checksums to verify
+installing to /root/.local/bin
+  uv
+  uvx
+everything's installed!
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 39ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 3 items
+
+../tests/test_outputs.py ..F                                             [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_warrior_performance ___________________________
+
+    def test_warrior_performance():
+        """Test that my_warrior meets win rate thresholds against all opponents."""
+        warriors_and_thresholds = {
+            "stone.red": 75,
+            "vampire.red": 75,
+            "paper.red": 75,
+            "snake.red": 33,
+            "g2-clear.red": 33,
+        }
+    
+        results = {}
+        total_passes = 0
+        total_tests = len(warriors_and_thresholds)
+    
+        for warrior, min_win_rate in warriors_and_thresholds.items():
+            result = subprocess.run(
+                [
+                    "pmars",
+                    "-b",
+                    "-r",
+                    "100",
+                    "-f",
+                    "/app/my_warrior.red",
+                    f"/app/warriors/{warrior}",
+                ],
+                capture_output=True,
+                text=True,
+            )
+    
+            assert result.returncode == 0, (
+                f"pmars failed against {warrior}: {result.stderr}"
+            )
+    
+            wins = int(result.stdout.strip().split("\n")[-1].split()[1])
+            win_rate = wins
+            results[warrior] = win_rate
+    
+            status = "PASS" if win_rate >= min_win_rate else "FAIL"
+            if status == "PASS":
+                total_passes += 1
+    
+            print(
+                f"vs {warrior:<12}: {wins:>3}/100 wins ({win_rate:>3}%) - "
+                f"{status} (need {min_win_rate}%+)"
+            )
+    
+        # Print summary before individual assertions
+        passed_opponents = [
+            w for w, rate in results.items() if rate >= warriors_and_thresholds[w]
+        ]
+        failed_opponents = [
+            w for w, rate in results.items() if rate < warriors_and_thresholds[w]
+        ]
+    
+        passed_list = ", ".join(passed_opponents) if passed_opponents else "None"
+        failed_list = ", ".join(failed_opponents) if failed_opponents else "None"
+    
+        print(f"PASSED ({len(passed_opponents)}/{total_tests}): {passed_list}")
+        print(f"FAILED ({len(failed_opponents)}/{total_tests}): {failed_list}")
+    
+        for warrior, min_win_rate in warriors_and_thresholds.items():
+            win_rate = results[warrior]
+>           assert win_rate >= min_win_rate, (
+                f"Only achieved {win_rate}% win rate vs {warrior} (need {min_win_rate}%+)"
+            )
+E           AssertionError: Only achieved 1% win rate vs snake.red (need 33%+)
+E           assert 1 >= 33
+
+/tests/test_outputs.py:106: AssertionError
+----------------------------- Captured stdout call -----------------------------
+vs stone.red   :  82/100 wins ( 82%) - PASS (need 75%+)
+vs vampire.red :  91/100 wins ( 91%) - PASS (need 75%+)
+vs paper.red   :  79/100 wins ( 79%) - PASS (need 75%+)
+vs snake.red   :   1/100 wins (  1%) - FAIL (need 33%+)
+vs g2-clear.red:  28/100 wins ( 28%) - FAIL (need 33%+)
+PASSED (3/5): stone.red, vampire.red, paper.red
+FAILED (2/5): snake.red, g2-clear.red
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../tests/test_outputs.py::test_opponents_integrity
+PASSED ../tests/test_outputs.py::test_warrior_exists
+FAILED ../tests/test_outputs.py::test_warrior_performance - AssertionError: O...
+========================= 1 failed, 2 passed in 0.66s ==========================

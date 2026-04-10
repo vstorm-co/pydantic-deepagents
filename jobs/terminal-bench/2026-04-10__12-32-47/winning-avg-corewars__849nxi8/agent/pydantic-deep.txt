@@ -1,0 +1,551 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/apps/cli/main.py:189 in │
+│ run                                                                          │
+│                                                                              │
+│   186 │                                                                      │
+│   187 │   import asyncio                                                     │
+│   188 │                                                                      │
+│ ❱ 189 │   result = asyncio.run(                                              │
+│   190 │   │   execute_headless(                                              │
+│   191 │   │   │   task=task_text,                                            │
+│   192 │   │   │   working_dir=working_dir or os.getcwd(),                    │
+│                                                                              │
+│ /usr/lib/python3.13/asyncio/runners.py:195 in run                            │
+│                                                                              │
+│   192 │   │   │   "asyncio.run() cannot be called from a running event loop" │
+│   193 │                                                                      │
+│   194 │   with Runner(debug=debug, loop_factory=loop_factory) as runner:     │
+│ ❱ 195 │   │   return runner.run(main)                                        │
+│   196                                                                        │
+│   197                                                                        │
+│   198 def _cancel_all_tasks(loop):                                           │
+│                                                                              │
+│ /usr/lib/python3.13/asyncio/runners.py:118 in run                            │
+│                                                                              │
+│   115 │   │                                                                  │
+│   116 │   │   self._interrupt_count = 0                                      │
+│   117 │   │   try:                                                           │
+│ ❱ 118 │   │   │   return self._loop.run_until_complete(task)                 │
+│   119 │   │   except exceptions.CancelledError:                              │
+│   120 │   │   │   if self._interrupt_count > 0:                              │
+│   121 │   │   │   │   uncancel = getattr(task, "uncancel", None)             │
+│                                                                              │
+│ /usr/lib/python3.13/asyncio/base_events.py:725 in run_until_complete         │
+│                                                                              │
+│    722 │   │   if not future.done():                                         │
+│    723 │   │   │   raise RuntimeError('Event loop stopped before Future comp │
+│    724 │   │                                                                 │
+│ ❱  725 │   │   return future.result()                                        │
+│    726 │                                                                     │
+│    727 │   def stop(self):                                                   │
+│    728 │   │   """Stop running the event loop.                               │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/apps/cli/run.py:64 in   │
+│ execute_headless                                                             │
+│                                                                              │
+│   61 │   │   │   _print_error("Timed out", output_json)                      │
+│   62 │   │   │   return 1                                                    │
+│   63 │   else:                                                               │
+│ ❱ 64 │   │   result = await agent.run(task, deps=deps, **run_kwargs)         │
+│   65 │                                                                       │
+│   66 │   if output_json:                                                     │
+│   67 │   │   output = _build_json_output(result.output, result.usage())      │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/agent/abstr │
+│ act.py:339 in run                                                            │
+│                                                                              │
+│    336 │   │   │   │   if _stream_step is not None:                          │
+│    337 │   │   │   │   │   node = await agent_run._run_node_with_hooks(node, │
+│    338 │   │   │   │   else:                                                 │
+│ ❱  339 │   │   │   │   │   node = await agent_run.next(node)  # pyright: ign │
+│    340 │   │                                                                 │
+│    341 │   │   assert agent_run.result is not None, 'The graph run did not f │
+│    342 │   │   return agent_run.result                                       │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/run.py:380  │
+│ in next                                                                      │
+│                                                                              │
+│   377 │   │   """                                                            │
+│   378 │   │   # Note: It might be nice to expose a synchronous interface for │
+│   379 │   │   # on this class, or else IDEs won't warn you if you accidental │
+│ ❱ 380 │   │   return await self._run_node_with_hooks(node, self._advance_gra │
+│   381 │                                                                      │
+│   382 │   # TODO (v2): Make this a property                                  │
+│   383 │   def usage(self) -> _usage.RunUsage:                                │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/run.py:306  │
+│ in _run_node_with_hooks                                                      │
+│                                                                              │
+│   303 │   │   run_context = _agent_graph.build_run_context(self.ctx)         │
+│   304 │   │   cap = self.ctx.deps.root_capability                            │
+│   305 │   │   node = await cap.before_node_run(run_context, node=node)       │
+│ ❱ 306 │   │   return await self._wrap_and_advance(run_context, node, step_fn │
+│   307 │                                                                      │
+│   308 │   async def next(                                                    │
+│   309 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/run.py:276  │
+│ in _wrap_and_advance                                                         │
+│                                                                              │
+│   273 │   │   try:                                                           │
+│   274 │   │   │   result = await cap.wrap_node_run(run_context, node=node, h │
+│   275 │   │   except Exception as e:                                         │
+│ ❱ 276 │   │   │   result = await cap.on_node_run_error(run_context, node=nod │
+│   277 │   │   │   # on_node_run_error recovered by returning a result.       │
+│   278 │   │   │   # The graph runner is in ErrorMarker state; update it to m │
+│   279 │   │   │   self._sync_graph_state(result)                             │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:223 in on_node_run_error                                       │
+│                                                                              │
+│   220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│ ❱ 223 │   │   raise error                                                    │
+│   224 │                                                                      │
+│   225 │   # --- Event stream hook ---                                        │
+│   226                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:220 in on_node_run_error                                       │
+│                                                                              │
+│   217 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│   218 │   │   for capability in reversed(self.capabilities):                 │
+│   219 │   │   │   try:                                                       │
+│ ❱ 220 │   │   │   │   return await capability.on_node_run_error(ctx, node=no │
+│   221 │   │   │   except Exception as new_error:                             │
+│   222 │   │   │   │   error = new_error                                      │
+│   223 │   │   raise error                                                    │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:325 in on_node_run_error                                       │
+│                                                                              │
+│   322 │   │   [`UnexpectedModelBehavior`][pydantic_ai.exceptions.UnexpectedM │
+│   323 │   │   by redirecting to a different node (e.g. retry with different  │
+│   324 │   │   """                                                            │
+│ ❱ 325 │   │   raise error                                                    │
+│   326 │                                                                      │
+│   327 │   # --- Event stream hook ---                                        │
+│   328                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/run.py:274  │
+│ in _wrap_and_advance                                                         │
+│                                                                              │
+│   271 │   │   """                                                            │
+│   272 │   │   cap = self.ctx.deps.root_capability                            │
+│   273 │   │   try:                                                           │
+│ ❱ 274 │   │   │   result = await cap.wrap_node_run(run_context, node=node, h │
+│   275 │   │   except Exception as e:                                         │
+│   276 │   │   │   result = await cap.on_node_run_error(run_context, node=nod │
+│   277 │   │   │   # on_node_run_error recovered by returning a result.       │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:209 in wrap_node_run                                           │
+│                                                                              │
+│   206 │   │   chain = handler                                                │
+│   207 │   │   for cap in reversed(self.capabilities):                        │
+│   208 │   │   │   chain = _make_node_run_wrap(cap, ctx, chain)               │
+│ ❱ 209 │   │   return await chain(node)                                       │
+│   210 │                                                                      │
+│   211 │   async def on_node_run_error(                                       │
+│   212 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/combined.py:464 in wrapped                                                 │
+│                                                                              │
+│   461 │   async def wrapped(                                                 │
+│   462 │   │   node: _agent_graph.AgentNode[AgentDepsT, Any],                 │
+│   463 │   ) -> _agent_graph.AgentNode[AgentDepsT, Any] | End[FinalResult[Any │
+│ ❱ 464 │   │   return await cap.wrap_node_run(ctx, node=node, handler=inner)  │
+│   465 │                                                                      │
+│   466 │   return wrapped                                                     │
+│   467                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilitie │
+│ s/abstract.py:304 in wrap_node_run                                           │
+│                                                                              │
+│   301 │   │   happens before the wrapper because `run_stream()` must yield t │
+│   302 │   │   while the stream context is still open, which cannot happen fr │
+│   303 │   │   """                                                            │
+│ ❱ 304 │   │   return await handler(node)                                     │
+│   305 │                                                                      │
+│   306 │   async def on_node_run_error(                                       │
+│   307 │   │   self,                                                          │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/run.py:252  │
+│ in _advance_graph                                                            │
+│                                                                              │
+│   249 │   │   """Execute a single graph step without firing capability hooks │
+│   250 │   │   task = [self._node_to_task(node)]                              │
+│   251 │   │   try:                                                           │
+│ ❱ 252 │   │   │   task = await self._graph_run.next(task)                    │
+│   253 │   │   except StopAsyncIteration:                                     │
+│   254 │   │   │   pass                                                       │
+│   255 │   │   return self._task_to_node(task)                                │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_graph/beta/gra │
+│ ph.py:515 in next                                                            │
+│                                                                              │
+│    512 │   │   │   await anext(self)                                         │
+│    513 │   │   if value is not None:                                         │
+│    514 │   │   │   self._set_next(value)                                     │
+│ ❱  515 │   │   return await anext(self)                                      │
+│    516 │                                                                     │
+│    517 │   def override_next(self, value: Sequence[GraphTaskRequest] | EndMa │
+│    518 │   │   """Override the next pending step, allowing the graph to cont │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_graph/beta/gra │
+│ ph.py:492 in __anext__                                                       │
+│                                                                              │
+│    489 │   │   if isinstance(self._next, ErrorMarker):                       │
+│    490 │   │   │   # A node raised an error. Store it so the caller can reco │
+│    491 │   │   │   # override_next() before the next __anext__ call re-raise │
+│ ❱  492 │   │   │   raise self._next.error                                    │
+│    493 │   │   return self._next                                             │
+│    494 │                                                                     │
+│    495 │   async def next(                                                   │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_graph/beta/gra │
+│ ph.py:802 in _run_tracked_task                                               │
+│                                                                              │
+│    799 │   │   with CancelScope() as scope:                                  │
+│    800 │   │   │   self.cancel_scopes[t_.task_id] = scope                    │
+│    801 │   │   │   try:                                                      │
+│ ❱  802 │   │   │   │   result = await self._run_task(t_)                     │
+│    803 │   │   │   except BaseException as exc:                              │
+│    804 │   │   │   │   # Send the error through the stream instead of lettin │
+│    805 │   │   │   │   # into the task group, which would transform it (e.g. │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_graph/beta/gra │
+│ ph.py:843 in _run_task                                                       │
+│                                                                              │
+│    840 │   │   │   │   │   stack.enter_context(logfire_span('run node {node_ │
+│    841 │   │   │   │                                                         │
+│    842 │   │   │   │   step_context = StepContext[StateT, DepsT, Any](state= │
+│ ❱  843 │   │   │   │   output = await node.call(step_context)                │
+│    844 │   │   │   if isinstance(node, NodeStep):                            │
+│    845 │   │   │   │   return self._handle_node(output, fork_stack)          │
+│    846 │   │   │   else:                                                     │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_graph/beta/ste │
+│ p.py:253 in _call_node                                                       │
+│                                                                              │
+│   250 │   │   if not isinstance(node, self.node_type):                       │
+│   251 │   │   │   raise ValueError(f'Node {node} is not of type {self.node_t │
+│   252 │   │   node = cast(BaseNode[StateT, DepsT, Any], node)                │
+│ ❱ 253 │   │   return await node.run(GraphRunContext(state=ctx.state, deps=ct │
+│   254                                                                        │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/_agent_grap │
+│ h.py:534 in run                                                              │
+│                                                                              │
+│    531 │   │   │   # means that the stream was started but not finished befo │
+│    532 │   │   │   raise exceptions.AgentRunError('You must finish streaming │
+│    533 │   │                                                                 │
+│ ❱  534 │   │   return await self._make_request(ctx)                          │
+│    535 │                                                                     │
+│    536 │   @asynccontextmanager                                              │
+│    537 │   async def stream(                                                 │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/_agent_grap │
+│ h.py:710 in _make_request                                                    │
+│                                                                              │
+│    707 │   │   │   return self._result  # pragma: no cover                   │
+│    708 │   │                                                                 │
+│    709 │   │   try:                                                          │
+│ ❱  710 │   │   │   model, model_settings, model_request_parameters, message_ │
+│    711 │   │   │   │   ctx                                                   │
+│    712 │   │   │   )                                                         │
+│    713 │   │   except exceptions.SkipModelRequest as e:                      │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/_agent_grap │
+│ h.py:856 in _prepare_request                                                 │
+│                                                                              │
+│    853 │   │   │   counted_usage = await model.count_tokens(messages, model_ │
+│    854 │   │   │   usage.incr(counted_usage)                                 │
+│    855 │   │                                                                 │
+│ ❱  856 │   │   ctx.deps.usage_limits.check_before_request(usage)             │
+│    857 │   │                                                                 │
+│    858 │   │   return model, model_settings or None, model_request_parameter │
+│    859                                                                       │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/usage.py:38 │
+│ 2 in check_before_request                                                    │
+│                                                                              │
+│   379 │   │   """Raises a `UsageLimitExceeded` exception if the next request │
+│   380 │   │   request_limit = self.request_limit                             │
+│   381 │   │   if request_limit is not None and usage.requests >= request_lim │
+│ ❱ 382 │   │   │   raise UsageLimitExceeded(f'The next request would exceed t │
+│   383 │   │                                                                  │
+│   384 │   │   input_tokens = usage.input_tokens                              │
+│   385 │   │   if self.input_tokens_limit is not None and input_tokens > self │
+╰──────────────────────────────────────────────────────────────────────────────╯
+UsageLimitExceeded: The next request would exceed the request_limit of 50

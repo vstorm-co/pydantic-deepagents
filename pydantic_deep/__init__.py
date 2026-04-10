@@ -104,6 +104,7 @@ from pydantic_deep.capabilities.hooks import (
     HookResult,
     HooksCapability,
 )
+from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.processors.eviction import (
     DEFAULT_EVICTION_PATH,

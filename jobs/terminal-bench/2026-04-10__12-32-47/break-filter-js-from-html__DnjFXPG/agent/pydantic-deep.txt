@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+{
+  "output": "Test passes. The bypass works using a **mutation XSS (mXSS)** technique that exploits a parser differential between Python's `html.parser` and the browser:\n\n**How it works:**\n- `<noscript><style>` \u2014 Python's `html.parser` enters raw text mode for `<style>`, treating everything until `</style>` as inert text\n- `</noscript><img src=x onerror=alert(1)>` \u2014 invisible to BeautifulSoup (it's just style text content), so the filter never strips `onerror`\n- In the browser (JS enabled), `<noscript>` content is raw text until `</noscript>`, so the `<img onerror=alert(1)>` ends up as a live element in the DOM",
+  "usage": {
+    "total_tokens": 664691,
+    "request_tokens": 649941,
+    "response_tokens": 14750,
+    "requests": 20
+  }
+}

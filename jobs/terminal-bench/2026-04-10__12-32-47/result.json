@@ -1,0 +1,49 @@
+{
+    "id": "c9a19b89-deca-47c9-9258-7957e3533ec5",
+    "started_at": "2026-04-10T12:32:49.526548",
+    "finished_at": "2026-04-10T14:08:09.955655",
+    "n_total_trials": 10,
+    "stats": {
+        "n_trials": 10,
+        "n_errors": 4,
+        "evals": {
+            "pydantic-deep__anthropic-claude-opus-4-6__terminal-bench": {
+                "n_trials": 10,
+                "n_errors": 4,
+                "metrics": [
+                    {
+                        "mean": 0.7
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "gpt2-codegolf__XQb7xkW",
+                            "write-compressor__C4i7QFx",
+                            "winning-avg-corewars__849nxi8"
+                        ],
+                        "1.0": [
+                            "llm-inference-batching-scheduler__TEG4wfP",
+                            "break-filter-js-from-html__DnjFXPG",
+                            "reshard-c4-data__iKk6ES4",
+                            "merge-diff-arc-agi-task__VbefLkG",
+                            "log-summary-date-ranges__km7hbGE",
+                            "pytorch-model-cli__U97Z9qh",
+                            "largest-eigenval__5Qg6fwe"
+                        ]
+                    }
+                },
+                "exception_stats": {
+                    "AgentTimeoutError": [
+                        "gpt2-codegolf__XQb7xkW",
+                        "write-compressor__C4i7QFx"
+                    ],
+                    "NonZeroAgentExitCodeError": [
+                        "winning-avg-corewars__849nxi8",
+                        "largest-eigenval__5Qg6fwe"
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,43 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+{
+  "output": "Merged the recovered commit; verifying `master` now.",
+  "usage": {
+    "total_tokens": 632918,
+    "request_tokens": 628092,
+    "response_tokens": 4826,
+    "requests": 29
+  }
+}

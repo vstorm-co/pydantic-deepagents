@@ -81,6 +81,7 @@ _BaseInstalledAgent, _BaseEnvironment, _AgentContext, _ = _install_harbor_stubs(
 from apps.harbor.agent import (  # noqa: E402
     PydanticDeepAgent,
     _build_install_script,
+    _format_flag,
     build_run_command,
     collect_env_vars,
     convert_model_name,
@@ -373,3 +374,51 @@ class TestPydanticDeepAgent:
         agent.populate_context_post_run(context)
         assert context.cost_usd is None
         assert context.total_tokens is None
+
+    async def test_run_with_feature_flags(self) -> None:
+        agent = PydanticDeepAgent(
+            web_search="false",
+            web_fetch="false",
+            memory="false",
+            thinking="minimal",
+        )
+        agent.model_name = "anthropic/claude-opus-4-6"
+        agent.exec_as_agent = AsyncMock()  # type: ignore[method-assign]
+
+        with patch.dict(os.environ, {}, clear=True):
+            await agent.run("Fix bug", MagicMock(), _AgentContext())
+
+        cmd = agent.exec_as_agent.call_args[1]["command"]
+        assert "--no-web-search" in cmd
+        assert "--no-web-fetch" in cmd
+        assert "--no-memory" in cmd
+        assert "--thinking minimal" in cmd
+
+
+# ── _format_flag ──────────────────────────────────────────────────
+
+
+class TestFormatFlag:
+    def test_bool_true(self) -> None:
+        assert _format_flag("web_search", True) == "--web-search"
+        assert _format_flag("web_search", "true") == "--web-search"
+
+    def test_bool_false(self) -> None:
+        assert _format_flag("web_search", False) == "--no-web-search"
+        assert _format_flag("web_search", "false") == "--no-web-search"
+
+    def test_underscore_to_dash(self) -> None:
+        assert _format_flag("web_fetch", False) == "--no-web-fetch"
+
+    def test_thinking(self) -> None:
+        assert _format_flag("thinking", "high") == "--thinking high"
+        assert _format_flag("thinking", "false") == "--thinking false"
+
+    def test_temperature(self) -> None:
+        assert _format_flag("temperature", 0.5) == "--temperature 0.5"
+        assert _format_flag("temperature", "0.0") == "--temperature 0.0"
+
+    def test_all_bool_flags(self) -> None:
+        for flag in ["todo", "subagents", "skills", "plan", "memory", "teams", "context"]:
+            assert _format_flag(flag, True) == f"--{flag}"
+            assert _format_flag(flag, False) == f"--no-{flag}"

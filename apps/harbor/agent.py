@@ -64,12 +64,38 @@ class PydanticDeepAgent(BaseInstalledAgent):
         self,
         max_turns: int | None = None,
         timeout: int | None = None,
+        # Feature flags — forwarded as --flag/--no-flag to pydantic-deep run.
+        # None = use pydantic-deep defaults; "true"/"false" strings from --ak.
+        web_search: str | bool | None = None,
+        web_fetch: str | bool | None = None,
+        thinking: str | None = None,
+        todo: str | bool | None = None,
+        subagents: str | bool | None = None,
+        skills: str | bool | None = None,
+        plan: str | bool | None = None,
+        memory: str | bool | None = None,
+        teams: str | bool | None = None,
+        context: str | bool | None = None,
+        temperature: str | float | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._max_turns = max_turns
         self._timeout = timeout
+        self._feature_flags: dict[str, str | bool | float | None] = {
+            "web_search": web_search,
+            "web_fetch": web_fetch,
+            "thinking": thinking,
+            "todo": todo,
+            "subagents": subagents,
+            "skills": skills,
+            "plan": plan,
+            "memory": memory,
+            "teams": teams,
+            "context": context,
+            "temperature": temperature,
+        }
 
     @staticmethod
     def name() -> str:  # pragma: no cover
@@ -104,6 +130,7 @@ class PydanticDeepAgent(BaseInstalledAgent):
             model=pai_model,
             max_turns=self._max_turns,
             timeout=self._timeout,
+            feature_flags=self._feature_flags,
         )
 
         await self.exec_as_agent(
@@ -176,6 +203,7 @@ def build_run_command(
     model: str | None = None,
     max_turns: int | None = None,
     timeout: int | None = None,
+    feature_flags: dict[str, str | bool | float | None] | None = None,
 ) -> str:
     """Build the ``pydantic-deep run`` shell command."""
     parts = [
@@ -192,8 +220,43 @@ def build_run_command(
     if timeout is not None:
         parts.append(f"--timeout {timeout}")
 
+    # Append feature flags
+    if feature_flags:
+        for key, value in feature_flags.items():
+            if value is None:
+                continue
+            parts.append(_format_flag(key, value))
+
     parts.append("2>&1 | tee /logs/agent/pydantic-deep.txt")
     return " ".join(parts)
+
+
+def _format_flag(key: str, value: str | bool | float) -> str:
+    """Format a feature flag for the CLI command."""
+    # Boolean flags: --flag / --no-flag
+    bool_flags = {
+        "web_search",
+        "web_fetch",
+        "todo",
+        "subagents",
+        "skills",
+        "plan",
+        "memory",
+        "teams",
+        "context",
+    }
+    if key in bool_flags:
+        is_true = str(value).lower() in ("true", "1", "yes")
+        flag_name = key.replace("_", "-")
+        return f"--{flag_name}" if is_true else f"--no-{flag_name}"
+
+    # Value flags: --key value
+    if key == "thinking":
+        return f"--thinking {value}"
+    if key == "temperature":
+        return f"--temperature {value}"
+
+    return ""  # pragma: no cover
 
 
 def parse_json_output(text: str) -> dict[str, Any] | None:

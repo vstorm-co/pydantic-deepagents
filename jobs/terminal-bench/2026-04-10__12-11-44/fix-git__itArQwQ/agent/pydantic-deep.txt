@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+{
+  "output": "Done. Here's what happened:\n\n- Your \"Move to Stanford\" commit (`650dba4`) was made in **detached HEAD state** (you had checked out `HEAD~1` before committing), so it wasn't on any branch.\n- I found it via `git reflog` and merged it into `master`.\n- There was a conflict in `about.md` \u2014 I resolved it by keeping your new Stanford bio.\n- Both files (`about.md` and `default.html`) are now merged into master.",
+  "usage": {
+    "total_tokens": 157835,
+    "request_tokens": 156461,
+    "response_tokens": 1374,
+    "requests": 8
+  }
+}

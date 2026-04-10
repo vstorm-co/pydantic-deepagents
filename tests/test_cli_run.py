@@ -215,8 +215,9 @@ class TestExecuteHeadless:
 
         call_kwargs = mock_create.call_args.kwargs
         assert call_kwargs["non_interactive"] is True
-        assert call_kwargs["include_plan"] is False
-        assert call_kwargs["include_memory"] is False
+        # Feature flags not passed = use config defaults
+        assert "include_plan" not in call_kwargs
+        assert "include_memory" not in call_kwargs
 
 
 # ── Helper function tests ──────────���───────────────────────────────

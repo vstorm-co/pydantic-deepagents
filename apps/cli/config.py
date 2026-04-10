@@ -75,7 +75,7 @@ _FLOAT_FIELDS = frozenset({"temperature"})
 class CliConfig:
     """CLI configuration loaded from config.toml."""
 
-    model: str = "anthropic:claude-sonnet-4-6"
+    model: str = "anthropic:claude-opus-4-6"
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
     theme: str = "default"
@@ -142,7 +142,7 @@ def validate_config(config: CliConfig) -> list[str]:
     warnings: list[str] = []
     if config.model and ":" not in config.model:
         warnings.append(
-            f"Model '{config.model}' missing provider prefix (e.g. 'anthropic:claude-sonnet-4-6')"
+            f"Model '{config.model}' missing provider prefix (e.g. 'anthropic:claude-opus-4-6')"
         )
     if config.working_dir:
         from pathlib import Path as _Path

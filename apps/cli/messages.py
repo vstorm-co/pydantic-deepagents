@@ -124,10 +124,18 @@ class AgentError(Message):
 class CostUpdated(Message):
     """Cost information has been updated."""
 
-    def __init__(self, run_cost: float, total_cost: float) -> None:
+    def __init__(
+        self,
+        run_cost: float,
+        total_cost: float,
+        total_input_tokens: int = 0,
+        total_output_tokens: int = 0,
+    ) -> None:
         super().__init__()
         self.run_cost = run_cost
         self.total_cost = total_cost
+        self.total_input_tokens = total_input_tokens
+        self.total_output_tokens = total_output_tokens
 
 
 class ContextUpdated(Message):

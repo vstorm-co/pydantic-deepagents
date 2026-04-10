@@ -1,0 +1,103 @@
+{
+    "id": "34118d2a-b1b2-4cd8-a56b-49ee2c06dfae",
+    "task_name": "fix-git",
+    "trial_name": "fix-git__6Md34tL",
+    "trial_uri": "file:///Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/jobs/terminal-bench/2026-04-10__12-18-48/fix-git__6Md34tL",
+    "task_id": {
+        "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+        "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+        "path": "fix-git"
+    },
+    "source": "terminal-bench",
+    "task_checksum": "7fa0a681f751d73f290d862522a82a5e448fa529834987ee1b80e5665c51aa7e",
+    "config": {
+        "task": {
+            "path": "fix-git",
+            "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+            "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": "terminal-bench"
+        },
+        "trial_name": "fix-git__6Md34tL",
+        "trials_dir": "jobs/terminal-bench/2026-04-10__12-18-48",
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": null,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": null,
+            "import_path": "apps.harbor.agent:PydanticDeepAgent",
+            "model_name": "openrouter/openai/gpt-5.4",
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "kwargs": {},
+            "env": {}
+        },
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "suppress_override_warnings": false,
+            "mounts_json": null,
+            "env": {},
+            "kwargs": {}
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "artifacts": [],
+        "job_id": "bf99349b-f8c0-4fb3-b710-fca6be342ef4"
+    },
+    "agent_info": {
+        "name": "pydantic-deep",
+        "version": "unknown",
+        "model_info": {
+            "name": "openai/gpt-5.4",
+            "provider": "openrouter"
+        }
+    },
+    "agent_result": {
+        "n_input_tokens": null,
+        "n_cache_tokens": null,
+        "n_output_tokens": null,
+        "cost_usd": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 1.0
+        }
+    },
+    "exception_info": null,
+    "started_at": "2026-04-10T10:21:18.857047Z",
+    "finished_at": "2026-04-10T10:26:34.855385Z",
+    "environment_setup": {
+        "started_at": "2026-04-10T10:21:18.862990Z",
+        "finished_at": "2026-04-10T10:21:26.426144Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-04-10T10:21:26.426220Z",
+        "finished_at": "2026-04-10T10:21:49.502217Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-04-10T10:21:49.502591Z",
+        "finished_at": "2026-04-10T10:26:22.733521Z"
+    },
+    "verifier": {
+        "started_at": "2026-04-10T10:26:22.740747Z",
+        "finished_at": "2026-04-10T10:26:31.908933Z"
+    }
+}

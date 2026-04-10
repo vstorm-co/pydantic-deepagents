@@ -1,0 +1,69 @@
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_deep/agent.py:659: UserWarning: Default skills directory 'skills' does not exist. No skills will be loaded.
+  skills_toolset = SkillsToolset(
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/pydantic-deep-venv/lib/python3.12/site-packages/apps/cli/main.py:246 in │
+│ run                                                                          │
+│                                                                              │
+│   243 │                                                                      │
+│   244 │   import asyncio                                                     │
+│   245 │                                                                      │
+│ ❱ 246 │   result = asyncio.run(                                              │
+│   247 │   │   execute_headless(                                              │
+│   248 │   │   │   task=task_text,                                            │
+│   249 │   │   │   working_dir=working_dir or os.getcwd(),                    │
+│                                                                              │
+│ /usr/lib/python3.12/asyncio/runners.py:194 in run                            │
+│                                                                              │
+│   191 │   │   │   "asyncio.run() cannot be called from a running event loop" │
+│   192 │                                                                      │
+│   193 │   with Runner(debug=debug, loop_factory=loop_factory) as runner:     │
+│ ❱ 194 │   │   return runner.run(main)                                        │
+│   195                                                                        │
+│   196                                                                        │
+│   197 def _cancel_all_tasks(loop):                                           │
+│                                                                              │
+│ /usr/lib/python3.12/asyncio/runners.py:118 in run                            │
+│                                                                              │
+│   115 │   │                                                                  │
+│   116 │   │   self._interrupt_count = 0                                      │
+│   117 │   │   try:                                                           │
+│ ❱ 118 │   │   │   return self._loop.run_until_complete(task)                 │
+│   119 │   │   except exceptions.CancelledError:                              │
+│   120 │   │   │   if self._interrupt_count > 0:                              │
+│   121 │   │   │   │   uncancel = getattr(task, "uncancel", None)             │
+│                                                                              │
+│ /usr/lib/python3.12/asyncio/base_events.py:687 in run_until_complete         │
+│                                                                              │
+│    684 │   │   if not future.done():                                         │
+│    685 │   │   │   raise RuntimeError('Event loop stopped before Future comp │
+│    686 │   │                                                                 │
+│ ❱  687 │   │   return future.result()                                        │
+│    688 │                                                                     │
+│    689 │   def stop(self):                                                   │
+│    690 │   │   """Stop running the event loop.                               │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.12/site-packages/apps/cli/run.py:127 in  │
+│ execute_headless                                                             │
+│                                                                              │
+│   124 │   │   │   _print_error("Timed out", output_json)                     │
+│   125 │   │   │   return 1                                                   │
+│   126 │   else:                                                              │
+│ ❱ 127 │   │   result = await run_coro                                        │
+│   128 │                                                                      │
+│   129 │   if output_json:                                                    │
+│   130 │   │   output = _build_json_output(result.output, result.usage())     │
+│                                                                              │
+│ /opt/pydantic-deep-venv/lib/python3.12/site-packages/apps/cli/run.py:146 in  │
+│ _run_verbose                                                                 │
+│                                                                              │
+│   143 │                                                                      │
+│   144 │   from pydantic_ai import Agent                                      │
+│   145 │   from pydantic_ai._agent_graph import End, UserPromptNode           │
+│ ❱ 146 │   from pydantic_ai.events import (                                   │
+│   147 │   │   FinalResultEvent,                                              │
+│   148 │   │   FunctionToolCallEvent,                                         │
+│   149 │   │   FunctionToolResultEvent,                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ModuleNotFoundError: No module named 'pydantic_ai.events'

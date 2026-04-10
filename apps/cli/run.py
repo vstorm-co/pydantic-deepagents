@@ -143,13 +143,14 @@ async def _run_verbose(  # noqa: C901
 
     from pydantic_ai import Agent
     from pydantic_ai._agent_graph import End, UserPromptNode
-    from pydantic_ai.events import (
+    from pydantic_ai.messages import (
         FinalResultEvent,
         FunctionToolCallEvent,
         FunctionToolResultEvent,
         PartDeltaEvent,
+        TextPartDelta,
+        ThinkingPartDelta,
     )
-    from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
     _log = lambda msg: print(msg, file=sys.stderr, flush=True)  # noqa: E731
     start = _time.monotonic()

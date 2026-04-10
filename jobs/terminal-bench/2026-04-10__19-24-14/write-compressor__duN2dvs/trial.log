@@ -1,0 +1,31 @@
+Running command: set -euo pipefail
+
+# System dependencies
+if command -v apk &> /dev/null; then
+    apk add --no-cache curl bash git procps python3
+elif command -v apt-get &> /dev/null; then
+    apt-get update -qq
+    apt-get install -y -qq curl git procps python3 python3-venv
+fi
+
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+
+# Ensure Python is available
+if ! command -v python3 &> /dev/null; then
+    uv python install 3.12
+fi
+
+# Create venv and install pydantic-deep
+uv venv /opt/pydantic-deep-venv
+export PATH="/opt/pydantic-deep-venv/bin:$PATH"
+export VIRTUAL_ENV="/opt/pydantic-deep-venv"
+
+uv pip install "pydantic-deep[cli] @ git+https://github.com/vstorm-co/pydantic-deepagents.git@benchmark/terminal-bench"
+
+# Verify installation
+pydantic-deep --version
+mkdir -p /logs/agent
+
+Trial write-compressor__duN2dvs cancelled

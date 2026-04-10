@@ -1,7 +1,4 @@
-"""Optional side panel showing TODOs and subagents.
-
-Visible only when terminal width >= 120 and there is content to show.
-"""
+"""Optional side panel showing TODOs and subagents."""
 
 from __future__ import annotations
 
@@ -10,6 +7,8 @@ from textual.containers import Vertical
 
 from apps.cli.widgets.subagents_panel import SubagentsWidget
 from apps.cli.widgets.todos_panel import TodosWidget
+
+_MIN_WIDTH = 100
 
 
 class SidePanel(Vertical):
@@ -31,9 +30,13 @@ class SidePanel(Vertical):
         yield TodosWidget()
         yield SubagentsWidget()
 
-    def show_if_needed(self, width: int, has_content: bool) -> None:
-        """Show or hide based on terminal width and content availability."""
-        if width >= 120 and has_content:
+    def update_for_width(self, width: int) -> None:
+        """Show or hide based on terminal width."""
+        if width >= _MIN_WIDTH:
             self.add_class("visible")
         else:
             self.remove_class("visible")
+
+    def show_if_needed(self, width: int, has_content: bool) -> None:
+        """Legacy API — kept for callers."""
+        self.update_for_width(width)

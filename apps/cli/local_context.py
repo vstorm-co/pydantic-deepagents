@@ -37,6 +37,7 @@ IGNORE_PATTERNS: frozenset[str] = frozenset(
         "target",
         ".idea",
         ".vscode",
+        ".pydantic-deep",
     }
 )
 

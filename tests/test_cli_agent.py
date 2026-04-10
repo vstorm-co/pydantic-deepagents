@@ -161,10 +161,10 @@ class TestBuildCliInstructions:
         result = build_cli_instructions()
         assert "CLI Environment" in result
         assert "Exactness Requirements" in result
-        assert "Avoid Over-Engineering" in result
         assert "Writing Code" in result
         assert "Before Declaring Done" in result
-        assert "Parallel Tool Calls" in result
+        # BASE_PROMPT is NOT included — added by create_deep_agent()
+        assert "Core Behavior" not in result
 
     def test_deprecated_params_accepted(self) -> None:
         """Deprecated params are accepted for backwards compatibility."""

@@ -63,8 +63,38 @@ class ChatScreen(Screen):
         """Show welcome banner, init session, bootstrap context files, focus input."""
         self._init_session()
         self._bootstrap_context_files()
+        self._init_side_panel()
         self.call_later(self._show_welcome)
         self.query_one(InputArea).focus_input()
+
+    def on_resize(self, event: Any) -> None:
+        """Keep side panel responsive to terminal width changes."""
+        self.query_one(SidePanel).update_for_width(self.app.size.width)
+
+    def _init_side_panel(self) -> None:
+        """Show side panel and populate with default subagents."""
+        side = self.query_one(SidePanel)
+        side.update_for_width(self.app.size.width)
+
+        from apps.cli.widgets.subagents_panel import SubagentsWidget
+
+        sa_widget = side.query_one(SubagentsWidget)
+        defaults = []
+        # Show built-in subagents as available
+        agent = getattr(self.app, "agent", None)
+        if agent:
+            # Extract subagent names from the task manager
+            mgr = getattr(agent, "_task_manager", None)
+            if mgr:
+                for name in sorted(getattr(mgr, "_agents", {}).keys()):
+                    defaults.append({"name": name, "status": "idle", "description": ""})
+        if not defaults:
+            # Fallback — show common built-ins
+            defaults = [
+                {"name": "planner", "status": "idle", "description": ""},
+                {"name": "research", "status": "idle", "description": ""},
+            ]
+        sa_widget.agents = defaults
 
     def _bootstrap_context_files(self) -> None:
         """Create AGENTS.md, SOUL.md and MEMORY.md if they don't exist."""
@@ -209,11 +239,14 @@ class ChatScreen(Screen):
             import json
             from datetime import datetime, timezone
 
+            # Subagent outputs get full content; other tools get preview
+            is_subagent = tool_name == "task"
+            max_result = 20_000 if is_subagent else 2000
             record = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "tool": tool_name,
                 "args": {k: str(v)[:500] for k, v in args.items()},
-                "result_preview": result[:2000],
+                "result_preview": result[:max_result],
                 "result_length": len(result),
                 "elapsed": round(elapsed, 3),
                 "error": is_error,
@@ -446,15 +479,7 @@ class ChatScreen(Screen):
         log.info("Agent run started", prompt_length=len(text), history_messages=len(history))
 
         pending: dict[str, tuple[dict[str, Any], float]] = {}
-        _TODO_TOOLS = frozenset(
-            {
-                "read_todos",
-                "write_todos",
-                "add_todo",
-                "update_todo_status",
-                "remove_todo",
-            }
-        )
+        _TODO_TOOLS: frozenset[str] = frozenset()  # Show all tool calls in UI
         _TEAM_TOOLS = frozenset(
             {
                 "spawn_team",
@@ -572,14 +597,17 @@ class ChatScreen(Screen):
                                         or "exit code 1" in raw.lower()
                                         or "traceback" in raw.lower()[:200]
                                     )
-                                    log.debug(
-                                        "Tool call completed",
-                                        tool=tool_name,
-                                        call_id=call_id,
-                                        elapsed=f"{elapsed:.2f}s",
-                                        is_error=is_error,
-                                        output_length=len(raw),
-                                    )
+                                    log_kwargs: dict[str, Any] = {
+                                        "tool": tool_name,
+                                        "call_id": call_id,
+                                        "elapsed": f"{elapsed:.2f}s",
+                                        "is_error": is_error,
+                                        "output_length": len(raw),
+                                    }
+                                    if tool_name == "task":
+                                        # Log full subagent output for debugging
+                                        log_kwargs["output"] = raw[:5000]
+                                    log.debug("Tool call completed", **log_kwargs)
                                     # Save structured tool trace for /improve
                                     self._append_tool_log(tool_name, args, raw, elapsed, is_error)
                                     if tool_name not in _TODO_TOOLS:
@@ -750,6 +778,8 @@ class ChatScreen(Screen):
             with contextlib.suppress(Exception):
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
         finally:
+            # Always save session — even after errors or cancellation
+            self._save_session()
             header.is_streaming = False
             header.is_thinking = False
             msg_list.end_assistant_message()
@@ -976,9 +1006,4 @@ class ChatScreen(Screen):
 
         self.app.push_screen(SearchModal(), _handle_result)
 
-    def on_resize(self) -> None:
-        """Show/hide side panel based on terminal width."""
-        side = self.query_one(SidePanel)
-        status = self.query_one(StatusBar)
-        has_content = status.total_todos > 0
-        side.show_if_needed(self.app.size.width, has_content)
+    # on_resize is defined near on_mount — handles side panel visibility

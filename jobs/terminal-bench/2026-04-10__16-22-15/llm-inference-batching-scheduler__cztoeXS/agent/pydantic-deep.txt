@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_deep/agent.py:659: UserWarning: Default skills directory 'skills' does not exist. No skills will be loaded.
+  skills_toolset = SkillsToolset(
+{
+  "output": "Both plan files are generated and verified at `/app/task_file/output_data/`:\n\n- **plan_b1.jsonl** \u2014 800 records, 6 shapes used, all metrics below thresholds\n- **plan_b2.jsonl** \u2014 800 records, 6 shapes used, all metrics below thresholds\n\nKey optimizations over baseline:\n1. **DP-based gen_len splitting** within each shape group \u2014 separates high gen_len requests from low gen_len ones, dramatically reducing decode cost and padding\n2. **Latency penalty** (alpha=100) in the DP objective \u2014 discourages creating many small high-latency batches, reducing sequential timecost\n3. **Sort by (aligned_prompt, gen_len)** \u2014 groups similar requests together for efficient DP splitting\n4. **8 shared shapes** across both buckets: 64, 128, 192, 320, 640, 704, 1280, 2048",
+  "usage": {
+    "total_tokens": 768107,
+    "request_tokens": 715644,
+    "response_tokens": 52463,
+    "requests": 17
+  }
+}

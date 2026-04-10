@@ -45,18 +45,23 @@ class SubagentsWidget(Widget):
                 color = "green"
             elif status == "waiting":
                 glyph = "○"
-                color = "dim"
+                color = "yellow"
             elif status == "completed":
                 glyph = "✓"
-                color = "dim"
+                color = "green"
             elif status == "error":
                 glyph = "✗"
                 color = "red"
+            elif status == "idle":
+                glyph = "○"
+                color = "dim"
             else:
                 glyph = "○"
                 color = "dim"
 
-            line = f"  [{color}]{glyph}[/{color}] {name}  [{color}]{status}[/{color}]"
+            line = f"  [{color}]{glyph}[/{color}] {name}"
+            if status != "idle":
+                line += f"  [{color}]{status}[/{color}]"
             if desc:
                 line += f"  [dim]{desc[:30]}[/dim]"
             lines.append(line)

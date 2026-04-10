@@ -201,6 +201,10 @@ def run(
         float | None,
         typer.Option("--temperature", help="Sampling temperature (default: 0.0)"),
     ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Stream progress to stderr"),
+    ] = False,
 ) -> None:
     """Run a task non-interactively (headless mode).
 
@@ -258,6 +262,7 @@ def run(
             include_teams=include_teams,
             context_discovery=context_discovery,
             temperature=temperature,
+            verbose=verbose,
         )
     )
     raise typer.Exit(result)

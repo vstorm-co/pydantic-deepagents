@@ -1,0 +1,39 @@
+{
+    "id": "9472ed0f-2352-41a7-a663-aa817a761db3",
+    "started_at": "2026-04-10T19:18:08.310353",
+    "finished_at": null,
+    "n_total_trials": 3,
+    "stats": {
+        "n_trials": 3,
+        "n_errors": 3,
+        "evals": {
+            "pydantic-deep__z-ai-glm-5.1__terminal-bench": {
+                "n_trials": 2,
+                "n_errors": 3,
+                "metrics": [
+                    {
+                        "mean": 0.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "gpt2-codegolf__zqS3qcn",
+                            "write-compressor__eMYNn3u"
+                        ]
+                    }
+                },
+                "exception_stats": {
+                    "NonZeroAgentExitCodeError": [
+                        "gpt2-codegolf__zqS3qcn",
+                        "write-compressor__eMYNn3u"
+                    ],
+                    "CancelledError": [
+                        "winning-avg-corewars__UPrBhBr"
+                    ]
+                }
+            }
+        }
+    },
+    "trial_results": []
+}

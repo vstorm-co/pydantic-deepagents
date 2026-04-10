@@ -1,0 +1,96 @@
+{
+    "id": "a5838c52-aef9-4b1e-90e6-f7d6be49cbd1",
+    "task_name": "winning-avg-corewars",
+    "trial_name": "winning-avg-corewars__UPrBhBr",
+    "trial_uri": "file:///Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/jobs/terminal-bench/2026-04-10__19-18-05/winning-avg-corewars__UPrBhBr",
+    "task_id": {
+        "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+        "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+        "path": "winning-avg-corewars"
+    },
+    "source": "terminal-bench",
+    "task_checksum": "693d17797b3d2920f9f0316b3f758aee6b228e816c78bab22b75eae684853f13",
+    "config": {
+        "task": {
+            "path": "winning-avg-corewars",
+            "git_url": "https://github.com/laude-institute/terminal-bench-2.git",
+            "git_commit_id": "69671fbaac6d67a7ef0dfec016cc38a64ef7a77c",
+            "name": null,
+            "ref": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": "terminal-bench"
+        },
+        "trial_name": "winning-avg-corewars__UPrBhBr",
+        "trials_dir": "jobs/terminal-bench/2026-04-10__19-18-05",
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": null,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": null,
+            "import_path": "apps.harbor.agent:PydanticDeepAgent",
+            "model_name": "openrouter/z-ai/glm-5.1",
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "kwargs": {
+                "web_search": false,
+                "web_fetch": false,
+                "memory": false,
+                "plan": false
+            },
+            "env": {}
+        },
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "suppress_override_warnings": false,
+            "mounts_json": null,
+            "env": {},
+            "kwargs": {}
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "artifacts": [],
+        "job_id": "9472ed0f-2352-41a7-a663-aa817a761db3"
+    },
+    "agent_info": {
+        "name": "pydantic-deep",
+        "version": "unknown",
+        "model_info": {
+            "name": "z-ai/glm-5.1",
+            "provider": "openrouter"
+        }
+    },
+    "agent_result": null,
+    "verifier_result": null,
+    "exception_info": {
+        "exception_type": "CancelledError",
+        "exception_message": "",
+        "exception_traceback": "Traceback (most recent call last):\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py\", line 533, in run\n    await self._setup_agent()\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py\", line 266, in _setup_agent\n    await asyncio.wait_for(\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/tasks.py\", line 520, in wait_for\n    return await fut\n           ^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py\", line 384, in setup\n    await self.install(environment)\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/apps/harbor/agent.py\", line 113, in install\n    await self.exec_as_root(environment, command=install_script)\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py\", line 345, in exec_as_root\n    return await self._exec(\n           ^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py\", line 305, in _exec\n    result = await environment.exec(\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/environments/docker/docker.py\", line 485, in exec\n    return await self._run_docker_compose_command(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/environments/docker/docker.py\", line 296, in _run_docker_compose_command\n    stdout_bytes, stderr_bytes = await process.communicate()\n                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/subprocess.py\", line 201, in communicate\n    stdin, stdout, stderr = await tasks.gather(stdin, stdout, stderr)\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/subprocess.py\", line 181, in _read_stream\n    output = await stream.read()\n             ^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py\", line 706, in read\n    block = await self.read(self._limit)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py\", line 713, in read\n    await self._wait_for_data('read')\n  File \"/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/streams.py\", line 545, in _wait_for_data\n    await self._waiter\nasyncio.exceptions.CancelledError\n",
+        "occurred_at": "2026-04-10T19:20:34.023008"
+    },
+    "started_at": "2026-04-10T17:20:21.092531Z",
+    "finished_at": "2026-04-10T17:20:34.205519Z",
+    "environment_setup": {
+        "started_at": "2026-04-10T17:20:21.094950Z",
+        "finished_at": "2026-04-10T17:20:33.010276Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-04-10T17:20:33.010327Z",
+        "finished_at": "2026-04-10T17:20:34.020279Z"
+    },
+    "agent_execution": null,
+    "verifier": null
+}

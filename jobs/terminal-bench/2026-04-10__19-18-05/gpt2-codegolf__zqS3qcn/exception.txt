@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py", line 538, in run
+    await self._execute_agent()
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/trial/trial.py", line 285, in _execute_agent
+    await asyncio.wait_for(
+  File "/Users/kacperwlodarczyk/.local/share/uv/python/cpython-3.12.9-macos-aarch64-none/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 41, in wrapper
+    return await fn(self, instruction, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/apps/harbor/agent.py", line 136, in run
+    await self.exec_as_agent(
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 358, in exec_as_agent
+    return await self._exec(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/kacperwlodarczyk/PycharmProjects/pydantic-deep/.venv/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 321, in _exec
+    raise NonZeroAgentExitCodeError(
+harbor.agents.installed.base.NonZeroAgentExitCodeError: Command failed (exit 2): export PATH="/opt/pydantic-deep-venv/bin:$HOME/.local/bin:$PATH"; pydantic-deep run 'I have downloaded the gpt-2 weights stored as a TF .ckpt. Write me a dependency-free C file that samples from the model with arg-max sampling. Call your program /app/gpt2.c, I will compile with gcc -O3 -lm. It should read the .ckpt and the .bpe file. Your c program must be <5000 bytes. I will run it /app/a.out gpt2-124M.ckpt vocab.bpe "[input string here]" and you should continue the output under whatever GPT-2 would print for the next 20 tokens.
+' --json --verbose --model openrouter:z-ai/glm-5.1 --no-web-search --no-web-fetch --no-plan --no-memory 2>&1 | tee /logs/agent/pydantic-deep.txt
+stdout: Usage: pydantic-deep run [OPTIONS] [TASK]
+Try 'pydantic-deep run --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ No such option: --verbose                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+stderr: None

@@ -1,0 +1,37 @@
+{
+    "id": "6fe78084-3484-468d-b136-6b5e9234bfca",
+    "started_at": "2026-04-10T17:45:24.126409",
+    "finished_at": null,
+    "n_total_trials": 3,
+    "stats": {
+        "n_trials": 2,
+        "n_errors": 2,
+        "evals": {
+            "pydantic-deep__openai-gpt-5.4__terminal-bench": {
+                "n_trials": 1,
+                "n_errors": 2,
+                "metrics": [
+                    {
+                        "mean": 0.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "0.0": [
+                            "gpt2-codegolf__rQEng6g"
+                        ]
+                    }
+                },
+                "exception_stats": {
+                    "AgentTimeoutError": [
+                        "gpt2-codegolf__rQEng6g"
+                    ],
+                    "CancelledError": [
+                        "write-compressor__LcxSLuL"
+                    ]
+                }
+            }
+        }
+    },
+    "trial_results": []
+}

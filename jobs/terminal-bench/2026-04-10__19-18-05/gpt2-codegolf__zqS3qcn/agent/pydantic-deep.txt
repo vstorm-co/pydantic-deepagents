@@ -1,0 +1,5 @@
+Usage: pydantic-deep run [OPTIONS] [TASK]
+Try 'pydantic-deep run --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ No such option: --verbose                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯

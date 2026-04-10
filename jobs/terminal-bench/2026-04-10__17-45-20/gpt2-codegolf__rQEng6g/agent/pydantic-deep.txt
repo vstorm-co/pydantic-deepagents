@@ -1,0 +1,44 @@
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_deep/agent.py:659: UserWarning: Default skills directory 'skills' does not exist. No skills will be loaded.
+  skills_toolset = SkillsToolset(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(
+/opt/pydantic-deep-venv/lib/python3.12/site-packages/pydantic_ai/models/openai.py:363: UserWarning: Sampling parameters ['temperature'] are not supported when reasoning is enabled. These settings will be ignored.
+  warnings.warn(

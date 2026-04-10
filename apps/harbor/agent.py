@@ -211,6 +211,7 @@ def build_run_command(
         "pydantic-deep run",
         shlex.quote(instruction),
         "--json",
+        "--verbose",
     ]
 
     if model:

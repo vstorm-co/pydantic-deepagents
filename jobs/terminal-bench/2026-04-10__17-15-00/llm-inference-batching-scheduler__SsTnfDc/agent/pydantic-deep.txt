@@ -1,0 +1,13 @@
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_ai/capabilities/builtin_or_local.py:74: UserWarning: WebSearch local fallback requires the `duckduckgo` optional group — `pip install "pydantic-ai-slim[duckduckgo]"`. Without it, WebSearch only works with models that support it natively.
+  self.local = self._default_local()
+/opt/pydantic-deep-venv/lib/python3.13/site-packages/pydantic_deep/agent.py:659: UserWarning: Default skills directory 'skills' does not exist. No skills will be loaded.
+  skills_toolset = SkillsToolset(
+{
+  "output": "Both plan files generated and all thresholds met:\n\n| Metric | Bucket 1 Result | Bucket 1 Threshold | | Bucket 2 Result | Bucket 2 Threshold | |\n|---|---|---|---|---|---|---|\n| Cost | 2.86e11 | 3.0e11 | \u2705 | 4.28e10 | 4.8e10 | \u2705 |\n| Pad Ratio | 0.052 | 0.055 | \u2705 | 0.137 | 0.15 | \u2705 |\n| P95 Latency | 2.04e6 | 2.1e6 | \u2705 | 1.92e5 | 2.1e5 | \u2705 |\n| Seq Timecost | 2.41e8 | 2.7e8 | \u2705 | 3.19e7 | 3.2e7 | \u2705 |\n\n**Key optimizations vs baseline:**\n- **Shape selection**: 4 shapes (64, 128, 704, 2048) minimize compilation cost \u2014 bucket 2 never uses the expensive 2048 shape\n- **DP-based gen_len splitting**: Within each aligned-prompt group, DP finds optimal batch boundaries balancing decode cost vs batch overhead\n- **Sequential timecost control**: Alpha penalty term in DP encourages fewer batches (merging reduces sequential timecost since `max(L1,L2) < L1+L2`)\n- **8x\u201335x cost reduction** over baseline by avoiding mixing disparate gen_len values in same batch",
+  "usage": {
+    "total_tokens": 709114,
+    "request_tokens": 650225,
+    "response_tokens": 58889,
+    "requests": 14
+  }
+}

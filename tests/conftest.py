@@ -11,6 +11,13 @@ from pydantic_deep.deps import DeepAgentDeps
 
 
 @pytest.fixture(autouse=True)
+def mock_update_check():
+    """Skip PyPI version checks in all tests to avoid network calls."""
+    with patch("apps.cli.update.check_for_update", return_value=None):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def mock_subagent_agent():
     """Mock the Agent class in subagents_pydantic_ai to avoid needing API keys."""
     mock_agent = MagicMock()

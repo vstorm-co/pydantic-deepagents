@@ -1,17 +1,44 @@
 # Installation
 
-## Requirements
+## CLI — One Command (macOS & Linux)
+
+The fastest way to get the terminal assistant — no Python knowledge required:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+```
+
+The script installs [uv](https://docs.astral.sh/uv/) automatically if it is not already present,
+then runs `uv tool install "pydantic-deep[cli]"`. Once installed, launch with:
+
+```bash
+pydantic-deep
+```
+
+To update to the latest release at any time:
+
+```bash
+pydantic-deep update
+```
+
+---
+
+## Framework — Python Package
+
+If you are using pydantic-deep as a library (not just the CLI):
+
+### Requirements
 
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
-## Install with uv (recommended)
+### Install with uv (recommended)
 
 ```bash
 uv add pydantic-deep
 ```
 
-## Install with pip
+### Install with pip
 
 ```bash
 pip install pydantic-deep

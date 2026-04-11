@@ -96,6 +96,17 @@ def _main_callback(
     if logfire_enabled:
         _setup_logfire()
 
+    # Non-blocking update notification (uses 24-hour file cache)
+    from apps.cli.update import check_for_update
+
+    _upd = check_for_update()
+    if _upd:
+        Console().print(
+            f"[yellow]Update available:[/yellow] "
+            f"v{_upd.current} → [bold]v{_upd.latest}[/bold]  "
+            f"Run: [cyan]pydantic-deep update[/cyan]"
+        )
+
     # Default: launch TUI when no subcommand is given
     if ctx.invoked_subcommand is None:
         from apps.cli.init import ensure_initialized
@@ -747,6 +758,15 @@ def threads_export(
         typer.echo(f"# Thread: {session_dir.name}\n\nMessages: {len(messages)}\n")
         for msg in messages:
             typer.echo(f"---\n{msg}\n")
+
+
+@app.command()
+def update() -> None:
+    """Update pydantic-deep to the latest version."""
+    from apps.cli.update import run_update
+
+    Console().print("Updating pydantic-deep...")
+    raise typer.Exit(run_update())
 
 
 def main() -> None:

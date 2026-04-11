@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2026-04-11
+
+### Added
+
+- **One-command installer (`install.sh`)** — macOS and Linux users can now install pydantic-deep without knowing
+  Python or pip. A single curl command installs uv (if missing) and then the CLI:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+  ```
+  The script auto-detects uv, falls back to installing it via `astral.sh/uv`, then runs
+  `uv tool install "pydantic-deep[cli]"`. Verifies the installation and prints PATH instructions
+  if the binary is not immediately discoverable
+- **`pydantic-deep update` command** — self-update command that upgrades to the latest PyPI release.
+  Uses `uv tool upgrade pydantic-deep` when uv is available; falls back to
+  `pip install --upgrade "pydantic-deep[cli]"` otherwise
+- **Startup update notifications** — on every CLI invocation the tool silently checks PyPI for a newer
+  version and prints a one-line notice when one is found:
+  ```
+  Update available: v0.3.6 → v0.3.7  Run: pydantic-deep update
+  ```
+  The check is backed by a 24-hour file cache (`~/.pydantic-deep/update_check.json`) so the network
+  is only hit once per day. A 2-second timeout ensures the check never blocks startup
+
 ## [0.3.5] - 2026-04-10
 
 ### Added

@@ -4,14 +4,20 @@ The pydantic-deep CLI gives you a Claude Code-style AI coding assistant in your 
 
 ## Installation
 
+### One command (macOS & Linux — recommended)
+
 ```bash
-pip install pydantic-deep[cli]
+curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
 ```
 
-Or with [uv](https://docs.astral.sh/uv/):
+Installs [uv](https://docs.astral.sh/uv/) if needed, then runs `uv tool install "pydantic-deep[cli]"`. No Python knowledge required.
+
+### pip / uv
 
 ```bash
-uv pip install pydantic-deep[cli]
+pip install "pydantic-deep[cli]"
+# or
+uv tool install "pydantic-deep[cli]"
 ```
 
 ## Quick Start
@@ -117,6 +123,22 @@ pydantic-deep threads export abc12345 -f json # Export as JSON
 pydantic-deep config show                     # Show current config
 pydantic-deep config set model anthropic:claude-sonnet-4-6
 ```
+
+### `update` — Self-Update
+
+```bash
+pydantic-deep update
+```
+
+Upgrades to the latest PyPI release. Uses `uv tool upgrade` when uv is available, otherwise falls back to pip.
+
+When a newer version is available, pydantic-deep shows a one-line notification at startup:
+
+```
+Update available: v0.3.6 → v0.3.7  Run: pydantic-deep update
+```
+
+The version check is cached for 24 hours — PyPI is never queried more than once per day.
 
 ## TUI Features
 
@@ -312,7 +334,8 @@ Logs include agent lifecycle events, tool calls with timing, command dispatches,
 
 ```
 apps/cli/
-├── main.py              — Typer entry point (tui, run, init, skills, threads, config)
+├── main.py              — Typer entry point (tui, run, init, skills, threads, config, update)
+├── update.py            — Version checking and self-update (PyPI cache, uv/pip upgrade)
 ├── run.py               — Headless runner (execute_headless)
 ├── tui.py               — TUI launcher (run_tui, run_preview)
 ├── app.py               — DeepApp (Textual App root)

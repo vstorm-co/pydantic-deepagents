@@ -267,7 +267,7 @@ class TestPydanticDeepAgent:
 
     async def test_install(self) -> None:
         agent = PydanticDeepAgent()
-        agent.exec_as_root = AsyncMock()  # type: ignore[method-assign]
+        agent.exec_as_root = AsyncMock()
         env = MagicMock()
 
         await agent.install(env)
@@ -281,7 +281,7 @@ class TestPydanticDeepAgent:
 
     async def test_install_custom_git_ref(self) -> None:
         agent = PydanticDeepAgent()
-        agent.exec_as_root = AsyncMock()  # type: ignore[method-assign]
+        agent.exec_as_root = AsyncMock()
         env = MagicMock()
 
         with patch.dict(os.environ, {"PYDANTIC_DEEP_GIT_REF": "feat/benchmark"}):
@@ -297,7 +297,7 @@ class TestPydanticDeepAgent:
     async def test_run(self) -> None:
         agent = PydanticDeepAgent(max_turns=25)
         agent.model_name = "anthropic/claude-opus-4-6"
-        agent.exec_as_agent = AsyncMock()  # type: ignore[method-assign]
+        agent.exec_as_agent = AsyncMock()
         env = MagicMock()
         context = _AgentContext()
 
@@ -313,8 +313,7 @@ class TestPydanticDeepAgent:
     async def test_run_no_model(self) -> None:
         agent = PydanticDeepAgent()
         agent.model_name = None
-        agent.exec_as_agent = AsyncMock()  # type: ignore[method-assign]
-
+        agent.exec_as_agent = AsyncMock()
         with patch.dict(os.environ, {}, clear=True):
             await agent.run("Fix the bug", MagicMock(), _AgentContext())
 
@@ -323,7 +322,7 @@ class TestPydanticDeepAgent:
 
     def test_populate_context_no_log(self, tmp_path: Path) -> None:
         agent = PydanticDeepAgent()
-        agent.logs_dir = tmp_path  # type: ignore[assignment]
+        agent.logs_dir = tmp_path
         context = _AgentContext()
 
         agent.populate_context_post_run(context)
@@ -333,8 +332,7 @@ class TestPydanticDeepAgent:
         agent = PydanticDeepAgent()
         log_dir = tmp_path / "command-0"
         log_dir.mkdir(parents=True)
-        agent.logs_dir = tmp_path  # type: ignore[assignment]
-
+        agent.logs_dir = tmp_path
         data = {
             "output": "Done",
             "usage": {
@@ -354,8 +352,7 @@ class TestPydanticDeepAgent:
         agent = PydanticDeepAgent()
         log_dir = tmp_path / "command-0"
         log_dir.mkdir(parents=True)
-        agent.logs_dir = tmp_path  # type: ignore[assignment]
-
+        agent.logs_dir = tmp_path
         (log_dir / "stdout.txt").write_text("Result done.\nCost: $0.42\n")
 
         context = _AgentContext()
@@ -366,8 +363,7 @@ class TestPydanticDeepAgent:
         agent = PydanticDeepAgent()
         log_dir = tmp_path / "command-0"
         log_dir.mkdir(parents=True)
-        agent.logs_dir = tmp_path  # type: ignore[assignment]
-
+        agent.logs_dir = tmp_path
         (log_dir / "stdout.txt").write_text("Just plain text, no JSON or cost.")
 
         context = _AgentContext()
@@ -383,8 +379,7 @@ class TestPydanticDeepAgent:
             thinking="minimal",
         )
         agent.model_name = "anthropic/claude-opus-4-6"
-        agent.exec_as_agent = AsyncMock()  # type: ignore[method-assign]
-
+        agent.exec_as_agent = AsyncMock()
         with patch.dict(os.environ, {}, clear=True):
             await agent.run("Fix bug", MagicMock(), _AgentContext())
 

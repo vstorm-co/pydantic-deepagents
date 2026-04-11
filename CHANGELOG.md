@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] - 2026-04-11
+
+### Fixed
+
+- **`web_search` not working for non-Anthropic and OpenRouter models** — `duckduckgo` local fallback was not
+  included in `cli` / `tui` extras, so `WebSearch` silently fell back to native-only mode. Models accessed
+  through OpenRouter (or any provider without native web-search support) would report no `web_search` tool.
+  `pydantic-ai-slim[duckduckgo]` is now bundled in both `cli` and `tui` extras
+
 ## [0.3.6] - 2026-04-11
 
 ### Added

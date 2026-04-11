@@ -1,8 +1,25 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.6"
-description = "Deep Agent framework built on Pydantic-ai with planning, filesystem, and subagent capabilities"
+version = "0.3.7"
+description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
+keywords = [
+    "ai-agent",
+    "autonomous-agent",
+    "deep-agent",
+    "pydantic-ai",
+    "llm",
+    "agent-framework",
+    "multi-agent",
+    "tool-calling",
+    "claude",
+    "openai",
+    "mcp",
+    "agentic",
+    "subagents",
+    "cli",
+    "terminal-assistant",
+]
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
@@ -46,7 +63,7 @@ cli = [
     "prompt-toolkit>=3.0.0",
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
-    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch]>=1.77.0",
+    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=1.77.0",
 ]
 # TUI (Textual-based terminal UI)
 tui = [
@@ -55,7 +72,7 @@ tui = [
     "rich>=13.0.0",
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
-    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch]>=1.77.0",
+    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=1.77.0",
 ]
 # Web server support (for full_app example)
 web = [

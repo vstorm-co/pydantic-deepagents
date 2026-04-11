@@ -1,8 +1,8 @@
-<p align="center">
-  <img src="assets/baner.png" alt="Pydantic Deep Agents">
-</p>
-
 <h1 align="center">Pydantic Deep Agents</h1>
+
+<p align="center">
+  <img src="assets/cli_demo.gif" alt="Pydantic Deep Agents CLI demo" width="800">
+</p>
 
 <p align="center">
   <b>The batteries-included deep agent harness for Python.</b><br>
@@ -107,10 +107,6 @@ Built natively on **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** —
 ---
 
 ## 🖥️ CLI — Terminal AI Assistant
-
-<p align="center">
-  <img src="assets/cli_demo.gif" alt="pydantic-deep CLI demo" width="700">
-</p>
 
 A Claude Code-style terminal AI assistant that works with **any model and any provider.**
 

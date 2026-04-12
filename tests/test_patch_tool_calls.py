@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -379,7 +381,7 @@ class TestPatchToolCallsCapability:
         ]
 
         class FakeReqCtx:
-            def __init__(self, msgs: list) -> None:
+            def __init__(self, msgs: list[Any]) -> None:
                 self.messages = msgs
 
         rc = FakeReqCtx(messages)
@@ -405,7 +407,7 @@ class TestPatchToolCallsCapability:
         ]
 
         class FakeReqCtx:
-            def __init__(self, msgs: list) -> None:
+            def __init__(self, msgs: list[Any]) -> None:
                 self.messages = msgs
 
         rc = FakeReqCtx(messages)

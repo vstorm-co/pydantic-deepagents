@@ -690,6 +690,14 @@ class TestBm25Rank:
     def test_empty_docs_no_results(self) -> None:
         assert _bm25_rank("hello", []) == []
 
+    def test_empty_string_doc_skipped(self) -> None:
+        """An empty string document gets a score of 0 (not included in results)."""
+        docs = ["", "hello world"]
+        results = _bm25_rank("hello", docs)
+        # Only doc 1 should match; doc 0 is empty → score 0 → excluded
+        assert len(results) == 1
+        assert results[0][0] == 1
+
     def test_no_matching_docs(self) -> None:
         docs = ["hello world", "foo bar"]
         assert _bm25_rank("zzz_nonexistent", docs) == []

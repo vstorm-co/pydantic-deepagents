@@ -9,7 +9,11 @@ import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
-from pydantic_deep.capabilities.browser import BROWSER_INSTRUCTIONS, BrowserCapability
+from pydantic_deep.capabilities.browser import (
+    BROWSER_INSTRUCTIONS,
+    BrowserCapability,
+    _auto_install_chromium,
+)
 from pydantic_deep.toolsets.browser import (
     DEFAULT_MAX_CONTENT_TOKENS,
     DEFAULT_TIMEOUT_MS,
@@ -66,6 +70,35 @@ class TestRequireBrowser:
     def test_noop_when_available(self) -> None:
         with patch("pydantic_deep.toolsets.browser._HAS_PLAYWRIGHT", True):
             _require_browser()  # must not raise
+
+
+# ── _auto_install_chromium ────────────────────────────────────────────────────
+
+
+class TestAutoInstallChromium:
+    @pytest.mark.asyncio
+    async def test_returns_true_on_success(self) -> None:
+        """Returns True when playwright install exits with code 0."""
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate = AsyncMock(return_value=(b"", b""))
+
+        with patch("pydantic_deep.capabilities.browser.asyncio.create_subprocess_exec", return_value=mock_proc):
+            result = await _auto_install_chromium()
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_on_nonzero_exit(self) -> None:
+        """Returns False when playwright install exits with non-zero code."""
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 1
+        mock_proc.communicate = AsyncMock(return_value=(b"", b"some error"))
+
+        with patch("pydantic_deep.capabilities.browser.asyncio.create_subprocess_exec", return_value=mock_proc):
+            result = await _auto_install_chromium()
+
+        assert result is False
 
 
 # ── _truncate_content ─────────────────────────────────────────────────────────

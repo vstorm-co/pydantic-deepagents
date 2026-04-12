@@ -108,6 +108,22 @@ class TestBasePrompt:
         assert any(custom in str(i) for i in agent._instructions)
         assert not any(str(i) == BASE_PROMPT for i in agent._instructions)
 
+    def test_create_with_all_capabilities_disabled(self):
+        """Agent can be created with all built-in capabilities disabled (all_capabilities empty)."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            context_manager=False,
+            cost_tracking=False,
+            stuck_loop_detection=False,
+            patch_tool_calls=False,
+            eviction_token_limit=None,
+            web_search=False,
+            web_fetch=False,
+            thinking=False,
+            capabilities=[],
+        )
+        assert agent is not None
+
     def test_base_prompt_importable(self):
         """BASE_PROMPT is importable from pydantic_deep."""
         from pydantic_deep import BASE_PROMPT

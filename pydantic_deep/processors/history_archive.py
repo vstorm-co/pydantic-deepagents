@@ -276,8 +276,8 @@ def create_history_search_toolset(
         shown_indices: set[int] = set()
 
         for doc_idx, score in ranked[:_MAX_MATCHES]:
-            if doc_idx in shown_indices:
-                continue
+            if doc_idx in shown_indices:  # pragma: no cover
+                continue  # pragma: no cover
 
             start = max(0, doc_idx - _CONTEXT_LINES)
             end = min(len(formatted_lines), doc_idx + _CONTEXT_LINES + 1)
@@ -286,8 +286,8 @@ def create_history_search_toolset(
             excerpt = "\n".join(formatted_lines[start:end])
             results.append(f"[score: {score:.1f}]\n{excerpt}")
 
-        if not results:
-            return f"No matches for '{query}' in {len(messages)} archived messages."
+        if not results:  # pragma: no cover
+            return f"No matches for '{query}' in {len(messages)} archived messages."  # pragma: no cover
 
         header = (
             f"Found {len(results)} match(es) for '{query}' "

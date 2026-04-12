@@ -141,6 +141,17 @@ class TestAlternatingDetection:
         result = await _fire(cap, "grep")
         assert result == "ok"
 
+    async def test_no_trigger_when_first_two_tail_entries_equal(self):
+        """When tail[0] == tail[1], it's not alternating — no trigger."""
+        # With max_repeated=2, need 4 calls. Make history: A-A-B-B
+        # tail = [A, A, B, B]: tail[0]==tail[1] so early return None (line 144)
+        cap = StuckLoopDetection(max_repeated=2, detect_repeated=False, detect_noop=False)
+        await _fire(cap, "grep", {"p": "a"})
+        await _fire(cap, "grep", {"p": "a"})
+        await _fire(cap, "read_file", {"path": "/a"})
+        result = await _fire(cap, "read_file", {"path": "/a"})
+        assert result == "ok"
+
     async def test_disabled_alternating(self):
         """detect_alternating=False skips alternating detection."""
         cap = StuckLoopDetection(max_repeated=2, detect_alternating=False)

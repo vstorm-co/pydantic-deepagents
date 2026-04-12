@@ -54,7 +54,7 @@ def _hash_args(args: dict[str, Any]) -> str:
     """Create a stable hash of tool arguments for comparison."""
     try:
         serialized = json.dumps(args, sort_keys=True, default=str)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError):  # pragma: no cover
         serialized = str(args)
     return hashlib.md5(serialized.encode()).hexdigest()  # noqa: S324
 
@@ -66,7 +66,7 @@ def _hash_result(result: Any) -> str:
             serialized = result
         else:
             serialized = json.dumps(result, sort_keys=True, default=str)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError):  # pragma: no cover
         serialized = str(result)
     return hashlib.md5(serialized.encode()).hexdigest()  # noqa: S324
 

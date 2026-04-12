@@ -1061,6 +1061,54 @@ class TestEvictionCapability:
         assert "call_cb" in args[1]  # file_path
 
     @pytest.mark.anyio
+    async def test_write_failure_returns_original(self):
+        """When backend write fails, original result is returned unchanged."""
+        backend = StateBackend()
+        # Monkey-patch write to return an error
+        original_write = backend.write
+
+        def failing_write(path: str, content: str | bytes) -> WriteResult:
+            return WriteResult(path=path, error="disk full")
+
+        backend.write = failing_write
+        cap = EvictionCapability(backend=backend, token_limit=10)
+        ctx = _make_ctx(backend)
+
+        large = "x" * 500
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_fail"),
+            tool_def=_cap_td(),
+            args={},
+            result=large,
+        )
+        assert result == large
+
+    @pytest.mark.anyio
+    async def test_async_on_eviction_callback(self):
+        """Async on_eviction callback is awaited."""
+        backend = StateBackend()
+        called_with: list[tuple[str, str, int, int]] = []
+
+        async def async_cb(tool_name: str, file_path: str, orig: int, preview: int) -> None:
+            called_with.append((tool_name, file_path, orig, preview))
+
+        cap = EvictionCapability(backend=backend, token_limit=10, on_eviction=async_cb)
+        ctx = _make_ctx(backend)
+
+        await cap.after_tool_execute(
+            ctx,
+            call=_cap_call("mytool", "call_async"),
+            tool_def=_cap_td("mytool"),
+            args={},
+            result="x" * 500,
+        )
+
+        assert len(called_with) == 1
+        assert called_with[0][0] == "mytool"
+        assert "call_async" in called_with[0][1]
+
+    @pytest.mark.anyio
     async def test_dict_result_evicted(self):
         """Non-string results (dicts) are also evicted when large."""
         backend = StateBackend()

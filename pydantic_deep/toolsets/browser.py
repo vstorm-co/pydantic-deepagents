@@ -269,9 +269,7 @@ class _BrowserState:
                 )
             await self._lazy_launcher()
             if self.page is None:
-                raise RuntimeError(
-                    self.launch_error or "Browser failed to launch."
-                )
+                raise RuntimeError(self.launch_error or "Browser failed to launch.")
         return self.page
 
 

@@ -293,10 +293,10 @@ class TestBrowserConfigFields:
         config = CliConfig()
         assert config.include_browser is True
 
-    def test_browser_headless_defaults_false(self) -> None:
-        """Browser should show a visible window by default."""
+    def test_browser_headless_defaults_true(self) -> None:
+        """Browser should run headless (no visible window) by default."""
         config = CliConfig()
-        assert config.browser_headless is False
+        assert config.browser_headless is True
 
     def test_loads_include_browser_from_file(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.toml"

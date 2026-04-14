@@ -20,12 +20,16 @@
 
 <p align="center">
   <a href="https://pypi.org/project/pydantic-deep/"><img src="https://img.shields.io/pypi/v/pydantic-deep.svg" alt="PyPI version"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://pepy.tech/projects/pydantic-deep"><img src="https://static.pepy.tech/badge/pydantic-deep/month" alt="PyPI Downloads"></a>
+  <a href="https://github.com/vstorm-co/pydantic-deep/stargazers"><img src="https://img.shields.io/github/stars/vstorm-co/pydantic-deep?style=flat&logo=github&color=yellow" alt="GitHub Stars"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main"><img src="https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main" alt="Coverage Status"></a>
   <a href="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml"><img src="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.bestpractices.dev/projects/12495"><img src="https://www.bestpractices.dev/projects/12495/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://github.com/vstorm-co/pydantic-deep/blob/main/SECURITY.md"><img src="https://img.shields.io/badge/security-policy-blueviolet?logo=shieldsdotio&logoColor=white" alt="Security Policy"></a>
   <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
+  <a href="https://x.com/Kacper95682155"><img src="https://img.shields.io/badge/X-000000?logo=x&logoColor=white" alt="X"></a>
 </p>
 
 ---
@@ -498,6 +502,24 @@ make install
 make test   # 100% coverage required
 make all    # lint + typecheck + test
 ```
+
+---
+
+## Vstorm OSS Ecosystem
+
+**pydantic-deepagents** is part of a broader open-source ecosystem for production AI agents:
+
+| Project | Description | |
+|---------|-------------|---|
+| **[full-stack-ai-agent-template](https://github.com/vstorm-co/full-stack-ai-agent-template)** | Zero to production AI app in 30 minutes. FastAPI + Next.js 15, 6 AI frameworks (incl. pydantic-deep), RAG pipeline, 75+ config options. | [![Stars](https://img.shields.io/github/stars/vstorm-co/full-stack-ai-agent-template?style=flat&logo=github&color=yellow)](https://github.com/vstorm-co/full-stack-ai-agent-template) |
+| **[pydantic-ai-shields](https://github.com/vstorm-co/pydantic-ai-shields)** | Drop-in guardrails for Pydantic AI agents. 5 infra + 5 content shields. | [![Stars](https://img.shields.io/github/stars/vstorm-co/pydantic-ai-shields?style=flat&logo=github&color=yellow)](https://github.com/vstorm-co/pydantic-ai-shields) |
+| **[pydantic-ai-subagents](https://github.com/vstorm-co/pydantic-ai-subagents)** | Declarative multi-agent orchestration with token tracking. | [![Stars](https://img.shields.io/github/stars/vstorm-co/pydantic-ai-subagents?style=flat&logo=github&color=yellow)](https://github.com/vstorm-co/pydantic-ai-subagents) |
+| **[pydantic-ai-summarization](https://github.com/vstorm-co/pydantic-ai-summarization)** | Smart context compression for long-running agents. | [![Stars](https://img.shields.io/github/stars/vstorm-co/pydantic-ai-summarization?style=flat&logo=github&color=yellow)](https://github.com/vstorm-co/pydantic-ai-summarization) |
+| **[pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)** | Sandboxed execution for AI agents. Docker + Daytona. | [![Stars](https://img.shields.io/github/stars/vstorm-co/pydantic-ai-backend?style=flat&logo=github&color=yellow)](https://github.com/vstorm-co/pydantic-ai-backend) |
+
+> **Want the full stack?** Use [full-stack-ai-agent-template](https://github.com/vstorm-co/full-stack-ai-agent-template) — it ships pydantic-deep integrated with FastAPI, Next.js, auth, WebSocket streaming, and RAG out of the box.
+
+Browse all projects at [oss.vstorm.co](https://oss.vstorm.co)
 
 ---
 

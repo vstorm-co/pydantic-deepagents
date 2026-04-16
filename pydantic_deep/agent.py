@@ -559,8 +559,10 @@ def create_deep_agent(  # noqa: C901
         _sub_context_discovery = context_discovery
         _sub_memory = include_memory
         _sub_memory_dir = memory_dir
+        _sub_web_search = web_search
+        _sub_web_fetch = web_fetch
 
-        def _default_deep_agent_factory(cfg: dict[str, Any]) -> Any:  # pragma: no cover
+        def _default_deep_agent_factory(cfg: dict[str, Any]) -> Any:
             """Create a deep agent for subagent execution."""
             return create_deep_agent(
                 model=cfg.get("model", _sub_model),
@@ -568,8 +570,8 @@ def create_deep_agent(  # noqa: C901
                 include_filesystem=True,
                 include_execute=True,
                 include_todo=True,
-                web_search=True,
-                web_fetch=True,
+                web_search=_sub_web_search,
+                web_fetch=_sub_web_fetch,
                 thinking=False,  # Save tokens on subagents
                 include_subagents=False,
                 include_skills=False,

@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.13"
+version = "0.3.14"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [

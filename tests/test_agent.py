@@ -65,6 +65,40 @@ class TestCreateDeepAgent:
         agent = create_deep_agent(model=TEST_MODEL, subagents=subagents)
         assert agent is not None
 
+    def test_default_subagent_factory_propagates_web_flags(self):
+        """Regression for #77: default subagent factory must inherit parent's
+        ``web_search`` and ``web_fetch`` flags. Otherwise Bedrock/Vertex
+        Anthropic models error out on unsupported beta tools.
+        """
+        from pydantic_ai.capabilities import WebFetch, WebSearch
+
+        def _sub_caps(parent_web_search: bool, parent_web_fetch: bool) -> list[type]:
+            subagents: list[SubAgentConfig] = [
+                SubAgentConfig(
+                    name="researcher",
+                    description="A research agent",
+                    instructions="You research topics",
+                ),
+            ]
+            create_deep_agent(
+                model=TEST_MODEL,
+                subagents=subagents,
+                web_search=parent_web_search,
+                web_fetch=parent_web_fetch,
+            )
+            factory = subagents[0]["agent_factory"]  # type: ignore[typeddict-item]
+            assert factory is not None
+            sub_agent = factory({"instructions": "sub instructions", "model": TEST_MODEL})
+            return [type(c) for c in sub_agent._root_capability.capabilities]
+
+        off_types = _sub_caps(parent_web_search=False, parent_web_fetch=False)
+        assert WebSearch not in off_types
+        assert WebFetch not in off_types
+
+        on_types = _sub_caps(parent_web_search=True, parent_web_fetch=True)
+        assert WebSearch in on_types
+        assert WebFetch in on_types
+
     def test_create_with_interrupt_on(self):
         """Test creating an agent with interrupt_on config."""
         agent = create_deep_agent(

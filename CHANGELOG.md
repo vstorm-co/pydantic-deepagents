@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.14] - 2026-04-16
+
+### Fixed
+
+- **Subagents ignored parent `web_search`/`web_fetch` settings** — the default subagent factory in `create_deep_agent` hardcoded `web_search=True` and `web_fetch=True`, overriding the parent agent's configuration. On Bedrock and Vertex Anthropic models this produced a 400 error (`web_fetch_20250910` not accepted), because the beta web tools are not supported there. The factory now propagates the parent agent's `web_search` and `web_fetch` flags to spawned subagents. ([#77](https://github.com/vstorm-co/pydantic-deepagents/issues/77), reported by [@SvdR82](https://github.com/SvdR82))
+
 ## [0.3.13] - 2026-04-13
 
 ### Fixed

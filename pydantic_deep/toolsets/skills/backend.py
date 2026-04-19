@@ -329,11 +329,10 @@ def _discover_backend_resources(
             continue
 
         for file_info in matches:
-            name_upper = file_info["name"].upper()
-            if name_upper == "SKILL.MD":
+            rel_path = _get_relative_path(file_info["path"], skill_dir)
+            if rel_path.upper() in ["SKILL.MD", "README.MD"]:
                 continue
 
-            rel_path = _get_relative_path(file_info["path"], skill_dir)
             resources.append(
                 create_backend_resource(
                     name=rel_path,

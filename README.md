@@ -36,6 +36,7 @@
 
 ## What's New
 
+- **2026-04-22** &nbsp;**v0.3.17** — LiteParse document parsing toolset (`include_liteparse=True`). Parse PDFs, DOCX, XLSX and more locally with optional OCR.
 - **2026-04-22** &nbsp;**v0.3.16** — `instructions=` now replaces `BASE_PROMPT` directly. Use `f"{BASE_PROMPT}\n\n..."` to extend it. Subagents still get `BASE_PROMPT` automatically.
 - **2026-04-12** &nbsp;**v0.3.8** — Stuck loop detection, context limit warnings for the model, expanded context file discovery (CLAUDE.md, .cursorrules, etc.), eviction & orphan repair migrated to capabilities hooks.
 - **2026-04-11** &nbsp;**v0.3.6** — One-command installer + self-update: `curl -fsSL .../install.sh | bash` installs everything automatically. New `pydantic-deep update` command. Startup update notifications with 24-hour PyPI cache.
@@ -81,6 +82,10 @@ Pydantic Deep Agents is an **agent harness** — the complete infrastructure tha
 <tr>
 <td><b>📚 Skills system</b></td>
 <td>Domain-specific knowledge loaded on demand from SKILL.md files. Built-in skills: code-review, refactor, test-writer, git-workflow, and more.</td>
+</tr>
+<tr>
+<td><b>📄 Document parsing</b></td>
+<td>Parse PDFs, DOCX, XLSX, PPTX, and images with optional OCR via LiteParse. Runs locally — no cloud services required.</td>
 </tr>
 <tr>
 <td><b>🔌 MCP</b></td>
@@ -223,6 +228,7 @@ agent = create_deep_agent(
     include_memory=True,        # Persistent memory across sessions
     include_plan=True,          # Structured planning before execution
     include_teams=True,         # Agent teams with shared TODO lists + message bus
+    include_liteparse=True,     # Document parsing — PDF, DOCX, XLSX + OCR
     web_search=True,            # Tool-calling: web search
     web_fetch=True,             # Tool-calling: web fetch
     thinking="high",            # Extended thinking / reasoning effort

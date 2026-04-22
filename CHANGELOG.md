@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.17] - 2026-04-22
+
+### Added
+
+- **`LiteparseToolset` — document parsing via [LiteParse](https://github.com/run-llama/liteparse)**
+  - New toolset at `pydantic_deep.toolsets.liteparse`
+  - Tools: `parse_document` (text extraction) and `screenshot_document` (per-page images)
+  - Reads files from any backend as bytes — works with `StateBackend`, `LocalBackend`, `DockerSandbox`
+  - Optional OCR via built-in Tesseract or pluggable HTTP server (PaddleOCR, EasyOCR)
+  - Lazy parser initialization — the Node.js CLI is found/installed on first tool call
+  - Configurable: `ocr_enabled`, `ocr_language`, `ocr_server_url`, `dpi`, `max_pages`
+  - Graceful error messages when the `liteparse` package or Node.js CLI is not installed
+  - Enabled via `include_liteparse=True` in `create_deep_agent()`
+
+- **`liteparse` optional extra in `pyproject.toml`**
+  - `pip install pydantic-deep[liteparse]` installs the Python wrapper
+  - Node.js >= 18 and `npm install -g @llamaindex/liteparse` are required separately
+
 ## [0.3.16] - 2026-04-22
 
 ### Changed

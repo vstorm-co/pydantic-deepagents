@@ -85,6 +85,7 @@ def create_cli_agent(  # noqa: C901
     temperature: float | None = None,
     include_browser: bool | None = None,
     browser_headless: bool | None = None,
+    include_liteparse: bool | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -256,6 +257,9 @@ def create_cli_agent(  # noqa: C901
     _browser = include_browser if include_browser is not None else config.include_browser
     effective_browser = _browser if not lean else False
 
+    _liteparse = include_liteparse if include_liteparse is not None else config.include_liteparse
+    effective_liteparse = _liteparse if not lean else False
+
     # Model settings — explicit param > model_settings dict > non-interactive > config
     effective_model_settings: dict[str, Any] = {}
     if non_interactive:
@@ -328,6 +332,8 @@ def create_cli_agent(  # noqa: C901
         context_discovery=_context_disc if not lean else False,
         # Teams
         include_teams=(include_teams if include_teams is not None else config.include_teams),
+        # Document parsing
+        include_liteparse=effective_liteparse,
         # Self-improvement
         include_improve=True,
         # Web tools — explicit params override config

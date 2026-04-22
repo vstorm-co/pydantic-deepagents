@@ -51,13 +51,38 @@ fi
 
 echo ""
 
-# ── Step 2: install pydantic-deep ─────────────────────────────────────────────
-say "Installing pydantic-deep CLI (with browser support)..."
-uv tool install "pydantic-deep[cli,browser]" --upgrade
+# ── Step 2: ask about optional features ──────────────────────────────────────
+echo ""
+printf "  ${BOLD}Optional features${RESET}\n"
+printf "  ─────────────────────────────\n"
+echo ""
+
+# LiteParse document parsing
+INSTALL_LITEPARSE=false
+printf "  Install document parsing support via ${BOLD}LiteParse${RESET}?\n"
+printf "  Parses PDFs, DOCX, XLSX and more — runs locally with optional OCR.\n"
+printf "  Requires ${BOLD}Node.js >= 18${RESET} on your system.\n"
+printf "  [Y/n] "
+read -r _lp_answer </dev/tty
+case "${_lp_answer:-Y}" in
+    [Yy]*) INSTALL_LITEPARSE=true ;;
+    *)     ok "Skipping LiteParse — enable later with: pydantic-deep run --liteparse" ;;
+esac
 
 echo ""
 
-# ── Step 3: install Chromium for browser automation ───────────────────────────
+# ── Step 3: install pydantic-deep ─────────────────────────────────────────────
+if $INSTALL_LITEPARSE; then
+    say "Installing pydantic-deep CLI (with browser and liteparse support)..."
+    uv tool install "pydantic-deep[cli,browser,liteparse]" --upgrade
+else
+    say "Installing pydantic-deep CLI (with browser support)..."
+    uv tool install "pydantic-deep[cli,browser]" --upgrade
+fi
+
+echo ""
+
+# ── Step 4: install Chromium for browser automation ───────────────────────────
 say "Installing Chromium for browser automation..."
 # uv tool executables land in ~/.local/bin — ensure it's in PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -71,7 +96,46 @@ fi
 
 echo ""
 
-# ── Step 4: verify ────────────────────────────────────────────────────────────
+# ── Step 5: install LiteParse CLI (Node.js) ───────────────────────────────────
+if $INSTALL_LITEPARSE; then
+    say "Setting up LiteParse document parsing..."
+
+    # Check for Node.js
+    if command -v node &>/dev/null; then
+        NODE_VERSION="$(node --version 2>/dev/null | sed 's/v//')"
+        NODE_MAJOR="$(echo "$NODE_VERSION" | cut -d. -f1)"
+        if [ "$NODE_MAJOR" -ge 18 ] 2>/dev/null; then
+            ok "Node.js ${NODE_VERSION} found."
+        else
+            warn "Node.js ${NODE_VERSION} is too old (need >= 18). Installing a newer version..."
+            if command -v nvm &>/dev/null; then
+                nvm install 20 && nvm use 20 || warn "nvm install failed — install Node.js 20 manually from https://nodejs.org/"
+            else
+                warn "Please install Node.js >= 18 from https://nodejs.org/ and re-run:"
+                warn "  npm install -g @llamaindex/liteparse"
+            fi
+        fi
+    else
+        warn "Node.js not found. Install Node.js >= 18 from https://nodejs.org/ and then run:"
+        warn "  npm install -g @llamaindex/liteparse"
+    fi
+
+    # Install the LiteParse CLI if npm is available and Node.js >= 18
+    if command -v npm &>/dev/null && command -v node &>/dev/null; then
+        NODE_MAJOR="$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1)"
+        if [ "${NODE_MAJOR:-0}" -ge 18 ] 2>/dev/null; then
+            if npm install -g @llamaindex/liteparse 2>/dev/null; then
+                ok "LiteParse CLI installed."
+            else
+                warn "LiteParse CLI install failed — run 'npm install -g @llamaindex/liteparse' manually."
+            fi
+        fi
+    fi
+
+    echo ""
+fi
+
+# ── Step 6: verify ────────────────────────────────────────────────────────────
 if command -v pydantic-deep &>/dev/null; then
     VERSION="$(pydantic-deep --version 2>&1 | head -1)"
     ok "${VERSION} installed successfully!"

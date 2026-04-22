@@ -156,6 +156,11 @@ from pydantic_deep.toolsets.context import (
     format_context_prompt,
     load_context_files,
 )
+from pydantic_deep.toolsets.liteparse import (
+    PARSE_DOCUMENT_DESCRIPTION,
+    SCREENSHOT_DOCUMENT_DESCRIPTION,
+    LiteparseToolset,
+)
 from pydantic_deep.toolsets.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
@@ -253,6 +258,9 @@ __all__ = [
     "CostTracking",
     # Toolsets
     "BrowserToolset",
+    "LiteparseToolset",
+    "PARSE_DOCUMENT_DESCRIPTION",
+    "SCREENSHOT_DOCUMENT_DESCRIPTION",
     "TodoToolset",
     "create_console_toolset",
     "get_console_system_prompt",

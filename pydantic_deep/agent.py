@@ -117,6 +117,7 @@ def create_deep_agent(
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
     include_improve: bool = False,
+    include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
     web_search: bool = True,
     web_fetch: bool = True,
@@ -186,6 +187,7 @@ def create_deep_agent(
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
     include_improve: bool = False,
+    include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
     web_search: bool = True,
     web_fetch: bool = True,
@@ -253,6 +255,7 @@ def create_deep_agent(  # noqa: C901
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
     include_improve: bool = False,
+    include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
     web_search: bool = True,
     web_fetch: bool = True,
@@ -408,6 +411,12 @@ def create_deep_agent(  # noqa: C901
             When True, adds tools for spawning agent teams, assigning
             tasks via shared todo lists, messaging teammates, and
             dissolving teams. Defaults to False.
+        include_liteparse: Whether to include the LiteParse document parsing
+            toolset (``parse_document``, ``screenshot_document`` tools).
+            Requires Node.js >= 18 and the ``liteparse`` optional extra:
+            ``pip install pydantic-deep[liteparse]``.
+            The Node.js CLI is auto-installed via npm on first use if
+            ``npm`` is in PATH. Defaults to False.
         web_search: Whether to include the ``WebSearch`` capability.
             Defaults to True.
         web_fetch: Whether to include the ``WebFetch`` capability.
@@ -789,6 +798,13 @@ def create_deep_agent(  # noqa: C901
             model=model if isinstance(model, str) else "openrouter:anthropic/claude-sonnet-4",
         )
         all_toolsets.append(improve_toolset)
+
+    # LiteParse document parsing toolset
+    if include_liteparse:
+        from pydantic_deep.toolsets.liteparse import LiteparseToolset
+
+        liteparse_toolset = LiteparseToolset()
+        all_toolsets.append(liteparse_toolset)
 
     # Inject output style into instructions
     if output_style is not None:

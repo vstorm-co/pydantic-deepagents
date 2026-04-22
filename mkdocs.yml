@@ -116,6 +116,7 @@ plugins:
           - advanced/plan-mode.md: Plan mode subagent
           - advanced/web-tools.md: Web tools (built-in)
           - advanced/browser.md: Browser automation via Playwright
+          - advanced/liteparse.md: Document parsing (LiteParse)
           - advanced/mcp.md: MCP servers
           - advanced/acp.md: ACP editor integration (Zed)
           - advanced/multi-user.md: Multi-user isolation patterns
@@ -230,6 +231,7 @@ nav:
     - advanced/plan-mode.md
     - advanced/web-tools.md
     - advanced/browser.md
+    - advanced/liteparse.md
     - advanced/mcp.md
     - advanced/acp.md
     - advanced/multi-user.md

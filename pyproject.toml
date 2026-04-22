@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.16"
+version = "0.3.17"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -85,13 +85,15 @@ browser = [
     "playwright>=1.40.0",
     "html2text>=2020.1",
 ]
+# Document parsing via LiteParse (requires Node.js >= 18)
+liteparse = ["liteparse>=0.1.0"]
 # ACP (Agent Client Protocol) support for editor integration
 acp = ["agent-client-protocol>=0.8.0"]
 # Logfire tracing support
 logfire = ["logfire>=4.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser]",
+    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse]",
 ]
 
 [project.urls]

@@ -180,9 +180,7 @@ class LiteparseToolset(FunctionToolset[Any]):
                     saved: list[str] = []
                     for screenshot in ss_result:
                         if screenshot.image_bytes:
-                            out_path = (
-                                f"{output_dir.rstrip('/')}/page_{screenshot.page_num}.png"
-                            )
+                            out_path = f"{output_dir.rstrip('/')}/page_{screenshot.page_num}.png"
                             backend.write(out_path, screenshot.image_bytes)
                             saved.append(out_path)
 
@@ -198,7 +196,5 @@ class LiteparseToolset(FunctionToolset[Any]):
     def _get_parser(self) -> Any:
         """Lazy-initialize the LiteParse parser instance."""
         if self._parser is None:
-            self._parser = _LiteParse(
-                install_if_not_available=self._install_if_not_available
-            )
+            self._parser = _LiteParse(install_if_not_available=self._install_if_not_available)
         return self._parser

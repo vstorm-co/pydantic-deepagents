@@ -304,9 +304,7 @@ class TestScreenshotDocument:
         ts._parser = mock_parser
 
         with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
-            await ts.tools["screenshot_document"].function(
-                ctx, path="/doc.pdf", target_pages="1-3"
-            )
+            await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf", target_pages="1-3")
 
         call_kwargs = mock_parser.screenshot_async.call_args.kwargs
         assert call_kwargs["target_pages"] == "1-3"

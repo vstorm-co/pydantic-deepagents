@@ -41,6 +41,7 @@ async def execute_headless(  # noqa: C901
     verbose: bool = False,
     include_browser: bool | None = None,
     browser_headless: bool | None = None,
+    include_liteparse: bool | None = None,
 ) -> int:
     """Execute a task in headless mode and print the result.
 
@@ -113,6 +114,8 @@ async def execute_headless(  # noqa: C901
         agent_kwargs["include_browser"] = include_browser
     if browser_headless is not None:
         agent_kwargs["browser_headless"] = browser_headless
+    if include_liteparse is not None:
+        agent_kwargs["include_liteparse"] = include_liteparse
 
     agent, deps = create_cli_agent(**agent_kwargs)
 

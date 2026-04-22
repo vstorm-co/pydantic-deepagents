@@ -136,6 +136,11 @@ from pydantic_deep.styles import (
 )
 from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
 from pydantic_deep.toolsets.browser import BrowserToolset
+from pydantic_deep.toolsets.liteparse import (
+    PARSE_DOCUMENT_DESCRIPTION,
+    SCREENSHOT_DOCUMENT_DESCRIPTION,
+    LiteparseToolset,
+)
 from pydantic_deep.toolsets.checkpointing import (
     Checkpoint,
     CheckpointMiddleware,
@@ -253,6 +258,9 @@ __all__ = [
     "CostTracking",
     # Toolsets
     "BrowserToolset",
+    "LiteparseToolset",
+    "PARSE_DOCUMENT_DESCRIPTION",
+    "SCREENSHOT_DOCUMENT_DESCRIPTION",
     "TodoToolset",
     "create_console_toolset",
     "get_console_system_prompt",

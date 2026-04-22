@@ -269,6 +269,13 @@ def run(
             help="Browser window mode: headless (hidden) or headed (visible, default)",
         ),
     ] = None,
+    include_liteparse: Annotated[
+        bool | None,
+        typer.Option(
+            "--liteparse/--no-liteparse",
+            help="Enable LiteParse document parsing (requires pydantic-deep[liteparse] and Node.js)",
+        ),
+    ] = None,
 ) -> None:
     """Run a task non-interactively (headless mode).
 
@@ -337,6 +344,7 @@ def run(
             verbose=verbose,
             include_browser=include_browser,
             browser_headless=browser_headless,
+            include_liteparse=include_liteparse,
         )
     )
     raise typer.Exit(result)

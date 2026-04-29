@@ -30,6 +30,8 @@ class DeepAgentDeps:
         files: In-memory file cache (used with StateBackend)
         todos: Task list for planning
         subagents: Pre-configured subagents available for delegation
+        checkpoint_store: Per-session checkpoint store (e.g. InMemoryCheckpointStore).
+            When set, overrides the global store passed to ``create_deep_agent()``.
     """
 
     backend: BackendProtocol = field(default_factory=StateBackend)
@@ -40,6 +42,7 @@ class DeepAgentDeps:
     ask_user: Any = field(default=None, repr=False)  # Callback for interactive questions
     context_middleware: Any = field(default=None, repr=False)  # ContextManagerCapability | None
     share_todos: bool = False  # When True, subagents share parent's todo list
+    checkpoint_store: Any = field(default=None, repr=False)  # Per-session CheckpointStore
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
@@ -232,6 +235,7 @@ class DeepAgentDeps:
             uploads=self.uploads,  # Shared reference
             ask_user=self.ask_user,  # Propagate to subagents
             share_todos=self.share_todos,  # Propagate to subagents
+            checkpoint_store=self.checkpoint_store,  # Shared reference
         )
 
 

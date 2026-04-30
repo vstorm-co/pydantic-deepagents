@@ -97,6 +97,7 @@ def create_deep_agent(
     output_type: None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = 20_000,
+    max_binary_content: int | None = 3,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -167,6 +168,7 @@ def create_deep_agent(
     output_type: OutputSpec[OutputDataT],
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = 20_000,
+    max_binary_content: int | None = 3,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -235,6 +237,7 @@ def create_deep_agent(  # noqa: C901
     output_type: OutputSpec[OutputDataT] | None = None,
     history_processors: Sequence[HistoryProcessor[DeepAgentDeps]] | None = None,
     eviction_token_limit: int | None = 20_000,
+    max_binary_content: int | None = 3,
     edit_format: str = "hashline",
     context_manager: bool = True,
     context_manager_max_tokens: int | None = None,
@@ -332,6 +335,13 @@ def create_deep_agent(  # noqa: C901
             Tool outputs exceeding this limit are saved to files and
             replaced with a preview + file reference. Defaults to 20,000.
             Set to None to disable eviction.
+        max_binary_content: Maximum number of multimodal binary parts
+            (e.g. ``BinaryContent`` screenshots) to keep in model-visible
+            history. Older binaries are written to the backend and replaced
+            with a compact ``read_file``-able text reference so the agent can
+            still retrieve them on demand. Defaults to 3. Set to ``None`` to
+            keep every binary in history. Only applies when
+            ``eviction_token_limit`` is set.
         context_manager: Whether to enable the ContextManagerMiddleware for
             automatic token tracking and auto-compression. When True (default),
             the middleware monitors token usage and triggers LLM-based
@@ -844,6 +854,7 @@ def create_deep_agent(  # noqa: C901
     # Previously this was a history processor; now it uses after_tool_execute
     # to intercept large outputs before they enter message history.
     _eviction_token_limit = eviction_token_limit
+    _max_binary_content = max_binary_content
     _on_eviction = on_eviction
 
     # Resolve history_messages_path to absolute for the middleware
@@ -937,6 +948,7 @@ def create_deep_agent(  # noqa: C901
             EvictionCapability(
                 backend=backend,
                 token_limit=_eviction_token_limit,
+                max_binary_content=_max_binary_content,
                 on_eviction=_on_eviction,
             )
         )

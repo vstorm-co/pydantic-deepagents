@@ -110,7 +110,9 @@ from pydantic_deep.capabilities.hooks import (
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.processors.eviction import (
+    BINARY_PRUNED_TEMPLATE,
     DEFAULT_EVICTION_PATH,
+    DEFAULT_MAX_BINARY_CONTENT,
     DEFAULT_TOKEN_LIMIT,
     EVICTION_MESSAGE_TEMPLATE,
     NUM_CHARS_PER_TOKEN,
@@ -317,7 +319,9 @@ __all__ = [
     "NUM_CHARS_PER_TOKEN",
     "DEFAULT_TOKEN_LIMIT",
     "DEFAULT_EVICTION_PATH",
+    "DEFAULT_MAX_BINARY_CONTENT",
     "EVICTION_MESSAGE_TEMPLATE",
+    "BINARY_PRUNED_TEMPLATE",
     # Processors (from summarization-pydantic-ai)
     "SummarizationProcessor",
     "SlidingWindowProcessor",

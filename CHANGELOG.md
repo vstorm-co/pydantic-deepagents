@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.18] - 2026-05-05
+
+### Fixed
+
+- **`EvictionCapability` dropped `BinaryContent` (e.g. screenshots) from `ToolReturn` results** — previously, any `ToolReturn(return_value=..., content=[..., BinaryContent(...)])` was collapsed into a plain string before the size check, so the multimodal `content` (images, audio, PDFs) was silently discarded along with a text eviction message. The capability now only measures and evicts `return_value`; the `content` list and `metadata` are always preserved by re-wrapping the result. ([#90](https://github.com/vstorm-co/pydantic-deepagents/issues/90))
+
+### Fixed
+
+- **`DeepAgentDeps` was missing the `checkpoint_store` field** — the checkpointing middleware already resolved the store via `getattr(deps, "checkpoint_store", None)` and the docs instructed users to pass it at construction time, but the field was never declared on the dataclass so assignments were silently ignored and type checkers raised `attr-defined` errors. The field is now properly declared as `checkpoint_store: Any = None` and propagated as a shared reference through `clone_for_subagent()`. ([#87](https://github.com/vstorm-co/pydantic-deepagents/issues/87))
+
+### Added
+
+- **Binary content pruning via `max_binary_content`** — a new `before_model_request` hook in `EvictionCapability` bounds the number of multimodal binary parts kept in model-visible history. Older `BinaryContent` values (from both `UserPromptPart.content` and `ToolReturnPart.content`) are written to the backend at deterministic paths (`/large_tool_results/binary_{id}.{ext}`) and replaced with a compact `read_file`-able text reference so the agent can still retrieve them on demand. If a backend write fails, the binary is left in place to avoid data loss.
+  - `EvictionCapability` gains a `max_binary_content: int | None` field (default `3`).
+  - `create_deep_agent()` gains a matching `max_binary_content: int | None = 3` parameter across all overloads; pass `None` to keep every binary in history.
+  - New constants exported from the top-level package: `DEFAULT_MAX_BINARY_CONTENT`, `BINARY_PRUNED_TEMPLATE`.
+  - Storage paths use `BinaryContent.identifier` (a stable SHA1 of the bytes), making re-pruning the same binary idempotent.
+
 ## [0.3.17] - 2026-04-22
 
 ### Added

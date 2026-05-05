@@ -1,124 +1,145 @@
 # Human-in-the-Loop
 
-pydantic-deep supports requiring human approval for sensitive operations through the `interrupt_on` configuration.
+pydantic-deep supports requiring human approval for sensitive tool calls through the `interrupt_on` parameter. When a deferred tool is called, the agent pauses and returns a [`DeferredToolRequests`][pydantic_ai.tools.DeferredToolRequests] object instead of a final answer. You review the pending calls, build an approvals dict, and resume the agent with [`DeferredToolResults`][pydantic_ai.tools.DeferredToolResults].
 
 ## Configuration
 
 ```python
+from pydantic_deep import create_deep_agent
+
 agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
     interrupt_on={
         "execute": True,       # Shell command execution
         "write_file": True,    # Creating/overwriting files
         "edit_file": True,     # Modifying existing files
-    }
+    },
 )
 ```
 
 ## How It Works
 
-When a tool requires approval:
-
-1. Agent calls the tool
-2. Tool execution is deferred
-3. `DeferredToolRequests` returned instead of result
-4. You review and approve/deny
-5. Resume execution with decisions
+1. Agent decides to call a tool marked for approval
+2. Agent run ends early — returns `DeferredToolRequests` as `result.output`
+3. You inspect `result.output.approvals` and build an approval decision per `tool_call_id`
+4. Resume with `agent.run(None, ..., deferred_tool_results=DeferredToolResults(approvals=...))`
 
 ## Example Flow
 
 ```python
 import asyncio
+from pydantic_ai.tools import (
+    DeferredToolRequests,
+    DeferredToolResults,
+    ToolApproved,
+    ToolDenied,
+)
 from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+
 
 async def main():
     agent = create_deep_agent(
+        model="anthropic:claude-sonnet-4-6",
         interrupt_on={
             "execute": True,
             "write_file": True,
-        }
+        },
     )
 
     deps = DeepAgentDeps(backend=StateBackend())
 
-    # Initial run
     result = await agent.run(
         "Create a script that prints hello world and run it",
         deps=deps,
     )
 
-    # Check if approval needed
-    if hasattr(result, 'deferred_tool_calls'):
-        print("Approval needed for:")
-        for call in result.deferred_tool_calls:
+    if isinstance(result.output, DeferredToolRequests):
+        print(f"Approval needed for {len(result.output.approvals)} tool call(s):")
+        for call in result.output.approvals:
             print(f"  - {call.tool_name}: {call.args}")
 
-        # In a real app, you'd prompt the user
-        # For this example, approve all
-        approved = result.approve_all()
+        # Approve all pending calls
+        approvals = {call.tool_call_id: ToolApproved() for call in result.output.approvals}
 
-        # Resume with approvals
+        # Resume execution with approval decisions
         result = await agent.run(
-            approved,
+            None,
             deps=deps,
             message_history=result.all_messages(),
+            deferred_tool_results=DeferredToolResults(approvals=approvals),
         )
 
     print(result.output)
+
 
 asyncio.run(main())
 ```
 
 ## Selective Approval
 
-You can approve or deny individual tool calls:
-
 ```python
-if hasattr(result, 'deferred_tool_calls'):
-    decisions = []
+from pydantic_ai.tools import (
+    DeferredToolRequests,
+    DeferredToolResults,
+    ToolApproved,
+    ToolDenied,
+)
 
-    for call in result.deferred_tool_calls:
+if isinstance(result.output, DeferredToolRequests):
+    approvals: dict[str, ToolApproved | ToolDenied] = {}
+
+    for call in result.output.approvals:
         if call.tool_name == "execute":
-            # Review command before approving
             if "rm" in call.args.get("command", ""):
-                decisions.append(call.deny("Destructive command not allowed"))
+                approvals[call.tool_call_id] = ToolDenied(
+                    message="Destructive command not allowed"
+                )
             else:
-                decisions.append(call.approve())
-        elif call.tool_name == "write_file":
-            # Always approve writes
-            decisions.append(call.approve())
+                approvals[call.tool_call_id] = ToolApproved()
+        else:
+            approvals[call.tool_call_id] = ToolApproved()
 
-    # Resume with decisions
     result = await agent.run(
-        decisions,
+        None,
         deps=deps,
         message_history=result.all_messages(),
+        deferred_tool_results=DeferredToolResults(approvals=approvals),
     )
 ```
 
 ## Interactive Approval
 
-For CLI applications:
-
 ```python
+from pydantic_ai.tools import (
+    DeferredToolRequests,
+    DeferredToolResults,
+    ToolApproved,
+    ToolDenied,
+)
+
+
 async def interactive_run(agent, prompt, deps):
     result = await agent.run(prompt, deps=deps)
 
-    while hasattr(result, 'deferred_tool_calls'):
-        for call in result.deferred_tool_calls:
+    while isinstance(result.output, DeferredToolRequests):
+        approvals: dict[str, ToolApproved | ToolDenied] = {}
+
+        for call in result.output.approvals:
             print(f"\nTool: {call.tool_name}")
             print(f"Args: {call.args}")
+            response = input("Approve? [y/n]: ").strip().lower()
 
-            response = input("Approve? [y/n]: ").lower()
-            if response == 'y':
-                call.approve()
+            if response == "y":
+                approvals[call.tool_call_id] = ToolApproved()
             else:
                 reason = input("Reason for denial: ")
-                call.deny(reason)
+                approvals[call.tool_call_id] = ToolDenied(message=reason)
 
         result = await agent.run(
-            result.get_decisions(),
+            None,
             deps=deps,
             message_history=result.all_messages(),
+            deferred_tool_results=DeferredToolResults(approvals=approvals),
         )
 
     return result
@@ -126,51 +147,60 @@ async def interactive_run(agent, prompt, deps):
 
 ## Web Application Integration
 
-For web apps with async approval:
-
 ```python
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
+from pydantic_ai.tools import (
+    DeferredToolRequests,
+    DeferredToolResults,
+    ToolApproved,
+    ToolDenied,
+)
 
 app = FastAPI()
-pending_approvals = {}
+pending_approvals: dict[str, dict] = {}
+
 
 @app.post("/agent/run")
 async def run_agent(prompt: str):
     result = await agent.run(prompt, deps=deps)
 
-    if hasattr(result, 'deferred_tool_calls'):
-        # Store for later approval
+    if isinstance(result.output, DeferredToolRequests):
         request_id = generate_id()
         pending_approvals[request_id] = {
-            "result": result,
-            "calls": result.deferred_tool_calls,
+            "messages": result.all_messages(),
+            "calls": result.output.approvals,
         }
         return {
             "status": "pending_approval",
             "request_id": request_id,
             "tools": [
-                {"name": c.tool_name, "args": c.args}
-                for c in result.deferred_tool_calls
-            ]
+                {"name": c.tool_name, "args": c.args, "id": c.tool_call_id}
+                for c in result.output.approvals
+            ],
         }
 
     return {"status": "complete", "output": result.output}
 
+
 @app.post("/agent/approve/{request_id}")
 async def approve(request_id: str, decisions: list[dict]):
     pending = pending_approvals.pop(request_id)
+    approvals: dict[str, ToolApproved | ToolDenied] = {}
 
     for i, decision in enumerate(decisions):
         call = pending["calls"][i]
         if decision["approved"]:
-            call.approve()
+            approvals[call.tool_call_id] = ToolApproved()
         else:
-            call.deny(decision.get("reason", "Denied"))
+            approvals[call.tool_call_id] = ToolDenied(
+                message=decision.get("reason", "Denied by user")
+            )
 
     result = await agent.run(
-        pending["result"].get_decisions(),
+        None,
         deps=deps,
-        message_history=pending["result"].all_messages(),
+        message_history=pending["messages"],
+        deferred_tool_results=DeferredToolResults(approvals=approvals),
     )
 
     return {"status": "complete", "output": result.output}
@@ -178,18 +208,14 @@ async def approve(request_id: str, decisions: list[dict]):
 
 ## Default Behavior
 
-By default:
-
 | Tool | Requires Approval |
 |------|-------------------|
-| `execute` | Yes (if enabled) |
-| `write_file` | No |
-| `edit_file` | No |
-| `task` | No |
-| Other tools | No |
+| `execute` | Only when `interrupt_on={"execute": True}` |
+| `write_file` | Only when `interrupt_on={"write_file": True}` |
+| `edit_file` | Only when `interrupt_on={"edit_file": True}` |
+| Other tools | Never (not supported) |
 
-!!! tip
-    Even without approval, `execute` only works with sandbox backends.
+By default, when `interrupt_on` is not set, no approval flow is triggered.
 
 ## Best Practices
 
@@ -199,7 +225,7 @@ By default:
 interrupt_on={"execute": True}
 ```
 
-Shell commands can be dangerous. Always review.
+Shell commands can be dangerous. Always require approval.
 
 ### 2. Review Writes in Production
 
@@ -210,18 +236,17 @@ interrupt_on={
 }
 ```
 
-In production environments, review file modifications.
-
-### 3. Log All Approvals
+### 3. Log All Decisions
 
 ```python
 import logging
 
 logger = logging.getLogger(__name__)
 
-for call in result.deferred_tool_calls:
-    logger.info(f"Approving: {call.tool_name} with {call.args}")
-    call.approve()
+approvals = {}
+for call in result.output.approvals:
+    approvals[call.tool_call_id] = ToolApproved()
+    logger.info("Approved %s with args %s", call.tool_name, call.args)
 ```
 
 ### 4. Set Timeouts
@@ -229,17 +254,19 @@ for call in result.deferred_tool_calls:
 ```python
 import asyncio
 
-try:
-    approval = await asyncio.wait_for(
-        get_user_approval(call),
-        timeout=300,  # 5 minute timeout
-    )
-except asyncio.TimeoutError:
-    call.deny("Approval timeout")
+async def timed_approval(call) -> ToolApproved | ToolDenied:
+    try:
+        approved = await asyncio.wait_for(
+            get_user_approval(call.tool_name, call.args),
+            timeout=300,  # 5 minute timeout
+        )
+        return ToolApproved() if approved else ToolDenied(message="User denied")
+    except asyncio.TimeoutError:
+        return ToolDenied(message="Approval timed out")
 ```
 
 ## Next Steps
 
 - [Subagents](subagents.md) - Task delegation
 - [Streaming](streaming.md) - Real-time output
-- [Examples](../examples/index.md) - More examples
+- [Examples: Human-in-the-Loop](../examples/human-in-the-loop.md) - Full working example

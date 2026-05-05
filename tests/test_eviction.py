@@ -1128,3 +1128,678 @@ class TestEvictionCapability:
         from pydantic_deep import EvictionCapability as Imported
 
         assert Imported is EvictionCapability
+
+
+# ---------------------------------------------------------------------------
+# ToolReturn preservation (after_tool_execute)
+# ---------------------------------------------------------------------------
+
+
+class TestEvictionCapabilityToolReturn:
+    """Tests for ``EvictionCapability`` handling of ``ToolReturn`` results."""
+
+    @pytest.mark.anyio
+    async def test_toolreturn_preserves_binary_content(self):
+        """ToolReturn with BinaryContent in `content` is not collapsed by text eviction."""
+        from pydantic_ai.messages import BinaryContent, ToolReturn
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, token_limit=10)
+        ctx = _make_ctx(backend)
+
+        screenshot = BinaryContent(data=b"\xff\xd8" + b"x" * 1024, media_type="image/jpeg")
+        original = ToolReturn(
+            return_value="Page screenshot at https://example.com",
+            content=["Page screenshot at https://example.com", screenshot],
+        )
+
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_screenshot"),
+            tool_def=_cap_td(),
+            args={},
+            result=original,
+        )
+
+        assert isinstance(result, ToolReturn)
+        # return_value is small so it stays unchanged
+        assert result.return_value == original.return_value
+        # content (with the BinaryContent) is preserved as-is
+        assert result.content == original.content
+        # Backend was not asked to store anything (no eviction)
+        assert backend._read_bytes("/large_tool_results/call_screenshot") in (None, b"")
+
+    @pytest.mark.anyio
+    async def test_toolreturn_evicts_only_return_value(self):
+        """Large ToolReturn.return_value is evicted but content is preserved."""
+        from pydantic_ai.messages import BinaryContent, ToolReturn
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, token_limit=10)  # 40 chars
+        ctx = _make_ctx(backend)
+
+        large_text = _make_large_content(20)
+        screenshot = BinaryContent(data=b"image-bytes", media_type="image/png")
+        original = ToolReturn(
+            return_value=large_text,
+            content=["caption", screenshot],
+            metadata={"trace_id": "abc"},
+        )
+
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_big_tr"),
+            tool_def=_cap_td(),
+            args={},
+            result=original,
+        )
+
+        assert isinstance(result, ToolReturn)
+        assert isinstance(result.return_value, str)
+        assert "Tool result too large" in result.return_value
+        assert "/large_tool_results/call_big_tr" in result.return_value
+        # content (with the BinaryContent) is preserved as-is
+        assert result.content == original.content
+        # metadata is preserved
+        assert result.metadata == {"trace_id": "abc"}
+        # The text value was actually written to the backend
+        assert backend._read_bytes("/large_tool_results/call_big_tr") == large_text.encode()
+
+    @pytest.mark.anyio
+    async def test_toolreturn_small_passes_through(self):
+        """Small ToolReturn passes through unchanged (same instance)."""
+        from pydantic_ai.messages import BinaryContent, ToolReturn
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, token_limit=1000)
+        ctx = _make_ctx(backend)
+
+        screenshot = BinaryContent(data=b"x" * 32, media_type="image/jpeg")
+        original = ToolReturn(return_value="ok", content=["caption", screenshot])
+
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_small_tr"),
+            tool_def=_cap_td(),
+            args={},
+            result=original,
+        )
+
+        assert result is original
+
+
+# ---------------------------------------------------------------------------
+# Binary content retention (before_model_request)
+# ---------------------------------------------------------------------------
+
+
+class _FakeRequestContext:
+    """Minimal stand-in for ``ModelRequestContext`` used in tests."""
+
+    def __init__(self, messages: list[ModelMessage]) -> None:
+        self.messages = messages
+
+
+def _user_with_image(
+    image_bytes: bytes,
+    media_type: str = "image/jpeg",
+    text: str = "image",
+    timestamp: datetime | None = None,
+) -> ModelRequest:
+    from pydantic_ai.messages import BinaryContent
+
+    return ModelRequest(
+        parts=[
+            UserPromptPart(
+                content=[text, BinaryContent(data=image_bytes, media_type=media_type)],
+                timestamp=timestamp or datetime(2024, 1, 1, tzinfo=timezone.utc),
+            )
+        ],
+        timestamp=timestamp or datetime(2024, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+def _toolreturn_with_image(
+    image_bytes: bytes,
+    *,
+    media_type: str = "image/jpeg",
+    text: str = "Page screenshot",
+    tool_call_id: str = "call_img",
+) -> ModelRequest:
+    from pydantic_ai.messages import BinaryContent
+
+    return ModelRequest(
+        parts=[
+            ToolReturnPart(
+                tool_name="browser_screenshot",
+                content=[text, BinaryContent(data=image_bytes, media_type=media_type)],
+                tool_call_id=tool_call_id,
+                timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            )
+        ],
+        timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+class TestBinaryContentRetention:
+    """Tests for ``EvictionCapability.before_model_request`` binary pruning."""
+
+    @pytest.mark.anyio
+    async def test_keeps_most_recent_binaries(self):
+        """The N most recent binaries are kept; older ones are pruned and stored."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=2)
+        ctx = _make_ctx(backend)
+
+        # 4 messages, each with one image — newest last
+        messages: list[ModelMessage] = [
+            _user_with_image(b"image-0-bytes" * 8, text="img0"),
+            _user_with_image(b"image-1-bytes" * 8, text="img1"),
+            _user_with_image(b"image-2-bytes" * 8, text="img2"),
+            _user_with_image(b"image-3-bytes" * 8, text="img3"),
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        new_messages = result_rc.messages
+        assert len(new_messages) == 4
+
+        def _binary_count(msg: ModelMessage) -> int:
+            count = 0
+            for part in msg.parts:
+                if isinstance(part, UserPromptPart):
+                    items = part.content if isinstance(part.content, list) else [part.content]
+                    count += sum(1 for x in items if isinstance(x, BinaryContent))
+            return count
+
+        # Two oldest messages have their binary replaced with a text reference
+        assert _binary_count(new_messages[0]) == 0
+        assert _binary_count(new_messages[1]) == 0
+        assert _binary_count(new_messages[2]) == 1
+        assert _binary_count(new_messages[3]) == 1
+
+        # Pruned binaries were stored to backend with deterministic paths
+        first_bin = BinaryContent(data=b"image-0-bytes" * 8, media_type="image/jpeg")
+        path = f"/large_tool_results/binary_{first_bin.identifier}.jpg"
+        assert backend._read_bytes(path) == b"image-0-bytes" * 8
+
+        # Older messages now contain the text reference
+        first_part = new_messages[0].parts[0]
+        assert isinstance(first_part, UserPromptPart)
+        assert isinstance(first_part.content, list)
+        text_replacements = [x for x in first_part.content if isinstance(x, str)]
+        assert any("Binary content omitted" in t for t in text_replacements)
+        assert any("read_file" in t for t in text_replacements)
+
+    @pytest.mark.anyio
+    async def test_under_limit_unchanged(self):
+        """When binaries are at or under the limit, messages pass through unchanged."""
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=3)
+        ctx = _make_ctx(backend)
+
+        messages: list[ModelMessage] = [
+            _user_with_image(b"a" * 32, text="img0"),
+            _user_with_image(b"b" * 32, text="img1"),
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # Same list, same message instances
+        assert result_rc.messages is rc.messages
+        assert result_rc.messages[0] is messages[0]
+        assert result_rc.messages[1] is messages[1]
+
+    @pytest.mark.anyio
+    async def test_none_disables_pruning(self):
+        """``max_binary_content=None`` keeps every binary in history."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=None)
+        ctx = _make_ctx(backend)
+
+        messages: list[ModelMessage] = [
+            _user_with_image(b"img-%d" % i, text=f"i{i}") for i in range(5)
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        for msg in result_rc.messages:
+            part = msg.parts[0]
+            assert isinstance(part, UserPromptPart)
+            items = part.content if isinstance(part.content, list) else [part.content]
+            assert any(isinstance(x, BinaryContent) for x in items)
+
+    @pytest.mark.anyio
+    async def test_prunes_binary_in_toolreturn_part(self):
+        """Binary parts inside ``ToolReturnPart.content`` are also pruned and stored."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        old_bytes = b"old-image-bytes" * 4
+        new_bytes = b"new-image-bytes" * 4
+
+        messages: list[ModelMessage] = [
+            _toolreturn_with_image(old_bytes, tool_call_id="call_old"),
+            _toolreturn_with_image(new_bytes, tool_call_id="call_new"),
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # Newest preserved, oldest pruned
+        old_msg = result_rc.messages[0]
+        new_msg = result_rc.messages[1]
+
+        old_part = old_msg.parts[0]
+        new_part = new_msg.parts[0]
+        assert isinstance(old_part, ToolReturnPart)
+        assert isinstance(new_part, ToolReturnPart)
+
+        assert isinstance(old_part.content, list)
+        assert not any(isinstance(x, BinaryContent) for x in old_part.content)
+        assert any(isinstance(x, str) and "Binary content omitted" in x for x in old_part.content)
+
+        assert isinstance(new_part.content, list)
+        assert any(isinstance(x, BinaryContent) for x in new_part.content)
+
+        # Stored bytes match the original BinaryContent.data
+        old_bin = BinaryContent(data=old_bytes, media_type="image/jpeg")
+        path = f"/large_tool_results/binary_{old_bin.identifier}.jpg"
+        assert backend._read_bytes(path) == old_bytes
+
+        # ToolReturnPart metadata is preserved
+        assert old_part.tool_name == "browser_screenshot"
+        assert old_part.tool_call_id == "call_old"
+
+    @pytest.mark.anyio
+    async def test_no_backend_skips_pruning(self):
+        """With no backend available, binaries are left in place."""
+        from pydantic_ai.messages import BinaryContent
+
+        cap = EvictionCapability(backend=None, max_binary_content=1)
+        ctx = _make_ctx_no_backend()
+
+        messages: list[ModelMessage] = [
+            _user_with_image(b"a" * 16, text="img0"),
+            _user_with_image(b"b" * 16, text="img1"),
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+        assert result_rc.messages is rc.messages
+        for msg in result_rc.messages:
+            part = msg.parts[0]
+            assert isinstance(part, UserPromptPart)
+            items = part.content if isinstance(part.content, list) else [part.content]
+            assert any(isinstance(x, BinaryContent) for x in items)
+
+    @pytest.mark.anyio
+    async def test_write_failure_keeps_binary(self):
+        """A backend write failure keeps the binary in history rather than dropping it."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+
+        def failing_write(path: str, content: str | bytes) -> WriteResult:
+            return WriteResult(path=path, error="disk full")
+
+        backend.write = failing_write
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        messages: list[ModelMessage] = [
+            _user_with_image(b"old" * 8, text="old"),
+            _user_with_image(b"new" * 8, text="new"),
+        ]
+        rc = _FakeRequestContext(messages)
+
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # Both binaries still present because the write failed
+        for msg in result_rc.messages:
+            part = msg.parts[0]
+            assert isinstance(part, UserPromptPart)
+            items = part.content if isinstance(part.content, list) else [part.content]
+            assert any(isinstance(x, BinaryContent) for x in items)
+
+
+class TestMaxBinaryContentAgentIntegration:
+    """``max_binary_content`` plumbing through ``create_deep_agent``."""
+
+    def _eviction_capabilities(self, agent: object) -> list[EvictionCapability]:
+        root = getattr(agent, "_root_capability", None)
+        if root is None:
+            return []
+        return [c for c in getattr(root, "capabilities", []) if isinstance(c, EvictionCapability)]
+
+    def test_agent_accepts_max_binary_content(self):
+        """``create_deep_agent`` accepts ``max_binary_content`` and forwards it."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            eviction_token_limit=20000,
+            max_binary_content=2,
+            include_subagents=False,
+            include_skills=False,
+        )
+
+        caps = self._eviction_capabilities(agent)
+        assert len(caps) == 1
+        assert caps[0].max_binary_content == 2
+
+    def test_agent_default_max_binary_content(self):
+        """Default ``max_binary_content`` is 3 when not specified."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            eviction_token_limit=20000,
+            include_subagents=False,
+            include_skills=False,
+        )
+
+        caps = self._eviction_capabilities(agent)
+        assert len(caps) == 1
+        assert caps[0].max_binary_content == 3
+
+    def test_agent_max_binary_content_none(self):
+        """``max_binary_content=None`` disables pruning."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            eviction_token_limit=20000,
+            max_binary_content=None,
+            include_subagents=False,
+            include_skills=False,
+        )
+
+        caps = self._eviction_capabilities(agent)
+        assert len(caps) == 1
+        assert caps[0].max_binary_content is None
+
+
+class TestExtensionForMediaType:
+    """Tests for the ``_extension_for_media_type`` helper."""
+
+    def test_known_media_type_uses_mapping(self):
+        from pydantic_deep.processors.eviction import _extension_for_media_type
+
+        assert _extension_for_media_type("image/jpeg") == "jpg"
+        assert _extension_for_media_type("image/png") == "png"
+
+    def test_unknown_media_type_uses_subtype(self):
+        from pydantic_deep.processors.eviction import _extension_for_media_type
+
+        assert _extension_for_media_type("image/x-foo") == "x-foo"
+        assert _extension_for_media_type("application/x-custom; charset=utf-8") == "x-custom"
+
+    def test_subtype_special_chars_sanitized(self):
+        from pydantic_deep.processors.eviction import _extension_for_media_type
+
+        assert _extension_for_media_type("image/foo.bar") == "foo_bar"
+
+    def test_no_slash_falls_back_to_bin(self):
+        from pydantic_deep.processors.eviction import _extension_for_media_type
+
+        assert _extension_for_media_type("weirdmediatype") == "bin"
+
+    def test_empty_subtype_falls_back_to_bin(self):
+        from pydantic_deep.processors.eviction import _extension_for_media_type
+
+        assert _extension_for_media_type("image/") == "bin"
+
+
+class TestBinaryRetentionEdgeCases:
+    """Edge cases for ``before_model_request`` binary pruning."""
+
+    @pytest.mark.anyio
+    async def test_bare_binary_in_toolreturn_content_pruned(self):
+        """Bare ``BinaryContent`` (not in a list) on ``ToolReturnPart.content`` is pruned."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        old_bytes = b"old-bare-binary"
+        new_bytes = b"new-bare-binary"
+
+        old_msg = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=BinaryContent(data=old_bytes, media_type="image/png"),
+                    tool_call_id="call_old_bare",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        new_msg = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=BinaryContent(data=new_bytes, media_type="image/png"),
+                    tool_call_id="call_new_bare",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+        rc = _FakeRequestContext([old_msg, new_msg])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        old_part = result_rc.messages[0].parts[0]
+        new_part = result_rc.messages[1].parts[0]
+        assert isinstance(old_part, ToolReturnPart)
+        assert isinstance(new_part, ToolReturnPart)
+
+        # Newest preserved as a BinaryContent, oldest replaced with a text reference
+        assert isinstance(new_part.content, BinaryContent)
+        assert isinstance(old_part.content, str)
+        assert "Binary content omitted" in old_part.content
+        assert "read_file" in old_part.content
+
+        # Stored bytes match the original
+        old_bin = BinaryContent(data=old_bytes, media_type="image/png")
+        path = f"/large_tool_results/binary_{old_bin.identifier}.png"
+        assert backend._read_bytes(path) == old_bytes
+
+    @pytest.mark.anyio
+    async def test_bare_binary_under_limit_unchanged(self):
+        """Bare ``BinaryContent`` under the limit is left untouched."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=3)
+        ctx = _make_ctx(backend)
+
+        msg = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=BinaryContent(data=b"only", media_type="image/png"),
+                    tool_call_id="call_only",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        rc = _FakeRequestContext([msg])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # Same instance, no rebuild
+        assert result_rc.messages[0] is msg
+
+    @pytest.mark.anyio
+    async def test_bare_binary_write_failure_keeps_binary(self):
+        """A failed backend write leaves a bare ``BinaryContent`` untouched."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+
+        def failing_write(path: str, content: str | bytes) -> WriteResult:
+            return WriteResult(path=path, error="disk full")
+
+        backend.write = failing_write
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        old_bin = BinaryContent(data=b"old-bare", media_type="image/png")
+        new_bin = BinaryContent(data=b"new-bare", media_type="image/png")
+
+        old_msg = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=old_bin,
+                    tool_call_id="call_old_fail_bare",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        new_msg = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=new_bin,
+                    tool_call_id="call_new_fail_bare",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+        rc = _FakeRequestContext([old_msg, new_msg])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        old_part = result_rc.messages[0].parts[0]
+        new_part = result_rc.messages[1].parts[0]
+        assert isinstance(old_part, ToolReturnPart)
+        assert isinstance(new_part, ToolReturnPart)
+
+        # Both still BinaryContent because the write failed
+        assert isinstance(old_part.content, BinaryContent)
+        assert isinstance(new_part.content, BinaryContent)
+
+    @pytest.mark.anyio
+    async def test_list_write_failure_keeps_binary(self):
+        """A failed backend write leaves list-form binaries untouched."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+
+        def failing_write(path: str, content: str | bytes) -> WriteResult:
+            return WriteResult(path=path, error="disk full")
+
+        backend.write = failing_write
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        msg_old = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=["caption", BinaryContent(data=b"old-list", media_type="image/png")],
+                    tool_call_id="call_old_list_fail",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        msg_new = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=["caption", BinaryContent(data=b"new-list", media_type="image/png")],
+                    tool_call_id="call_new_list_fail",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+        rc = _FakeRequestContext([msg_old, msg_new])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        old_part = result_rc.messages[0].parts[0]
+        new_part = result_rc.messages[1].parts[0]
+        assert isinstance(old_part, ToolReturnPart)
+        assert isinstance(new_part, ToolReturnPart)
+
+        # Both messages still hold their BinaryContent because the write failed
+        assert isinstance(old_part.content, list)
+        assert isinstance(new_part.content, list)
+        assert any(isinstance(x, BinaryContent) for x in old_part.content)
+        assert any(isinstance(x, BinaryContent) for x in new_part.content)
+
+    @pytest.mark.anyio
+    async def test_other_request_parts_skipped(self):
+        """Non user/tool-return parts (e.g. ``RetryPromptPart``) are passed over."""
+        from pydantic_ai.messages import RetryPromptPart
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        retry_msg = ModelRequest(
+            parts=[RetryPromptPart(content="please retry")],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+        rc = _FakeRequestContext([retry_msg])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # Same instance — nothing to prune
+        assert result_rc.messages[0] is retry_msg
+
+    @pytest.mark.anyio
+    async def test_non_list_non_binary_toolreturn_content_unchanged(self):
+        """Scalar non-binary ``ToolReturnPart.content`` (e.g. a dict) is left as-is."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, max_binary_content=1)
+        ctx = _make_ctx(backend)
+
+        # A dict-form content that should not be touched, alongside a binary
+        msg_dict = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="some_tool",
+                    content={"data": "value"},
+                    tool_call_id="call_dict_form",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        msg_bin = ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="screenshot",
+                    content=BinaryContent(data=b"new-bin", media_type="image/png"),
+                    tool_call_id="call_bin",
+                    timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+                )
+            ],
+            timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+        rc = _FakeRequestContext([msg_dict, msg_bin])
+        result_rc = await cap.before_model_request(ctx, rc)
+
+        # The dict-form message is preserved as the same instance (no modifications)
+        assert result_rc.messages[0] is msg_dict
+        # Binary is preserved (under the limit of 1)
+        bin_part = result_rc.messages[1].parts[0]
+        assert isinstance(bin_part, ToolReturnPart)
+        assert isinstance(bin_part.content, BinaryContent)

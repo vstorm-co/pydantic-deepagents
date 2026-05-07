@@ -129,6 +129,7 @@ lint = [
     "pyright>=1.1.0",
     "mypy>=1.0.0",
     "bandit>=1.8.0",
+    "types-PyYAML>=6.0",
 ]
 docs = [
     "mkdocs>=1.6.0",

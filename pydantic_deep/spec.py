@@ -151,7 +151,7 @@ def _dump_yaml(data: dict[str, Any]) -> str:
             "PyYAML is required for YAML spec files. "
             "Install with: pip install 'pydantic-deep[yaml]'"
         ) from e
-    return yaml.dump(data, default_flow_style=False, sort_keys=False)  # type: ignore[no-any-return]
+    return yaml.dump(data, default_flow_style=False, sort_keys=False)
 
 
 class DeepAgent:

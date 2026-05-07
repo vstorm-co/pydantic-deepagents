@@ -305,6 +305,28 @@ class TestDeepAgentDeps:
         assert cloned.todos == []
         assert cloned.subagents == {}
 
+    def test_checkpoint_store_default(self):
+        """checkpoint_store defaults to None."""
+        deps = DeepAgentDeps()
+        assert deps.checkpoint_store is None
+
+    def test_checkpoint_store_set(self):
+        """checkpoint_store can be passed to constructor."""
+        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+
+        store = InMemoryCheckpointStore()
+        deps = DeepAgentDeps(checkpoint_store=store)
+        assert deps.checkpoint_store is store
+
+    def test_clone_for_subagent_propagates_checkpoint_store(self):
+        """checkpoint_store is shared with subagent deps."""
+        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+
+        store = InMemoryCheckpointStore()
+        original = DeepAgentDeps(checkpoint_store=store)
+        cloned = original.clone_for_subagent()
+        assert cloned.checkpoint_store is store
+
     def test_upload_file(self):
         """Test uploading a file."""
         deps = DeepAgentDeps(backend=StateBackend())

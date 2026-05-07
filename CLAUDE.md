@@ -200,10 +200,11 @@ backend = StateBackend()
 backend = LocalBackend(root_dir="/path/to/workspace")
 
 # Combined backends with routing
+# LocalBackend must be the default, not in routes (routes use StateBackend or sandboxes)
 backend = CompositeBackend(
-    default=StateBackend(),
+    default=LocalBackend(root_dir="/home/user/project"),
     routes={
-        "/project/": LocalBackend(root_dir="/home/user/project"),
+        "/scratch/": StateBackend(),  # Ephemeral virtual space
     },
 )
 ```

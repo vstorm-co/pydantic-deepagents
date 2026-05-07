@@ -596,7 +596,7 @@ class TestCheckpointToolset:
     def _make_ctx(self, store: InMemoryCheckpointStore | None = None) -> Any:
         """Create a mock RunContext."""
         deps = DeepAgentDeps()
-        deps.checkpoint_store = store  # type: ignore[attr-defined]
+        deps.checkpoint_store = store
         ctx = type("MockCtx", (), {"deps": deps})()
         return ctx
 
@@ -708,7 +708,7 @@ class TestResolveToolsetStore:
         """Returns store from ctx.deps."""
         store = InMemoryCheckpointStore()
         deps = DeepAgentDeps()
-        deps.checkpoint_store = store  # type: ignore[attr-defined]
+        deps.checkpoint_store = store
         ctx = type("MockCtx", (), {"deps": deps})()
         assert _resolve_toolset_store(ctx, None) is store
 

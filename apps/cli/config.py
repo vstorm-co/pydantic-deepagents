@@ -64,11 +64,21 @@ _BOOL_FIELDS = frozenset(
         "include_browser",
         "browser_headless",
         "include_liteparse",
+        "periodic_reminder",
     }
 )
 
 _STR_FIELDS = frozenset(
-    {"model", "theme", "charset", "reasoning_effort", "thinking_effort", "sandbox", "sandbox_image"}
+    {
+        "model",
+        "theme",
+        "charset",
+        "reasoning_effort",
+        "thinking_effort",
+        "sandbox",
+        "sandbox_image",
+        "reminder_mode",
+    }
 )
 
 _INT_FIELDS = frozenset({"max_history", "thinking_budget"})
@@ -116,6 +126,11 @@ class CliConfig:
     """Enable document parsing via LiteParse.
 
     Requires ``pydantic-deep[liteparse]`` and Node.js >= 18."""
+    periodic_reminder: bool = True
+    """Inject a periodic reminder of the original task every N turns."""
+    reminder_mode: str = "llm"
+    """Generator to use for reminders: ``"first"`` (zero-cost, re-states first message),
+    ``"context"`` (compact transcript, no LLM), or ``"llm"`` (default, uses Haiku to summarize)."""
 
 
 def load_config(path: Path | None = None) -> CliConfig:

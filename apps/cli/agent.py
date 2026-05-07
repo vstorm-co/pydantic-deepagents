@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from pydantic_ai_backends import LocalBackend
 
 from apps.cli.prompts import build_cli_instructions
+from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
 from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.deps import DeepAgentDeps
@@ -57,6 +59,7 @@ def create_cli_agent(  # noqa: C901
     on_before_compress: Any | None = None,
     on_after_compress: Any | None = None,
     on_eviction: Any | None = None,
+    on_reminder: Callable[[int, str], None] | None = None,
     summarization_model: str | None = None,
     extra_middleware: list[Any] | None = None,
     backend: Any | None = None,
@@ -86,6 +89,8 @@ def create_cli_agent(  # noqa: C901
     include_browser: bool | None = None,
     browser_headless: bool | None = None,
     include_liteparse: bool | None = None,
+    periodic_reminder: bool | None = None,
+    reminder_mode: str | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -123,6 +128,11 @@ def create_cli_agent(  # noqa: C901
         extra_instructions: Additional instructions appended to the system prompt.
         skills_dir: Override skills directory path. When None, auto-discovers
             from ``{working_dir}/.pydantic-deep/skills/``.
+        periodic_reminder: Enable periodic task reminders. ``None`` uses
+            the config default (``True`` / ``"llm"``). ``True``/``False`` overrides.
+        reminder_mode: Generator for the reminder text. ``"llm"`` (default) uses
+            ``LLMReminderGenerator``. ``"first"`` re-states first user message
+            (zero-cost). ``"context"`` uses a compact transcript (zero-cost).
 
     Returns:
         Tuple of (agent, deps) ready for agent.run().
@@ -372,6 +382,10 @@ def create_cli_agent(  # noqa: C901
         middleware=middleware or None,
         toolsets=[local_context] if local_context else None,
         capabilities=extra_capabilities or None,
+        # Periodic reminder
+        periodic_reminder=_build_reminder_config(
+            periodic_reminder, reminder_mode, config, on_reminder
+        ),
     )
 
     # Extract context middleware for CLI commands (/compact, /context)

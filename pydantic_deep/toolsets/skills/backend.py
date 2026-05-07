@@ -30,7 +30,7 @@ from .exceptions import (
 from .types import Skill, SkillResource, SkillScript
 
 try:
-    import yaml  # type: ignore[import-untyped]
+    import yaml
 
     _HAS_YAML = True
 except ImportError:

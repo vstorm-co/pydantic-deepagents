@@ -671,6 +671,42 @@ class TestAgentIntegration:
             )
         assert agent is not None
 
+    def test_create_agent_with_skills(self) -> None:
+        """Skills passed via skills= are accepted without error."""
+        skill = Skill(name="test-skill", description="Test skill", content="Test skill")
+        agent = create_deep_agent(
+            model=TestModel(),
+            skills=[skill],
+        )
+        assert agent is not None
+
+    def test_create_agent_with_skills_and_directories(self, tmp_path: Path) -> None:
+        """skills= and skill_directories= can be combined."""
+        skill_dir = tmp_path / "test-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: dir-skill\ndescription: From dir\n---\n\nContent."
+        )
+        skill = Skill(name="test-skill", description="Test skill", content="Test skill")
+        agent = create_deep_agent(
+            model=TestModel(),
+            skills=[skill],
+            skill_directories=[str(tmp_path)],
+        )
+        assert agent is not None
+
+    def test_create_agent_with_multiple_skills(self) -> None:
+        """Multiple skills are all registered."""
+        skills = [
+            Skill(name="skill-a", description="A", content="Content A"),
+            Skill(name="skill-b", description="B", content="Content B"),
+        ]
+        agent = create_deep_agent(
+            model=TestModel(),
+            skills=skills,
+        )
+        assert agent is not None
+
 
 # Coverage — directory edge cases
 

@@ -45,6 +45,7 @@ class DeepApp(App):
 
     BINDINGS = [
         Binding("ctrl+c", "interrupt", "Interrupt", show=False),
+        Binding("escape", "escape_key", "Interrupt/Focus", show=False),
         Binding("ctrl+d", "quit", "Quit", show=False),
         Binding("f1", "show_help", "Help"),
         Binding("f2", "show_settings", "Settings"),
@@ -366,6 +367,18 @@ class DeepApp(App):
             self.notify("Agent interrupted", severity="warning")
         else:
             self.exit()
+
+    def action_escape_key(self) -> None:
+        """Handle Esc — interrupt running agent, or focus input if idle."""
+        if self._agent_task and not self._agent_task.done():
+            self._agent_task.cancel()
+            self.is_streaming = False
+            self.notify("Agent interrupted", severity="warning")
+        else:
+            from apps.cli.widgets.input_area import InputArea
+
+            with contextlib.suppress(NoMatches, Exception):
+                self.screen.query_one(InputArea).focus_input()
 
     def action_show_help(self) -> None:
         self.handle_command("/help")

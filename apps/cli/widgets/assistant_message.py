@@ -116,7 +116,7 @@ class AssistantMessage(Widget):
     ) -> None:
         """Mark a tool call as completed."""
         widget = self._tool_widgets.get(call_id)
-        if widget:
+        if widget and widget.status == "pending":
             widget.complete(result, elapsed, error)
 
     def append_thinking(self, delta: str) -> None:

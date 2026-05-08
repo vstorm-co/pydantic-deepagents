@@ -41,7 +41,6 @@ class ChatScreen(Screen):
     """The main chat interface with header, messages, status bar, and input."""
 
     BINDINGS = [
-        Binding("escape", "focus_input", "Focus input", show=False),
         Binding("ctrl+j", "toggle_multiline", "Multiline", show=False),
         Binding("ctrl+k", "show_todos", "TODOs"),
         Binding("ctrl+l", "clear_screen", "Clear"),
@@ -428,6 +427,8 @@ class ChatScreen(Screen):
         """Run the agent and stream results directly to widgets."""
         import asyncio
 
+        from apps.cli.widgets.input_area import HintsBar
+
         app = self.app
         if getattr(app, "agent", None) is None:
             app.notify("No agent configured — use /provider to set up", severity="error")  # type: ignore
@@ -440,9 +441,14 @@ class ChatScreen(Screen):
         app.last_response = ""  # type: ignore
         assistant = msg_list.begin_assistant_message()
 
+        with contextlib.suppress(Exception):
+            self.query_one(HintsBar).update("[dim]Esc[/dim] to interrupt")
+
         task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list, header))
+        app._agent_task = task  # type: ignore[attr-defined]
 
         def _on_done(t: asyncio.Task[None]) -> None:
+            app._agent_task = None  # type: ignore[attr-defined]
             exc = t.exception()
             if exc:
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
@@ -479,6 +485,7 @@ class ChatScreen(Screen):
         log.info("Agent run started", prompt_length=len(text), history_messages=len(history))
 
         pending: dict[str, tuple[dict[str, Any], float]] = {}
+        _run_cancelled = False
         _TODO_TOOLS: frozenset[str] = frozenset()  # Show all tool calls in UI
         _TEAM_TOOLS = frozenset(
             {
@@ -505,6 +512,10 @@ class ChatScreen(Screen):
             return {}
 
         try:
+            from pydantic_deep.processors.patch import patch_tool_calls_processor
+
+            history = patch_tool_calls_processor(list(history))
+
             async with agent.iter(
                 text, deps=deps, message_history=history, usage_limits=DEFAULT_USAGE_LIMITS
             ) as run:
@@ -770,6 +781,7 @@ class ChatScreen(Screen):
                 self._save_session()
 
         except asyncio.CancelledError:
+            _run_cancelled = True
             log.info("Agent run cancelled")
         except Exception as exc:
             log.error("Agent run failed", exc_info=True)
@@ -778,6 +790,26 @@ class ChatScreen(Screen):
             with contextlib.suppress(Exception):
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
         finally:
+            from apps.cli.widgets.input_area import HintsBar
+
+            for call_id, (_, start) in list(pending.items()):
+                elapsed = _time.monotonic() - start
+                if _run_cancelled:
+                    assistant.complete_tool_call(call_id, "Interrupted", elapsed, True)
+                else:
+                    assistant.complete_tool_call(call_id, "", elapsed, False)
+            pending.clear()
+
+            is_empty = (
+                not assistant._text.strip()
+                and not assistant._thinking.strip()
+                and not assistant._tool_widgets
+            )
+            if is_empty:
+                msg_list._current_assistant = None
+                with contextlib.suppress(Exception):
+                    assistant.remove()
+
             # Always save session — even after errors or cancellation
             self._save_session()
             header.is_streaming = False
@@ -785,6 +817,8 @@ class ChatScreen(Screen):
             msg_list.end_assistant_message()
             with contextlib.suppress(Exception):
                 self.query_one(InputArea).focus_input()
+            with contextlib.suppress(Exception):
+                self.query_one(HintsBar).update(HintsBar._default_hints())
             with contextlib.suppress(Exception):
                 msg_list.scroll_end(animate=False)
 

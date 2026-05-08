@@ -155,6 +155,10 @@ class ToolCallWidget(Widget):
         if self.is_hidden_tool:
             self.display = False
             return
+        if self.status != "pending":
+            self._refresh_header()
+            self._refresh_output()
+            return
         self._timer_handle = self.set_interval(1 / 12, self._tick_spinner)
 
     def _tick_spinner(self) -> None:

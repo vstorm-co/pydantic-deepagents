@@ -306,6 +306,14 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                 msg_list = app.screen.query_one(MessageList)
                 msg_list.clear_messages()
 
+                completed_call_ids: set[str] = set()
+                for msg in history:
+                    for part in msg.parts:
+                        if getattr(part, "part_kind", "") == "tool-return":
+                            call_id = getattr(part, "tool_call_id", "")
+                            if call_id:
+                                completed_call_ids.add(call_id)
+
                 # Replay messages into the message list
                 for msg in history:
                     for part in msg.parts:
@@ -324,7 +332,11 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                         elif kind == "tool-call":
                             # Show tool calls in the most recent assistant message
                             tool_name = getattr(part, "tool_name", "unknown")
-                            args = getattr(part, "args", {})
+                            args = (
+                                part.args_as_dict()
+                                if hasattr(part, "args_as_dict")
+                                else getattr(part, "args", {})
+                            )
                             if not isinstance(args, dict):
                                 args = {}
                             call_id = getattr(part, "tool_call_id", tool_name)
@@ -332,6 +344,8 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                             if assistant_msg is None:
                                 assistant_msg = msg_list.begin_assistant_message()
                             assistant_msg.add_tool_call(tool_name, args, call_id)
+                            if call_id not in completed_call_ids:
+                                assistant_msg.complete_tool_call(call_id, "Interrupted", 0.0, True)
                         elif kind == "tool-return":
                             tool_name = getattr(part, "tool_name", "unknown")
                             call_id = getattr(part, "tool_call_id", tool_name)

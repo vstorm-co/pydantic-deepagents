@@ -713,6 +713,7 @@ class TestAgentIntegration:
         agent = create_deep_agent(model=TestModel(), skills=[skill])
         skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
         assert skills_ts is not None, "SkillsToolset not found on agent"
+        assert isinstance(skills_ts, SkillsToolset)
         assert "my-skill" in skills_ts.skills
 
     def test_skill_directories_registered_in_toolset(self, tmp_path: Path) -> None:
@@ -725,6 +726,7 @@ class TestAgentIntegration:
         agent = create_deep_agent(model=TestModel(), skill_directories=[str(tmp_path)])
         skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
         assert skills_ts is not None, "SkillsToolset not found on agent"
+        assert isinstance(skills_ts, SkillsToolset)
         assert "dir-skill" in skills_ts.skills
 
     def test_skills_and_directories_combined_in_toolset(self, tmp_path: Path) -> None:
@@ -740,6 +742,7 @@ class TestAgentIntegration:
         )
         skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
         assert skills_ts is not None
+        assert isinstance(skills_ts, SkillsToolset)
         assert "inline-skill" in skills_ts.skills
         assert "dir-skill" in skills_ts.skills
 

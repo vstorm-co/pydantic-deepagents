@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from apps.cli.app import DeepApp
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -39,6 +42,10 @@ from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
 
 class ChatScreen(Screen):
     """The main chat interface with header, messages, status bar, and input."""
+
+    @property
+    def app(self) -> DeepApp:
+        return super().app
 
     BINDINGS = [
         Binding("ctrl+j", "toggle_multiline", "Multiline", show=False),
@@ -445,10 +452,10 @@ class ChatScreen(Screen):
             self.query_one(HintsBar).update("[dim]Esc[/dim] to interrupt")
 
         task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list, header))
-        app._agent_task = task  # type: ignore[attr-defined]
+        app._agent_task = task
 
         def _on_done(t: asyncio.Task[None]) -> None:
-            app._agent_task = None  # type: ignore[attr-defined]
+            app._agent_task = None
             exc = t.exception()
             if exc:
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
@@ -800,25 +807,18 @@ class ChatScreen(Screen):
                     assistant.complete_tool_call(call_id, "", elapsed, False)
             pending.clear()
 
-            is_empty = (
-                not assistant._text.strip()
-                and not assistant._thinking.strip()
-                and not assistant._tool_widgets
-            )
-            if is_empty:
-                msg_list._current_assistant = None
-                with contextlib.suppress(Exception):
-                    assistant.remove()
+            msg_list.remove_last_if_empty()
 
             # Always save session — even after errors or cancellation
             self._save_session()
+            app.is_streaming = False
             header.is_streaming = False
             header.is_thinking = False
             msg_list.end_assistant_message()
             with contextlib.suppress(Exception):
                 self.query_one(InputArea).focus_input()
             with contextlib.suppress(Exception):
-                self.query_one(HintsBar).update(HintsBar._default_hints())
+                self.query_one(HintsBar).reset()
             with contextlib.suppress(Exception):
                 msg_list.scroll_end(animate=False)
 

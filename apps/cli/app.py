@@ -63,6 +63,8 @@ class DeepApp(App):
     total_cost: reactive[float] = reactive(0.0)
     current_cost: reactive[float] = reactive(0.0)
 
+    _agent_task: asyncio.Task[None] | None = None
+
     def __init__(
         self,
         agent: Agent[Any, str] | None = None,
@@ -83,7 +85,6 @@ class DeepApp(App):
         self._branch = _detect_git_branch(str(working_dir))
         self.message_history: list[ModelMessage] = message_history or []
         self.last_response: str = ""
-        self._agent_task: asyncio.Task[Any] | None = None
         self._startup_error = startup_error
 
         # Register custom themes
@@ -363,7 +364,6 @@ class DeepApp(App):
         """Handle Ctrl+C — cancel running agent or exit."""
         if self._agent_task and not self._agent_task.done():
             self._agent_task.cancel()
-            self.is_streaming = False
             self.notify("Agent interrupted", severity="warning")
         else:
             self.exit()
@@ -372,12 +372,11 @@ class DeepApp(App):
         """Handle Esc — interrupt running agent, or focus input if idle."""
         if self._agent_task and not self._agent_task.done():
             self._agent_task.cancel()
-            self.is_streaming = False
             self.notify("Agent interrupted", severity="warning")
         else:
             from apps.cli.widgets.input_area import InputArea
 
-            with contextlib.suppress(NoMatches, Exception):
+            with contextlib.suppress(NoMatches):
                 self.screen.query_one(InputArea).focus_input()
 
     def action_show_help(self) -> None:

@@ -147,6 +147,11 @@ class AssistantMessage(Widget):
         """Final render — called when streaming is done."""
         self._render_text()
 
+    @property
+    def is_empty(self) -> bool:
+        """True when the message has no visible content."""
+        return not self._text.strip() and not self._thinking.strip() and not self._tool_widgets
+
     def set_usage(
         self,
         input_tokens: int,

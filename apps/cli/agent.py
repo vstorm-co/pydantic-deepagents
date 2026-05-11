@@ -62,6 +62,8 @@ def create_cli_agent(  # noqa: C901
     backend: Any | None = None,
     sandbox: str | None = None,
     sandbox_image: str | None = None,
+    sandbox_env_vars: dict[str, str] | None = None,
+    sandbox_env_file: str | None = None,
     workspace: str | None = None,
     *,
     include_skills: bool | None = None,
@@ -105,6 +107,15 @@ def create_cli_agent(  # noqa: C901
             ``/workspace``. Falls back to ``config.sandbox``.
         sandbox_image: Docker image for the sandbox container. Falls back to
             ``config.sandbox_image`` (default: ``python:3.12-slim``).
+        sandbox_env_vars: Environment variables to inject into the Docker sandbox
+            container. Falls back to ``config.sandbox_env_vars``. Only applied when
+            ``sandbox="docker"``. Values are passed at container start-time via
+            ``RuntimeConfig`` with ``cache_image=False`` so they are not baked
+            permanently into a cached Docker image.
+        sandbox_env_file: Path to a ``.env`` file whose variables are injected into
+            the Docker sandbox container. Falls back to ``config.sandbox_env_file``.
+            Merged with ``sandbox_env_vars``; explicit ``sandbox_env_vars`` take
+            priority over file values.
         workspace: Named Docker workspace shared across threads. When set, the
             container persists between sessions so installed packages and any
             files outside the mounted volume survive restarts. Multiple threads
@@ -141,13 +152,39 @@ def create_cli_agent(  # noqa: C901
     # Resolve sandbox: explicit param > config
     effective_sandbox = sandbox or config.sandbox
     if effective_sandbox == "docker" and backend is None:
-        from pydantic_ai_backends import DockerSandbox
+        from pydantic_ai_backends import DockerSandbox, RuntimeConfig
+
+        file_env_vars: dict[str, str] = {}
+        effective_env_file = (
+            sandbox_env_file if sandbox_env_file is not None else config.sandbox_env_file
+        )
+        if effective_env_file:
+            from dotenv import dotenv_values
+
+            file_env_vars = {
+                k: v for k, v in dotenv_values(effective_env_file).items() if v is not None
+            }
+
+        effective_env_vars = {
+            **config.sandbox_env_vars,
+            **file_env_vars,
+            **(sandbox_env_vars or {}),
+        }
 
         docker_kwargs: dict[str, Any] = {
             "volumes": {str(root.resolve()): "/workspace"},
             "work_dir": "/workspace",
-            "image": sandbox_image or config.sandbox_image,
         }
+
+        if effective_env_vars:
+            docker_kwargs["runtime"] = RuntimeConfig(
+                name="cli-sandbox",
+                base_image=sandbox_image or config.sandbox_image,
+                env_vars=effective_env_vars,
+                cache_image=False,
+            )
+        else:
+            docker_kwargs["image"] = sandbox_image or config.sandbox_image
 
         # Named workspace → reusable container (packages + state persist between threads)
         # No workspace → ephemeral container (clean slate every time)

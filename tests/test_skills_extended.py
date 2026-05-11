@@ -707,6 +707,103 @@ class TestAgentIntegration:
         )
         assert agent is not None
 
+    def test_skills_registered_in_toolset(self) -> None:
+        """skills= are accessible via the agent's SkillsToolset when include_skills=True."""
+        skill = Skill(name="my-skill", description="My skill", content="# Instructions")
+        agent = create_deep_agent(model=TestModel(), skills=[skill])
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is not None, "SkillsToolset not found on agent"
+        assert "my-skill" in skills_ts.skills
+
+    def test_skill_directories_registered_in_toolset(self, tmp_path: Path) -> None:
+        """skill_directories= are accessible via the agent's SkillsToolset."""
+        skill_dir = tmp_path / "dir-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: dir-skill\ndescription: From dir\n---\n\nContent."
+        )
+        agent = create_deep_agent(model=TestModel(), skill_directories=[str(tmp_path)])
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is not None, "SkillsToolset not found on agent"
+        assert "dir-skill" in skills_ts.skills
+
+    def test_skills_and_directories_combined_in_toolset(self, tmp_path: Path) -> None:
+        """skills= and skill_directories= are both registered in the same SkillsToolset."""
+        skill_dir = tmp_path / "dir-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: dir-skill\ndescription: From dir\n---\n\nContent."
+        )
+        inline = Skill(name="inline-skill", description="Inline", content="# Inline")
+        agent = create_deep_agent(
+            model=TestModel(), skills=[inline], skill_directories=[str(tmp_path)]
+        )
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is not None
+        assert "inline-skill" in skills_ts.skills
+        assert "dir-skill" in skills_ts.skills
+
+    def test_skills_not_registered_and_warning_when_include_skills_false(self) -> None:
+        """When include_skills=False, emits UserWarning and no SkillsToolset is created."""
+        skill = Skill(name="my-skill", description="My skill", content="# Instructions")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            agent = create_deep_agent(model=TestModel(), include_skills=False, skills=[skill])
+        skill_warnings = [
+            x
+            for x in w
+            if issubclass(x.category, UserWarning) and "include_skills=False" in str(x.message)
+        ]
+        assert len(skill_warnings) == 1, "Expected exactly one UserWarning"
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is None, "SkillsToolset should not be present when include_skills=False"
+
+    def test_skill_directories_not_registered_and_warning_when_include_skills_false(
+        self,
+    ) -> None:
+        """When include_skills=False, emits UserWarning and no SkillsToolset (directories path)."""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            agent = create_deep_agent(
+                model=TestModel(), include_skills=False, skill_directories=["/some/dir"]
+            )
+        skill_warnings = [
+            x
+            for x in w
+            if issubclass(x.category, UserWarning) and "include_skills=False" in str(x.message)
+        ]
+        assert len(skill_warnings) == 1
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is None
+
+    def test_skills_and_directories_not_registered_and_warning_when_include_skills_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When include_skills=False, emits one UserWarning and no SkillsToolset is created,
+        even when both skills= and skill_directories= are supplied."""
+        skill_dir = tmp_path / "dir-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: dir-skill\ndescription: From dir\n---\n\nContent."
+        )
+        skill = Skill(name="my-skill", description="My skill", content="# Instructions")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            agent = create_deep_agent(
+                model=TestModel(),
+                include_skills=False,
+                skills=[skill],
+                skill_directories=[str(tmp_path)],
+            )
+        skill_warnings = [
+            x
+            for x in w
+            if issubclass(x.category, UserWarning) and "include_skills=False" in str(x.message)
+        ]
+        assert len(skill_warnings) == 1, "Expected exactly one UserWarning"
+        skills_ts = next((ts for ts in agent.toolsets if isinstance(ts, SkillsToolset)), None)
+        assert skills_ts is None, "SkillsToolset should not be present when include_skills=False"
+
 
 # Coverage — directory edge cases
 

@@ -499,6 +499,15 @@ def create_deep_agent(  # noqa: C901
         result = await agent.run("Analyze this code", deps=deps)
         ```
     """
+    import warnings
+
+    if not include_skills and (skills or skill_directories):
+        warnings.warn(
+            "skills and skill_directories are ignored when include_skills=False",
+            UserWarning,
+            stacklevel=2,
+        )
+
     model = model or DEFAULT_MODEL
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}

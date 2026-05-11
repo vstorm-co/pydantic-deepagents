@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp
@@ -16,25 +16,12 @@ _REMINDER_LABELS: dict[str, str] = {
 }
 
 
-_CHEAP_PROVIDER: dict[str, str] = {
-    "anthropic": "anthropic:claude-haiku-4-5-20251001",
-    "openrouter": "openrouter:anthropic/claude-haiku-4-5",
-    "openai": "openai:gpt-5.4-mini",
-    "google": "google-gla:gemini-3.1-flash-lite-preview",
-}
-
-
-def _get_cheap_model(main_model: str) -> str:
-    """Return the cheapest fast model for the same provider as main_model."""
-    provider = main_model.split(":")[0] if ":" in main_model else "anthropic"
-    return _CHEAP_PROVIDER.get(provider, main_model)
-
-
 def _build_reminder_config(
     periodic_reminder: bool | None,
-    reminder_mode: str | None,
+    reminder_mode: Literal["off", "first", "context", "llm"] | None,
     config: Any,
     on_reminder: Callable[[int, str], None] | None = None,
+    reminder_model: str | None = None,
 ) -> Any:
     """Build a PeriodicReminderConfig (or None) from CLI/config args."""
     enabled = periodic_reminder if periodic_reminder is not None else config.periodic_reminder
@@ -50,7 +37,8 @@ def _build_reminder_config(
 
     cfg = make_config_for_mode(mode)
     if mode == "llm":
-        cfg.generator = LLMReminderGenerator(model=_get_cheap_model(config.model))
+        model = reminder_model or getattr(config, "reminder_model", None) or config.model
+        cfg.generator = LLMReminderGenerator(model=model)
     cfg.on_reminder = on_reminder
     return cfg
 
@@ -95,5 +83,7 @@ def _apply_reminder_mode(app: DeepApp, mode: str) -> None:
         set_config_value(DEFAULT_CONFIG_PATH, "periodic_reminder", str(mode != "off").lower())
         if mode != "off":
             set_config_value(DEFAULT_CONFIG_PATH, "reminder_mode", mode)
-    except Exception:
-        pass
+    except Exception as e:
+        app.notify(
+            f"Reminder mode changed but could not persist to config: {e}", severity="warning"
+        )

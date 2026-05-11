@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic_ai_backends import LocalBackend
 
@@ -90,7 +90,8 @@ def create_cli_agent(  # noqa: C901
     browser_headless: bool | None = None,
     include_liteparse: bool | None = None,
     periodic_reminder: bool | None = None,
-    reminder_mode: str | None = None,
+    reminder_mode: Literal["off", "first", "context", "llm"] | None = None,
+    reminder_model: str | None = None,
 ) -> tuple[Any, DeepAgentDeps]:
     """Create a CLI-configured agent with all pydantic-deep capabilities.
 
@@ -133,6 +134,8 @@ def create_cli_agent(  # noqa: C901
         reminder_mode: Generator for the reminder text. ``"llm"`` (default) uses
             ``LLMReminderGenerator``. ``"first"`` re-states first user message
             (zero-cost). ``"context"`` uses a compact transcript (zero-cost).
+        reminder_model: Model used by the ``"llm"`` reminder generator.
+            Defaults to ``config.reminder_model``, then falls back to the main model.
 
     Returns:
         Tuple of (agent, deps) ready for agent.run().
@@ -384,7 +387,7 @@ def create_cli_agent(  # noqa: C901
         capabilities=extra_capabilities or None,
         # Periodic reminder
         periodic_reminder=_build_reminder_config(
-            periodic_reminder, reminder_mode, config, on_reminder
+            periodic_reminder, reminder_mode, config, on_reminder, reminder_model
         ),
     )
 

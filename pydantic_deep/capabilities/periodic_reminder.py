@@ -120,7 +120,12 @@ class LLMReminderGenerator:
     ) -> str:
         try:
             if self._agent is None:
-                self._agent = Agent(model=self.model)
+                self._agent = Agent(
+                    model=self.model,
+                    system_prompt=(
+                        "You are a concise assistant. Output only the reminder text, no preamble."
+                    ),
+                )
             compact = build_compact_transcript(messages, self.max_context_messages)
             prompt = (
                 f"Agent conversation so far (compacted):\n\n{compact}\n\n"

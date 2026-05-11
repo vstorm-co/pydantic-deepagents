@@ -82,17 +82,17 @@ cfg = PeriodicReminderConfig(generator=my_reminder)
 
 ### Compact transcript (zero-cost)
 
-Use `_build_compact_transcript` to inject a summarized view of the conversation
+Use `build_compact_transcript` to inject a summarized view of the conversation
 without making any LLM calls:
 
 ```python
 from pydantic_deep.capabilities.periodic_reminder import (
     PeriodicReminderConfig,
-    _build_compact_transcript,
+    build_compact_transcript,
 )
 
 async def _context_gen(_ctx, _turn, messages):
-    return _build_compact_transcript(messages, max_recent=10)
+    return build_compact_transcript(messages, max_recent=10)
 
 cfg = PeriodicReminderConfig(generator=_context_gen)
 ```
@@ -100,10 +100,12 @@ cfg = PeriodicReminderConfig(generator=_context_gen)
 The transcript includes the original user goal and the last `max_recent` turns,
 keeping each message brief (150 chars per user message, 400 chars for the goal).
 
-### `LLMReminderGenerator` (Haiku call)
+### `LLMReminderGenerator`
 
-`LLMReminderGenerator` asks a small model to summarize progress and produce a
-two-sentence nudge. It uses a compacted transcript to keep token cost low:
+`LLMReminderGenerator` asks a model to summarize progress and produce a
+two-sentence nudge. It uses a compacted transcript to keep token cost low.
+The model defaults to the main agent's model; set `reminder_model` in config
+to use a different one:
 
 ```python
 from pydantic_deep.capabilities.periodic_reminder import (
@@ -114,7 +116,7 @@ from pydantic_deep.capabilities.periodic_reminder import (
 cfg = PeriodicReminderConfig(
     every_n_turns=15,
     generator=LLMReminderGenerator(
-        model="anthropic:claude-haiku-4-5-20251001",
+        model="anthropic:claude-haiku-4-5-20251001",  # optional: cheaper model
         max_context_messages=10,
     ),
 )
@@ -130,8 +132,8 @@ default automatically.
 | `None` (default) | Zero | None | Most runs — keeps the original user message visible |
 | Static `str` | Zero | Fixed text | Task is always the same; you know the goal upfront |
 | Async callable | Zero | Full | Goal depends on runtime state or per-session config |
-| Compact transcript (`_build_compact_transcript`) | Zero | Full | Long runs where context drift is visible but LLM cost is unwanted |
-| `LLMReminderGenerator` | Low (Haiku) | Automatic | Very long runs where the goal is complex or evolving |
+| Compact transcript (`build_compact_transcript`) | Zero | Full | Long runs where context drift is visible but LLM cost is unwanted |
+| `LLMReminderGenerator` | Low (configurable model) | Automatic | Very long runs where the goal is complex or evolving |
 
 ## Render styles
 
@@ -169,8 +171,7 @@ agent = Agent(
 ## CLI defaults
 
 When using the CLI (`pydantic-deep`), periodic reminders are **enabled by
-default** in `"llm"` mode (LLMReminderGenerator with Haiku). Use the `/remind`
-command to switch modes at runtime:
+default** in `"llm"` mode. Use the `/remind` command to switch modes at runtime:
 
 | Mode | Generator | `first_after` | `every_n_turns` | Cost |
 |---|---|---|---|---|
@@ -179,11 +180,12 @@ command to switch modes at runtime:
 | `context` | compact transcript | 5 | 10 | zero |
 | `llm` | `LLMReminderGenerator` | 5 | 15 | low |
 
-Config file override (`~/.pydantic-deep/config.toml`):
+Config file (`~/.pydantic-deep/config.toml`):
 
 ```toml
 periodic_reminder = true
-reminder_mode = "llm"   # "first" | "context" | "llm"
+reminder_mode = "llm"        # "off" | "first" | "context" | "llm"
+reminder_model = "anthropic:claude-haiku-4-5-20251001"  # optional; defaults to main model
 ```
 
 ## Custom `ReminderGenerator` protocol

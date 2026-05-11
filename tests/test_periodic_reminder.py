@@ -398,7 +398,12 @@ class TestLLMReminderGenerator:
             result = await gen(_ctx(), turn=5, messages=messages)
 
         assert result == "Focus on building the rocket."
-        MockAgent.assert_called_once_with(model="anthropic:claude-haiku-4-5-20251001")
+        MockAgent.assert_called_once_with(
+            model="anthropic:claude-haiku-4-5-20251001",
+            system_prompt=(
+                "You are a concise assistant. Output only the reminder text, no preamble."
+            ),
+        )
         mock_agent_instance.run.assert_called_once()
         prompt_arg = mock_agent_instance.run.call_args[0][0]
         assert "Build a rocket" in prompt_arg

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import mimetypes
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pydantic_deep.capabilities.message_queue import MessageQueue
 
 import chardet
 from pydantic_ai.usage import UsageLimits
@@ -43,6 +46,9 @@ class DeepAgentDeps:
     context_middleware: Any = field(default=None, repr=False)  # ContextManagerCapability | None
     share_todos: bool = False  # When True, subagents share parent's todo list
     checkpoint_store: Any = field(default=None, repr=False)  # Per-session CheckpointStore
+    message_queue: MessageQueue | None = field(
+        default=None, repr=False
+    )  # Shared queue for mid-run message delivery
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""
@@ -236,6 +242,7 @@ class DeepAgentDeps:
             ask_user=self.ask_user,  # Propagate to subagents
             share_todos=self.share_todos,  # Propagate to subagents
             checkpoint_store=self.checkpoint_store,  # Shared reference
+            message_queue=self.message_queue,  # Shared — subagents can steer parent
         )
 
 

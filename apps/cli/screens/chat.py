@@ -32,6 +32,7 @@ from apps.cli.widgets.header import DeepHeader
 from apps.cli.widgets.input_area import InputArea
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.notification import notify_success, notify_warning
+from apps.cli.widgets.queued_panel import QueuedWidget
 from apps.cli.widgets.side_panel import SidePanel
 from apps.cli.widgets.status_bar import StatusBar
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
@@ -377,18 +378,35 @@ class ChatScreen(Screen):
 
     # ── User input handling ───────────────────────────────────────
 
-    def on_user_submitted(self, event: UserSubmitted) -> None:
+    async def on_user_submitted(self, event: UserSubmitted) -> None:
         """Handle user submitting a prompt."""
         text = event.text
 
-        # Shell command
+        app = self.app
+        queue = getattr(app, "queue", None)
+        task = getattr(app, "_agent_task", None)
+        is_running = task is not None and not task.done()
+
+        # Route to queue if agent is running
+        if is_running and queue is not None:
+            if text.startswith("!"):
+                await queue.steer(text[1:].strip())
+                app.notify("steering queued")  # type: ignore[attr-defined]
+                self._increment_queue_badge(steering=True)
+            else:
+                await queue.follow_up(text)
+                app.notify("follow-up queued")  # type: ignore[attr-defined]
+                self._increment_queue_badge(steering=False)
+            return
+
+        # Shell command (only when agent is idle)
         if text.startswith("!"):
-            self.app.run_shell_command(text[1:])  # type: ignore[attr-defined]
+            app.run_shell_command(text[1:])  # type: ignore[attr-defined]
             return
 
         # Slash command (but not things like "I used /path/to/file")
         if text.startswith("/") and not text.startswith("//"):
-            self.app.handle_command(text)  # type: ignore[attr-defined]
+            app.handle_command(text)  # type: ignore[attr-defined]
             return
 
         # Expand @file references — read files and append content to prompt
@@ -437,10 +455,12 @@ class ChatScreen(Screen):
         msg_list = self.query_one(MessageList)
 
         header.is_streaming = True
+        self.query_one(InputArea).is_agent_running = True
         app.last_response = ""  # type: ignore
         assistant = msg_list.begin_assistant_message()
 
         task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list, header))
+        app._agent_task = task  # type: ignore[attr-defined]
 
         def _on_done(t: asyncio.Task[None]) -> None:
             exc = t.exception()
@@ -478,6 +498,7 @@ class ChatScreen(Screen):
 
         log.info("Agent run started", prompt_length=len(text), history_messages=len(history))
 
+        _follow_up_scheduled = False
         pending: dict[str, tuple[dict[str, Any], float]] = {}
         _TODO_TOOLS: frozenset[str] = frozenset()  # Show all tool calls in UI
         _TEAM_TOOLS = frozenset(
@@ -769,6 +790,21 @@ class ChatScreen(Screen):
                 # Auto-save session
                 self._save_session()
 
+                # Drain follow-up queue and schedule next run if pending.
+                _queue = getattr(app, "queue", None)
+                if _queue is not None:
+                    _follow_up_msgs = await _queue.drain_follow_up()
+                    if _follow_up_msgs:
+                        from pydantic_deep.capabilities.message_queue import (
+                            format_follow_up as _fmt_fu,
+                        )
+
+                        _follow_up_text = _fmt_fu(_follow_up_msgs)
+                        msg_list.append_user_message(_follow_up_text)
+                        self._decrement_queue_badge(len(_follow_up_msgs))
+                        _follow_up_scheduled = True
+                        self.call_later(self._run_agent, _follow_up_text)
+
         except asyncio.CancelledError:
             log.info("Agent run cancelled")
         except Exception as exc:
@@ -782,11 +818,43 @@ class ChatScreen(Screen):
             self._save_session()
             header.is_streaming = False
             header.is_thinking = False
+            with contextlib.suppress(Exception):
+                self.query_one(InputArea).is_agent_running = False
             msg_list.end_assistant_message()
             with contextlib.suppress(Exception):
                 self.query_one(InputArea).focus_input()
             with contextlib.suppress(Exception):
                 msg_list.scroll_end(animate=False)
+            _stale_queue = getattr(app, "queue", None)
+            if _stale_queue is not None:
+                stale = await _stale_queue.drain_steering()
+                if stale:
+                    n = len(stale)
+                    label = "steering message" if n == 1 else "steering messages"
+                    with contextlib.suppress(Exception):
+                        app.notify(  # type: ignore[attr-defined]
+                            f"{n} {label} not delivered — agent finished before next LLM call",
+                            severity="warning",
+                            timeout=6,
+                        )
+            if not _follow_up_scheduled:
+                self._reset_queue_badge()
+            else:
+                with contextlib.suppress(Exception):
+                    self.query_one(QueuedWidget).clear_steering()
+
+    def _increment_queue_badge(self, *, steering: bool) -> None:
+        with contextlib.suppress(Exception):
+            w = self.query_one(QueuedWidget)
+            w.increment_steering() if steering else w.increment_follow_up()
+
+    def _decrement_queue_badge(self, follow_up_count: int = 1) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one(QueuedWidget).decrement_follow_up(follow_up_count)
+
+    def _reset_queue_badge(self) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one(QueuedWidget).reset()
 
     def _expand_file_refs(self, text: str) -> str:
         """Expand @file references in the prompt with file contents."""

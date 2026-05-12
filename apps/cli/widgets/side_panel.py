@@ -5,6 +5,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Vertical
 
+from apps.cli.widgets.queued_panel import QueuedWidget
 from apps.cli.widgets.subagents_panel import SubagentsWidget
 from apps.cli.widgets.todos_panel import TodosWidget
 
@@ -29,6 +30,7 @@ class SidePanel(Vertical):
     def compose(self) -> ComposeResult:
         yield TodosWidget()
         yield SubagentsWidget()
+        yield QueuedWidget()
 
     def update_for_width(self, width: int) -> None:
         """Show or hide based on terminal width."""

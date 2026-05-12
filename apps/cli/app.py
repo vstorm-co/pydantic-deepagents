@@ -84,6 +84,7 @@ class DeepApp(App):
         self.last_response: str = ""
         self._agent_task: asyncio.Task[Any] | None = None
         self._startup_error = startup_error
+        self.queue = getattr(deps, "message_queue", None)
 
         # Register custom themes
         from apps.cli.styles.themes import register_themes
@@ -227,6 +228,7 @@ class DeepApp(App):
             )
             self.agent = agent
             self.deps = deps
+            self.queue = getattr(deps, "message_queue", None)
             self._startup_error = None
             self.model_name = effective
 

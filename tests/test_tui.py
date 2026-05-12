@@ -222,3 +222,87 @@ class TestFileRefs:
             result = chat._expand_file_refs("@nofile1.txt and @nofile2.txt")
             assert "@nofile1.txt" in result
             assert "@nofile2.txt" in result
+
+
+class TestMessageQueueIntegration:
+    async def test_steer_queued_when_agent_running(self, app):
+        """Submitting !text while agent is running routes to queue.steer()."""
+        import asyncio
+
+        from apps.cli.messages import UserSubmitted
+        from apps.cli.screens.chat import ChatScreen
+        from pydantic_deep.capabilities.message_queue import MessageQueue
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+
+            # Ensure there is a queue (may be None if agent not yet configured)
+            if app.queue is None:
+                app.queue = MessageQueue()
+
+            # Simulate a long-running agent task
+            barrier = asyncio.Event()
+
+            async def _fake_agent() -> None:
+                await barrier.wait()
+
+            task = asyncio.create_task(_fake_agent())
+            app._agent_task = task
+
+            # Submit steering input while agent is "running"
+            chat.post_message(UserSubmitted("!stop and summarise"))
+            await pilot.pause()
+            await pilot.pause()
+
+            steering, _ = app.queue.pending_count()
+            assert steering == 1
+            drained = await app.queue.drain_steering()
+            assert drained[0].content == "stop and summarise"
+            assert drained[0].priority == "steering"
+
+            # Cleanup
+            barrier.set()
+            await task
+
+    async def test_follow_up_queued_when_agent_running(self, app):
+        """Submitting plain text while agent is running routes to queue.follow_up()."""
+        import asyncio
+
+        from apps.cli.messages import UserSubmitted
+        from apps.cli.screens.chat import ChatScreen
+        from pydantic_deep.capabilities.message_queue import MessageQueue
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+
+            if app.queue is None:
+                app.queue = MessageQueue()
+
+            barrier = asyncio.Event()
+
+            async def _fake_agent() -> None:
+                await barrier.wait()
+
+            task = asyncio.create_task(_fake_agent())
+            app._agent_task = task
+
+            chat.post_message(UserSubmitted("when done, write a test"))
+            await pilot.pause()
+            await pilot.pause()
+
+            _, follow_up = app.queue.pending_count()
+            assert follow_up == 1
+            drained = await app.queue.drain_follow_up()
+            assert drained[0].content == "when done, write a test"
+            assert drained[0].priority == "follow_up"
+
+            barrier.set()
+            await task

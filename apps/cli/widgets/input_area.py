@@ -25,11 +25,11 @@ class HintsBar(Static):
     """
 
     def __init__(self) -> None:
-        super().__init__(self._default_hints())
+        super().__init__()
 
-    @staticmethod
-    def _default_hints() -> str:
-        return (
+    def reset(self) -> None:
+        """Restore the default keyboard hint text."""
+        self.update(
             "[dim]↑[/dim] history   "
             "[dim]/[/dim] commands   "
             "[dim]@[/dim] files   "
@@ -203,6 +203,7 @@ class InputArea(Vertical):
     """
 
     is_multiline: reactive[bool] = reactive(False)
+    is_agent_running: reactive[bool] = reactive(False)
 
     class ExitMultiline(Message):
         """Request to exit multiline mode."""
@@ -212,6 +213,19 @@ class InputArea(Vertical):
             yield PromptPrefix()
             yield PromptInput()
         yield HintsBar()
+
+    @staticmethod
+    def _running_hints() -> str:
+        return "[dim]![/dim] to steer or write to queue"
+
+    def watch_is_agent_running(self, running: bool) -> None:
+        if self.is_multiline:
+            return
+        hints = self.query_one(HintsBar)
+        if running:
+            hints.update(self._running_hints())
+        else:
+            hints.reset()
 
     def watch_is_multiline(self, multiline: bool) -> None:
         prompt_rows = self.query("PromptRow")
@@ -235,7 +249,7 @@ class InputArea(Vertical):
             row.mount(PromptPrefix())
             p = PromptInput()
             row.mount(p)
-            hints.update(HintsBar._default_hints())
+            hints.reset()
             p.focus()
 
     def on_input_area_exit_multiline(self, _event: ExitMultiline) -> None:

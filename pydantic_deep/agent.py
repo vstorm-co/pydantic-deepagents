@@ -30,6 +30,8 @@ from pydantic_deep.types import SubAgentConfig
 if TYPE_CHECKING:
     from pydantic_ai.toolsets import AbstractToolset
 
+    from pydantic_deep.capabilities.message_queue import MessageQueue
+
 OutputDataT = TypeVar("OutputDataT")
 
 
@@ -130,6 +132,7 @@ def create_deep_agent(
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
+    message_queue: MessageQueue | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, str]: ...
@@ -201,6 +204,7 @@ def create_deep_agent(
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
+    message_queue: MessageQueue | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT]: ...
@@ -270,6 +274,7 @@ def create_deep_agent(  # noqa: C901
     on_cost_update: Any | None = None,
     middleware: Sequence[Any] | None = None,
     plans_dir: str | None = None,
+    message_queue: MessageQueue | None = None,
     instrument: bool | None = None,
     **agent_kwargs: Any,
 ) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
@@ -447,6 +452,10 @@ def create_deep_agent(  # noqa: C901
             include. These extend the agent with custom lifecycle hooks.
         plans_dir: Directory to save plan files from the planner subagent.
             Defaults to ``/plans`` (relative to backend root).
+        message_queue: Optional :class:`MessageQueue` for mid-run message delivery.
+            Steering messages are injected before the next LLM call via
+            ``MessageQueueCapability``; follow-ups are handled by
+            :func:`run_with_queue`. ``None`` (default) disables the feature.
         model_settings: Provider-specific model settings (temperature, thinking,
             etc.). Passed directly to the pydantic-ai Agent. Common keys:
             ``temperature``, ``max_tokens``, ``anthropic_thinking``,
@@ -975,6 +984,11 @@ def create_deep_agent(  # noqa: C901
         from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 
         all_capabilities.append(StuckLoopDetection())
+
+    if message_queue is not None:
+        from pydantic_deep.capabilities.message_queue import MessageQueueCapability
+
+        all_capabilities.append(MessageQueueCapability(queue=message_queue))
 
     if middleware:
         all_capabilities.extend(middleware)

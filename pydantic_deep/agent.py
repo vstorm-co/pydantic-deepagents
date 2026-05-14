@@ -23,12 +23,14 @@ from subagents_pydantic_ai import create_subagent_toolset, get_subagent_system_p
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.prompts import BASE_PROMPT
-from pydantic_deep.toolsets.skills import SkillsToolset
+from pydantic_deep.toolsets.skills import Skill, SkillsToolset
 from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
 from pydantic_deep.types import SubAgentConfig
 
 if TYPE_CHECKING:
     from pydantic_ai.toolsets import AbstractToolset
+
+    from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
 
 OutputDataT = TypeVar("OutputDataT")
 
@@ -82,6 +84,7 @@ def create_deep_agent(
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -120,6 +123,7 @@ def create_deep_agent(
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -152,6 +156,7 @@ def create_deep_agent(
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -191,6 +196,7 @@ def create_deep_agent(
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -222,6 +228,7 @@ def create_deep_agent(  # noqa: C901
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -260,6 +267,7 @@ def create_deep_agent(  # noqa: C901
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -304,6 +312,7 @@ def create_deep_agent(  # noqa: C901
         subagents: Subagent configurations for the task tool.
         skill_directories: Directories to discover skills from.
             Accepts plain string paths or BackendSkillsDirectory instances.
+        skills: Skill instances to register directly.
         backend: File storage backend (default: StateBackend).
         include_todo: Whether to include the todo toolset.
         include_filesystem: Whether to include the filesystem toolset.
@@ -427,6 +436,12 @@ def create_deep_agent(  # noqa: C901
             ``pip install pydantic-deep[liteparse]``.
             The Node.js CLI is auto-installed via npm on first use if
             ``npm`` is in PATH. Defaults to False.
+        periodic_reminder: Inject a task reminder every N turns to keep the
+            agent anchored on its original goal.
+            ``True`` uses default settings (every 10 turns, system_reminder_tag
+            style, zero-cost default generator).
+            Pass a :class:`PeriodicReminderConfig` for full control.
+            ``None`` or ``False`` disables the feature (default).
         web_search: Whether to include the ``WebSearch`` capability.
             Defaults to True.
         web_fetch: Whether to include the ``WebFetch`` capability.
@@ -495,6 +510,15 @@ def create_deep_agent(  # noqa: C901
         result = await agent.run("Analyze this code", deps=deps)
         ```
     """
+    import warnings
+
+    if not include_skills and (skills or skill_directories):
+        warnings.warn(
+            "skills and skill_directories are ignored when include_skills=False",
+            UserWarning,
+            stacklevel=2,
+        )
+
     model = model or DEFAULT_MODEL
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}
@@ -694,6 +718,7 @@ def create_deep_agent(  # noqa: C901
 
         skills_toolset = SkillsToolset(
             id="deep-skills",
+            skills=skills,
             directories=directories,  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         )
         all_toolsets.append(skills_toolset)  # type: ignore[arg-type]
@@ -975,6 +1000,19 @@ def create_deep_agent(  # noqa: C901
         from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 
         all_capabilities.append(StuckLoopDetection())
+
+    if periodic_reminder:
+        from pydantic_deep.capabilities.periodic_reminder import (
+            PeriodicReminderCapability,
+            PeriodicReminderConfig,
+        )
+
+        _reminder_cfg = (
+            periodic_reminder
+            if isinstance(periodic_reminder, PeriodicReminderConfig)
+            else PeriodicReminderConfig()
+        )
+        all_capabilities.append(PeriodicReminderCapability(config=_reminder_cfg))
 
     if middleware:
         all_capabilities.extend(middleware)

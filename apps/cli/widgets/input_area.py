@@ -25,11 +25,11 @@ class HintsBar(Static):
     """
 
     def __init__(self) -> None:
-        super().__init__(self._default_hints())
+        super().__init__()
 
-    @staticmethod
-    def _default_hints() -> str:
-        return (
+    def reset(self) -> None:
+        """Restore the default keyboard hint text."""
+        self.update(
             "[dim]↑[/dim] history   "
             "[dim]/[/dim] commands   "
             "[dim]@[/dim] files   "
@@ -235,7 +235,7 @@ class InputArea(Vertical):
             row.mount(PromptPrefix())
             p = PromptInput()
             row.mount(p)
-            hints.update(HintsBar._default_hints())
+            hints.reset()
             p.focus()
 
     def on_input_area_exit_multiline(self, _event: ExitMultiline) -> None:

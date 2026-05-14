@@ -110,6 +110,7 @@ plugins:
           - advanced/context-files.md: Project context file injection
           - advanced/eviction.md: Large output eviction
           - advanced/stuck-loop-detection.md: Stuck loop detection
+          - advanced/periodic-reminder.md: Periodic task reminder
           - advanced/cost-tracking.md: Token and cost tracking
           - advanced/middleware.md: Capabilities system
           - advanced/agent-spec.md: Agent spec (YAML/JSON)
@@ -226,6 +227,7 @@ nav:
     - advanced/context-files.md
     - advanced/eviction.md
     - advanced/stuck-loop-detection.md
+    - advanced/periodic-reminder.md
     - advanced/cost-tracking.md
     - advanced/middleware.md
     - advanced/plan-mode.md

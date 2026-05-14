@@ -116,7 +116,7 @@ class AssistantMessage(Widget):
     ) -> None:
         """Mark a tool call as completed."""
         widget = self._tool_widgets.get(call_id)
-        if widget:
+        if widget and widget.status == "pending":
             widget.complete(result, elapsed, error)
 
     def append_thinking(self, delta: str) -> None:
@@ -146,6 +146,11 @@ class AssistantMessage(Widget):
     def finalize_text(self) -> None:
         """Final render — called when streaming is done."""
         self._render_text()
+
+    @property
+    def is_empty(self) -> bool:
+        """True when the message has no visible content."""
+        return not self._text.strip() and not self._thinking.strip() and not self._tool_widgets
 
     def set_usage(
         self,

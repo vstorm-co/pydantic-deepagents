@@ -22,6 +22,7 @@ _HELP_TEXT = """\
   [bold cyan]/model[/bold cyan]       Change model
   [bold cyan]/provider[/bold cyan]    Configure AI provider
   [bold cyan]/remember[/bold cyan]    Add note to persistent memory
+  [bold cyan]/remind[/bold cyan]      Switch periodic reminder mode (off / first / context / llm)
   [bold cyan]/save[/bold cyan]        Show save status
   [bold cyan]/settings[/bold cyan]    Open settings (edit config.toml)
   [bold cyan]/skills[/bold cyan]      List available skills

@@ -358,3 +358,64 @@ class TestEnvVarOverrides:
         monkeypatch.setenv("PYDANTIC_DEEP_MODEL", "anthropic:claude-sonnet")
         config = load_config(config_file)
         assert config.model == "anthropic:claude-sonnet"
+
+
+class TestSandboxEnvFile:
+    """Tests for sandbox_env_file config field."""
+
+    def test_default_is_none(self) -> None:
+        config = CliConfig()
+        assert config.sandbox_env_file is None
+
+    def test_parsed_from_toml(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('sandbox_env_file = "/path/to/.env"\n')
+        config = load_config(config_file)
+        assert config.sandbox_env_file == "/path/to/.env"
+
+    def test_coerce_sandbox_env_file(self) -> None:
+        assert _coerce_value("sandbox_env_file", "/some/.env") == "/some/.env"
+
+
+class TestSandboxEnvVars:
+    """Tests for sandbox_env_vars config field."""
+
+    def test_default_is_empty_dict(self) -> None:
+        config = CliConfig()
+        assert config.sandbox_env_vars == {}
+
+    def test_parsed_from_toml_table(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "config.toml"
+        config_file.write_text(
+            '[sandbox_env_vars]\nJIRA_API_TOKEN = "secret"\nJIRA_BASE_URL = "https://jira.example.com"\n'
+        )
+        config = load_config(config_file)
+        assert config.sandbox_env_vars == {
+            "JIRA_API_TOKEN": "secret",
+            "JIRA_BASE_URL": "https://jira.example.com",
+        }
+
+    def test_parse_config_dict_with_env_vars(self) -> None:
+        config = _parse_config({"sandbox_env_vars": {"KEY": "val"}})
+        assert config.sandbox_env_vars == {"KEY": "val"}
+
+    def test_write_toml_dict_field(self, tmp_path: Path) -> None:
+        f = tmp_path / "test.toml"
+        _write_toml(f, {"sandbox_env_vars": {"JIRA_API_TOKEN": "tok", "JIRA_BASE_URL": "url"}})
+        content = f.read_text()
+        assert "[sandbox_env_vars]" in content
+        assert 'JIRA_API_TOKEN = "tok"' in content
+        assert 'JIRA_BASE_URL = "url"' in content
+
+    def test_write_toml_empty_dict_omitted(self, tmp_path: Path) -> None:
+        f = tmp_path / "test.toml"
+        _write_toml(f, {"model": "test", "sandbox_env_vars": {}})
+        content = f.read_text()
+        assert "[sandbox_env_vars]" not in content
+        assert 'model = "test"' in content
+
+    def test_write_toml_dict_after_scalars(self, tmp_path: Path) -> None:
+        f = tmp_path / "test.toml"
+        _write_toml(f, {"model": "test", "sandbox_env_vars": {"K": "v"}})
+        content = f.read_text()
+        assert content.index("model") < content.index("[sandbox_env_vars]")

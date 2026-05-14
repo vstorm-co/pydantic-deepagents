@@ -11,7 +11,7 @@ import os
 import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -64,11 +64,22 @@ _BOOL_FIELDS = frozenset(
         "include_browser",
         "browser_headless",
         "include_liteparse",
+        "periodic_reminder",
     }
 )
 
 _STR_FIELDS = frozenset(
-    {"model", "theme", "charset", "reasoning_effort", "thinking_effort", "sandbox", "sandbox_image"}
+    {
+        "model",
+        "theme",
+        "charset",
+        "reasoning_effort",
+        "thinking_effort",
+        "sandbox",
+        "sandbox_image",
+        "reminder_mode",
+        "reminder_model",
+    }
 )
 
 _INT_FIELDS = frozenset({"max_history", "thinking_budget"})
@@ -116,6 +127,13 @@ class CliConfig:
     """Enable document parsing via LiteParse.
 
     Requires ``pydantic-deep[liteparse]`` and Node.js >= 18."""
+    periodic_reminder: bool = True
+    """Inject a periodic reminder of the original task every N turns."""
+    reminder_mode: Literal["off", "first", "context", "llm"] = "llm"
+    """Generator to use for reminders: ``"first"`` (zero-cost, re-states first message),
+    ``"context"`` (compact transcript, no LLM), or ``"llm"`` (default, uses an LLM to summarize)."""
+    reminder_model: str | None = None
+    """Model used by the ``"llm"`` reminder generator. Defaults to the main model when ``None``."""
 
 
 def load_config(path: Path | None = None) -> CliConfig:
@@ -183,6 +201,12 @@ def validate_config(config: CliConfig) -> list[str]:
         )
     if config.max_history < 0:
         warnings.append("max_history must be non-negative")
+    known_reminder_modes = {"off", "first", "context", "llm"}
+    if config.reminder_mode not in known_reminder_modes:
+        warnings.append(
+            f"Unknown reminder_mode '{config.reminder_mode}'. "
+            f"Known modes: {', '.join(sorted(known_reminder_modes))}"
+        )
     return warnings
 
 

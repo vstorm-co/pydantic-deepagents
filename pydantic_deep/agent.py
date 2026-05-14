@@ -30,6 +30,8 @@ from pydantic_deep.types import SubAgentConfig
 if TYPE_CHECKING:
     from pydantic_ai.toolsets import AbstractToolset
 
+    from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+
 OutputDataT = TypeVar("OutputDataT")
 
 
@@ -120,6 +122,7 @@ def create_deep_agent(
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -191,6 +194,7 @@ def create_deep_agent(
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -260,6 +264,7 @@ def create_deep_agent(  # noqa: C901
     include_improve: bool = False,
     include_liteparse: bool = False,
     stuck_loop_detection: bool = True,
+    periodic_reminder: PeriodicReminderConfig | bool | None = None,
     web_search: bool = True,
     web_fetch: bool = True,
     thinking: bool | str = "high",
@@ -427,6 +432,12 @@ def create_deep_agent(  # noqa: C901
             ``pip install pydantic-deep[liteparse]``.
             The Node.js CLI is auto-installed via npm on first use if
             ``npm`` is in PATH. Defaults to False.
+        periodic_reminder: Inject a task reminder every N turns to keep the
+            agent anchored on its original goal.
+            ``True`` uses default settings (every 10 turns, system_reminder_tag
+            style, zero-cost default generator).
+            Pass a :class:`PeriodicReminderConfig` for full control.
+            ``None`` or ``False`` disables the feature (default).
         web_search: Whether to include the ``WebSearch`` capability.
             Defaults to True.
         web_fetch: Whether to include the ``WebFetch`` capability.
@@ -975,6 +986,19 @@ def create_deep_agent(  # noqa: C901
         from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 
         all_capabilities.append(StuckLoopDetection())
+
+    if periodic_reminder:
+        from pydantic_deep.capabilities.periodic_reminder import (
+            PeriodicReminderCapability,
+            PeriodicReminderConfig,
+        )
+
+        _reminder_cfg = (
+            periodic_reminder
+            if isinstance(periodic_reminder, PeriodicReminderConfig)
+            else PeriodicReminderConfig()
+        )
+        all_capabilities.append(PeriodicReminderCapability(config=_reminder_cfg))
 
     if middleware:
         all_capabilities.extend(middleware)

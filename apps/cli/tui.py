@@ -95,6 +95,15 @@ def run_tui(
         except Exception:
             pass
 
+    def _on_reminder(_turn: int, _text: str) -> None:
+        _app = app_ref[0]
+        if _app is None:
+            return
+        try:  # noqa: SIM105
+            _app.notify("Agent reminded of original task.", timeout=3)
+        except Exception:
+            pass
+
     # Try to create the agent — if it fails (missing API key etc.)
     # we still launch the TUI so the user can fix it from /provider
     try:
@@ -105,6 +114,7 @@ def run_tui(
             working_dir=str(working_dir) if working_dir else None,
             on_cost_update=_on_cost_update,
             on_context_update=_on_context_update,
+            on_reminder=_on_reminder,
             sandbox=sandbox,
             workspace=workspace,
             **kwargs,

@@ -272,6 +272,19 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
 
         app.push_screen(RememberModal(initial_text=arg), _handle_remember)
 
+    elif cmd == "/remind":
+        from apps.cli.modals.remind_picker import ReminderPickerModal
+        from apps.cli.reminder import _apply_reminder_mode
+
+        current = getattr(app, "_reminder_mode", "off")
+
+        async def _handle_remind(mode: str | None) -> None:
+            if mode is None:
+                return
+            _apply_reminder_mode(app, mode)
+
+        app.push_screen(ReminderPickerModal(current_mode=current), _handle_remind)
+
     elif cmd == "/settings":
         from apps.cli.screens.settings import SettingsScreen
 

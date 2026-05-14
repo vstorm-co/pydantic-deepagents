@@ -30,6 +30,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("/provider", "Configure AI provider"),
     ("/quit", "Exit pydantic-deep"),
     ("/remember", "Add note to persistent memory"),
+    ("/remind", "Switch periodic reminder mode"),
     ("/save", "Save current session"),
     ("/settings", "Open settings"),
     ("/skills", "List available skills"),

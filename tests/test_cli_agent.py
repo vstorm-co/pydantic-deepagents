@@ -282,3 +282,194 @@ class TestBuildCliInstructions:
         interactive = build_cli_instructions()
         non_interactive = build_cli_instructions(non_interactive=True)
         assert len(non_interactive) > len(interactive)
+
+
+class TestSandboxEnvVars:
+    """Tests for sandbox_env_vars support in create_cli_agent()."""
+
+    def test_sandbox_env_vars_creates_runtime_config(self, tmp_path: Path) -> None:
+        """When sandbox_env_vars is provided, DockerSandbox receives a RuntimeConfig."""
+        from unittest.mock import MagicMock, patch
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+        mock_runtime_config_instance = MagicMock()
+        mock_runtime_config_cls.return_value = mock_runtime_config_instance
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox) as mock_docker,
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                sandbox="docker",
+                sandbox_env_vars={
+                    "JIRA_API_TOKEN": "tok",
+                    "JIRA_BASE_URL": "https://jira.example.com",
+                },
+            )
+
+        mock_runtime_config_cls.assert_called_once_with(
+            name="cli-sandbox",
+            base_image="python:3.12-slim",
+            env_vars={"JIRA_API_TOKEN": "tok", "JIRA_BASE_URL": "https://jira.example.com"},
+            cache_image=False,
+        )
+        call_kwargs = mock_docker.call_args.kwargs
+        assert call_kwargs["runtime"] is mock_runtime_config_instance
+        assert "image" not in call_kwargs
+
+    def test_sandbox_env_vars_empty_uses_image(self, tmp_path: Path) -> None:
+        """When no sandbox_env_vars, DockerSandbox uses plain image kwarg (no RuntimeConfig)."""
+        from unittest.mock import MagicMock, patch
+
+        mock_sandbox = MagicMock()
+
+        with patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox) as mock_docker:
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                sandbox="docker",
+            )
+
+        call_kwargs = mock_docker.call_args.kwargs
+        assert "image" in call_kwargs
+        assert "runtime" not in call_kwargs
+
+    def test_sandbox_env_vars_custom_image_in_runtime(self, tmp_path: Path) -> None:
+        """sandbox_image is used as base_image in RuntimeConfig when env vars are set."""
+        from unittest.mock import MagicMock, patch
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                sandbox="docker",
+                sandbox_image="python:3.11-slim",
+                sandbox_env_vars={"KEY": "val"},
+            )
+
+        mock_runtime_config_cls.assert_called_once_with(
+            name="cli-sandbox",
+            base_image="python:3.11-slim",
+            env_vars={"KEY": "val"},
+            cache_image=False,
+        )
+
+    def test_sandbox_env_file_loaded(self, tmp_path: Path) -> None:
+        """Variables from a .env file are passed to DockerSandbox via RuntimeConfig."""
+        from unittest.mock import MagicMock, patch
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("JIRA_API_TOKEN=file-token\nJIRA_BASE_URL=https://jira.example.com\n")
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                sandbox="docker",
+                sandbox_env_file=str(env_file),
+            )
+
+        mock_runtime_config_cls.assert_called_once_with(
+            name="cli-sandbox",
+            base_image="python:3.12-slim",
+            env_vars={"JIRA_API_TOKEN": "file-token", "JIRA_BASE_URL": "https://jira.example.com"},
+            cache_image=False,
+        )
+
+    def test_sandbox_env_vars_override_file(self, tmp_path: Path) -> None:
+        """Explicit sandbox_env_vars take priority over .env file values."""
+        from unittest.mock import MagicMock, patch
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("JIRA_API_TOKEN=file-token\nEXTRA=from-file\n")
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                sandbox="docker",
+                sandbox_env_file=str(env_file),
+                sandbox_env_vars={"JIRA_API_TOKEN": "explicit-token"},
+            )
+
+        call_kwargs = mock_runtime_config_cls.call_args.kwargs
+        assert call_kwargs["env_vars"]["JIRA_API_TOKEN"] == "explicit-token"
+        assert call_kwargs["env_vars"]["EXTRA"] == "from-file"
+
+    def test_sandbox_env_file_from_config(self, tmp_path: Path) -> None:
+        """sandbox_env_file in config.toml is used when no explicit param is given."""
+        from unittest.mock import MagicMock, patch
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("FROM_FILE=yes\n")
+
+        config_file = tmp_path / ".pydantic-deep" / "config.toml"
+        config_file.parent.mkdir()
+        config_file.write_text(f'sandbox = "docker"\nsandbox_env_file = "{env_file}"\n')
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                config_path=config_file,
+            )
+
+        call_kwargs = mock_runtime_config_cls.call_args.kwargs
+        assert call_kwargs["env_vars"] == {"FROM_FILE": "yes"}
+
+    def test_sandbox_env_vars_from_config(self, tmp_path: Path) -> None:
+        """sandbox_env_vars in config.toml is used when no explicit param is given."""
+        from unittest.mock import MagicMock, patch
+
+        config_file = tmp_path / ".pydantic-deep" / "config.toml"
+        config_file.parent.mkdir()
+        config_file.write_text(
+            'sandbox = "docker"\n\n[sandbox_env_vars]\nMY_TOKEN = "from-config"\n'
+        )
+
+        mock_sandbox = MagicMock()
+        mock_runtime_config_cls = MagicMock()
+
+        with (
+            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
+            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
+        ):
+            create_cli_agent(
+                model=TEST_MODEL,
+                working_dir=str(tmp_path),
+                config_path=config_file,
+            )
+
+        mock_runtime_config_cls.assert_called_once_with(
+            name="cli-sandbox",
+            base_image="python:3.12-slim",
+            env_vars={"MY_TOKEN": "from-config"},
+            cache_image=False,
+        )

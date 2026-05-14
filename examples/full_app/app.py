@@ -85,6 +85,7 @@ from pydantic_ai.tools import (
     ToolApproved,
     ToolDenied,
 )
+from pydantic_ai_backends import RuntimeConfig
 from subagents_pydantic_ai import DynamicAgentRegistry, create_agent_factory_toolset
 
 from pydantic_deep import (
@@ -129,6 +130,7 @@ WORKSPACE_DIR = APP_DIR / "workspace"
 WORKSPACES_DIR = APP_DIR / "workspaces"  # Per-session persistent storage
 SKILLS_DIR = APP_DIR / "skills"
 STATIC_DIR = APP_DIR / "static"
+ENV_FILE = APP_DIR / ".env"
 
 # Create directories if they don't exist
 WORKSPACE_DIR.mkdir(exist_ok=True)
@@ -670,12 +672,26 @@ async def lifespan(app: FastAPI):
     # Create shared agent (stateless) with ALL features
     agent = create_agent()
 
+    # Load sandbox env vars from .env file if present
+    sandbox_env_vars: dict[str, str] = {}
+    if ENV_FILE.exists():
+        from dotenv import dotenv_values
+
+        sandbox_env_vars = {k: v for k, v in dotenv_values(ENV_FILE).items() if v is not None}
+        logger.info(f"Loaded {len(sandbox_env_vars)} sandbox env vars from {ENV_FILE}")
+
+    default_runtime = (
+        RuntimeConfig(name="app-runtime", env_vars=sandbox_env_vars, cache_image=False)
+        if sandbox_env_vars
+        else None
+    )
+
     # Create session manager for per-user Docker containers
     # Uses python-datascience runtime (pre-installed: pandas, numpy, matplotlib, etc.)
     # NOTE: Change to "python-datascience" for pre-installed pandas/numpy/matplotlib
     # (first run will take a few minutes to build the Docker image)
     session_manager = SessionManager(
-        default_runtime=None,  # Uses python:3.12-slim for fast startup
+        default_runtime=default_runtime,  # Uses python:3.12-slim for fast startup
         default_idle_timeout=3600,  # 1 hour idle timeout
         workspace_root=WORKSPACES_DIR,  # Persistent storage for user files
     )

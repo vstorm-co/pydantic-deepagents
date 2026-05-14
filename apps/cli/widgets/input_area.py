@@ -216,7 +216,7 @@ class InputArea(Vertical):
 
     @staticmethod
     def _running_hints() -> str:
-        return "[dim]![/dim] to steer or write to queue"
+        return "[dim]>>[/dim] steer   write to queue   [dim]Esc[/dim] interrupt"
 
     def watch_is_agent_running(self, running: bool) -> None:
         if self.is_multiline:

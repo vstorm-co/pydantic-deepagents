@@ -11,7 +11,7 @@ import os
 import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -64,11 +64,23 @@ _BOOL_FIELDS = frozenset(
         "include_browser",
         "browser_headless",
         "include_liteparse",
+        "periodic_reminder",
     }
 )
 
 _STR_FIELDS = frozenset(
-    {"model", "theme", "charset", "reasoning_effort", "thinking_effort", "sandbox", "sandbox_image"}
+    {
+        "model",
+        "theme",
+        "charset",
+        "reasoning_effort",
+        "thinking_effort",
+        "sandbox",
+        "sandbox_image",
+        "sandbox_env_file",
+        "reminder_mode",
+        "reminder_model",
+    }
 )
 
 _INT_FIELDS = frozenset({"max_history", "thinking_budget"})
@@ -107,6 +119,10 @@ class CliConfig:
     """Sandbox backend: ``"local"`` (default) or ``"docker"``."""
     sandbox_image: str = "python:3.12-slim"
     """Docker image used when ``sandbox = "docker"``."""
+    sandbox_env_vars: dict[str, str] = field(default_factory=dict)
+    """Environment variables injected into the Docker sandbox container."""
+    sandbox_env_file: str | None = None
+    """Path to a .env file whose variables are injected into the Docker sandbox container."""
     logfire: bool = False
     include_browser: bool = True
     """Enable browser automation via Playwright (requires ``pydantic-deep[browser]``)."""
@@ -116,6 +132,13 @@ class CliConfig:
     """Enable document parsing via LiteParse.
 
     Requires ``pydantic-deep[liteparse]`` and Node.js >= 18."""
+    periodic_reminder: bool = True
+    """Inject a periodic reminder of the original task every N turns."""
+    reminder_mode: Literal["off", "first", "context", "llm"] = "llm"
+    """Generator to use for reminders: ``"first"`` (zero-cost, re-states first message),
+    ``"context"`` (compact transcript, no LLM), or ``"llm"`` (default, uses an LLM to summarize)."""
+    reminder_model: str | None = None
+    """Model used by the ``"llm"`` reminder generator. Defaults to the main model when ``None``."""
 
 
 def load_config(path: Path | None = None) -> CliConfig:
@@ -183,6 +206,12 @@ def validate_config(config: CliConfig) -> list[str]:
         )
     if config.max_history < 0:
         warnings.append("max_history must be non-negative")
+    known_reminder_modes = {"off", "first", "context", "llm"}
+    if config.reminder_mode not in known_reminder_modes:
+        warnings.append(
+            f"Unknown reminder_mode '{config.reminder_mode}'. "
+            f"Known modes: {', '.join(sorted(known_reminder_modes))}"
+        )
     return warnings
 
 
@@ -243,21 +272,28 @@ def _coerce_value(key: str, value: str) -> Any:
 
 def _write_toml(path: Path, data: dict[str, Any]) -> None:
     """Write a flat key-value dict as TOML."""
-    lines: list[str] = []
+    scalar_lines: list[str] = []
+    table_lines: list[str] = []
     for key in sorted(data):
         value = data[key]
         if value is None:
             continue
-        if isinstance(value, bool):
-            lines.append(f"{key} = {'true' if value else 'false'}")
+        if isinstance(value, dict):
+            if value:
+                table_lines.append(f"\n[{key}]")
+                for k, v in sorted(value.items()):
+                    table_lines.append(f'{k} = "{v}"')
+        elif isinstance(value, bool):
+            scalar_lines.append(f"{key} = {'true' if value else 'false'}")
         elif isinstance(value, (float, int)):
-            lines.append(f"{key} = {value}")
+            scalar_lines.append(f"{key} = {value}")
         elif isinstance(value, list):
             items = ", ".join(f'"{v}"' for v in value)
-            lines.append(f"{key} = [{items}]")
+            scalar_lines.append(f"{key} = [{items}]")
         else:
-            lines.append(f'{key} = "{value}"')
-    path.write_text("\n".join(lines) + "\n")
+            scalar_lines.append(f'{key} = "{value}"')
+    all_lines = scalar_lines + table_lines
+    path.write_text("\n".join(all_lines) + "\n")
 
 
 def format_config(config: CliConfig) -> str:

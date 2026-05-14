@@ -236,12 +236,12 @@ class TestMessageQueue:
 
 
 class TestFormatHelpers:
-    def testformat_steering_single(self) -> None:
+    def test_format_steering_single(self) -> None:
         msg = QueuedMessage("stop that", "steering")
         result = format_steering([msg])
         assert result == "[steering] stop that"
 
-    def testformat_steering_multiple(self) -> None:
+    def test_format_steering_multiple(self) -> None:
         msgs = [
             QueuedMessage("first", "steering"),
             QueuedMessage("second", "steering"),
@@ -251,12 +251,15 @@ class TestFormatHelpers:
         assert "- first" in result
         assert "- second" in result
 
-    def testformat_follow_up_single(self) -> None:
+    def test_format_steering_empty(self) -> None:
+        assert format_steering([]) == ""
+
+    def test_format_follow_up_single(self) -> None:
         msg = QueuedMessage("do this next", "follow_up")
         result = format_follow_up([msg])
         assert result == "do this next"
 
-    def testformat_follow_up_multiple(self) -> None:
+    def test_format_follow_up_multiple(self) -> None:
         msgs = [
             QueuedMessage("task A", "follow_up"),
             QueuedMessage("task B", "follow_up"),

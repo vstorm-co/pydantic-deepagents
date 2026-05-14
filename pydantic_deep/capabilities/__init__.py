@@ -16,6 +16,13 @@ from pydantic_deep.capabilities.message_queue import (
     format_steering,
     run_with_queue,
 )
+from pydantic_deep.capabilities.periodic_reminder import (
+    LLMReminderGenerator,
+    PeriodicReminderCapability,
+    PeriodicReminderConfig,
+    ReminderGenerator,
+    make_config_for_mode,
+)
 from pydantic_deep.capabilities.plan import PlanCapability
 from pydantic_deep.capabilities.skills import SkillsCapability
 from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection, StuckLoopError
@@ -25,16 +32,21 @@ __all__ = [
     "BrowserCapability",
     "ContextFilesCapability",
     "HooksCapability",
+    "LLMReminderGenerator",
     "MemoryCapability",
     "MessageQueue",
     "MessageQueueCapability",
+    "PeriodicReminderCapability",
+    "PeriodicReminderConfig",
     "PlanCapability",
     "QueuedMessage",
-    "format_follow_up",
-    "format_steering",
+    "ReminderGenerator",
     "SkillsCapability",
     "StuckLoopDetection",
     "StuckLoopError",
     "TeamCapability",
+    "format_follow_up",
+    "format_steering",
+    "make_config_for_mode",
     "run_with_queue",
 ]

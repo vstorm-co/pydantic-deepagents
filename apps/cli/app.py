@@ -45,6 +45,7 @@ class DeepApp(App):
 
     BINDINGS = [
         Binding("ctrl+c", "interrupt", "Interrupt", show=False),
+        Binding("escape", "escape_key", "Interrupt/Focus", show=False),
         Binding("ctrl+d", "quit", "Quit", show=False),
         Binding("f1", "show_help", "Help"),
         Binding("f2", "show_settings", "Settings"),
@@ -61,6 +62,8 @@ class DeepApp(App):
     context_max: reactive[int] = reactive(0)
     total_cost: reactive[float] = reactive(0.0)
     current_cost: reactive[float] = reactive(0.0)
+
+    _agent_task: asyncio.Task[None] | None = None
 
     def __init__(
         self,
@@ -82,7 +85,6 @@ class DeepApp(App):
         self._branch = _detect_git_branch(str(working_dir))
         self.message_history: list[ModelMessage] = message_history or []
         self.last_response: str = ""
-        self._agent_task: asyncio.Task[Any] | None = None
         self._startup_error = startup_error
         self.queue = getattr(deps, "message_queue", None)
 
@@ -364,10 +366,20 @@ class DeepApp(App):
         """Handle Ctrl+C — cancel running agent or exit."""
         if self._agent_task and not self._agent_task.done():
             self._agent_task.cancel()
-            self.is_streaming = False
             self.notify("Agent interrupted", severity="warning")
         else:
             self.exit()
+
+    def action_escape_key(self) -> None:
+        """Handle Esc — interrupt running agent, or focus input if idle."""
+        if self._agent_task and not self._agent_task.done():
+            self._agent_task.cancel()
+            self.notify("Agent interrupted", severity="warning")
+        else:
+            from apps.cli.widgets.input_area import InputArea
+
+            with contextlib.suppress(NoMatches):
+                self.screen.query_one(InputArea).focus_input()
 
     def action_show_help(self) -> None:
         self.handle_command("/help")

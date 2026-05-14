@@ -226,7 +226,7 @@ class TestFileRefs:
 
 class TestMessageQueueIntegration:
     async def test_steer_queued_when_agent_running(self, app):
-        """Submitting !text while agent is running routes to queue.steer()."""
+        """Submitting >>text while agent is running routes to queue.steer()."""
         import asyncio
 
         from apps.cli.messages import UserSubmitted
@@ -254,7 +254,7 @@ class TestMessageQueueIntegration:
             app._agent_task = task
 
             # Submit steering input while agent is "running"
-            chat.post_message(UserSubmitted("!stop and summarise"))
+            chat.post_message(UserSubmitted(">>stop and summarise"))
             await pilot.pause()
             await pilot.pause()
 

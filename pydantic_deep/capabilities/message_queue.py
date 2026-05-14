@@ -182,6 +182,8 @@ async def run_with_queue(
 
 
 def format_steering(messages: list[QueuedMessage]) -> str:
+    if not messages:
+        return ""
     if len(messages) == 1:
         return f"[steering] {messages[0].content}"
     lines = "\n".join(f"- {m.content}" for m in messages)

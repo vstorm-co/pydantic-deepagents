@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from apps.cli.app import DeepApp
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -41,8 +44,11 @@ from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
 class ChatScreen(Screen):
     """The main chat interface with header, messages, status bar, and input."""
 
+    @property
+    def app(self) -> DeepApp:
+        return super().app
+
     BINDINGS = [
-        Binding("escape", "focus_input", "Focus input", show=False),
         Binding("ctrl+j", "toggle_multiline", "Multiline", show=False),
         Binding("ctrl+k", "show_todos", "TODOs"),
         Binding("ctrl+l", "clear_screen", "Clear"),
@@ -383,23 +389,27 @@ class ChatScreen(Screen):
         text = event.text
 
         app = self.app
-        queue = getattr(app, "queue", None)
-        task = getattr(app, "_agent_task", None)
+        queue = app.queue
+        task = app._agent_task
         is_running = task is not None and not task.done()
 
-        # Route to queue if agent is running
-        if is_running and queue is not None:
-            if text.startswith("!"):
-                await queue.steer(text[1:].strip())
-                app.notify("steering queued")  # type: ignore[attr-defined]
-                self._increment_queue_badge(steering=True)
+        # Mid-run: route to queue. `>>` prefix = steering, plain text = follow-up.
+        # `!` keeps meaning "shell command" regardless of agent state.
+        if is_running and queue is not None and not text.startswith("!"):
+            if text.startswith(">>"):
+                steer_text = text[2:].strip()
+                if steer_text:
+                    await queue.steer(steer_text)
+                    preview = steer_text[:40] + ("…" if len(steer_text) > 40 else "")
+                    app.notify(f"steering queued: {preview}")
+                    self._increment_queue_badge(steering=True)
             else:
                 await queue.follow_up(text)
-                app.notify("follow-up queued")  # type: ignore[attr-defined]
+                app.notify("follow-up queued")
                 self._increment_queue_badge(steering=False)
             return
 
-        # Shell command (only when agent is idle)
+        # Shell command
         if text.startswith("!"):
             app.run_shell_command(text[1:])  # type: ignore[attr-defined]
             return
@@ -408,6 +418,10 @@ class ChatScreen(Screen):
         if text.startswith("/") and not text.startswith("//"):
             app.handle_command(text)  # type: ignore[attr-defined]
             return
+
+        # User typed `>>foo` while idle — strip the steering prefix and run as a normal prompt
+        if text.startswith(">>"):
+            text = text[2:].lstrip()
 
         # Expand @file references — read files and append content to prompt
         text = self._expand_file_refs(text)
@@ -446,6 +460,8 @@ class ChatScreen(Screen):
         """Run the agent and stream results directly to widgets."""
         import asyncio
 
+        from apps.cli.widgets.input_area import HintsBar
+
         app = self.app
         if getattr(app, "agent", None) is None:
             app.notify("No agent configured — use /provider to set up", severity="error")  # type: ignore
@@ -459,10 +475,14 @@ class ChatScreen(Screen):
         app.last_response = ""  # type: ignore
         assistant = msg_list.begin_assistant_message()
 
+        with contextlib.suppress(Exception):
+            self.query_one(HintsBar).update("[dim]Esc[/dim] to interrupt")
+
         task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list, header))
-        app._agent_task = task  # type: ignore[attr-defined]
+        app._agent_task = task
 
         def _on_done(t: asyncio.Task[None]) -> None:
+            app._agent_task = None
             exc = t.exception()
             if exc:
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
@@ -500,6 +520,7 @@ class ChatScreen(Screen):
 
         _follow_up_scheduled = False
         pending: dict[str, tuple[dict[str, Any], float]] = {}
+        _run_cancelled = False
         _TODO_TOOLS: frozenset[str] = frozenset()  # Show all tool calls in UI
         _TEAM_TOOLS = frozenset(
             {
@@ -526,6 +547,10 @@ class ChatScreen(Screen):
             return {}
 
         try:
+            from pydantic_deep.processors.patch import patch_tool_calls_processor
+
+            history = patch_tool_calls_processor(list(history))
+
             async with agent.iter(
                 text, deps=deps, message_history=history, usage_limits=DEFAULT_USAGE_LIMITS
             ) as run:
@@ -791,7 +816,7 @@ class ChatScreen(Screen):
                 self._save_session()
 
                 # Drain follow-up queue and schedule next run if pending.
-                _queue = getattr(app, "queue", None)
+                _queue = app.queue
                 if _queue is not None:
                     _follow_up_msgs = await _queue.drain_follow_up()
                     if _follow_up_msgs:
@@ -806,6 +831,7 @@ class ChatScreen(Screen):
                         self.call_later(self._run_agent, _follow_up_text)
 
         except asyncio.CancelledError:
+            _run_cancelled = True
             log.info("Agent run cancelled")
         except Exception as exc:
             log.error("Agent run failed", exc_info=True)
@@ -814,8 +840,21 @@ class ChatScreen(Screen):
             with contextlib.suppress(Exception):
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
         finally:
+            from apps.cli.widgets.input_area import HintsBar
+
+            for call_id, (_, start) in list(pending.items()):
+                elapsed = _time.monotonic() - start
+                if _run_cancelled:
+                    assistant.complete_tool_call(call_id, "Interrupted", elapsed, True)
+                else:
+                    assistant.complete_tool_call(call_id, "", elapsed, False)
+            pending.clear()
+
+            msg_list.remove_last_if_empty()
+
             # Always save session — even after errors or cancellation
             self._save_session()
+            app.is_streaming = False
             header.is_streaming = False
             header.is_thinking = False
             with contextlib.suppress(Exception):
@@ -824,19 +863,34 @@ class ChatScreen(Screen):
             with contextlib.suppress(Exception):
                 self.query_one(InputArea).focus_input()
             with contextlib.suppress(Exception):
+                self.query_one(HintsBar).reset()
+            with contextlib.suppress(Exception):
                 msg_list.scroll_end(animate=False)
-            _stale_queue = getattr(app, "queue", None)
+            _stale_queue = app.queue
             if _stale_queue is not None:
                 stale = await _stale_queue.drain_steering()
                 if stale:
                     n = len(stale)
                     label = "steering message" if n == 1 else "steering messages"
                     with contextlib.suppress(Exception):
-                        app.notify(  # type: ignore[attr-defined]
+                        app.notify(
                             f"{n} {label} not delivered — agent finished before next LLM call",
                             severity="warning",
                             timeout=6,
                         )
+                # When the run was cancelled, follow-ups referring to the cancelled
+                # task are likely stale too. Discard with a count-only notification.
+                if _run_cancelled:
+                    stale_fu = await _stale_queue.drain_follow_up()
+                    if stale_fu:
+                        n = len(stale_fu)
+                        label = "follow-up" if n == 1 else "follow-ups"
+                        with contextlib.suppress(Exception):
+                            app.notify(
+                                f"{n} {label} discarded — run cancelled",
+                                severity="warning",
+                                timeout=6,
+                            )
             if not _follow_up_scheduled:
                 self._reset_queue_badge()
             else:

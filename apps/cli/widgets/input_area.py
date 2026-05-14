@@ -203,6 +203,7 @@ class InputArea(Vertical):
     """
 
     is_multiline: reactive[bool] = reactive(False)
+    is_agent_running: reactive[bool] = reactive(False)
 
     class ExitMultiline(Message):
         """Request to exit multiline mode."""
@@ -212,6 +213,19 @@ class InputArea(Vertical):
             yield PromptPrefix()
             yield PromptInput()
         yield HintsBar()
+
+    @staticmethod
+    def _running_hints() -> str:
+        return "[dim]>>[/dim] steer   write to queue   [dim]Esc[/dim] interrupt"
+
+    def watch_is_agent_running(self, running: bool) -> None:
+        if self.is_multiline:
+            return
+        hints = self.query_one(HintsBar)
+        if running:
+            hints.update(self._running_hints())
+        else:
+            hints.reset()
 
     def watch_is_multiline(self, multiline: bool) -> None:
         prompt_rows = self.query("PromptRow")

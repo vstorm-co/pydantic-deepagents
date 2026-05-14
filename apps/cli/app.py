@@ -86,6 +86,7 @@ class DeepApp(App):
         self.message_history: list[ModelMessage] = message_history or []
         self.last_response: str = ""
         self._startup_error = startup_error
+        self.queue = getattr(deps, "message_queue", None)
 
         # Register custom themes
         from apps.cli.styles.themes import register_themes
@@ -229,6 +230,7 @@ class DeepApp(App):
             )
             self.agent = agent
             self.deps = deps
+            self.queue = getattr(deps, "message_queue", None)
             self._startup_error = None
             self.model_name = effective
 

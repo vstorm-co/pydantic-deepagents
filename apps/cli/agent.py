@@ -12,6 +12,7 @@ from apps.cli.prompts import build_cli_instructions
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
 from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+from pydantic_deep.capabilities.message_queue import MessageQueue
 from pydantic_deep.deps import DeepAgentDeps
 
 
@@ -356,6 +357,8 @@ def create_cli_agent(  # noqa: C901
                 stacklevel=2,
             )
 
+    queue = MessageQueue()
+
     agent = create_deep_agent(
         model=effective_model,
         instructions=instructions,
@@ -422,6 +425,8 @@ def create_cli_agent(  # noqa: C901
         middleware=middleware or None,
         toolsets=[local_context] if local_context else None,
         capabilities=extra_capabilities or None,
+        # Message queue for mid-run steering and follow-up delivery
+        message_queue=queue,
         # Periodic reminder
         periodic_reminder=_build_reminder_config(
             periodic_reminder, reminder_mode, config, on_reminder, reminder_model
@@ -435,6 +440,7 @@ def create_cli_agent(  # noqa: C901
     deps = DeepAgentDeps(
         backend=effective_backend,
         context_middleware=context_mw,
+        message_queue=queue,
     )
     deps._task_manager = task_mgr  # type: ignore[attr-defined]
     return agent, deps

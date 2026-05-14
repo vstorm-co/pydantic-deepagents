@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.19] - 2026-05-14
+
+### Added
+
+- **`PeriodicReminderCapability` — periodic task reminders for long agent runs** ([#94](https://github.com/vstorm-co/pydantic-deepagents/pull/94)) — injects a "what are you supposed to be doing" reminder into the message history every N model-request turns to prevent agent drift on long, tool-heavy runs. Uses `before_model_request` and per-run state isolation via `for_run()`.
+  - Four CLI modes via a new `/remind` command: `off`, `first` (zero-cost — re-states the first user message), `context` (zero-cost — compact transcript), `llm` (uses Claude Haiku / GPT mini / Gemini Flash to summarize progress).
+  - `LLMReminderGenerator` with exception fallback to the zero-cost default.
+  - Three render styles: `system_reminder_tag` (default), `developer_note`, `user_prompt`.
+  - `create_deep_agent()` gains a `periodic_reminder: bool | PeriodicReminderConfig | None = None` parameter.
+  - CLI: enabled by default in `llm` mode; configurable via `periodic_reminder` and `reminder_mode` keys in `config.toml`.
+  - New top-level exports: `PeriodicReminderCapability`, `PeriodicReminderConfig`, `ReminderGenerator`, `LLMReminderGenerator`, `make_config_for_mode`.
+
+- **`MessageQueue` — mid-run message delivery (steering & follow-up)** ([#100](https://github.com/vstorm-co/pydantic-deepagents/pull/100)) — lets external code (CLI keystrokes, webhooks, subagents) push messages into a running agent loop without cancelling and restarting it, preserving in-flight tool results and the prompt cache.
+  - **Steering** messages are injected before the next LLM call via `MessageQueueCapability.before_model_request`. To avoid issues with downstream capabilities that strip lone trailing `ModelRequest` nodes, the steering `UserPromptPart` is merged into the last existing `ModelRequest`.
+  - **Follow-up** messages are queued for delivery when the agent would otherwise stop, triggering a re-entry via the new `run_with_queue()` helper.
+  - Two delivery modes: `one_at_a_time` (default) and `all` (drain entire queue based on the head message's mode).
+  - `DeepAgentDeps.message_queue` field, propagated by reference through `clone_for_subagent()` so subagents can steer the parent.
+  - `create_deep_agent()` gains a `message_queue: MessageQueue | None = None` parameter.
+  - CLI: `>>text` mid-run = steering, plain text mid-run = follow-up, `!cmd` stays as shell command in all states. Side-panel `QueuedWidget` shows pending counts. Stale steering messages are surfaced as a warning when the run ends before reaching another LLM call, and follow-ups left over from a cancelled run are discarded with a count-only notification.
+  - New top-level exports: `MessageQueue`, `MessageQueueCapability`, `QueuedMessage`, `run_with_queue`, `format_steering`, `format_follow_up`.
+
+- **Programmatic `skills` parameter on `create_deep_agent`** ([#97](https://github.com/vstorm-co/pydantic-deepagents/pull/97)) — accepts `list[Skill]` instances directly, complementing the existing `skill_directories=` discovery path. Emits a `UserWarning` when `skills=` or `skill_directories=` are provided alongside `include_skills=False`.
+
+- **Docker sandbox environment variable support** ([#99](https://github.com/vstorm-co/pydantic-deepagents/pull/99) — fixes [#98](https://github.com/vstorm-co/pydantic-deepagents/issues/98)) — wires up the `RuntimeConfig.env_vars` plumbing that the programmatic `DockerSandbox` API already supported but the CLI and `full_app` example never exposed.
+  - `sandbox_env_vars: dict[str, str]` and `sandbox_env_file: str | None` fields on `CliConfig`; matching parameters on `create_cli_agent()`.
+  - Three-level priority merge: `config.sandbox_env_vars` (lowest) → `.env` file → explicit `sandbox_env_vars` (highest).
+  - `examples/full_app/app.py` auto-loads `examples/full_app/.env` into the `SessionManager`'s default `RuntimeConfig`.
+  - Uses `RuntimeConfig(cache_image=False)` to prevent secrets from being baked into cached Docker image layers.
+  - `_write_toml()` extended to emit `[table]` sections for `dict` values, enabling round-trip persistence via `set_config_value()`.
+
+### Fixed
+
+- **Esc to interrupt, tool spinner lifecycle, and empty message cleanup** ([#96](https://github.com/vstorm-co/pydantic-deepagents/pull/96) — closes [#93](https://github.com/vstorm-co/pydantic-deepagents/issues/93)):
+  - **Esc** now interrupts a running agent (previously Ctrl+C only); focuses input when idle. Centralized on `DeepApp.action_escape_key` so any screen-level handler uses the same cancellation path.
+  - Fixed a `ToolCallWidget.on_mount` race where `complete()` arriving before mount left the spinner timer uninitialized — the widget now renders its final state immediately when not in the `pending` state.
+  - `AssistantMessage.complete_tool_call` is now idempotent (only acts on widgets still in the `pending` state), preventing the cancellation drain from overwriting correctly completed results.
+  - `/load` session replay marks orphaned tool calls (from previously interrupted sessions) as "Interrupted" instead of leaving spinners hung; switched to `isinstance` checks against `ToolCallPart` / `ToolReturnPart` / `UserPromptPart` / `TextPart` and uses `part.args_as_dict()` for correct label display.
+  - Empty assistant message bubbles are removed when a run is cancelled before producing any output, thinking, or tool calls.
+  - The hints bar shows context-aware shortcuts (`Esc interrupt`) while the agent is running.
+
+- **`create_deep_agent()` rejected `skills=` kwarg** ([#97](https://github.com/vstorm-co/pydantic-deepagents/pull/97) — fixes [#95](https://github.com/vstorm-co/pydantic-deepagents/issues/95)) — callers using `skills=[Skill(...)]` previously got `UserError: Unknown keyword arguments: 'skills'` because the kwarg fell through to pydantic-ai's `Agent()` constructor.
+
 ## [0.3.18] - 2026-05-05
 
 ### Fixed

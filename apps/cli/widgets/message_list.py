@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from textual.containers import VerticalScroll
 
 from apps.cli.widgets.assistant_message import AssistantMessage
@@ -46,6 +48,14 @@ class MessageList(VerticalScroll):
             self._current_assistant.finalize_text()
             self._current_assistant = None
         self.scroll_end(animate=False)
+
+    def remove_last_if_empty(self) -> None:
+        """Remove the current assistant message if it has no visible content."""
+        msg = self._current_assistant
+        if msg is not None and msg.is_empty:
+            self._current_assistant = None
+            with contextlib.suppress(Exception):
+                msg.remove()
 
     def clear_messages(self) -> None:
         """Remove all messages."""

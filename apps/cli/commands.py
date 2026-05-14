@@ -319,43 +319,53 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                 msg_list = app.screen.query_one(MessageList)
                 msg_list.clear_messages()
 
+                from pydantic_ai.messages import (
+                    TextPart,
+                    ToolCallPart,
+                    ToolReturnPart,
+                    UserPromptPart,
+                )
+
+                completed_call_ids: set[str] = {
+                    part.tool_call_id
+                    for msg in history
+                    for part in msg.parts
+                    if isinstance(part, ToolReturnPart)
+                }
+
                 # Replay messages into the message list
                 for msg in history:
                     for part in msg.parts:
-                        kind = getattr(part, "part_kind", "")
-                        if kind == "user-prompt":
-                            content = getattr(part, "content", "")
+                        if isinstance(part, UserPromptPart):
+                            content = part.content
                             if isinstance(content, str) and content:
                                 msg_list.append_user_message(content)
-                        elif kind == "text":
-                            content = getattr(part, "content", "")
-                            if isinstance(content, str) and content:
+                        elif isinstance(part, TextPart):
+                            if part.content:
                                 assistant_msg = msg_list.begin_assistant_message()
-                                assistant_msg.append_text(content)
+                                assistant_msg.append_text(part.content)
                                 assistant_msg.finalize_text()
                                 msg_list.end_assistant_message()
-                        elif kind == "tool-call":
-                            # Show tool calls in the most recent assistant message
-                            tool_name = getattr(part, "tool_name", "unknown")
-                            args = getattr(part, "args", {})
-                            if not isinstance(args, dict):
-                                args = {}
-                            call_id = getattr(part, "tool_call_id", tool_name)
+                        elif isinstance(part, ToolCallPart):
+                            args = part.args_as_dict()
+                            call_id = part.tool_call_id
                             assistant_msg = msg_list.current_assistant
                             if assistant_msg is None:
                                 assistant_msg = msg_list.begin_assistant_message()
-                            assistant_msg.add_tool_call(tool_name, args, call_id)
-                        elif kind == "tool-return":
-                            tool_name = getattr(part, "tool_name", "unknown")
-                            call_id = getattr(part, "tool_call_id", tool_name)
-                            content = str(getattr(part, "content", ""))
+                            assistant_msg.add_tool_call(part.tool_name, args, call_id)
+                            if call_id not in completed_call_ids:
+                                assistant_msg.complete_tool_call(call_id, "Interrupted", 0.0, True)
+                        elif isinstance(part, ToolReturnPart):
+                            content = str(part.content)
                             assistant_msg = msg_list.current_assistant
                             if assistant_msg is not None:
                                 is_error = (
                                     "error" in content.lower()[:100]
                                     or "traceback" in content.lower()[:200]
                                 )
-                                assistant_msg.complete_tool_call(call_id, content, 0.0, is_error)
+                                assistant_msg.complete_tool_call(
+                                    part.tool_call_id, content, 0.0, is_error
+                                )
 
                 # Finalize any open assistant message
                 if msg_list.current_assistant is not None:

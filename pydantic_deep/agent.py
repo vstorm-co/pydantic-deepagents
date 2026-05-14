@@ -23,7 +23,7 @@ from subagents_pydantic_ai import create_subagent_toolset, get_subagent_system_p
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.prompts import BASE_PROMPT
-from pydantic_deep.toolsets.skills import SkillsToolset
+from pydantic_deep.toolsets.skills import Skill, SkillsToolset
 from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
 from pydantic_deep.types import SubAgentConfig
 
@@ -84,6 +84,7 @@ def create_deep_agent(
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -155,6 +156,7 @@ def create_deep_agent(
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -226,6 +228,7 @@ def create_deep_agent(  # noqa: C901
     | list[str]
     | list[BackendSkillsDirectory]
     | None = None,
+    skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
     include_filesystem: bool = True,
@@ -309,6 +312,7 @@ def create_deep_agent(  # noqa: C901
         subagents: Subagent configurations for the task tool.
         skill_directories: Directories to discover skills from.
             Accepts plain string paths or BackendSkillsDirectory instances.
+        skills: Skill instances to register directly.
         backend: File storage backend (default: StateBackend).
         include_todo: Whether to include the todo toolset.
         include_filesystem: Whether to include the filesystem toolset.
@@ -506,6 +510,15 @@ def create_deep_agent(  # noqa: C901
         result = await agent.run("Analyze this code", deps=deps)
         ```
     """
+    import warnings
+
+    if not include_skills and (skills or skill_directories):
+        warnings.warn(
+            "skills and skill_directories are ignored when include_skills=False",
+            UserWarning,
+            stacklevel=2,
+        )
+
     model = model or DEFAULT_MODEL
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}
@@ -705,6 +718,7 @@ def create_deep_agent(  # noqa: C901
 
         skills_toolset = SkillsToolset(
             id="deep-skills",
+            skills=skills,
             directories=directories,  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         )
         all_toolsets.append(skills_toolset)  # type: ignore[arg-type]

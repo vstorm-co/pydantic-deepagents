@@ -3,7 +3,7 @@
 This module provides backend-integrated implementations that parallel
 the local filesystem implementations in ``local.py``:
 
-- `BackendSkillResource`: Load resources via ``BackendProtocol._read_bytes()``
+- `BackendSkillResource`: Load resources via ``BackendProtocol.read_bytes()``
 - `BackendSkillScriptExecutor`: Execute scripts via ``SandboxProtocol.execute()``
 - `BackendSkillScript`: File-based script delegating to backend executor
 - `BackendSkillsDirectory`: Discover skills from a backend filesystem
@@ -79,7 +79,7 @@ class BackendSkillResource(SkillResource):
             raise SkillResourceLoadError(f"Resource '{self.name}' has no backend configured")
 
         try:
-            content_bytes = self.backend._read_bytes(self.uri)
+            content_bytes = self.backend.read_bytes(self.uri)
             content = content_bytes.decode("utf-8")
         except Exception as e:
             raise SkillResourceLoadError(
@@ -397,7 +397,7 @@ def _discover_backend_scripts(
 class BackendSkillsDirectory:
     """Discover and load skills from a backend filesystem.
 
-    Uses ``BackendProtocol`` methods (``glob_info``, ``_read_bytes``) for
+    Uses ``BackendProtocol`` methods (``glob_info``, ``read_bytes``) for
     skill discovery and resource loading. Script execution requires
     ``SandboxProtocol`` (with ``execute()``).
 
@@ -501,7 +501,7 @@ class BackendSkillsDirectory:
         Returns:
             Loaded Skill object, or None if skill should be skipped.
         """
-        content_bytes = self._backend._read_bytes(skill_file_path)
+        content_bytes = self._backend.read_bytes(skill_file_path)
         content = content_bytes.decode("utf-8")
 
         frontmatter, instructions = _parse_skill_md(content)

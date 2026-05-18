@@ -44,7 +44,7 @@ class BranchOverlay:
     The overlay is intentionally minimal in Stage 1 — it implements the
     subset of :class:`BackendProtocol` exercised by the kernel test plan
     (read, write, edit, ``ls_info``, ``glob_info``, ``grep_raw``,
-    ``_read_bytes``). Forwarding for the latter three merges overlay and
+    ``read_bytes``). Forwarding for the latter three merges overlay and
     parent results with the overlay taking precedence.
     """
 
@@ -63,7 +63,7 @@ class BranchOverlay:
 
     def _has(self, path: str) -> bool:
         """Check whether a file lives in THIS overlay (not parent)."""
-        return self._overlay.exists(path)
+        return bool(self._overlay.exists(path))
 
     def exists(self, path: str) -> bool:
         """Public ``BackendProtocol`` predicate — overlay first, fall through to parent.
@@ -72,7 +72,7 @@ class BranchOverlay:
         copy-on-write read semantics: written-by-this-branch files take
         precedence, otherwise the parent backend answers.
         """
-        return self._overlay.exists(path) or self._parent.exists(path)
+        return bool(self._overlay.exists(path) or self._parent.exists(path))
 
     def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
         if self._has(path):
@@ -80,11 +80,11 @@ class BranchOverlay:
             return result
         return str(self._parent.read(path, offset, limit))
 
-    def _read_bytes(self, path: str) -> bytes:
+    def read_bytes(self, path: str) -> bytes:
         if self._has(path):
-            data: bytes = self._overlay._read_bytes(path)
+            data: bytes = self._overlay.read_bytes(path)
             return data
-        parent_data: bytes = self._parent._read_bytes(path)
+        parent_data: bytes = self._parent.read_bytes(path)
         return parent_data
 
     def write(self, path: str, content: str | bytes) -> WriteResult:
@@ -106,7 +106,7 @@ class BranchOverlay:
         # first so edits don't leak back to the parent.
         if not self._has(path):
             try:
-                parent_bytes = self._parent._read_bytes(path)
+                parent_bytes = self._parent.read_bytes(path)
             except (FileNotFoundError, KeyError):  # pragma: no cover - defensive
                 # File doesn't exist in parent either — let overlay.edit surface
                 # the not-found error to the caller via EditResult.error.

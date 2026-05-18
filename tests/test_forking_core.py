@@ -206,10 +206,10 @@ def test_branch_overlay_read_bytes_overlay_and_parent():
     overlay = BranchOverlay(parent)
 
     # Falls through to parent
-    assert overlay._read_bytes("/a.py") == b"from-parent"
+    assert overlay.read_bytes("/a.py") == b"from-parent"
 
     overlay.write("/a.py", "from-overlay")
-    assert overlay._read_bytes("/a.py") == b"from-overlay"
+    assert overlay.read_bytes("/a.py") == b"from-overlay"
 
 
 def test_branch_overlay_parent_property():

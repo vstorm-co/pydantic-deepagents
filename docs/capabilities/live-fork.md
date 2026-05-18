@@ -86,14 +86,15 @@ The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_s
 
 ## Agent-facing tools
 
-When `forking` is enabled, the agent gains four tools:
+When `forking` is enabled, the agent gains five tools:
 
-| Tool | Stage 1 surface |
+| Tool | Surface |
 |---|---|
-| `fork_run(specs, isolation=None, strategy=None)` | Spawn ≤2 branch tasks. Each `spec` needs `label` and `steer`; optional `model`, `budget_usd` (Stage 4), `extra_instructions`. |
+| `fork_run(specs, isolation=None, strategy=None)` | Spawn ≤2 branch tasks (Stage 4 lifts the cap). Each `spec` needs `label` and `steer`; optional `model`, `budget_usd` (Stage 4), `extra_instructions`. |
 | `inspect_branches()` | Return current per-branch state: `running`, `done`, `failed`, `terminated`. |
 | `merge_or_select(action)` | Resolve the fork. Stage 1 supports `action="pick:<branch_id>"` only. |
 | `terminate_branch(branch_id)` | Cancel one branch's task; the branch transitions to `terminated`. |
+| `diff_branches(fork_id, paths=None)` | **Stage 2.** Build a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] covering every path any branch touched. See [Diff explorer](#diff-explorer). |
 
 ## How it works
 
@@ -140,7 +141,65 @@ If `include_checkpoints` is `False`, `fork_run` still works but emits a `UserWar
 
 ### `BranchOverlay` write tracking
 
-`BranchOverlay.changes()` returns the temporal-ordered `list[FileChange]` of every write in this branch. Stage 2's `diff_branches()`, Stage 5's `ForkMaterializer`, and Stage 6's judge all consume this API — preserve it across stage upgrades.
+`BranchOverlay.changes()` returns the temporal-ordered `list[FileChange]` of every write in this branch. Stage 2's `diff_branches()` reads this list per branch to build the [`BranchDiffReport`](#diff-explorer); Stage 5's `ForkMaterializer` and Stage 6's judge consume the same API — preserve it across stage upgrades.
+
+## Diff explorer
+
+Once branches are running (or have completed), the agent compares what each branch did to shared files with a single tool call: `diff_branches(fork_id, paths=None)`. The tool returns a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport]; on error (`fork_id` mismatch, forking disabled, no active fork) it returns a short string instead so the agent can self-correct.
+
+Programmatic Python callers (Stage 3 CLI, Stage 6 judge, custom tooling) use the same builder directly via [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report]:
+
+```python
+from pydantic_deep import build_diff_report
+
+# `coordinator` is the ForkCoordinator allocated by LiveForkCapability.for_run;
+# it lives on `deps.fork_coordinator` after the first agent.run().
+fork_id = coordinator.fork_id  # bind to a local so the None check narrows
+assert fork_id is not None, "no active fork — call fork_run first"
+report = build_diff_report(fork_id, list(coordinator.branches.values()))
+
+print(report.summary.agreement_score)        # 1.0 = unanimous, 0.0 = all-split
+for pd in report.paths:
+    print(pd.path, pd.agreement)             # e.g. "src/app.py split"
+    for branch_id, change in pd.branches.items():
+        print(" ", branch_id, change.operation)
+        print(change.unified_diff_vs_parent)  # stdlib `difflib.unified_diff`
+```
+
+Unlike the agent-facing `diff_branches` tool, `build_diff_report` does not validate coordinator state — it builds a report from whatever runtimes you pass. Programmatic callers are expected to check `coordinator.fork_id` themselves before calling. This separation keeps the builder minimal and pushes the string-vs-typed error decision to the caller (typed callers prefer `if coord.fork_id != expected: raise ...` over parsing the tool's error string).
+
+### Report shape
+
+| Field | Notes |
+|---|---|
+| `BranchDiffReport.fork_id` | Echoed from the active fork. |
+| `BranchDiffReport.paths: list[PathDiff]` | One entry per touched path, sorted alphabetically. |
+| `BranchDiffReport.summary: DiffSummary` | Aggregate counts and `agreement_score`. |
+| `PathDiff.parent_content: str \| None` | Parent backend's content; `None` if the file is new or binary. |
+| `PathDiff.branches: dict[str, BranchChange]` | Keyed by branch id; one entry per branch in the fork. |
+| `PathDiff.agreement` | One of the four labels below. |
+| `BranchChange.unified_diff_vs_parent` | Stdlib unified diff; binary placeholder or truncated preview for large/binary files. |
+| `BranchChange.new_content` | Branch's post-write content; `None` for binary, deleted, or untouched. |
+| `BranchChange.is_binary` | True when the branch's content contains a null byte in the first 8 KB. |
+| `DiffSummary.agreement_score` | `1.0 - split_paths / max(total_paths_touched, 1)`. |
+
+### Agreement classification
+
+For each path, the builder labels how the branches relate:
+
+- `unanimous_change` — ≥2 branches touched the path with identical content.
+- `unanimous_no_change` — only surfaces when an explicit `paths` filter includes paths no branch touched (kept for transparency).
+- `split` — ≥2 branches touched the path with differing content.
+- `unique` — exactly one branch touched the path; counted in `summary.per_branch_unique[branch_id]`.
+
+### Binary and large-file handling
+
+- **Binary content** (null byte in first 8 KB): `is_binary=True`, `new_content=None`, and `unified_diff_vs_parent` becomes a `[binary · {size} · sha256:{12 hex}]` placeholder.
+- **Large diffs** (>500 lines): the unified diff is replaced with a head/tail preview using the same `create_content_preview` helper as [`EvictionCapability`](../advanced/eviction.md), with a `... [N lines truncated] ...` marker.
+
+### `paths` filter
+
+Pass `paths=["src/app.py", "src/utils.py"]` to restrict the report to specific paths. Filtered paths that no branch touched still surface as `unanimous_no_change`, so the report stays transparent — silence is never confused with "no diff."
 
 ## API reference
 
@@ -150,6 +209,8 @@ If `include_checkpoints` is `False`, `fork_run` still works but emits a `UserWar
 - [`clone_for_branch`][pydantic_deep.toolsets.forking.isolation.clone_for_branch] — clones `DeepAgentDeps` per `BranchIsolation` policy.
 - [`create_fork_toolset`][pydantic_deep.toolsets.forking.create_fork_toolset] — agent-facing tools factory. Wired automatically by `create_deep_agent(forking=...)`.
 - Types: [`BranchSpec`][pydantic_deep.types.BranchSpec], [`BranchIsolation`][pydantic_deep.types.BranchIsolation], [`BranchStatus`][pydantic_deep.types.BranchStatus], [`ForkHandle`][pydantic_deep.types.ForkHandle], [`MergeStrategy`][pydantic_deep.types.MergeStrategy], [`MergeResult`][pydantic_deep.types.MergeResult], [`FileChange`][pydantic_deep.types.FileChange].
+- Stage 2 diff types: [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport], [`PathDiff`][pydantic_deep.types.PathDiff], [`BranchChange`][pydantic_deep.types.BranchChange], [`DiffSummary`][pydantic_deep.types.DiffSummary], [`BranchDiffAgreement`][pydantic_deep.types.BranchDiffAgreement], [`BranchDiffOperation`][pydantic_deep.types.BranchDiffOperation].
+- Stage 2 builder: [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report] — public entry point shared by the `diff_branches` tool and programmatic callers.
 - Errors: [`ForkBranchLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkBranchLimitError], [`ForkDepthLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkDepthLimitError].
 
 ## Examples
@@ -207,9 +268,8 @@ for branch_id, runtime in coordinator.branches.items():
 
 ## Limitations / non-goals
 
-Stage 1 deliberately ships the minimum kernel. The following are **not** supported until later stages:
+Stage 1 deliberately shipped the minimum kernel. The following are **not** supported until later stages:
 
-- **Diff between branches** — Stage 2.
 - **CLI surface** (`/fork`, branch tabs, merge picker modal, `!{branch_id}` routing) — Stage 3.
 - **More than 2 branches or fork-of-fork** — Stage 4 lifts `max_branches` and `max_depth`.
 - **Per-branch budget enforcement** (`BranchSpec.budget_usd`) — accepted but ignored in Stage 1. Stage 4 wires enforcement.
@@ -217,3 +277,11 @@ Stage 1 deliberately ships the minimum kernel. The following are **not** support
 - **Autonomous merge** (judge model, confidence scoring, vote mode) — Stage 6.
 - **Persistent fork state** — `InMemoryForkStateStore` is the only store across all stages; process restart loses fork state.
 - **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded everywhere; "pick a winner" is the model.
+
+Stage 2's `diff_branches` is purely textual — these are deferred or out of scope by design:
+
+- **Semantic / AST-based diff** — pure text diff only.
+- **Rename detection** — a branch that renames a file shows as delete+create.
+- **Diff of tool-call sequences** — process diff is not tracked; only outcomes are diffed.
+- **TUI rendering of the diff** — Stage 3.
+- **External editor invocation** (`pycharm diff`, `code --diff`) — Stage 5.

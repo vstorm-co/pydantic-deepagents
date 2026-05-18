@@ -27,9 +27,11 @@ from pydantic_deep.toolsets.forking.coordinator import (
     ForkCoordinator,
     ForkDepthLimitError,
 )
+from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
 from pydantic_deep.toolsets.forking.store import ForkStateStore, InMemoryForkStateStore
 from pydantic_deep.types import (
+    BranchDiffReport,
     BranchIsolation,
     BranchSpec,
     MergeStrategy,
@@ -164,10 +166,58 @@ def create_fork_toolset(  # noqa: C901
             return f"terminate_branch failed: {e}"
         return f"Branch {branch_id} terminated."
 
+    @toolset.tool
+    async def diff_branches(
+        ctx: RunContext[DeepAgentDeps],
+        fork_id: str,
+        paths: list[str] | None = None,
+    ) -> BranchDiffReport | str:
+        """Build a typed diff over the current fork's branches.
+
+        Args:
+            fork_id: Must match the active fork's id; mismatches return a
+                structured error rather than a partial report.
+            paths: Optional path filter — when given, only these paths
+                appear in the report (untouched filtered paths surface as
+                ``agreement="unanimous_no_change"`` for transparency).
+
+        Returns a :class:`BranchDiffReport` on success, or a string error
+        message (forking disabled, no active fork, mismatched fork id).
+
+        The mixed return type mirrors the Stage 1 forking tools'
+        error-as-string convention so the LLM sees errors consistently.
+        Programmatic Python consumers should call
+        :func:`build_diff_report` directly instead — the builder takes
+        only what it needs (a ``fork_id`` and a list of branch runtimes)
+        and leaves coordinator-state validation to the caller, which is
+        cleaner than parsing a string return value.
+
+        **Best-effort read.** Built without acquiring the coordinator's
+        lock; see :mod:`pydantic_deep.toolsets.forking.diff` for the
+        read-consistency note.
+        """
+        coordinator = _coordinator_from_ctx(ctx)
+        if coordinator is None:
+            return NOT_ENABLED_MESSAGE
+        active_fork_id = coordinator.fork_id
+        if active_fork_id is None:
+            return "diff_branches failed: no active fork — call fork_run first."
+        if fork_id != active_fork_id:
+            return (
+                f"diff_branches failed: fork_id {fork_id!r} does not match the "
+                f"active fork {active_fork_id!r}."
+            )
+        return build_diff_report(
+            active_fork_id,
+            list(coordinator.branches.values()),
+            paths_filter=paths,
+        )
+
     return toolset
 
 
 __all__ = [
+    "BranchDiffReport",
     "BranchOverlay",
     "BranchRuntime",
     "ForkBranchLimitError",
@@ -176,6 +226,7 @@ __all__ = [
     "ForkStateStore",
     "InMemoryForkStateStore",
     "NOT_ENABLED_MESSAGE",
+    "build_diff_report",
     "clone_for_branch",
     "create_fork_toolset",
 ]

@@ -178,11 +178,102 @@ class MergeResult:
 class FileChange:
     """Single overlay write event recorded by ``BranchOverlay``.
 
-    The temporal-ordered ``list[FileChange]`` exposed by ``BranchOverlay.changes()``
-    is the data spine consumed by Stage 2's diff, Stage 5's materializer, and
-    Stage 6's judge.
+    Event-level log entry: one record per successful ``write`` or ``edit``
+    on the branch overlay. The temporal-ordered ``list[FileChange]`` exposed
+    by ``BranchOverlay.changes()`` is the data spine consumed across stages:
+
+    - Stage 2 ``diff_branches`` — uses ``path`` to know which files were touched
+    - Stage 5 materializer — uses ``op`` to replay ``write`` vs ``edit`` semantics
+    - Stage 6 judge — uses ``timestamp`` for temporal heuristics
+
+    Not to be confused with :class:`BranchChange` (Stage 2), which is a
+    state-level aggregate describing a branch's per-path outcome relative
+    to the parent backend (``"created"`` / ``"modified"`` / ``"deleted"`` /
+    ``"untouched"``). ``FileChange`` logs individual operations;
+    ``BranchChange`` summarizes their effect.
     """
 
     path: str
     op: Literal["write", "edit"]
     timestamp: datetime
+
+
+BranchDiffOperation = Literal["created", "modified", "deleted", "untouched"]
+"""What a single branch did to a given path, relative to the parent backend.
+
+NOTE: ``"deleted"`` is reserved for future use. Stage 1 ``BranchOverlay``
+records only writes and edits — no delete operation exists in the runtime
+pipeline today, so :func:`~pydantic_deep.toolsets.forking.diff.build_diff_report`
+cannot produce ``operation="deleted"``. The classifier
+``_classify_agreement`` handles it correctly for forward compat
+(unit-tested via ``test_diff_classifies_deletion_as_split``), but the
+literal won't surface in real reports until ``BranchOverlay`` gains
+delete support.
+"""
+
+
+BranchDiffAgreement = Literal["unanimous_change", "unanimous_no_change", "split", "unique"]
+"""Cross-branch classification of a single path's outcomes.
+
+- ``unanimous_change``: ≥2 branches touched and all touchers produced identical content.
+- ``unanimous_no_change``: no branch touched the path (only surfaces when an
+  explicit ``paths`` filter pulls it into the report for transparency).
+- ``split``: ≥2 branches touched and their outcomes differ.
+- ``unique``: exactly one branch touched (others left the path alone).
+"""
+
+
+@_dataclass(frozen=True)
+class BranchChange:
+    """One branch's outcome for a single path within a ``BranchDiffReport``.
+
+    State-level aggregate: describes the END STATE of a path on a single
+    branch relative to the parent backend, classified into one
+    :data:`BranchDiffOperation` (``"created"`` / ``"modified"`` /
+    ``"deleted"`` / ``"untouched"``). The classification is derived from
+    parent existence + overlay content, NOT from :class:`FileChange.op` —
+    a branch that issues an ``op="write"`` on a path absent from the
+    parent yields ``operation="created"``; the same ``op="write"`` on a
+    path present in the parent yields ``operation="modified"``.
+
+    Not to be confused with :class:`FileChange` (Stage 1), which is the
+    event-level log of individual writes/edits that produced this state.
+    """
+
+    branch_id: str
+    branch_label: str
+    operation: BranchDiffOperation
+    new_content: str | None
+    unified_diff_vs_parent: str
+    size_bytes: int
+    is_binary: bool
+
+
+@_dataclass(frozen=True)
+class PathDiff:
+    """Per-path slice of a ``BranchDiffReport``: parent state + every branch's outcome."""
+
+    path: str
+    parent_content: str | None
+    branches: dict[str, BranchChange]
+    agreement: BranchDiffAgreement
+
+
+@_dataclass(frozen=True)
+class DiffSummary:
+    """Aggregate metrics for a ``BranchDiffReport``."""
+
+    total_paths_touched: int
+    unanimous_paths: int
+    split_paths: int
+    per_branch_unique: dict[str, int]
+    agreement_score: float
+
+
+@_dataclass(frozen=True)
+class BranchDiffReport:
+    """Typed diff over fork branches — Stage 2 output of ``diff_branches``."""
+
+    fork_id: str
+    paths: list[PathDiff]
+    summary: DiffSummary

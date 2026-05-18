@@ -102,6 +102,16 @@ class ForkCoordinator:
         self._lock = asyncio.Lock()
         self.capability: LiveForkCapability | None = None
 
+    @property
+    def fork_id(self) -> str | None:
+        """The active fork's id, or ``None`` if ``fork()`` has not been called yet.
+
+        Exposed so consumers (e.g. Stage 2's ``diff_branches`` tool) can
+        validate caller-supplied ``fork_id`` without reaching into the
+        coordinator's private ``_handle`` attribute.
+        """
+        return self._handle.fork_id if self._handle is not None else None
+
     def _resolve_checkpoint_store(self) -> CheckpointStore | None:
         explicit = self.checkpoint_store
         if explicit is not None:

@@ -39,7 +39,8 @@ class ForkBadgeWidget(Widget):
 
     branch_count: reactive[int] = reactive(0)
     status_summary: reactive[str] = reactive("")
-    cost_usd: reactive[float | None] = reactive["float | None"](None)
+    aggregate_usd: reactive[float | None] = reactive["float | None"](None)
+    aggregate_budget_usd: reactive[float | None] = reactive["float | None"](None)
 
     def compose(self) -> ComposeResult:
         yield Static("", id="fork-badge-text")
@@ -47,7 +48,12 @@ class ForkBadgeWidget(Widget):
     def _format(self) -> str:
         if self.branch_count == 0:
             return "[dim]No active fork[/dim]"
-        cost_str = "$—" if self.cost_usd is None else f"${self.cost_usd:.2f}"
+        if self.aggregate_usd is None:
+            cost_str = "$—"
+        elif self.aggregate_budget_usd is not None:
+            cost_str = f"${self.aggregate_usd:.2f}/${self.aggregate_budget_usd:.2f}"
+        else:
+            cost_str = f"${self.aggregate_usd:.2f}"
         summary = self.status_summary or "active"
         return f"[bold]FORK[/bold]: {self.branch_count} branches · {summary} · {cost_str}"
 
@@ -61,7 +67,10 @@ class ForkBadgeWidget(Widget):
     def watch_status_summary(self) -> None:
         self._refresh()
 
-    def watch_cost_usd(self) -> None:
+    def watch_aggregate_usd(self) -> None:
+        self._refresh()
+
+    def watch_aggregate_budget_usd(self) -> None:
         self._refresh()
 
     def show(self) -> None:
@@ -76,13 +85,16 @@ class ForkBadgeWidget(Widget):
     def update_from_statuses(
         self,
         statuses: list[object],  # list[BranchStatus] — Any to avoid import cycle
-        cost_usd: float | None,
+        *,
+        aggregate_usd: float | None,
+        aggregate_budget_usd: float | None = None,
     ) -> None:
         """Recompute the chip's text from a fresh ``inspect_branches()`` snapshot."""
         if not statuses:
             self.branch_count = 0
             self.status_summary = ""
-            self.cost_usd = cost_usd
+            self.aggregate_usd = aggregate_usd
+            self.aggregate_budget_usd = aggregate_budget_usd
             return
         states = [getattr(s, "state", "") for s in statuses]
         self.branch_count = len(statuses)
@@ -94,4 +106,5 @@ class ForkBadgeWidget(Widget):
             counts = Counter(states)
             parts = [f"{n} {state}" for state, n in sorted(counts.items())]
             self.status_summary = ", ".join(parts)
-        self.cost_usd = cost_usd
+        self.aggregate_usd = aggregate_usd
+        self.aggregate_budget_usd = aggregate_budget_usd

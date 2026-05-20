@@ -21,6 +21,7 @@ from apps.cli.app import DeepApp
 from apps.cli.forking import (
     CLIForkSession,
     ForkingNotEnabledError,
+    ForkPickerResult,
     resolve_capability,
     start_fork_from_cli,
 )
@@ -89,7 +90,7 @@ async def _start_fork(app: DeepApp, *, slow: bool = False) -> CLIForkSession:
 
         app.agent.run = _blocking_run  # type: ignore[union-attr, method-assign]
 
-    session = await start_fork_from_cli(app, _specs())
+    session = await start_fork_from_cli(app, ForkPickerResult(specs=_specs()))
     app.active_fork = session
     return session
 
@@ -409,7 +410,7 @@ class TestForkingDisabled:
         deps = DeepAgentDeps(backend=StateBackend())
         app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
         with pytest.raises(ForkingNotEnabledError):
-            await start_fork_from_cli(app, _specs())
+            await start_fork_from_cli(app, ForkPickerResult(specs=_specs()))
 
 
 class TestDoubleFork:
@@ -612,17 +613,17 @@ class TestForkPickerValidation:
 
             modal.action_submit()
             await pilot.pause()
-            assert modal._read_inputs() == ("", "", "", "")
+            assert modal._read_branch_row(0) == ("", "")
+            assert modal._read_branch_row(1) == ("", "")
 
-            inputs = list(modal.query(Input))
-            inputs[0].value = "x"
-            inputs[1].value = "steer A"
-            inputs[2].value = "x"
-            inputs[3].value = "steer B"
+            modal.query_one("#branch-0-label", Input).value = "x"
+            modal.query_one("#branch-0-steer", Input).value = "steer A"
+            modal.query_one("#branch-1-label", Input).value = "x"
+            modal.query_one("#branch-1-steer", Input).value = "steer B"
             modal.action_submit()
             await pilot.pause()
 
-            inputs[2].value = "y"
+            modal.query_one("#branch-1-label", Input).value = "y"
             modal.action_submit()
             await pilot.pause()
 

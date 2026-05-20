@@ -474,19 +474,20 @@ def create_deep_agent(  # noqa: C901
             Steering messages are injected before the next LLM call via
             ``MessageQueueCapability``; follow-ups are handled by
             :func:`run_with_queue`. ``None`` (default) disables the feature.
-        forking: Enable Live Run Forking (Stage 1 kernel). ``True`` registers
-            :class:`LiveForkCapability` with defaults (``max_branches=2``,
-            ``max_depth=1``, in-memory store) and the forking toolset
+        forking: Enable Live Run Forking. ``True`` registers
+            :class:`LiveForkCapability` with defaults (``max_branches=10``,
+            ``max_depth=2``, in-memory store) and the forking toolset
             (``fork_run``, ``inspect_branches``, ``merge_or_select``,
-            ``terminate_branch``). Pass a pre-configured
-            :class:`LiveForkCapability` instance to customize limits or the
-            fork state store. ``False`` (default) leaves forking off — the
-            feature is opt-in because spawning parallel branches has cost
-            implications. When enabled without ``include_checkpoints=True``,
-            ``fork()`` emits a runtime warning at call time since the
-            ``fork:<id>`` / ``post-fork:<id>`` rewind anchors require a
-            checkpoint store. No CLI surface ships in Stage 1; programmatic
-            and tool-level access only. CLI integration lands in Stage 3.
+            ``terminate_branch``, ``diff_branches``, ``fork_cost``). Pass a
+            pre-configured :class:`LiveForkCapability` instance to customize
+            limits or the fork state store. ``False`` (default) leaves
+            forking off — the feature is opt-in because spawning parallel
+            branches has cost implications. When enabled without
+            ``include_checkpoints=True``, ``fork()`` emits a runtime warning
+            at call time since the ``fork:<id>`` / ``post-fork:<id>`` rewind
+            anchors require a checkpoint store. CLI integration landed in
+            Stage 3; per-branch + aggregate budget enforcement landed in
+            Stage 4.
         model_settings: Provider-specific model settings (temperature, thinking,
             etc.). Passed directly to the pydantic-ai Agent. Common keys:
             ``temperature``, ``max_tokens``, ``anthropic_thinking``,
@@ -957,11 +958,22 @@ def create_deep_agent(  # noqa: C901
         from pydantic_ai_shields import CostTracking
 
         model_name = model if isinstance(model, str) else None
-        cost_cap = CostTracking(
-            model_name=model_name,
-            budget_usd=cost_budget_usd,
-            on_cost_update=on_cost_update,
-        )
+        if forking:
+            from pydantic_deep.toolsets.forking.coordinator import (
+                _PerBranchCostTracking,
+            )
+
+            cost_cap = _PerBranchCostTracking(
+                model_name=model_name,
+                budget_usd=cost_budget_usd,
+                on_cost_update=on_cost_update,
+            )
+        else:
+            cost_cap = CostTracking(
+                model_name=model_name,
+                budget_usd=cost_budget_usd,
+                on_cost_update=on_cost_update,
+            )
 
     if all_processors:
         agent_create_kwargs["history_processors"] = all_processors

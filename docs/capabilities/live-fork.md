@@ -11,7 +11,7 @@ This page is the canonical reference for the whole feature; it grows incremental
 | 1 — Kernel | **Shipped** | [`LiveForkCapability`][pydantic_deep.capabilities.forking.LiveForkCapability], [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator], [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay], 4 agent-facing tools |
 | 2 — Diff Branches | **Shipped** | `diff_branches()` report consumed by judge / IDE |
 | 3 — CLI | **Shipped** | `/fork`, branch tabs, `MergePickerModal`, `>>{branch_id}` routing |
-| 4 — N branches + budget | Coming | `max_branches>2`, `max_depth>1`, per-branch `budget_usd` enforcement |
+| 4 — N branches + budget | **Shipped** | `max_branches>2`, `max_depth>1`, per-branch `budget_usd` enforcement, aggregate cap, `fork_cost()` |
 | 5 — IDE materializer | Coming | Disk mirror under `.pydantic-deep/forks/`, `pycharm diff` / `code --diff` integration |
 | 6 — Autonomous judge | Coming | `MergeStrategy.kind="auto"` / `"auto_with_fallback"` / `"vote"`, confidence scoring |
 
@@ -61,15 +61,39 @@ The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_s
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `forking` | `bool \| LiveForkCapability` | `False` | Opt-in: `True` enables defaults (`max_branches=2`, `max_depth=1`, `InMemoryForkStateStore`); pass a configured `LiveForkCapability` for custom limits / store. |
+| `forking` | `bool \| LiveForkCapability` | `False` | Opt-in: `True` enables defaults (`max_branches=10`, `max_depth=2`, `InMemoryForkStateStore`); pass a configured `LiveForkCapability` for custom limits / store. |
 
-### `LiveForkCapability` knobs (Stage 1)
+### `LiveForkCapability` knobs
 
 | Knob | Type | Default | Effect |
 |---|---|---|---|
-| `max_branches` | `int` | `2` (hard-coded in Stage 1) | Maximum branches per `fork_run` call. Stage 4 lifts this. |
-| `max_depth` | `int` | `1` (hard-coded in Stage 1) | Maximum fork nesting depth. Stage 4 lifts this. |
+| `max_branches` | `int` | `10` | Maximum branches per `fork_run` call. Stage 1 hard-defaulted to `2`; Stage 4 raised the default. |
+| `max_depth` | `int` | `2` | Maximum fork nesting depth. Stage 1 hard-defaulted to `1`; Stage 4 raised it so one level of fork-of-fork is allowed. |
 | `store` | `ForkStateStore \| None` | `InMemoryForkStateStore()` | Where `ForkHandle` records are persisted for inspection. In-memory only across all stages — process restart loses the state. |
+
+### Per-branch budgets (Stage 4)
+
+[`BranchSpec.budget_usd`][pydantic_deep.types.BranchSpec] is **enforced** as of Stage 4. When a branch's [`CostTracking`][pydantic_ai_shields.CostTracking] cumulative cost crosses its cap, the branch is cancelled and its state transitions to [`"budget_exhausted"`][pydantic_deep.types.BranchState]; siblings keep running.
+
+Pass a fork-wide cap at the `fork_run` call:
+
+```python
+await agent.run(
+    "Try three approaches with a $5 ceiling",
+    deps=deps,
+)
+# Inside the agent the tool call becomes:
+# fork_run(
+#     specs=[
+#         {"label": "a", "steer": "approach 1", "budget_usd": 2.00},
+#         {"label": "b", "steer": "approach 2", "budget_usd": 2.00},
+#         {"label": "c", "steer": "approach 3", "budget_usd": 2.00},
+#     ],
+#     aggregate_budget_usd=5.00,
+# )
+```
+
+When the sum of branch costs crosses `aggregate_budget_usd`, every still-running branch is terminated with state [`"aggregate_budget_exhausted"`][pydantic_deep.types.BranchState]. See [Limitations](#limitations-non-goals) below for the best-effort caveat.
 
 ### Per-branch isolation
 
@@ -86,15 +110,16 @@ The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_s
 
 ## Agent-facing tools
 
-When `forking` is enabled, the agent gains five tools:
+When `forking` is enabled, the agent gains six tools:
 
 | Tool | Surface |
 |---|---|
-| `fork_run(specs, isolation=None, strategy=None)` | Spawn ≤2 branch tasks (Stage 4 lifts the cap). Each `spec` needs `label` and `steer`; optional `model`, `budget_usd` (Stage 4), `extra_instructions`. |
-| `inspect_branches()` | Return current per-branch state: `running`, `done`, `failed`, `terminated`. |
-| `merge_or_select(action)` | Resolve the fork. Stage 1 supports `action="pick:<branch_id>"` only. |
+| `fork_run(specs, isolation=None, strategy=None, aggregate_budget_usd=None)` | Spawn ≤`max_branches` branch tasks (Stage 4 default `10`). Each `spec` needs `label` and `steer`; optional `model`, `budget_usd`, `extra_instructions`. `aggregate_budget_usd` adds a fork-wide cap. |
+| `inspect_branches()` | Return current per-branch state: `running`, `done`, `failed`, `terminated`, `budget_exhausted` (Stage 4), `aggregate_budget_exhausted` (Stage 4). |
+| `merge_or_select(action)` | Resolve the fork. Stage 1 supports `action="pick:<branch_id>"` only; an exhausted branch can still be picked — see [Capturing partial history](#capturing-partial-history). |
 | `terminate_branch(branch_id)` | Cancel one branch's task; the branch transitions to `terminated`. |
 | `diff_branches(fork_id, paths=None)` | **Stage 2.** Build a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] covering every path any branch touched. See [Diff explorer](#diff-explorer). |
+| `fork_cost(fork_id)` | **Stage 4.** Return a typed [`ForkCostSummary`][pydantic_deep.types.ForkCostSummary] with per-branch [`BranchCost`][pydantic_deep.types.BranchCost] entries and an aggregate. |
 
 ## How it works
 
@@ -142,6 +167,14 @@ If `include_checkpoints` is `False`, `fork_run` still works but emits a `UserWar
 ### `BranchOverlay` write tracking
 
 `BranchOverlay.changes()` returns the temporal-ordered `list[FileChange]` of every write in this branch. Stage 2's `diff_branches()` reads this list per branch to build the [`BranchDiffReport`](#diff-explorer); Stage 5's `ForkMaterializer` and Stage 6's judge consume the same API — preserve it across stage upgrades.
+
+### Capturing partial history
+
+When a branch is terminated mid-run — manually via `terminate_branch`, by a per-branch budget watcher (`budget_exhausted`), or by the fork-wide aggregate watcher (`aggregate_budget_exhausted`) — the coordinator keeps a snapshot of the branch's history in `BranchRuntime.partial_history`. That snapshot is captured on every `before_model_request`, so it reflects the state of play just before the most recent model call.
+
+`merge_or_select("pick:<exhausted_id>")` recognises the cancellation, picks up the snapshot, and returns a [`MergeResult`][pydantic_deep.types.MergeResult] with the partial history as `history_after_merge` — rather than raising. This makes a budget-killed branch a usable merge candidate: you keep the work it did before the cap fired.
+
+Caveat: any tool call that was in-flight at termination time is **not** reflected in the snapshot — only completed turns are. When `partial_history` is empty (true cancellation with no model request yet), `merge_or_select` raises `RuntimeError` as before.
 
 ## Diff explorer
 
@@ -224,8 +257,39 @@ Stage 3 ships forking in the Textual TUI (`pydantic-deep` CLI). Once `forking=Tr
 
 | Command | Action |
 |---|---|
-| `/fork` | Open the picker modal, collect two `(label, steer)` pairs, spawn branches. Blocked while an agent run is in flight (Esc first, then `/fork`). |
+| `/fork` | Open the picker modal, collect `N` `(label, steer)` pairs (where `N = app.fork_branch_count`), spawn branches. Blocked while an agent run is in flight (Esc first, then `/fork`). |
+| `/fork-branches N` | Set the branch count used by the next `/fork` (range `[1, max_branches]`; kernel default `10`). Persists to `.pydantic-deep/config.toml`. No arg → print current value. |
+| `/fork-budget per-branch <usd>` | Default `budget_usd` prefilled into every branch row in the picker. Persisted. |
+| `/fork-budget aggregate <usd>` | Fork-wide budget cap passed to `coordinator.fork(aggregate_budget_usd=…)`. Persisted. |
+| `/fork-budget clear` | Reset both budgets to unset. |
+| `/fork-model <i> <model>` | Assign a model (must include provider prefix, e.g. `anthropic:claude-opus-4-6`) to branch slot `i` (1-indexed, in `[1, fork_branch_count]`). Visible on the corresponding picker row. Persisted. |
+| `/fork-model <i> clear` | Remove the override for branch `i`; that slot falls back to the agent's default model. |
+| `/fork-model clear` | Remove every per-branch model override. |
 | `/merge` | Open the merge picker — render each branch's diff snippets, pick the winner with `1`/`2`. Adopts the winner's `history_after_merge` into the parent. |
+
+All three configuration commands (`/fork-branches`, `/fork-budget`, `/fork-model`) write through to `.pydantic-deep/config.toml` immediately, so settings survive CLI restarts. They configure the *next* fork — they are intentionally **not** in the active-fork allow-list, so mutating them mid-fork is blocked.
+
+#### Worked example
+
+```text
+> /fork-branches 4
+fork_branch_count = 4
+> /fork-budget per-branch 0.25
+per-branch budget = $0.25
+> /fork-budget aggregate 2.00
+aggregate budget = $2.00
+> /fork-model 1 anthropic:claude-opus-4-6
+Branch 1 model = anthropic:claude-opus-4-6
+> /fork-model 2 openrouter:openai/gpt-4.1
+Branch 2 model = openrouter:openai/gpt-4.1
+> /fork
+# picker opens with 4 rows. Rows 1 and 2 show their assigned models
+# above the label/steer/budget inputs; rows 3 and 4 show "(default: …)".
+# Every row prefills 0.25 in budget_usd. The aggregate row prefills 2.00.
+# Submitting spawns four branches under a $2.00 fork-wide cap.
+```
+
+When the cumulative cost across all branches reaches `$2.00`, every still-running branch is terminated with state `aggregate_budget_exhausted` (rendered as the `$$ agg-exhausted` chip in the tab strip).
 
 ### Branch tabs
 
@@ -339,13 +403,21 @@ for branch_id, runtime in coordinator.branches.items():
 
 Stage 1 deliberately shipped the minimum kernel. The following are **not** supported until later stages:
 
-- **More than 2 branches or fork-of-fork** — Stage 4 lifts `max_branches` and `max_depth`.
-- **Live per-token streaming inside branch panels** — Stage 3 renders each branch's final messages once its `asyncio.Task` completes; mid-run streaming inside the panel would require reworking Stage 1's `coordinator.fork()` task spawn. Status badges (`●`/`✓`/`✗`/`⊘`) update live via a 0.5 s poller.
-- **Per-branch budget enforcement** (`BranchSpec.budget_usd`) — accepted but ignored in Stage 1. Stage 4 wires enforcement.
+- **Live per-token streaming inside branch panels** — Stage 3 renders each branch's final messages once its `asyncio.Task` completes; mid-run streaming inside the panel would require reworking the coordinator's task spawn. Status badges (`●`/`✓`/`✗`/`⊘`/`$`/`$$`) update live via a 0.5 s poller.
 - **External diff tool integration** (`pycharm diff`, `code --diff`) — Stage 5.
 - **Autonomous merge** (judge model, confidence scoring, vote mode) — Stage 6.
 - **Persistent fork state** — `InMemoryForkStateStore` is the only store across all stages; process restart loses fork state.
 - **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded everywhere; "pick a winner" is the model.
+
+Stage 4 added per-branch + aggregate budget enforcement. The following stay out of scope:
+
+- **Predictive termination** — branches are cancelled when the cap is *crossed*, not extrapolated.
+- **Per-tool cost caps** within a branch.
+- **Cost projection** before a branch is spawned.
+- **Dynamic budget reallocation** mid-run.
+
+!!! note "Aggregate budget enforcement is best-effort"
+    Under concurrent cost callbacks the running sum can briefly exceed `aggregate_budget_usd` before every branch sees its cancel — the coordinator serialises termination dispatch under its own lock, but cost callbacks from sibling branches can race the watcher. Strict enforcement would require per-tool-call cost checks (out of scope).
 
 Stage 2's `diff_branches` is purely textual — these are deferred or out of scope by design:
 

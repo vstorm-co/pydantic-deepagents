@@ -32,6 +32,25 @@ if TYPE_CHECKING:
     from apps.cli.app import DeepApp
 
 
+@dataclass(frozen=True)
+class ForkPickerResult:
+    """Return value of :class:`ForkPickerModal`.
+
+    Bundles the per-branch specs with the optional fork-wide aggregate budget
+    cap so :func:`start_fork_from_cli` can forward everything to
+    :meth:`ForkCoordinator.fork` in a single call.
+
+    Attributes:
+        specs: Branch definitions; ``len(specs)`` matches
+            ``app.fork_branch_count`` at modal-mount time.
+        aggregate_budget_usd: Optional sum-cap across all branches; ``None``
+            disables aggregate enforcement.
+    """
+
+    specs: list[BranchSpec]
+    aggregate_budget_usd: float | None = None
+
+
 class ForkingNotEnabledError(RuntimeError):
     """Raised when ``/fork`` is invoked on an agent without forking enabled."""
 
@@ -137,7 +156,7 @@ class CLIForkSession:
 
 async def start_fork_from_cli(
     app: DeepApp,
-    specs: list[BranchSpec],
+    result: ForkPickerResult,
     *,
     isolation: BranchIsolation | None = None,
 ) -> CLIForkSession:
@@ -150,6 +169,14 @@ async def start_fork_from_cli(
     agent-facing ``fork_run`` / ``inspect_branches`` / ``merge_or_select``
     tools also resolve to the same coordinator if the agent driving any
     follow-up run wants to inspect or interact with it.
+
+    Args:
+        app: The TUI app — supplies the agent, deps, and message history.
+        result: Picker output bundling per-branch specs and the optional
+            fork-wide aggregate cap. The aggregate is forwarded to
+            :meth:`ForkCoordinator.fork`.
+        isolation: Optional per-branch isolation override (default policy
+            applies otherwise).
 
     Raises:
         ForkingNotEnabledError: When the agent has no :class:`LiveForkCapability`
@@ -179,9 +206,10 @@ async def start_fork_from_cli(
 
     safe_history = patch_tool_calls_processor(list(app.message_history))
     handle = await coordinator.fork(
-        specs,
+        result.specs,
         parent_history=safe_history,
         isolation=isolation,
+        aggregate_budget_usd=result.aggregate_budget_usd,
     )
     label_to_id: dict[str, str] = {}
     for branch_id in handle.branches:
@@ -192,6 +220,7 @@ async def start_fork_from_cli(
 
 __all__ = [
     "CLIForkSession",
+    "ForkPickerResult",
     "ForkingNotEnabledError",
     "resolve_capability",
     "start_fork_from_cli",

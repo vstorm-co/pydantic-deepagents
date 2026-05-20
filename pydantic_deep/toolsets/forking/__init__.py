@@ -31,9 +31,11 @@ from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
 from pydantic_deep.toolsets.forking.store import ForkStateStore, InMemoryForkStateStore
 from pydantic_deep.types import (
+    BranchCost,
     BranchDiffReport,
     BranchIsolation,
     BranchSpec,
+    ForkCostSummary,
     MergeStrategy,
 )
 
@@ -84,6 +86,7 @@ def create_fork_toolset(  # noqa: C901
         specs: list[dict[str, Any]],
         isolation: dict[str, Any] | None = None,
         strategy: dict[str, Any] | None = None,
+        aggregate_budget_usd: float | None = None,
     ) -> str:
         """Spawn branch tasks sharing the parent's history up to this point.
 
@@ -94,6 +97,9 @@ def create_fork_toolset(  # noqa: C901
             isolation: Optional per-branch isolation overrides
                 (see :class:`BranchIsolation`).
             strategy: Optional merge strategy (Stage 1: only ``{"kind": "manual"}``).
+            aggregate_budget_usd: Optional fork-wide cap; when set, hitting
+                the sum across branches terminates every still-running
+                branch with state ``"aggregate_budget_exhausted"``.
         """
         coordinator = _coordinator_from_ctx(ctx)
         if coordinator is None:
@@ -107,6 +113,7 @@ def create_fork_toolset(  # noqa: C901
                 parent_history=parent_history,
                 isolation=_coerce_isolation(isolation),
                 strategy=_coerce_strategy(strategy),
+                aggregate_budget_usd=aggregate_budget_usd,
             )
         except (ForkBranchLimitError, ForkDepthLimitError, ValueError) as e:
             return f"fork_run failed: {e}"
@@ -213,15 +220,46 @@ def create_fork_toolset(  # noqa: C901
             paths_filter=paths,
         )
 
+    @toolset.tool
+    async def fork_cost(
+        ctx: RunContext[DeepAgentDeps],
+        fork_id: str,
+    ) -> ForkCostSummary | str:
+        """Return per-branch and aggregate cost for the active fork.
+
+        Args:
+            fork_id: Must match the active fork's id; mismatches return a
+                structured string error rather than a partial summary.
+
+        Returns a :class:`ForkCostSummary` on success, or a string error
+        message (forking disabled, no active fork, mismatched fork id) —
+        the mixed return type mirrors :func:`diff_branches`' convention so
+        the LLM sees errors consistently.
+        """
+        coordinator = _coordinator_from_ctx(ctx)
+        if coordinator is None:
+            return NOT_ENABLED_MESSAGE
+        active_fork_id = coordinator.fork_id
+        if active_fork_id is None:
+            return "fork_cost failed: no active fork — call fork_run first."
+        if fork_id != active_fork_id:
+            return (
+                f"fork_cost failed: fork_id {fork_id!r} does not match the "
+                f"active fork {active_fork_id!r}."
+            )
+        return coordinator.fork_cost()
+
     return toolset
 
 
 __all__ = [
+    "BranchCost",
     "BranchDiffReport",
     "BranchOverlay",
     "BranchRuntime",
     "ForkBranchLimitError",
     "ForkCoordinator",
+    "ForkCostSummary",
     "ForkDepthLimitError",
     "ForkStateStore",
     "InMemoryForkStateStore",

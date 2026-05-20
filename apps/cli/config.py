@@ -83,9 +83,9 @@ _STR_FIELDS = frozenset(
     }
 )
 
-_INT_FIELDS = frozenset({"max_history", "thinking_budget"})
+_INT_FIELDS = frozenset({"max_history", "thinking_budget", "fork_branch_count"})
 
-_FLOAT_FIELDS = frozenset({"temperature"})
+_FLOAT_FIELDS = frozenset({"temperature", "fork_aggregate_budget_usd"})
 
 
 @dataclass
@@ -139,6 +139,23 @@ class CliConfig:
     ``"context"`` (compact transcript, no LLM), or ``"llm"`` (default, uses an LLM to summarize)."""
     reminder_model: str | None = None
     """Model used by the ``"llm"`` reminder generator. Defaults to the main model when ``None``."""
+    fork_branch_count: int = 2
+    """Number of branches the ``/fork`` picker prepares. Set via ``/fork-config``.
+    Valid range is ``[1, LiveForkCapability.max_branches]`` (kernel default 10)."""
+    fork_aggregate_budget_usd: float | None = None
+    """Fork-wide budget cap passed to ``coordinator.fork(aggregate_budget_usd=...)``.
+    Set via ``/fork-config``; cleared by emptying the input and saving."""
+    fork_branch_models: list[str | None] = field(default_factory=list)
+    """Per-branch model overrides, positional (slot ``i`` → branch ``i+1``).
+    ``None`` entries mean "use the agent's default model". Set via
+    ``/fork-config``; written to TOML as ``list[str]`` with empty strings
+    standing in for ``None``."""
+    fork_branch_budgets: list[float | None] = field(default_factory=list)
+    """Per-branch ``budget_usd`` caps, positional (slot ``i`` → branch ``i+1``).
+    ``None`` entries mean "no per-branch cap". Set via ``/fork-config``;
+    written to TOML as ``list[str]`` (quoted floats) with empty strings
+    standing in for ``None`` to keep the format aligned with
+    :attr:`fork_branch_models`."""
 
 
 def load_config(path: Path | None = None) -> CliConfig:
@@ -212,13 +229,42 @@ def validate_config(config: CliConfig) -> list[str]:
             f"Unknown reminder_mode '{config.reminder_mode}'. "
             f"Known modes: {', '.join(sorted(known_reminder_modes))}"
         )
+    if config.fork_branch_count < 1 or config.fork_branch_count > 10:
+        warnings.append(
+            f"fork_branch_count={config.fork_branch_count} is outside the typical [1, 10] "
+            "range; will be capped at the agent's LiveForkCapability.max_branches at "
+            "fork time."
+        )
+    if config.fork_aggregate_budget_usd is not None and config.fork_aggregate_budget_usd <= 0:
+        warnings.append("fork_aggregate_budget_usd must be positive")
+    for i, b in enumerate(config.fork_branch_budgets):
+        if b is not None and b <= 0:
+            warnings.append(f"fork_branch_budgets[{i}] must be positive, got {b}")
     return warnings
 
 
 def _parse_config(data: dict[str, Any]) -> CliConfig:
-    """Parse TOML dict into CliConfig, ignoring unknown keys."""
+    """Parse TOML dict into CliConfig, ignoring unknown keys.
+
+    Normalises ``fork_branch_models``: TOML lists are ``list[str]``, but the
+    canonical Python type is ``list[str | None]`` — empty strings stand in for
+    ``None`` on disk and are mapped back here so :func:`load_config` always
+    returns the documented type.
+    """
     valid_fields = {f.name for f in fields(CliConfig)}
     filtered = {k: v for k, v in data.items() if k in valid_fields}
+    raw_models = filtered.get("fork_branch_models")
+    if isinstance(raw_models, list):
+        filtered["fork_branch_models"] = [m if m else None for m in raw_models]
+    raw_budgets = filtered.get("fork_branch_budgets")
+    if isinstance(raw_budgets, list):
+        normalised_budgets: list[float | None] = []
+        for b in raw_budgets:
+            if b in (None, "", 0, 0.0):
+                normalised_budgets.append(None)
+            else:
+                normalised_budgets.append(float(b))
+        filtered["fork_branch_budgets"] = normalised_budgets
     return CliConfig(**filtered)
 
 
@@ -262,9 +308,17 @@ def _coerce_value(key: str, value: str) -> Any:
     if key in _INT_FIELDS:
         return int(value)
     if key in _FLOAT_FIELDS:
+        if value.lower() in ("none", "null", ""):
+            return None
         return float(value)
     if key in ("shell_allow_list", "approve_tools"):
         return [v.strip() for v in value.split(",") if v.strip()]
+    if key == "fork_branch_models":
+        return [v.strip() or None for v in value.split(",")] if value else []
+    if key == "fork_branch_budgets":
+        if not value:
+            return []
+        return [v.strip() if v.strip() else "" for v in value.split(",")]
     if key == "working_dir" and value.lower() in ("none", "null", ""):
         return None
     return value
@@ -288,7 +342,7 @@ def _write_toml(path: Path, data: dict[str, Any]) -> None:
         elif isinstance(value, (float, int)):
             scalar_lines.append(f"{key} = {value}")
         elif isinstance(value, list):
-            items = ", ".join(f'"{v}"' for v in value)
+            items = ", ".join('""' if v is None else f'"{v}"' for v in value)
             scalar_lines.append(f"{key} = [{items}]")
         else:
             scalar_lines.append(f'{key} = "{value}"')

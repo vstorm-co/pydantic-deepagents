@@ -94,8 +94,11 @@ class BranchSpec:
             instruction that differentiates this branch from siblings.
         model: Optional model override for the branch. ``None`` inherits
             the parent's model.
-        budget_usd: Optional per-branch budget. Accepted but **not
-            enforced** in Stage 1 — enforcement lands in Stage 4.
+        budget_usd: Optional per-branch budget. Enforced by
+            :class:`_BudgetWatcher` (Stage 4): when the branch's
+            ``CostTracking`` cumulative cost crosses this cap, the
+            branch is cancelled and transitions to
+            :data:`BranchState` ``"budget_exhausted"``.
         extra_instructions: Optional extra instructions appended to the
             branch's system prompt.
     """
@@ -128,17 +131,70 @@ class BranchIsolation:
     team_bus: Literal["shared", "isolated"] = "shared"
 
 
+BranchState = Literal[
+    "running",
+    "done",
+    "failed",
+    "terminated",
+    "budget_exhausted",
+    "aggregate_budget_exhausted",
+]
+"""Lifecycle states of a single branch.
+
+``budget_exhausted`` means the per-branch cap was crossed: the watcher
+cancels the branch mid-run and the partial-history snapshot becomes the
+durable record. ``aggregate_budget_exhausted`` means the fork-wide cap
+was hit and may interrupt any still-running branch mid-stream.
+"""
+
+
 @_dataclass
 class BranchStatus:
     """Runtime status snapshot of a single branch."""
 
     id: str
     label: str
-    state: Literal["running", "done", "failed", "terminated"]
+    state: BranchState
     current_turn: int
     last_activity_at: datetime
     last_message_preview: str | None = None
     error: str | None = None
+
+
+@_dataclass(frozen=True)
+class BranchCost:
+    """Per-branch cost snapshot — element of :class:`ForkCostSummary`.
+
+    ``cumulative_usd`` is the externally-facing name for the upstream
+    ``CostTracking.total_cost`` value; the rename happens at the
+    :meth:`ForkCoordinator.fork_cost` boundary. ``None`` indicates pricing
+    was unavailable for the branch's model (e.g. an unrecognised model in
+    the genai-prices catalogue) — the branch still runs, but its budget
+    cap is effectively disabled.
+    """
+
+    branch_id: str
+    branch_label: str
+    cumulative_usd: float | None
+    budget_usd: float | None
+    remaining_usd: float | None
+    state: BranchState
+
+
+@_dataclass(frozen=True)
+class ForkCostSummary:
+    """Output of the ``fork_cost(fork_id)`` tool.
+
+    Sums :attr:`BranchCost.cumulative_usd` across branches with a non-``None``
+    cost; branches with ``None`` are omitted from the aggregate to avoid
+    misleading partial sums.
+    """
+
+    fork_id: str
+    per_branch: dict[str, BranchCost]
+    aggregate_usd: float | None
+    aggregate_budget_usd: float | None
+    aggregate_remaining_usd: float | None
 
 
 @_dataclass(frozen=True)

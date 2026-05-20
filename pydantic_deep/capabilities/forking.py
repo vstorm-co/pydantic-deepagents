@@ -28,20 +28,18 @@ class LiveForkCapability(AbstractCapability[Any]):
     """Capability that wires Live Run Forking into an agent.
 
     Args:
-        max_branches: Maximum branches per fork. Stage 1 hard-defaults to ``2``;
-            Stage 4 lifts the cap.
-        max_depth: Maximum fork nesting depth. Stage 1 hard-defaults to ``1``;
-            Stage 4 lifts the cap.
+        max_branches: Maximum branches per fork.
+        max_depth: Maximum fork nesting depth — ``2`` allows one level of
+            fork-of-fork.
         store: Optional :class:`ForkStateStore`. Defaults to
-            :class:`InMemoryForkStateStore` — persistent stores are out of
-            scope until after Stage 6.
+            :class:`InMemoryForkStateStore`.
 
     The owning agent reference is set by ``create_deep_agent()`` after the
     Agent is constructed (mirrors how ``agent._task_manager`` is set today).
     """
 
-    max_branches: int = 2
-    max_depth: int = 1
+    max_branches: int = 10
+    max_depth: int = 2
     store: ForkStateStore | None = None
 
     _agent_ref: Any = field(default=None, init=False, repr=False)
@@ -89,8 +87,25 @@ class LiveForkCapability(AbstractCapability[Any]):
         ctx: RunContext[Any],
         request_context: Any,
     ) -> Any:
-        """Track the latest message snapshot so ``fork()`` can use it."""
-        self._latest_messages = list(request_context.messages)
+        """Snapshot the latest message list.
+
+        For parent runs the snapshot lands on
+        :attr:`_latest_messages` so :meth:`ForkCoordinator.fork` can seed
+        each branch's history.
+
+        For branch runs (identified by ``ctx.deps._branch_id`` being
+        non-``None`` — set by :meth:`ForkCoordinator.fork`) the snapshot
+        is forwarded to the parent coordinator via
+        :meth:`ForkCoordinator.capture_partial_history`, so that if a
+        budget watcher cancels the branch the merge resolver still has
+        a history to return when the branch is picked as winner.
+        """
+        branch_id = getattr(ctx.deps, "_branch_id", None)
+        parent_coord = getattr(ctx.deps, "_parent_fork_coordinator", None)
+        if branch_id is not None and parent_coord is not None:
+            parent_coord.capture_partial_history(branch_id, request_context.messages)
+        else:
+            self._latest_messages = list(request_context.messages)
         return request_context
 
 

@@ -12,6 +12,16 @@ from textual.widgets import Static
 from apps.cli.widgets.spinner import Spinner
 
 
+def _rich_escape(text: str) -> str:
+    """Escape every ``[`` so Rich's markup parser can't mis-pair tags.
+
+    ``rich.markup.escape`` only protects ``[`` followed by ``[a-z#/@]``,
+    so payloads like ``[{'label': ...}]`` slip through and confuse the
+    parser when neighbouring real tags exist (``[dim]...[/dim]``).
+    """
+    return text.replace("[", r"\[")
+
+
 def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
     """Format tool call arguments as a compact one-liner."""
     if tool_name == "read_file":
@@ -137,7 +147,7 @@ class ToolCallWidget(Widget):
 
     def compose(self) -> ComposeResult:
         prefix = "│  " if self.is_subagent_tool else ""
-        args_preview = _format_args_preview(self.tool_name, self.args)
+        args_preview = _rich_escape(_format_args_preview(self.tool_name, self.args))
         if args_preview:
             call_str = f"{self.tool_name}([dim]{args_preview}[/dim])"
         else:
@@ -197,13 +207,13 @@ class ToolCallWidget(Widget):
             if old or new:
                 diff_lines: list[str] = []
                 for line in old.splitlines()[:3]:
-                    diff_lines.append(f"{prefix}    ⎿  [red]- {line}[/red]")
+                    diff_lines.append(f"{prefix}    ⎿  [red]- {_rich_escape(line)}[/red]")
                 if old.count("\n") > 3:
                     diff_lines.append(
                         f"[dim]{prefix}    ⎿  ... ({old.count(chr(10)) - 2} more removed)[/dim]"
                     )
                 for line in new.splitlines()[:3]:
-                    diff_lines.append(f"{prefix}    ⎿  [green]+ {line}[/green]")
+                    diff_lines.append(f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]")
                 if new.count("\n") > 3:
                     diff_lines.append(
                         f"[dim]{prefix}    ⎿  ... ({new.count(chr(10)) - 2} more added)[/dim]"
@@ -215,7 +225,7 @@ class ToolCallWidget(Widget):
             path = self.args.get("file_path") or self.args.get("path", "")
             content = self.args.get("content", "")
             n_lines = content.count("\n") + 1 if content else 0
-            return f"[dim]{prefix}    ⎿  wrote {n_lines} lines to {path}[/dim]"
+            return f"[dim]{prefix}    ⎿  wrote {n_lines} lines to {_rich_escape(str(path))}[/dim]"
 
         # Default: first 3 lines
         lines = result.strip().splitlines()
@@ -223,7 +233,9 @@ class ToolCallWidget(Widget):
             preview_lines = lines[:3]
             if len(lines) > 3:
                 preview_lines.append(f"... ({len(lines) - 3} more lines)")
-            return "\n".join(f"[dim]{prefix}    ⎿  {line}[/dim]" for line in preview_lines)
+            return "\n".join(
+                f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]" for line in preview_lines
+            )
         return ""
 
     def _refresh_header(self) -> None:
@@ -232,7 +244,7 @@ class ToolCallWidget(Widget):
         except Exception:
             return
         prefix = "│  " if self.is_subagent_tool else ""
-        args_preview = _format_args_preview(self.tool_name, self.args)
+        args_preview = _rich_escape(_format_args_preview(self.tool_name, self.args))
 
         if self.status == "pending":
             if args_preview:
@@ -273,7 +285,9 @@ class ToolCallWidget(Widget):
         if self.expanded and self.result_text:
             prefix = "│  " if self.is_subagent_tool else ""
             lines = self.result_text.strip().splitlines()
-            formatted = "\n".join(f"[dim]{prefix}    ⎿  {line}[/dim]" for line in lines)
+            formatted = "\n".join(
+                f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]" for line in lines
+            )
             expanded_output.update(formatted)
             expanded_output.add_class("visible")
         else:

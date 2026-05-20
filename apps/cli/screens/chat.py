@@ -1248,13 +1248,39 @@ class ChatScreen(Screen):
         task: asyncio.Task[Any] = runtime.task
         app = self.app
 
+        _BUDGET_STATES = ("budget_exhausted", "aggregate_budget_exhausted")
+
+        def _replay_partial(state: str) -> None:
+            """Apply a budget-terminal state plus the partial history snapshot.
+
+            Even when a branch was cancelled or BudgetExceededError-raised
+            by the budget watcher, the agent typically produced meaningful
+            output before the cap kicked in (tool calls, write_file
+            results, intermediate assistant text — all snapshot by
+            :meth:`LiveForkCapability.before_model_request`). Render that
+            snapshot so the user sees the work even on a budget cut-off,
+            mirroring the merge-resolver's partial-history fallback.
+            """
+            panel.mark_status(state, reason=getattr(runtime.status, "error", None))
+            partial = list(getattr(runtime, "partial_history", None) or [])
+            if partial:
+                with contextlib.suppress(Exception):  # pragma: no cover - defensive
+                    panel.replay_messages(partial)
+
         def _on_done(t: asyncio.Task[Any]) -> None:
             def _apply() -> None:
+                coord_state = getattr(runtime.status, "state", None)
                 if t.cancelled():
-                    panel.mark_status("terminated")
+                    if coord_state in _BUDGET_STATES:
+                        _replay_partial(coord_state)
+                    else:
+                        panel.mark_status("terminated")
                     return
                 exc = t.exception()
                 if exc is not None:
+                    if coord_state in _BUDGET_STATES:
+                        _replay_partial(coord_state)
+                        return
                     panel.mark_status("failed")
 
                     import traceback as _tb
@@ -1285,46 +1311,40 @@ class ChatScreen(Screen):
         task.add_done_callback(_on_done)
 
     def _poll_fork_state(self) -> None:
-        """Refresh tab badges, overview rows, and the side-panel cost chip."""
+        """Refresh tab badges, overview rows, and the side-panel cost chip.
+
+        Reads :meth:`ForkCoordinator.fork_cost` once per tick so the chip
+        and the per-branch tabs see a coherent snapshot. The fork's status
+        timer already runs at ~1 Hz; we piggyback rather than add a timer.
+        """
         app = self.app
         session = app.active_fork
         if session is None:  # pragma: no cover - timer should be stopped before this
             return
         statuses = session.inspect()
+        summary = None
+        with contextlib.suppress(Exception):
+            summary = session.coordinator.fork_cost()
+        per_branch_costs = dict(summary.per_branch) if summary is not None else {}
         with contextlib.suppress(Exception):
             tabs = self.query_one(ForkTabsWidget)
             tabs.statuses = statuses
+            tabs.branch_costs = per_branch_costs
         with contextlib.suppress(Exception):
             overview = self.query_one(ForkOverviewWidget)
             overview.statuses = statuses
         with contextlib.suppress(Exception):
             badge = self.query_one(ForkBadgeWidget)
-            badge.update_from_statuses(list(statuses), self._fork_cost_estimate(session))
-
-    def _fork_cost_estimate(self, session: Any) -> float | None:
-        """Sum per-branch cost from CostTracking capability if registered, else None."""
-        agent = getattr(self.app, "agent", None)
-        if agent is None:
-            return None
-        root = getattr(agent, "root_capability", None)
-        candidates: list[Any] = []
-        if root is not None:
-            candidates = list(getattr(root, "capabilities", []) or [])
-        if not candidates:
-            candidates = list(getattr(agent, "_capabilities", []) or [])
-        has_cost_tracking = any(type(c).__name__ == "CostTracking" for c in candidates)
-        if not has_cost_tracking:
-            return None
-        total = 0.0
-        found = False
-        for runtime in session.coordinator.branches.values():
-            branch_cap = getattr(runtime.deps, "cost_tracking", None)
-            if branch_cap is not None:
-                cost = getattr(branch_cap, "cumulative_cost", None)
-                if cost is not None:
-                    total += float(cost)
-                    found = True
-        return total if found else None
+            agg_usd = summary.aggregate_usd if summary is not None else None
+            agg_budget = summary.aggregate_budget_usd if summary is not None else None
+            badge.update_from_statuses(
+                list(statuses),
+                aggregate_usd=agg_usd,
+                aggregate_budget_usd=agg_budget,
+            )
+        for panel in self.query(BranchPanelWidget):
+            cost = per_branch_costs.get(panel.branch_id)
+            panel.cost_usd = cost.cumulative_usd if cost is not None else None
 
     def focus_branch_tab(self, branch_id: str) -> None:
         """Show one branch panel and hide the others (or show overview if ``OVERVIEW_TAB_ID``)."""

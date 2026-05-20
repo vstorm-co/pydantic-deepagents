@@ -725,7 +725,21 @@ async def test_fork_tool_happy_path():
 
 async def test_fork_tool_returns_error_string_on_limit():
     deps = DeepAgentDeps(backend=StateBackend())
-    _build_capability_with_coordinator(deps)
+    cap = LiveForkCapability(max_branches=2)
+    cap._agent_ref = _make_test_agent()
+    cap._latest_messages = _seed_history("parent")
+    assert cap.store is not None
+    coord = ForkCoordinator(
+        agent=cap._agent_ref,
+        parent_deps=deps,
+        max_branches=cap.max_branches,
+        max_depth=cap.max_depth,
+        store=cap.store,
+        checkpoint_store=InMemoryCheckpointStore(),
+    )
+    coord.capability = cap
+    deps.fork_coordinator = coord
+
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
     out = await fork_fn(

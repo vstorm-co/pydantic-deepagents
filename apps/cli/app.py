@@ -64,6 +64,10 @@ class DeepApp(App):
     total_cost: reactive[float] = reactive(0.0)
     current_cost: reactive[float] = reactive(0.0)
     active_fork: reactive[CLIForkSession | None] = reactive(None)
+    fork_branch_count: reactive[int] = reactive(2)
+    fork_aggregate_budget_usd: reactive[float | None] = reactive["float | None"](None)
+    fork_branch_models: reactive[list[str | None]] = reactive(list, always_update=True)
+    fork_branch_budgets: reactive[list[float | None]] = reactive(list, always_update=True)
 
     agent_task: asyncio.Task[None] | None = None
 
@@ -126,9 +130,28 @@ class DeepApp(App):
         except Exception:
             pass
 
+    def _seed_fork_settings_from_config(self) -> None:
+        """Pull the four fork CLI knobs out of ``config.toml`` into reactive state.
+
+        Run on mount so :class:`ForkPickerModal` sees the persisted values when
+        the user opens ``/fork``. Errors are swallowed deliberately — a corrupt
+        config should never break startup, just fall back to defaults.
+        """
+        try:
+            from apps.cli.config import load_config
+
+            config = load_config()
+            self.fork_branch_count = config.fork_branch_count
+            self.fork_aggregate_budget_usd = config.fork_aggregate_budget_usd
+            self.fork_branch_models = list(config.fork_branch_models)
+            self.fork_branch_budgets = list(config.fork_branch_budgets)
+        except Exception:  # pragma: no cover - defensive: bad config shouldn't break startup
+            pass
+
     def on_mount(self) -> None:
         self.model_name = self._model
         self.app_version = self._version
+        self._seed_fork_settings_from_config()
         self.push_screen(ChatScreen())
         # Sync state to widgets after screen is pushed
         self.call_later(self._sync_widgets)

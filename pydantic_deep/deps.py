@@ -52,6 +52,9 @@ class DeepAgentDeps:
     )  # Shared queue for mid-run message delivery
     fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
     _fork_depth: int = field(default=0, repr=False)
+    _branch_cost_tracking: Any = field(default=None, repr=False)
+    _branch_id: str | None = field(default=None, repr=False)
+    _parent_fork_coordinator: Any = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize backend with files if using StateBackend."""

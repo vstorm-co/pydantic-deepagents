@@ -1,14 +1,20 @@
 """Merge picker modal — opens on ``/merge`` to pick a winning branch.
 
-Renders the Stage 2 :class:`BranchDiffReport` as a side-by-side per-branch
-summary: status, list of touched paths, and the first few diff lines per
-path. The user presses ``1`` / ``2`` to pick the corresponding branch
-(matching the issue's two-branch Stage 3 limit). Returns the chosen
-branch id or ``None`` on cancel.
+Renders the :class:`BranchDiffReport` as a side-by-side per-branch
+summary: status, list of touched paths, and the first few diff lines
+per path. Two ways to pick:
+
+- **Arrow navigation** — ``←`` / ``→`` (or ``h`` / ``l``) move the
+  highlight between panels; ``Enter`` picks the highlighted one.
+- **Number shortcut** — ``1``-``9`` pick the corresponding branch
+  directly; the 10-branch case uses arrow nav.
+
+Returns the chosen branch id or ``None`` on cancel.
 """
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from textual.app import ComposeResult
@@ -58,6 +64,12 @@ class MergePickerModal(ModalScreen["str | None"]):
         padding: 1;
         border: round $surface-lighten-2;
     }
+    /* Focus ring — applied to the panel whose index matches
+     * ``_selected_index``. ``$accent`` is the standard "this is what
+     * Enter will pick" colour used elsewhere in the TUI. */
+    MergePickerModal .merge-panel.selected {
+        border: round $accent;
+    }
     MergePickerModal .merge-panel-header {
         text-style: bold;
         height: 1;
@@ -79,8 +91,18 @@ class MergePickerModal(ModalScreen["str | None"]):
     """
 
     BINDINGS = [
-        Binding("1", "pick_first", "Pick branch 1"),
-        Binding("2", "pick_second", "Pick branch 2"),
+        Binding("left,h", "move_prev", "Prev branch"),
+        Binding("right,l", "move_next", "Next branch"),
+        Binding("enter", "pick_selected", "Pick highlighted"),
+        Binding("1", "pick_by_index(0)", "Pick 1", show=False),
+        Binding("2", "pick_by_index(1)", "Pick 2", show=False),
+        Binding("3", "pick_by_index(2)", "Pick 3", show=False),
+        Binding("4", "pick_by_index(3)", "Pick 4", show=False),
+        Binding("5", "pick_by_index(4)", "Pick 5", show=False),
+        Binding("6", "pick_by_index(5)", "Pick 6", show=False),
+        Binding("7", "pick_by_index(6)", "Pick 7", show=False),
+        Binding("8", "pick_by_index(7)", "Pick 8", show=False),
+        Binding("9", "pick_by_index(8)", "Pick 9", show=False),
         Binding("escape", "cancel", "Cancel"),
     ]
 
@@ -103,6 +125,7 @@ class MergePickerModal(ModalScreen["str | None"]):
                 ordered.append(status.id)
                 self._id_to_label.setdefault(status.id, status.label)
         self._ordered_ids = ordered
+        self._selected_index = 0
 
     def compose(self) -> ComposeResult:
         with Vertical(id="merge-container"):
@@ -110,10 +133,8 @@ class MergePickerModal(ModalScreen["str | None"]):
                 f"[bold]Resolve fork[/bold] · {self._report.fork_id}",
                 id="merge-title",
             )
-            score = self._report.summary.agreement_score
             yield Static(
-                f"agreement: {score:.2f}  ·  touched paths: "
-                f"{self._report.summary.total_paths_touched}",
+                f"touched paths: {self._report.summary.total_paths_touched}",
                 id="merge-meta",
             )
             with Horizontal(id="merge-panels"):
@@ -122,18 +143,25 @@ class MergePickerModal(ModalScreen["str | None"]):
             yield Static(self._action_hint(), id="merge-actions")
 
     def _action_hint(self) -> str:
-        keys = "  ·  ".join(
-            f"[bold reverse] {i + 1} [/] {self._id_to_label.get(bid, bid)[:12]}"
-            for i, bid in enumerate(self._ordered_ids[:2])
+        selected_label = (
+            self._id_to_label.get(self._ordered_ids[self._selected_index], "?")
+            if self._ordered_ids
+            else "—"
         )
-        return f"{keys}    [dim]Esc[/dim] cancel"
+        return (
+            f"[dim]←/→ navigate  ·  [/dim]"
+            f"[bold reverse] Enter [/] pick [bold]{selected_label}[/bold]  "
+            f"·  [dim]Esc cancel[/dim]"
+        )
 
     def _render_branch_panel(self, slot: int, branch_id: str) -> Vertical:
         status = next((s for s in self._branches if s.id == branch_id), None)
         label = self._id_to_label.get(branch_id, branch_id)
         header = f"[{slot}] [bold]{label}[/bold]  ·  {status.state if status else '?'}"
 
-        panel = Vertical(classes="merge-panel")
+        panel = Vertical(classes="merge-panel", id=f"merge-panel-{slot - 1}")
+        if slot - 1 == self._selected_index:
+            panel.add_class("selected")
         items: list[Any] = [Static(header, classes="merge-panel-header")]
 
         touched_changes = self._touched_changes_for(branch_id)
@@ -165,13 +193,41 @@ class MergePickerModal(ModalScreen["str | None"]):
             results.append((path_diff.path, change))
         return results
 
-    def action_pick_first(self) -> None:
-        if self._ordered_ids:
-            self.dismiss(self._ordered_ids[0])
+    def action_pick_selected(self) -> None:
+        if not self._ordered_ids:
+            return
+        self.dismiss(self._ordered_ids[self._selected_index])
 
-    def action_pick_second(self) -> None:
-        if len(self._ordered_ids) >= 2:
-            self.dismiss(self._ordered_ids[1])
+    def action_pick_by_index(self, index: int) -> None:
+        """Power-user shortcut: pick branch at ``index`` (0-based)."""
+        if 0 <= index < len(self._ordered_ids):
+            self.dismiss(self._ordered_ids[index])
+
+    def action_move_prev(self) -> None:
+        if not self._ordered_ids:
+            return
+        self._selected_index = (self._selected_index - 1) % len(self._ordered_ids)
+        self._refresh_selection()
+
+    def action_move_next(self) -> None:
+        if not self._ordered_ids:
+            return
+        self._selected_index = (self._selected_index + 1) % len(self._ordered_ids)
+        self._refresh_selection()
+
+    def _refresh_selection(self) -> None:
+        """Re-apply the ``selected`` class to the active panel + redraw hint."""
+        for i in range(len(self._ordered_ids)):
+            try:
+                panel = self.query_one(f"#merge-panel-{i}", Vertical)
+            except Exception:  # pragma: no cover - defensive
+                continue
+            if i == self._selected_index:
+                panel.add_class("selected")
+            else:
+                panel.remove_class("selected")
+        with contextlib.suppress(Exception):  # pragma: no cover - defensive
+            self.query_one("#merge-actions", Static).update(self._action_hint())
 
     def action_cancel(self) -> None:
         self.dismiss(None)

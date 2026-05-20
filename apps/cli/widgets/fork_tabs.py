@@ -13,7 +13,7 @@ from textual.widgets import Static
 from apps.cli.widgets.fork_state import state_icon
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.types import BranchCost, BranchStatus
 
 OVERVIEW_TAB_ID = "__overview__"
 """Sentinel branch id returned by :class:`ForkTabsWidget.BranchTabSelected` for the ``+`` tab."""
@@ -48,6 +48,7 @@ class ForkTabsWidget(Horizontal):
     """
 
     statuses: reactive[list[BranchStatus]] = reactive(list, always_update=True)
+    branch_costs: reactive[dict[str, BranchCost]] = reactive(dict, always_update=True)
     active_id: reactive[str] = reactive(OVERVIEW_TAB_ID)
 
     class BranchTabSelected(Message):
@@ -68,7 +69,13 @@ class ForkTabsWidget(Horizontal):
         return "[bold]+ overview[/bold]"
 
     def _chip_text(self, status: BranchStatus) -> str:
-        return f"{state_icon(status.state)} {status.label}"
+        base = f"{state_icon(status.state)} {status.label}"
+        cost = self.branch_costs.get(status.id)
+        if cost is None or cost.cumulative_usd is None or cost.cumulative_usd <= 0:
+            return base
+        if cost.budget_usd is not None:
+            return f"{base} ${cost.cumulative_usd:.2f}/${cost.budget_usd:.2f}"
+        return f"{base} ${cost.cumulative_usd:.2f}"
 
     def _chip_id(self, branch_id: str) -> str:
         return f"fork-tab-{branch_id}"
@@ -88,6 +95,21 @@ class ForkTabsWidget(Horizontal):
             if status.id == self.active_id:
                 chip.add_class("active")
             await self.mount(chip)
+
+    def watch_branch_costs(
+        self,
+        _old: dict[str, BranchCost],
+        _new: dict[str, BranchCost],
+    ) -> None:
+        """Re-render chip text in-place when per-branch costs change."""
+        for status in self.statuses:
+            chip_id = self._chip_id(status.id)
+            chip = next(
+                (c for c in self.children if isinstance(c, Static) and c.id == chip_id),
+                None,
+            )
+            if chip is not None:
+                chip.update(self._chip_text(status))
 
     def watch_active_id(self, _old: str, _new: str) -> None:
         for child in self.children:

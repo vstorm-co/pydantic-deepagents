@@ -578,6 +578,9 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
     elif cmd == "/fork":
         await _dispatch_fork(app)
 
+    elif cmd == "/fork-config":
+        _dispatch_fork_config(app)
+
     elif cmd == "/merge":
         await _dispatch_merge(app)
 
@@ -614,11 +617,11 @@ async def _dispatch_fork(app: DeepApp) -> None:
     """Handle ``/fork`` — open the picker modal and spawn branches on submit."""
     from apps.cli.forking import (
         ForkingNotEnabledError,
+        ForkPickerResult,
         resolve_capability,
         start_fork_from_cli,
     )
     from apps.cli.modals.fork_picker import ForkPickerModal
-    from pydantic_deep.types import BranchSpec
 
     if app.agent is None:
         app.notify("Agent not configured — use /provider first", severity="error")
@@ -637,11 +640,11 @@ async def _dispatch_fork(app: DeepApp) -> None:
         app.notify("Agent run in progress — press Esc or wait, then /fork", severity="warning")
         return
 
-    async def _on_specs(specs: list[BranchSpec] | None) -> None:
-        if specs is None:
+    async def _on_result(result: ForkPickerResult | None) -> None:
+        if result is None:
             return
         try:
-            session = await start_fork_from_cli(app, specs)
+            session = await start_fork_from_cli(app, result)
         except ForkingNotEnabledError as e:
             app.notify(str(e), severity="error")
             return
@@ -652,10 +655,42 @@ async def _dispatch_fork(app: DeepApp) -> None:
             app.notify(f"Fork failed: {e}", severity="error")
             return
         app.active_fork = session
-        labels = ", ".join(s.label for s in specs)
+        labels = ", ".join(s.label for s in result.specs)
         app.notify(f"Forked: {labels}", severity="information")
 
-    app.push_screen(ForkPickerModal(), _on_specs)
+    app.push_screen(ForkPickerModal(), _on_result)
+
+
+# ── /fork-config ───────────────────────────────────────────────────────
+
+
+def _dispatch_fork_config(app: DeepApp) -> None:
+    """Handle ``/fork-config`` — open the settings modal.
+
+    Mirrors the guards in :func:`_dispatch_fork`: blocked when no agent is
+    configured, when a fork is already active (mutating settings mid-fork is
+    confusing UX — the active coordinator's ``max_branches`` was already
+    fixed at construction time), and when an agent run is in flight.
+    """
+    from apps.cli.modals.fork_config import ForkConfigModal
+
+    if app.agent is None:
+        app.notify("Agent not configured — use /provider first", severity="error")
+        return
+    if app.active_fork is not None:
+        app.notify(
+            "Fork active — /merge to resolve first, then /fork-config",
+            severity="warning",
+        )
+        return
+    task = app.agent_task
+    if task is not None and not task.done():
+        app.notify(
+            "Agent run in progress — press Esc or wait, then /fork-config",
+            severity="warning",
+        )
+        return
+    app.push_screen(ForkConfigModal())
 
 
 async def _dispatch_merge(app: DeepApp) -> None:

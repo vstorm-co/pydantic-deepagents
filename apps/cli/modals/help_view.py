@@ -17,8 +17,11 @@ _HELP_TEXT = """\
   [bold cyan]/copy[/bold cyan]        Copy last response to clipboard
   [bold cyan]/cost[/bold cyan]        Show accumulated cost
   [bold cyan]/diff[/bold cyan]        Show git diff
+  [bold cyan]/fork[/bold cyan]        Spawn N parallel branches (Live Run Forking)
+  [bold cyan]/fork-config[/bold cyan]  Configure /fork branches, models, and budgets (persisted)
   [bold cyan]/help[/bold cyan]        Show this help
   [bold cyan]/load[/bold cyan]        Load a saved session
+  [bold cyan]/merge[/bold cyan]       Resolve the active fork (pick a winner)
   [bold cyan]/model[/bold cyan]       Change model
   [bold cyan]/provider[/bold cyan]    Configure AI provider
   [bold cyan]/remember[/bold cyan]    Add note to persistent memory

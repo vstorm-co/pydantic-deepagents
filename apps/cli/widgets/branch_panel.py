@@ -51,7 +51,7 @@ class BranchPanelWidget(Vertical):
         height: 1fr;
     }
     BranchPanelWidget > .branch-footer {
-        height: 1;
+        height: auto;
         padding: 0 1;
         color: $text-muted;
     }
@@ -76,9 +76,23 @@ class BranchPanelWidget(Vertical):
             "[dim]Branch terminated.[/dim]  "
             "[cyan]Tab[/cyan] to view the other branch  ·  [cyan]/merge[/cyan] to pick the survivor"
         ),
+        "budget_exhausted": (
+            "[orange1]Branch budget exhausted — total cost crossed its "
+            "per-branch cap and the branch was cancelled.[/orange1]  "
+            "Partial output is available; this branch can still be picked "
+            "as winner in [cyan]/merge[/cyan].  Raise the cap via "
+            "[cyan]/fork-config[/cyan]."
+        ),
+        "aggregate_budget_exhausted": (
+            "[red]Aggregate fork budget exceeded — every running branch terminated.[/red]  "
+            "[cyan]/fork-config[/cyan] to raise the aggregate cap  ·  "
+            "[cyan]/merge[/cyan] to pick a survivor"
+        ),
     }
 
     status: reactive[BranchState] = reactive["BranchState"]("running")
+    reason: reactive[str | None] = reactive["str | None"](None)
+    cost_usd: reactive[float | None] = reactive["float | None"](None)
 
     def __init__(self, branch_id: str, label: str, model: str | None = None) -> None:
         super().__init__()
@@ -95,10 +109,14 @@ class BranchPanelWidget(Vertical):
     def _render_header(self) -> str:
         badge = state_label(self.status)
         model_part = f"  ·  [dim]{self.model}[/dim]" if self.model else ""
-        return f"[bold]{self.label}[/bold]  ·  {badge}{model_part}"
+        cost_part = f"  ·  [dim]${self.cost_usd:.2f}[/dim]" if self.cost_usd is not None else ""
+        return f"[bold]{self.label}[/bold]  ·  {badge}{model_part}{cost_part}"
 
     def _render_footer(self) -> str:
-        return self._STATUS_FOOTER.get(self.status, "")
+        base = self._STATUS_FOOTER.get(self.status, "")
+        if self.reason:
+            return f"[dim]Reason:[/dim] {self.reason}\n{base}"
+        return base
 
     def watch_status(self, _old: BranchState, _new: BranchState) -> None:
         with contextlib.suppress(Exception):  # widget not yet mounted
@@ -106,8 +124,17 @@ class BranchPanelWidget(Vertical):
         with contextlib.suppress(Exception):
             self.query_one(".branch-footer", Static).update(self._render_footer())
 
-    def mark_status(self, state: BranchState) -> None:
-        """Update the branch's status badge."""
+    def watch_reason(self, _old: str | None, _new: str | None) -> None:
+        with contextlib.suppress(Exception):  # widget not yet mounted
+            self.query_one(".branch-footer", Static).update(self._render_footer())
+
+    def watch_cost_usd(self, _old: float | None, _new: float | None) -> None:
+        with contextlib.suppress(Exception):  # widget not yet mounted
+            self.query_one(".branch-header", Static).update(self._render_header())
+
+    def mark_status(self, state: BranchState, reason: str | None = None) -> None:
+        """Update the branch's status badge and optional reason text."""
+        self.reason = reason
         self.status = state
 
     def replay_messages(self, messages: list[Any]) -> None:

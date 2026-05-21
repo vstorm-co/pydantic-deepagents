@@ -41,6 +41,13 @@ class LiveForkCapability(AbstractCapability[Any]):
     max_branches: int = 10
     max_depth: int = 2
     store: ForkStateStore | None = None
+    #: Stage 5 — keep the on-disk fork artefacts under
+    #: ``.pydantic-deep/forks/{fork_id}/`` after the fork resolves.
+    #: Defaults to ``False`` (clean up on merge / abort); set ``True`` for
+    #: post-hoc inspection. Independent of apply-to-parent semantics —
+    #: keeping artefacts does not change whether the winner's writes are
+    #: flushed.
+    keep_artifacts: bool = False
 
     _agent_ref: Any = field(default=None, init=False, repr=False)
     _latest_messages: list[ModelMessage] = field(default_factory=list, init=False, repr=False)
@@ -66,6 +73,7 @@ class LiveForkCapability(AbstractCapability[Any]):
             max_branches=self.max_branches,
             max_depth=self.max_depth,
             store=self.store,
+            keep_artifacts=self.keep_artifacts,
         )
         # init=False fields are reset by replace(); restore the agent ref.
         clone._agent_ref = self._agent_ref
@@ -77,6 +85,7 @@ class LiveForkCapability(AbstractCapability[Any]):
             max_branches=clone.max_branches,
             max_depth=clone.max_depth,
             store=clone.store,
+            keep_artifacts=clone.keep_artifacts,
         )
         coordinator.capability = clone
         ctx.deps.fork_coordinator = coordinator

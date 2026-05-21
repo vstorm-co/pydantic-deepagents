@@ -22,6 +22,7 @@ import uuid
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai_shields import CostInfo, CostTracking
@@ -29,6 +30,7 @@ from pydantic_ai_shields import CostInfo, CostTracking
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 from pydantic_deep.toolsets.forking.store import ForkStateStore
 from pydantic_deep.types import (
     BranchCost,
@@ -184,6 +186,8 @@ class ForkCoordinator:
         store: ForkStateStore,
         checkpoint_store: CheckpointStore | None = None,
         aggregate_budget_usd: float | None = None,
+        keep_artifacts: bool = False,
+        materializer_root: Path | None = None,
     ) -> None:
         self.agent = agent
         self.parent_deps = parent_deps
@@ -192,11 +196,20 @@ class ForkCoordinator:
         self.store = store
         self.checkpoint_store = checkpoint_store
         self.aggregate_budget_usd = aggregate_budget_usd
+        self.keep_artifacts = keep_artifacts
+        #: Base directory for materialized fork artefacts. Defaults to
+        #: ``.pydantic-deep/forks/`` under the current working directory;
+        #: the per-fork subdirectory ``{materializer_root}/{fork_id}`` is
+        #: created on each :meth:`fork` call.
+        self.materializer_root: Path = (
+            materializer_root if materializer_root is not None else Path(".pydantic-deep") / "forks"
+        )
         self.branches: dict[str, BranchRuntime] = {}
         self._handle: ForkHandle | None = None
         self._lock = asyncio.Lock()
         self.capability: LiveForkCapability | None = None
         self._aggregate_watcher: _AggregateBudgetWatcher | None = None
+        self.materializer: ForkMaterializer | None = None
 
     @property
     def fork_id(self) -> str | None:
@@ -292,6 +305,12 @@ class ForkCoordinator:
         async with self._lock:
             fork_id = str(uuid.uuid4())
 
+            self.materializer = ForkMaterializer(
+                root=self.materializer_root / fork_id,
+                fork_id=fork_id,
+                keep_artifacts=self.keep_artifacts,
+            )
+
             parent_checkpoint_id = await self._save_anchor_checkpoint(
                 anchor="pre-fork", fork_id=fork_id, messages=parent_history
             )
@@ -321,6 +340,8 @@ class ForkCoordinator:
                 overlay = (
                     cloned_deps.backend if isinstance(cloned_deps.backend, BranchOverlay) else None
                 )
+                if overlay is not None and self.materializer is not None:
+                    overlay.attach_materializer(self.materializer, spec.label)
 
                 watcher = _BudgetWatcher(
                     coordinator=self, branch_id=branch_id, budget_usd=spec.budget_usd
@@ -372,6 +393,7 @@ class ForkCoordinator:
                                 rt.status.error = str(t.exception())
                             else:
                                 rt.status.state = "done"
+                            self._refresh_manifest()
                         except Exception:  # pragma: no cover - defensive
                             logger.warning(
                                 "branch %s done-callback failed", rt.status.id, exc_info=True
@@ -390,6 +412,7 @@ class ForkCoordinator:
             )
             await self.store.save(handle)
             self._handle = handle
+            self._refresh_manifest()
             return handle
 
     async def terminate_branch(self, branch_id: str, *, reason: str | None = None) -> None:
@@ -433,6 +456,17 @@ class ForkCoordinator:
             )
         else:
             runtime.status.state = "terminated"
+        self._refresh_manifest()
+
+    def _refresh_manifest(self) -> None:
+        """Write a fresh ``manifest.json`` reflecting current branch statuses."""
+        materializer = self.materializer
+        if materializer is None:  # pragma: no cover - only callers run after fork()
+            return
+        try:
+            materializer.update_manifest([rt.status for rt in self.branches.values()])
+        except Exception:  # pragma: no cover - defensive: manifest is non-load-bearing
+            logger.warning("manifest refresh failed", exc_info=True)
 
     async def _on_branch_cost_update(self, branch_id: str, info: CostInfo) -> None:
         """Relay a per-branch cost update to the aggregate watcher.
@@ -448,11 +482,10 @@ class ForkCoordinator:
     async def merge_or_select(self, action: str) -> MergeResult:
         """Resolve the fork by picking a winner.
 
-        Supported actions:
-
-        - ``"pick:<branch_id>"`` — await that branch's task; cancel and
-          discard all others; release discarded overlays; save a
-          ``post-fork:<fork_id>`` checkpoint if checkpointing is available.
+        ``action="pick:<branch_id>"`` awaits the winning branch's task,
+        cancels and discards the others, replays the winner's overlay
+        onto the parent backend, releases every overlay, and saves a
+        ``post-fork:<fork_id>`` checkpoint when checkpointing is available.
         """
         if not action.startswith("pick:"):
             raise ValueError(f"Unsupported merge action: {action!r}. Expected 'pick:<branch_id>'.")
@@ -482,6 +515,23 @@ class ForkCoordinator:
                         f"Winning branch {target_id!r} was cancelled before merge."
                     ) from None
 
+            applied_paths: list[str] = []
+            applied_changes = 0
+            conflicts: list[str] = []
+            flush_errors: list[Any] = []
+            winner_overlay = winner.overlay
+            if winner_overlay is not None:
+                snapshot = (
+                    self.materializer.pre_flush_snapshot()
+                    if self.materializer is not None
+                    else None
+                )
+                report = winner_overlay.flush_to(self.parent_deps.backend, snapshot)
+                applied_paths = list(report.applied_paths)
+                applied_changes = report.applied_changes
+                conflicts = list(report.conflicts)
+                flush_errors = list(report.errors)
+
             discarded: list[str] = []
             for bid, rt in list(self.branches.items()):
                 if bid == target_id:
@@ -496,18 +546,29 @@ class ForkCoordinator:
                 rt.overlay = None
                 discarded.append(bid)
 
+            winner.overlay = None
+
             await self._save_anchor_checkpoint(
                 anchor="post-fork",
                 fork_id=self._handle.fork_id,
                 messages=history_after_merge,
             )
 
-            return MergeResult(
+            merge_result = MergeResult(
                 fork_id=self._handle.fork_id,
                 winner_branch_id=target_id,
                 discarded_branches=discarded,
                 history_after_merge=history_after_merge,
+                applied_paths=applied_paths,
+                applied_changes=applied_changes,
+                conflicts=conflicts,
+                errors=flush_errors,
             )
+
+            if self.materializer is not None:  # pragma: no branch - fork() always allocates one
+                self.materializer.cleanup()
+
+            return merge_result
 
     def inspect_branches(self) -> list[BranchStatus]:
         """Return a snapshot of every branch's current status."""
@@ -584,10 +645,17 @@ class ForkCoordinator:
         runtime.partial_history = list(messages)
 
     async def aclose(self) -> None:
-        """Cancel every outstanding branch task — used on parent cancellation."""
+        """Cancel every outstanding branch task — used on parent cancellation.
+
+        Also runs ``materializer.cleanup()`` so the on-disk fork directory
+        is removed on abort (unless ``keep_artifacts`` is set), mirroring
+        the merge-resolution cleanup. Safe to call multiple times.
+        """
         for rt in self.branches.values():
             if not rt.task.done():
                 rt.task.cancel()
+        if self.materializer is not None:  # pragma: no branch - fork() always allocates one
+            self.materializer.cleanup()
 
 
 def _find_parent_cost_tracking(deps: DeepAgentDeps) -> CostTracking | None:

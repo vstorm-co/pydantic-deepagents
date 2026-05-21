@@ -139,7 +139,10 @@ class CLIForkSession:
         await self.coordinator.aclose()
 
     async def merge(self, branch_id: str) -> MergeResult:
-        """Resolve the fork by picking ``branch_id`` as the winner."""
+        """Resolve the fork by picking ``branch_id`` as the winner.
+
+        Flushes the winner's overlay onto the parent backend.
+        """
         return await self.coordinator.merge_or_select(f"pick:{branch_id}")
 
     def inspect(self) -> list[BranchStatus]:
@@ -198,6 +201,7 @@ async def start_fork_from_cli(
         max_branches=cap.max_branches,
         max_depth=cap.max_depth,
         store=cap.store,  # type: ignore[arg-type]
+        keep_artifacts=cap.keep_artifacts,
     )
     coordinator.capability = cap
     app.deps.fork_coordinator = coordinator

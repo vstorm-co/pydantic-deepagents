@@ -27,7 +27,7 @@ from apps.cli.forking import (
 )
 from apps.cli.modals.confirm import ConfirmModal
 from apps.cli.modals.fork_picker import ForkPickerModal
-from apps.cli.modals.merge_picker import MergePickerModal
+from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 from apps.cli.screens.chat import ChatScreen
 from apps.cli.widgets.branch_panel import BranchPanelWidget
 from apps.cli.widgets.fork_badge import ForkBadgeWidget
@@ -288,7 +288,7 @@ class TestMergeFlow:
 
             for screen in list(fork_app.screen_stack):
                 if isinstance(screen, MergePickerModal):
-                    screen.dismiss(a_id)
+                    screen.dismiss(MergePickerResult(branch_id=a_id))
                     break
             await pilot.pause()
             await pilot.pause()
@@ -596,7 +596,7 @@ class TestMergePickerModalRendering:
             modal = MergePickerModal(report, statuses, {"a": "id-a", "b": "id-b"})
             app.push_screen(modal)
             await pilot.pause()
-            modal.dismiss("id-a")
+            modal.dismiss(MergePickerResult(branch_id="id-a"))
             await pilot.pause()
 
 
@@ -854,3 +854,224 @@ class TestOrphanToolCallScrub:
             assert captured[0] is not fork_app.message_history
 
             await session.abort()
+
+
+# =====================================================================
+# Stage 5 CLI/TUI tests (H–M from plan)
+# =====================================================================
+
+
+class TestForkOpenDiffCommand:
+    """Tests H, I, L — `/fork diff` dispatch + allow-list."""
+
+    async def test_open_diff_with_path_still_opens_picker(self, fork_app: DeepApp) -> None:
+        from unittest.mock import patch
+
+        from apps.cli.commands import dispatch_command
+        from apps.cli.modals.diff_picker import DiffPickerModal
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await _drain_tasks(session)
+            await pilot.pause()
+
+            with patch(
+                "pydantic_deep.toolsets.forking.editor.EditorDetector.detect",
+                return_value="pycharm",
+            ):
+                # Even with a path argument the picker is opened; the
+                # path arg is now ignored.
+                await dispatch_command(fork_app, "/fork diff foo.py")
+                await pilot.pause()
+
+            assert isinstance(fork_app.screen, DiffPickerModal)
+            await fork_app.pop_screen()
+            await session.abort()
+
+    async def test_open_diff_without_path_opens_picker(self, fork_app: DeepApp) -> None:
+        from unittest.mock import patch
+
+        from apps.cli.commands import dispatch_command
+        from apps.cli.modals.diff_picker import DiffPickerModal
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await _drain_tasks(session)
+            await pilot.pause()
+
+            # Trigger a branch write so the picker has at least one path
+            # to render (an empty report would also be a valid path but
+            # the user-facing common case is "at least one touched file").
+            for rt in session.coordinator.branches.values():
+                if rt.overlay is not None:
+                    rt.overlay.write("foo.py", "branch content")
+                    break
+
+            with patch(
+                "pydantic_deep.toolsets.forking.editor.EditorDetector.detect",
+                return_value="pycharm",
+            ):
+                await dispatch_command(fork_app, "/fork diff")
+                await pilot.pause()
+
+            # The dispatcher should have pushed the diff picker modal
+            # (not invoked the editor — invocation happens when the user
+            # confirms inside the picker).
+            assert isinstance(fork_app.screen, DiffPickerModal)
+            await fork_app.pop_screen()
+
+            await session.abort()
+
+    async def test_open_diff_falls_back_to_tui_modal(self, fork_app: DeepApp) -> None:
+        from unittest.mock import patch
+
+        from apps.cli.commands import dispatch_command
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await _drain_tasks(session)
+            await pilot.pause()
+
+            with patch(
+                "pydantic_deep.toolsets.forking.editor.EditorDetector.detect",
+                return_value="tui",
+            ):
+                await dispatch_command(fork_app, "/fork diff foo.py")
+                await pilot.pause()
+
+            assert any(isinstance(screen, MergePickerModal) for screen in fork_app.screen_stack)
+
+            for screen in list(fork_app.screen_stack):
+                if isinstance(screen, MergePickerModal):
+                    screen.dismiss(None)
+                    break
+            await pilot.pause()
+            await session.abort()
+
+    async def test_open_diff_without_active_fork_notifies(self, fork_app: DeepApp) -> None:
+        from unittest.mock import patch
+
+        from apps.cli.commands import dispatch_command
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            with patch.object(fork_app, "notify") as notify_mock:
+                await dispatch_command(fork_app, "/fork diff")
+                await pilot.pause()
+            assert notify_mock.called
+            msg = notify_mock.call_args.args[0]
+            assert "No active fork" in msg
+
+
+class TestForkOpenDiffAllowList:
+    """Test L — `/fork diff` is allowed mid-fork; plain `/fork` is not."""
+
+    def test_is_fork_inspection_matches_open_diff(self) -> None:
+        assert ChatScreen._is_fork_inspection("/fork diff") is True
+        assert ChatScreen._is_fork_inspection("/fork diff src/foo.py") is True
+        # Plain /fork and unrelated subcommands stay blocked.
+        assert ChatScreen._is_fork_inspection("/fork") is False
+        assert ChatScreen._is_fork_inspection("/fork-config") is False
+        assert ChatScreen._is_fork_inspection("/fork random") is False
+
+
+class TestMergePickerOpenInEditor:
+    """Test M — `MergePickerModal` exposes an Open-in-editor delegation point."""
+
+    def test_open_in_editor_delegates_to_callback(self, fork_app: DeepApp) -> None:
+        from datetime import datetime, timezone
+
+        from pydantic_deep.toolsets.forking.diff import build_diff_report
+        from pydantic_deep.types import BranchStatus
+
+        seen: list[str] = []
+
+        def callback(branch_id: str) -> None:
+            seen.append(branch_id)
+
+        statuses = [
+            BranchStatus(
+                id="id-a",
+                label="a",
+                state="done",
+                current_turn=0,
+                last_activity_at=datetime.now(timezone.utc),
+            )
+        ]
+        report = build_diff_report("fork-x", [])
+        modal = MergePickerModal(report, statuses, {"a": "id-a"}, on_open_in_editor=callback)
+        modal.action_open_in_editor()
+        assert seen == ["id-a"]
+
+    def test_open_in_editor_noop_without_callback(self, fork_app: DeepApp) -> None:
+        from datetime import datetime, timezone
+
+        from pydantic_deep.toolsets.forking.diff import build_diff_report
+        from pydantic_deep.types import BranchStatus
+
+        statuses = [
+            BranchStatus(
+                id="id-a",
+                label="a",
+                state="done",
+                current_turn=0,
+                last_activity_at=datetime.now(timezone.utc),
+            )
+        ]
+        report = build_diff_report("fork-x", [])
+        modal = MergePickerModal(report, statuses, {"a": "id-a"})
+        # No callback set → action is a no-op, must not raise.
+        modal.action_open_in_editor()
+
+
+class TestMergeNotification:
+    """Tests the addendum-mandated rich merge notification text."""
+
+    def test_notification_default_apply_includes_count(self) -> None:
+        from apps.cli.commands import _format_merge_notification
+        from pydantic_deep.types import MergeResult
+
+        result = MergeResult(
+            fork_id="x",
+            winner_branch_id="b1",
+            discarded_branches=[],
+            history_after_merge=[],
+            applied_paths=["cat.md", "dog.md"],
+            applied_changes=2,
+        )
+        text = _format_merge_notification("alpha", result)
+        assert "kept branch alpha" in text
+        assert "2 files applied" in text
+
+    def test_notification_includes_conflicts(self) -> None:
+        from apps.cli.commands import _format_merge_notification
+        from pydantic_deep.types import MergeResult
+
+        result = MergeResult(
+            fork_id="x",
+            winner_branch_id="b1",
+            discarded_branches=[],
+            history_after_merge=[],
+            applied_paths=["cat.md"],
+            applied_changes=1,
+            conflicts=["cat.md"],
+        )
+        text = _format_merge_notification("alpha", result)
+        assert "conflicts: cat.md" in text
+
+    def test_notification_includes_errors(self) -> None:
+        from apps.cli.commands import _format_merge_notification
+        from pydantic_deep.types import FlushError, MergeResult
+
+        result = MergeResult(
+            fork_id="x",
+            winner_branch_id="b1",
+            discarded_branches=[],
+            history_after_merge=[],
+            errors=[FlushError(path="x", op="write", message="boom")],
+        )
+        text = _format_merge_notification("alpha", result)
+        assert "errors: 1" in text

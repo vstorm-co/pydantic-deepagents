@@ -28,13 +28,17 @@ from pydantic_deep.toolsets.forking.coordinator import (
     ForkDepthLimitError,
 )
 from pydantic_deep.toolsets.forking.diff import build_diff_report
+from pydantic_deep.toolsets.forking.editor import EditorDetector, EditorKind
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 from pydantic_deep.toolsets.forking.store import ForkStateStore, InMemoryForkStateStore
 from pydantic_deep.types import (
     BranchCost,
     BranchDiffReport,
     BranchIsolation,
     BranchSpec,
+    FlushError,
+    FlushReport,
     ForkCostSummary,
     MergeStrategy,
 )
@@ -257,10 +261,15 @@ __all__ = [
     "BranchDiffReport",
     "BranchOverlay",
     "BranchRuntime",
+    "EditorDetector",
+    "EditorKind",
+    "FlushError",
+    "FlushReport",
     "ForkBranchLimitError",
     "ForkCoordinator",
     "ForkCostSummary",
     "ForkDepthLimitError",
+    "ForkMaterializer",
     "ForkStateStore",
     "InMemoryForkStateStore",
     "NOT_ENABLED_MESSAGE",

@@ -2,7 +2,7 @@
 
 *git branch, but for cognition.*
 
-**Live Run Forking** splits a running agent into multiple parallel branches that share the same conversation history up to the fork point, then explore different approaches in isolation. The branches run concurrently as `asyncio.Task`s with their own `DeepAgentDeps` (separate backends, todos, message queues). When one finishes, you pick a winner via `merge_or_select(action="pick:<id>")` and the rest are cancelled — their writes never touch the parent backend.
+**Live Run Forking** splits a running agent into multiple parallel branches that share the same conversation history up to the fork point, then explore different approaches in isolation. The branches run concurrently as `asyncio.Task`s with their own `DeepAgentDeps` (separate backends, todos, message queues). When one finishes, you pick a winner via `merge_or_select(action="pick:<id>")`: the winner's overlay writes are flushed onto the parent backend and the rest of the branches are cancelled with their writes discarded.
 
 This page is the canonical reference for the whole feature; it grows incrementally as stages land.
 
@@ -12,7 +12,7 @@ This page is the canonical reference for the whole feature; it grows incremental
 | 2 — Diff Branches | **Shipped** | `diff_branches()` report consumed by judge / IDE |
 | 3 — CLI | **Shipped** | `/fork`, branch tabs, `MergePickerModal`, `>>{branch_id}` routing |
 | 4 — N branches + budget | **Shipped** | `max_branches>2`, `max_depth>1`, per-branch `budget_usd` enforcement, aggregate cap, `fork_cost()` |
-| 5 — IDE materializer | Coming | Disk mirror under `.pydantic-deep/forks/`, `pycharm diff` / `code --diff` integration |
+| 5 — IDE materializer + apply-on-merge | **Shipped** | Real-time disk mirror under `.pydantic-deep/forks/`, `pycharm diff` / `code --diff` integration, `/fork diff`, flush of winner's writes to parent backend on merge |
 | 6 — Autonomous judge | Coming | `MergeStrategy.kind="auto"` / `"auto_with_fallback"` / `"vote"`, confidence scoring |
 
 ## Quick start
@@ -70,6 +70,7 @@ The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_s
 | `max_branches` | `int` | `10` | Maximum branches per `fork_run` call. Stage 1 hard-defaulted to `2`; Stage 4 raised the default. |
 | `max_depth` | `int` | `2` | Maximum fork nesting depth. Stage 1 hard-defaulted to `1`; Stage 4 raised it so one level of fork-of-fork is allowed. |
 | `store` | `ForkStateStore \| None` | `InMemoryForkStateStore()` | Where `ForkHandle` records are persisted for inspection. In-memory only across all stages — process restart loses the state. |
+| `keep_artifacts` | `bool` | `False` | Stage 5. When `True`, the on-disk fork directory under `.pydantic-deep/forks/{fork_id}/` is preserved after merge / abort for post-hoc inspection. Independent of apply-on-merge semantics. |
 
 ### Per-branch budgets (Stage 4)
 
@@ -233,6 +234,74 @@ For each path, the builder labels how the branches relate:
 ### `paths` filter
 
 Pass `paths=["src/app.py", "src/utils.py"]` to restrict the report to specific paths. Filtered paths that no branch touched still surface as `unanimous_no_change`, so the report stays transparent — silence is never confused with "no diff."
+
+## External diff tool integration
+
+Stage 5 mirrors every branch's working tree to disk in real time so external diff tools (PyCharm, VS Code) can show the user what changed. The materialised layout lives at `.pydantic-deep/forks/{fork_id}/` and is removed on merge resolution unless [`LiveForkCapability(keep_artifacts=True)`][pydantic_deep.capabilities.forking.LiveForkCapability] is set.
+
+```
+.pydantic-deep/forks/{fork_id}/
+├── manifest.json
+├── parent/
+│   └── <relative path of every file a branch touched, frozen at fork time>
+└── branches/
+    ├── approach_a/
+    │   └── <same paths, post-branch-write content>
+    └── approach_b/
+        └── ...
+```
+
+Per-branch directories use the human-readable [`BranchSpec.label`][pydantic_deep.types.BranchSpec] (e.g. `approach_a`), not the internal UUID. The parent snapshot under `parent/` is captured lazily — the first time a branch writes a path, the materializer freezes the parent's pre-fork bytes for that path; subsequent parent writes do not update the snapshot.
+
+### Editor detection
+
+[`EditorDetector.detect`][pydantic_deep.toolsets.forking.editor.EditorDetector] picks the first available diff tool in this order:
+
+1. `PYDANTIC_DEEP_DIFFTOOL` env var — explicit override, becomes `kind="custom"`. The template supports `{parent}` and `{branches}` placeholders.
+2. `pycharm` on `PATH` → native 3-way diff via a single `subprocess.Popen(["pycharm", "diff", parent, a, b, c])`. For the 2-branch case the parent is passed as the middle argument (`pycharm diff a parent b`) to match PyCharm's 3-way diff "base in the middle" convention.
+3. `code` on `PATH` → VS Code pairwise — one `Popen` per branch, each `["code", "--diff", parent, branch]`.
+4. TUI fallback (`kind="tui"`) → the in-TUI `MergePickerModal` opens in diff-explore mode; no external process is spawned.
+
+### `/fork diff` command
+
+While a fork is active, the user can launch the detected diff tool from the TUI:
+
+- `/fork diff <path>` — diff the materialised parent vs each branch's snapshot of `<path>`.
+- `/fork diff` (no argument) — open a picker listing every touched path and the branches that wrote to it; pick a row + a subset of branches and the external diff tool launches.
+
+This is the only `/fork` sub-command on the active-fork allow-list; bare `/fork` and `/fork-config` stay blocked mid-fork because they would spawn a new run and clobber the coordinator.
+
+The `MergePickerModal` also exposes the "Open in editor" action (key: `o`) — useful when the user is already in the picker and wants to inspect a specific branch's snapshot before deciding.
+
+## Apply on merge
+
+[`ForkCoordinator.merge_or_select`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.merge_or_select] picks a winner and **flushes its overlay writes onto the parent backend**. The winner's history is adopted into the parent run; discarded branches' overlays are released without flush.
+
+```python
+result = await coordinator.merge_or_select(f"pick:{winner_id}")
+# Parent backend now reflects every file the winner wrote, plus a report:
+print(result.applied_paths)     # ["cat.md", "dog.md"]
+print(result.applied_changes)   # 2
+print(result.conflicts)         # [] when parent was untouched during fork
+print(result.errors)            # [] on success
+```
+
+### Conflict policy: last-write-wins
+
+If a third actor modifies (or deletes) a path on the parent backend between fork time and merge time, the overlay's writes still land on the parent (last-write-wins). The divergence surfaces in [`MergeResult.conflicts`][pydantic_deep.types.MergeResult] so the CLI can warn the user. The merge notification renders as:
+
+```
+Merged: kept branch alpha · 2 files applied · conflicts: cat.md
+```
+
+Per-write failures (parent `WriteResult.error` non-empty or the backend raises) do not abort `flush_to` — the failing path is excluded from `applied_paths`, recorded in `MergeResult.errors` as a [`FlushError`][pydantic_deep.types.FlushError], and the remaining writes continue.
+
+### Nested forks
+
+When a fork spawns inside another fork (`max_depth=2`), the inner fork's parent backend IS the outer branch's [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay]. `flush_to` writing into that overlay correctly propagates the winner's writes up one level; resolving the outer fork later propagates them to the root backend. No special handling required.
+
+!!! warning "Rewind across `post-fork:<id>` does not restore files"
+    The `post-fork:<fork_id>` checkpoint captures conversation history only — not file state. After a merge with apply, rewinding via `/load post-fork:<id>` restores the merged history but leaves the winner's file writes on disk. Track and revert them manually if needed. Full file-aware rewind is on the follow-up list.
 
 ## CLI integration
 
@@ -404,7 +473,6 @@ for branch_id, runtime in coordinator.branches.items():
 Stage 1 deliberately shipped the minimum kernel. The following are **not** supported until later stages:
 
 - **Live per-token streaming inside branch panels** — Stage 3 renders each branch's final messages once its `asyncio.Task` completes; mid-run streaming inside the panel would require reworking the coordinator's task spawn. Status badges (`●`/`✓`/`✗`/`⊘`/`$`/`$$`) update live via a 0.5 s poller.
-- **External diff tool integration** (`pycharm diff`, `code --diff`) — Stage 5.
 - **Autonomous merge** (judge model, confidence scoring, vote mode) — Stage 6.
 - **Persistent fork state** — `InMemoryForkStateStore` is the only store across all stages; process restart loses fork state.
 - **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded everywhere; "pick a winner" is the model.
@@ -424,5 +492,13 @@ Stage 2's `diff_branches` is purely textual — these are deferred or out of sco
 - **Semantic / AST-based diff** — pure text diff only.
 - **Rename detection** — a branch that renames a file shows as delete+create.
 - **Diff of tool-call sequences** — process diff is not tracked; only outcomes are diffed.
-- **TUI rendering of the diff** — Stage 3.
-- **External editor invocation** (`pycharm diff`, `code --diff`) — Stage 5.
+
+Stage 5 deliberately keeps external diff integration narrow — the following are **not** supported and tracked as follow-up issues:
+
+- **Native IDE plugin** (file watcher, in-IDE accept/override buttons) — would require a JetBrains/VS Code plugin.
+- **Bidirectional edits** — the user editing a branch file on disk does not flow back into the run; the on-disk tree is inspection-only.
+- **Custom difftool integration beyond PyCharm / VS Code** — supported opaquely via the `PYDANTIC_DEEP_DIFFTOOL` env var; we do not ship per-tool adapters.
+- **`git difftool` driver mode**.
+- **Inline hunk-level accept/reject** (PyCharm plugin or TUI).
+- **Real-time write-back during a fork** — branches own their overlays in isolation while running; cross-branch propagation only happens at merge.
+- **File-aware checkpoint rewind across `post-fork:<id>`** — the merged conversation history is preserved by the checkpoint anchor but file writes are not.

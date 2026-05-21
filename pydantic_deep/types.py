@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass as _dataclass
+from dataclasses import field as _field
 from datetime import datetime
 from typing import Any, Literal, TypedDict, TypeVar
 
@@ -220,6 +221,51 @@ class ForkHandle:
     created_at: datetime
 
 
+@_dataclass(frozen=True)
+class FlushError:
+    """One per-write failure observed by :meth:`BranchOverlay.flush_to`.
+
+    ``flush_to`` never aborts on the first failure — it accumulates errors
+    for the caller to surface alongside the changes that did land. Surfaced
+    on :attr:`MergeResult.errors` so the CLI / agent can report partial
+    success without losing track of what didn't apply.
+    """
+
+    path: str
+    op: Literal["write", "edit"]
+    message: str
+
+
+@_dataclass(frozen=True)
+class FlushReport:
+    """Outcome of replaying a :class:`BranchOverlay` onto the parent backend.
+
+    Produced by :meth:`BranchOverlay.flush_to` during ``merge_or_select``
+    when the user picks a winner with default-flush semantics. The fields
+    flow through to :class:`MergeResult` so the CLI / agent can render
+    "Merged: kept branch X · N files applied · conflicts: … · errors: N"
+    style notifications.
+
+    - ``applied_paths`` lists paths whose final overlay content was
+      written; a path's last write/edit wins, multiple in-overlay edits
+      to the same path collapse to one entry.
+    - ``applied_changes`` counts every replayed op (≥ ``len(applied_paths)``).
+    - ``conflicts`` lists paths where the parent's pre-flush content
+      diverged from the pre-fork snapshot — both modified-by-third-actor
+      and deleted-by-third-actor cases land here. Surfacing only; flush
+      still proceeds (last-write-wins).
+    - ``errors`` is one :class:`FlushError` per per-write failure (e.g.
+      parent ``WriteResult.error`` non-empty or parent raised). The
+      failing path is excluded from ``applied_paths``; remaining writes
+      still flush.
+    """
+
+    applied_paths: list[str]
+    applied_changes: int
+    conflicts: list[str]
+    errors: list[FlushError]
+
+
 @_dataclass
 class MergeResult:
     """Result returned by ``ForkCoordinator.merge_or_select()``."""
@@ -228,6 +274,10 @@ class MergeResult:
     winner_branch_id: str
     discarded_branches: list[str]
     history_after_merge: list[Any]
+    applied_paths: list[str] = _field(default_factory=list)
+    applied_changes: int = 0
+    conflicts: list[str] = _field(default_factory=list)
+    errors: list[FlushError] = _field(default_factory=list)
 
 
 @_dataclass(frozen=True)

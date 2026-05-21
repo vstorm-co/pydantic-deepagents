@@ -13,6 +13,7 @@ based on a :class:`BranchIsolation` policy.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -27,10 +28,14 @@ from pydantic_ai_backends import (
 )
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.types import BranchIsolation, FileChange
+from pydantic_deep.types import BranchIsolation, FileChange, FlushError, FlushReport
 
 if TYPE_CHECKING:
     from pydantic_deep.capabilities.message_queue import MessageQueue
+    from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
+
+
+logger = logging.getLogger(__name__)
 
 
 class BranchOverlay:
@@ -52,6 +57,13 @@ class BranchOverlay:
         self._parent = parent
         self._overlay = StateBackend()
         self._changes: list[FileChange] = []
+        #: Stage 5 hook — populated by the coordinator when forking with
+        #: ``LiveForkCapability``. Each successful overlay write/edit
+        #: mirrors to disk via :meth:`ForkMaterializer.flush_change` and
+        #: triggers a one-shot parent snapshot for the path via
+        #: :meth:`ForkMaterializer.snapshot_parent_path`.
+        self._materializer: ForkMaterializer | None = None
+        self._branch_label: str | None = None
 
     @property
     def parent(self) -> BackendProtocol:
@@ -88,11 +100,12 @@ class BranchOverlay:
         return parent_data
 
     def write(self, path: str, content: str | bytes) -> WriteResult:
+        self._snapshot_parent_on_first_touch(path)
         result = self._overlay.write(path, content)
         if not result.error:
-            self._changes.append(
-                FileChange(path=path, op="write", timestamp=datetime.now(timezone.utc))
-            )
+            change = FileChange(path=path, op="write", timestamp=datetime.now(timezone.utc))
+            self._changes.append(change)
+            self._mirror_to_disk(change)
         return result
 
     def edit(
@@ -102,6 +115,7 @@ class BranchOverlay:
         new_string: str,
         replace_all: bool = False,
     ) -> EditResult:
+        self._snapshot_parent_on_first_touch(path)
         # If the file lives only in the parent, materialize it into the overlay
         # first so edits don't leak back to the parent.
         if not self._has(path):
@@ -114,9 +128,9 @@ class BranchOverlay:
             self._overlay.write(path, parent_bytes)
         result = self._overlay.edit(path, old_string, new_string, replace_all)
         if not result.error:
-            self._changes.append(
-                FileChange(path=path, op="edit", timestamp=datetime.now(timezone.utc))
-            )
+            change = FileChange(path=path, op="edit", timestamp=datetime.now(timezone.utc))
+            self._changes.append(change)
+            self._mirror_to_disk(change)
         return result
 
     @staticmethod
@@ -138,6 +152,23 @@ class BranchOverlay:
             self._overlay.glob_info(pattern, path),
         )
 
+    @property
+    def execute_enabled(self) -> bool:  # pragma: no cover - transparent forward to parent
+        enabled = getattr(self._parent, "execute_enabled", None)
+        return bool(enabled) if enabled is not None else False
+
+    def execute(
+        self, command: str, timeout: int | None = None
+    ) -> Any:  # pragma: no cover - transparent forward to parent
+        return self._parent.execute(command, timeout)  # pyright: ignore[reportAttributeAccessIssue]
+
+    async def async_execute(
+        self, command: str, timeout: int | None = None
+    ) -> Any:  # pragma: no cover - transparent forward to parent
+        return await self._parent.async_execute(  # pyright: ignore[reportAttributeAccessIssue]
+            command, timeout
+        )
+
     def grep_raw(
         self,
         pattern: str,
@@ -148,6 +179,145 @@ class BranchOverlay:
         # diff_branches needs cross-overlay grep — punt for now.
         result: list[GrepMatch] | str = self._parent.grep_raw(pattern, path, **kwargs)
         return result
+
+    def attach_materializer(self, materializer: ForkMaterializer, branch_label: str) -> None:
+        """Wire a :class:`ForkMaterializer` into this overlay.
+
+        After this call every successful ``write`` / ``edit`` is mirrored
+        to disk under the materializer's ``branches/{branch_label}/``
+        subtree, and the parent backend's pre-fork bytes for each touched
+        path are captured lazily on first touch via
+        :meth:`ForkMaterializer.snapshot_parent_path`.
+        """
+        self._materializer = materializer
+        self._branch_label = branch_label
+
+    def _snapshot_parent_on_first_touch(self, path: str) -> None:
+        """Capture the parent's pre-fork bytes for ``path`` the first time it's written.
+
+        No-op when no materializer is attached. The materializer itself
+        de-dupes repeat calls for the same path, so this is safe to call
+        from both ``write`` and ``edit``.
+        """
+        materializer = self._materializer
+        if materializer is None:
+            return
+        try:
+            parent_bytes: bytes | None = self._parent.read_bytes(path)
+        except (FileNotFoundError, KeyError):
+            parent_bytes = None
+        materializer.snapshot_parent_path(path, parent_bytes)
+
+    def _mirror_to_disk(self, change: FileChange) -> None:
+        """Mirror one ``FileChange`` to the on-disk branch directory."""
+        materializer = self._materializer
+        branch_label = self._branch_label
+        if materializer is None or branch_label is None:
+            return
+        content = self._overlay.read_bytes(change.path)
+        try:
+            materializer.flush_change(branch_label, change, content)
+        except OSError:
+            logger.warning(
+                "materializer flush_change failed for branch %s path %s",
+                branch_label,
+                change.path,
+                exc_info=True,
+            )
+
+    def flush_to(
+        self,
+        parent: BackendProtocol,
+        pre_flush_snapshot: dict[str, bytes | None] | None = None,
+    ) -> FlushReport:
+        """Replay this overlay's writes onto ``parent`` — Stage 5 addendum.
+
+        Args:
+            parent: Destination backend. Usually the parent run's backend;
+                for fork-of-fork it is the OUTER branch's overlay (which
+                is itself a :class:`BranchOverlay`) — propagation up one
+                level works without special casing.
+            pre_flush_snapshot: Optional mapping of ``path → parent bytes
+                at fork time`` (or ``None`` for "did not exist"). When
+                supplied, ``flush_to`` compares each touched path's
+                current parent bytes against the snapshot and records a
+                conflict for divergent paths. Both modified-by-third-actor
+                and deleted-by-third-actor cases land in ``conflicts``.
+
+        Returns:
+            A :class:`FlushReport` with ``applied_paths`` (one entry per
+            successfully-replayed path, last-write-wins), ``applied_changes``
+            (every replayed op — ≥ ``len(applied_paths)``), ``conflicts``
+            (divergent paths), and ``errors`` (per-write failures —
+            ``flush_to`` never aborts on the first failure).
+
+        Order: writes are replayed in :attr:`_changes` order (temporal),
+        so a sequence ``write A → edit A → write B`` results in
+        ``parent`` reflecting the final overlay state for both A and B.
+        """
+        applied_paths: list[str] = []
+        applied_set: set[str] = set()
+        errors: list[FlushError] = []
+        conflicts: list[str] = self._detect_conflicts(parent, pre_flush_snapshot)
+        applied_changes = 0
+
+        for change in self._changes:
+            content = self._overlay.read_bytes(change.path)
+            try:
+                write_result = parent.write(change.path, content)
+            except Exception as exc:
+                errors.append(FlushError(path=change.path, op=change.op, message=str(exc)))
+                if change.path in applied_set:
+                    applied_set.discard(change.path)
+                    applied_paths = [p for p in applied_paths if p != change.path]
+                continue
+            if write_result.error:
+                errors.append(
+                    FlushError(path=change.path, op=change.op, message=write_result.error)
+                )
+                if change.path in applied_set:
+                    applied_set.discard(change.path)
+                    applied_paths = [p for p in applied_paths if p != change.path]
+                continue
+            applied_changes += 1
+            if change.path not in applied_set:
+                applied_set.add(change.path)
+                applied_paths.append(change.path)
+
+        return FlushReport(
+            applied_paths=applied_paths,
+            applied_changes=applied_changes,
+            conflicts=conflicts,
+            errors=errors,
+        )
+
+    def _detect_conflicts(
+        self,
+        parent: BackendProtocol,
+        pre_flush_snapshot: dict[str, bytes | None] | None,
+    ) -> list[str]:
+        """Compare each touched path's current parent bytes to the snapshot.
+
+        Handles both modified-by-third-actor (snapshot bytes ≠ current
+        parent bytes) and deleted-by-third-actor (snapshot had bytes,
+        parent now lacks the file) cases. Returns paths sorted for
+        deterministic test output.
+        """
+        if pre_flush_snapshot is None:
+            return []
+        touched_paths = {c.path for c in self._changes}
+        conflicts: list[str] = []
+        for path in touched_paths:
+            if path not in pre_flush_snapshot:
+                continue
+            snapshot_bytes = pre_flush_snapshot[path]
+            try:
+                current_bytes: bytes | None = parent.read_bytes(path)
+            except (FileNotFoundError, KeyError):
+                current_bytes = None
+            if current_bytes != snapshot_bytes:
+                conflicts.append(path)
+        return sorted(conflicts)
 
 
 def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAgentDeps:

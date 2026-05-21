@@ -405,6 +405,18 @@ class ChatScreen(Screen):
         {"/merge", "/help", "/cost", "/tokens", "/version", "/quit", "/exit", "/q", "/copy"}
     )
 
+    @staticmethod
+    def _is_fork_inspection(text: str) -> bool:
+        """Return True for ``/fork diff`` and its argumented form.
+
+        Stage 5 inspection commands are allowed during an active fork —
+        but only the ``diff`` sub-command of ``/fork``. ``/fork``
+        without args would re-enter the picker modal and clobber state;
+        ``/fork-config`` is similarly blocked.
+        """
+        stripped = text.strip()
+        return stripped.startswith("/fork ") and stripped[6:].lstrip().startswith("diff")
+
     async def on_user_submitted(self, event: UserSubmitted) -> None:  # noqa: C901
         """Handle user submitting a prompt."""
         import re
@@ -443,7 +455,7 @@ class ChatScreen(Screen):
             # ── Slash commands during fork — only inspection allow-list ──
             if text.startswith("/") and not text.startswith("//"):
                 cmd = text.split(maxsplit=1)[0].lower()
-                if cmd in self._FORK_ALLOWED_COMMANDS:
+                if cmd in self._FORK_ALLOWED_COMMANDS or self._is_fork_inspection(text):
                     app.handle_command(text)  # type: ignore[attr-defined]
                     return
                 app.notify(

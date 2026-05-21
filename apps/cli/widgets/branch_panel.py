@@ -115,7 +115,8 @@ class BranchPanelWidget(Vertical):
     def _render_footer(self) -> str:
         base = self._STATUS_FOOTER.get(self.status, "")
         if self.reason:
-            return f"[dim]Reason:[/dim] {self.reason}\n{base}"
+            escaped = self.reason.replace("[", r"\[")
+            return f"[dim]Reason:[/dim] {escaped}\n{base}"
         return base
 
     def watch_status(self, _old: BranchState, _new: BranchState) -> None:

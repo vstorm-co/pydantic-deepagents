@@ -15,6 +15,7 @@ Returns the chosen branch id or ``None`` on cancel.
 from __future__ import annotations
 
 import contextlib
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from textual.app import ComposeResult
@@ -29,7 +30,14 @@ if TYPE_CHECKING:
 _DIFF_PREVIEW_LINES = 14
 
 
-class MergePickerModal(ModalScreen["str | None"]):
+@dataclass(frozen=True)
+class MergePickerResult:
+    """Result of :class:`MergePickerModal` — the chosen branch id."""
+
+    branch_id: str
+
+
+class MergePickerModal(ModalScreen["MergePickerResult | None"]):
     """Pick the winner of an active fork.
 
     Stage 3 caps branches at 2, so the modal hard-codes ``1`` / ``2`` key
@@ -94,6 +102,7 @@ class MergePickerModal(ModalScreen["str | None"]):
         Binding("left,h", "move_prev", "Prev branch"),
         Binding("right,l", "move_next", "Next branch"),
         Binding("enter", "pick_selected", "Pick highlighted"),
+        Binding("o", "open_in_editor", "Open in editor"),
         Binding("1", "pick_by_index(0)", "Pick 1", show=False),
         Binding("2", "pick_by_index(1)", "Pick 2", show=False),
         Binding("3", "pick_by_index(2)", "Pick 3", show=False),
@@ -111,6 +120,8 @@ class MergePickerModal(ModalScreen["str | None"]):
         report: BranchDiffReport,
         branches: list[BranchStatus],
         label_to_id: dict[str, str],
+        *,
+        on_open_in_editor: Any = None,
     ) -> None:
         super().__init__()
         self._report = report
@@ -126,6 +137,7 @@ class MergePickerModal(ModalScreen["str | None"]):
                 self._id_to_label.setdefault(status.id, status.label)
         self._ordered_ids = ordered
         self._selected_index = 0
+        self._on_open_in_editor = on_open_in_editor
 
     def compose(self) -> ComposeResult:
         with Vertical(id="merge-container"):
@@ -196,12 +208,32 @@ class MergePickerModal(ModalScreen["str | None"]):
     def action_pick_selected(self) -> None:
         if not self._ordered_ids:
             return
-        self.dismiss(self._ordered_ids[self._selected_index])
+        self._dismiss_with(self._ordered_ids[self._selected_index])
 
     def action_pick_by_index(self, index: int) -> None:
         """Power-user shortcut: pick branch at ``index`` (0-based)."""
         if 0 <= index < len(self._ordered_ids):
-            self.dismiss(self._ordered_ids[index])
+            self._dismiss_with(self._ordered_ids[index])
+
+    def _dismiss_with(self, branch_id: str) -> None:
+        self.dismiss(MergePickerResult(branch_id=branch_id))
+
+    def action_open_in_editor(self) -> None:
+        """Delegate to the optional ``on_open_in_editor`` callback.
+
+        Wired by :func:`_dispatch_merge` to call
+        :class:`EditorDetector` against the currently-selected branch's
+        materialised path. The callback (when supplied) takes the branch
+        id; the dispatcher resolves it to the materialised file path.
+        """
+        callback = self._on_open_in_editor
+        if callback is None:
+            return
+        if not self._ordered_ids:  # pragma: no cover - defensive
+            return
+        branch_id = self._ordered_ids[self._selected_index]
+        with contextlib.suppress(Exception):  # pragma: no cover - defensive
+            callback(branch_id)
 
     def action_move_prev(self) -> None:
         if not self._ordered_ids:

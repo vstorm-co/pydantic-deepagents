@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
 
 from apps.cli.text_heuristics import looks_like_error
 from apps.cli.widgets.status_bar import StatusBar
+
+_FORK_ID_PREFIX_LEN = 8
 
 
 async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
@@ -576,7 +580,11 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
         app.notify("Opened GitHub issues in browser")
 
     elif cmd == "/fork":
-        await _dispatch_fork(app)
+        if arg.strip().startswith("diff"):
+            rest = arg.strip()[len("diff") :].strip()
+            await _dispatch_fork_open_diff(app, rest or None)
+        else:
+            await _dispatch_fork(app)
 
     elif cmd == "/fork-config":
         _dispatch_fork_config(app)
@@ -695,7 +703,7 @@ def _dispatch_fork_config(app: DeepApp) -> None:
 
 async def _dispatch_merge(app: DeepApp) -> None:
     """Handle ``/merge`` — open the picker modal and apply the chosen winner."""
-    from apps.cli.modals.merge_picker import MergePickerModal
+    from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 
     session = app.active_fork
     if session is None:
@@ -707,14 +715,14 @@ async def _dispatch_merge(app: DeepApp) -> None:
         return
     statuses = session.inspect()
 
-    async def _on_pick(branch_id: str | None) -> None:
-        if branch_id is None:
+    async def _on_pick(picked: MergePickerResult | None) -> None:
+        if picked is None:
             return
         active = app.active_fork
         if active is None:  # pragma: no cover - defensive: another flow cleared it
             return
         try:
-            result = await active.merge(branch_id)
+            result = await active.merge(picked.branch_id)
         except Exception as e:  # pragma: no cover - defensive
             from apps.cli.debug_log import get_logger
 
@@ -725,12 +733,185 @@ async def _dispatch_merge(app: DeepApp) -> None:
         from pydantic_deep.processors.patch import patch_tool_calls_processor
 
         app.message_history = patch_tool_calls_processor(list(result.history_after_merge))
-        runtime = active.coordinator.branches.get(branch_id)
-        label = runtime.spec.label if runtime else branch_id
+        runtime = active.coordinator.branches.get(picked.branch_id)
+        label = runtime.spec.label if runtime else picked.branch_id
         app.active_fork = None
-        app.notify(f"Merged: kept branch {label}", severity="information")
+        app.notify(_format_merge_notification(label, result), severity="information")
+
+    def _on_open_in_editor(branch_id: str) -> None:
+        """Bridge the merge picker's ``o`` binding into the diff picker.
+
+        The merge picker passes the currently-highlighted branch id; we
+        detect the editor kind once and open the diff picker pre-checked
+        with only that branch. User can toggle more branches via Space.
+        """
+        from pydantic_deep.toolsets.forking.editor import EditorDetector
+
+        kind = EditorDetector.detect()
+        if kind == "tui":
+            app.notify(
+                "No external diff tool detected — use the panels here, or "
+                "set PYDANTIC_DEEP_DIFFTOOL.",
+                severity="warning",
+            )
+            return
+        _open_diff_picker(app, kind=kind, initial_branch_id=branch_id)
 
     app.push_screen(
-        MergePickerModal(report, statuses, session.label_to_id),
+        MergePickerModal(
+            report,
+            statuses,
+            session.label_to_id,
+            on_open_in_editor=_on_open_in_editor,
+        ),
+        _on_pick,
+    )
+
+
+def _format_merge_notification(label: str, result: Any) -> str:
+    """Render the post-merge notification — applied count, conflicts, errors.
+
+    Kept stand-alone so tests can pin the text shape without exercising
+    the modal flow.
+    """
+    parts = [f"Merged: kept branch {label}", f"{len(result.applied_paths)} files applied"]
+    if result.conflicts:
+        parts.append(f"conflicts: {', '.join(result.conflicts)}")
+    if result.errors:
+        parts.append(f"errors: {len(result.errors)}")
+    return " · ".join(parts)
+
+
+async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
+    """Handle ``/fork diff`` — external diff inspection via picker.
+
+    Always opens :class:`DiffPickerModal` so the user can pick a touched
+    path + branch subset from a list. Any path argument typed after the
+    command is ignored — the picker supersedes it.
+
+    Falls back to the in-TUI :class:`MergePickerModal` (diff-explore
+    mode) when no external editor is detected.
+    """
+    from apps.cli.modals.merge_picker import MergePickerModal
+    from pydantic_deep.toolsets.forking.editor import EditorDetector
+
+    session = app.active_fork
+    if session is None:
+        app.notify(
+            "No active fork — type /fork to start one, then /fork diff",
+            severity="warning",
+        )
+        return
+    coordinator = session.coordinator
+    if coordinator.materializer is None:  # pragma: no cover - defensive
+        app.notify("Materializer not initialised", severity="error")
+        return
+
+    kind = EditorDetector.detect()
+    if kind == "tui":
+        report = session.build_diff()
+        if report is None:  # pragma: no cover - defensive
+            app.notify("Cannot build diff report", severity="error")
+            return
+        statuses = session.inspect()
+        app.push_screen(MergePickerModal(report, statuses, session.label_to_id))
+        return
+
+    _open_diff_picker(app, kind=kind, initial_branch_id=None)
+
+
+def _labeled_symlinks(
+    parent_path: Path | None,
+    branch_paths: list[Path],
+    labels: list[str],
+    basename: str,
+    fork_id: str,
+) -> tuple[Path | None, list[Path]]:
+    """Return short-path symlinks so editor title bars show branch labels.
+
+    Creates ``{tempdir}/pd_{fork_id}/parent/{basename}`` and
+    ``{tempdir}/pd_{fork_id}/{label}/{basename}`` symlinks pointing at the
+    materialiser paths.  Keeping the temp-dir prefix short ensures the
+    label component stays visible in PyCharm/VS Code title truncation.
+    """
+    tmp = Path(tempfile.gettempdir()) / f"pd_{fork_id[:_FORK_ID_PREFIX_LEN]}"
+    tmp.mkdir(exist_ok=True)
+    sym_branches: list[Path] = []
+    for bp, label in zip(branch_paths, labels, strict=True):
+        d = tmp / label
+        d.mkdir(exist_ok=True)
+        link = d / basename
+        link.symlink_to(bp.resolve())
+        sym_branches.append(link)
+    if parent_path is not None:
+        pd = tmp / "parent"
+        pd.mkdir(exist_ok=True)
+        plink = pd / basename
+        plink.symlink_to(parent_path.resolve())
+        return plink, sym_branches
+    return None, sym_branches
+
+
+def _open_diff_picker(
+    app: DeepApp,
+    *,
+    kind: str,
+    initial_branch_id: str | None,
+) -> None:
+    """Show :class:`DiffPickerModal` and dispatch the editor on confirm.
+
+    Extracted so the merge picker's "Open in editor" button can reuse
+    the same flow with ``initial_branch_id`` set to the merge picker's
+    currently-highlighted branch.
+    """
+    from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
+    from pydantic_deep.toolsets.forking.editor import EditorDetector
+
+    session = app.active_fork
+    if session is None:  # pragma: no cover - defensive: caller already checked
+        return
+    report = session.build_diff()
+    if report is None:  # pragma: no cover - defensive
+        app.notify("Cannot build diff report", severity="error")
+        return
+    statuses = session.inspect()
+    coordinator = session.coordinator
+    materializer = coordinator.materializer
+    if materializer is None:  # pragma: no cover - defensive
+        app.notify("Materializer not initialised", severity="error")
+        return
+
+    def _id_to_label(bid: str) -> str:
+        return next(
+            (lbl for lbl, b in session.label_to_id.items() if b == bid),
+            bid,
+        )
+
+    def _on_pick(picked: DiffPickerResult | None) -> None:
+        if picked is None:
+            return
+        parent_path = materializer.parent_path(picked.path) if picked.include_parent else None
+        branch_paths = []
+        for bid in picked.branch_ids:
+            label = _id_to_label(bid)
+            branch_paths.append(materializer.branch_path(label, picked.path))
+        labels = [_id_to_label(bid) for bid in picked.branch_ids]
+        basename = Path(picked.path).name
+        sym_parent, sym_branches = _labeled_symlinks(
+            parent_path, branch_paths, labels, basename, materializer.fork_id
+        )
+        EditorDetector.invoke(kind, sym_parent, sym_branches)
+        if picked.include_parent:
+            app.notify(f"{kind} diff: parent  ←→  {', '.join(labels)}")
+        else:
+            app.notify(f"{kind} diff: {' ←→ '.join(labels)}")
+
+    app.notify(
+        "Files are read-only snapshots — edits won't affect /merge",
+        severity="warning",
+        timeout=6,
+    )
+    app.push_screen(
+        DiffPickerModal(report, statuses, session.label_to_id, initial_branch_id=initial_branch_id),
         _on_pick,
     )

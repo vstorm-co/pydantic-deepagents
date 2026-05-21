@@ -24,6 +24,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("/cost", "Show accumulated cost"),
     ("/diff", "Show git diff"),
     ("/fork", "Spawn parallel branches from current state"),
+    ("/fork diff", "Pick file + branches to open in external diff tool (PyCharm/VS Code)"),
     ("/fork-config", "Configure /fork branches, models, and budgets (persisted)"),
     ("/help", "Show commands and shortcuts"),
     ("/improve", "Analyze sessions and self-improve"),

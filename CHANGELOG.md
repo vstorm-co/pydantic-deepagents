@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`[WinError 2]` crash on Windows when calling the `execute` tool** ([#108](https://github.com/vstorm-co/pydantic-deepagents/issues/108)) — bumped the `pydantic-ai-backend` floor from `>=0.2.4` to `>=0.2.7`. Releases before 0.2.7 hardcoded `["sh", "-c", command]` in `LocalBackend.execute()`, so every shell invocation on Windows failed with `FileNotFoundError: [WinError 2] The system cannot find the file specified`, regardless of whether the target executable (e.g. `powershell`, `pwsh.exe`) was on `PATH`. `pydantic-ai-backend 0.2.7` routes through `_shell_cmd()` (`cmd /c` on `win32`, `sh -c` elsewhere) and adds `async_execute()` with cancellation support.
+- **`wait_tasks` cancellation cascade in subagent orchestration** — bumped `subagents-pydantic-ai` floor to `>=0.2.4`, which routes both `mode="all"` and `mode="any"` through `asyncio.wait` instead of `asyncio.wait_for(asyncio.gather(...))`. Previously, when pydantic-ai's `_call_tools` sibling-cancelled the `wait_tasks` tool call (or any outer cancel reached the orchestrator), the cascade silently killed every in-flight subagent — surfacing as `TaskStatus.CANCELLED` with an empty `error` even though the parent never requested it.
 
 ### Changed
 
-- **Bumped minimum versions of all `pydantic-ai-*` sister packages** so a fresh install pulls the latest releases by default: `pydantic-ai-slim>=1.97.0` (was `>=1.77.0`), `pydantic-ai-backend>=0.2.7` (was `>=0.2.4`, for both `[console]` and `[docker]` extras), `summarization-pydantic-ai>=0.1.4` (was `>=0.1.3`), `subagents-pydantic-ai>=0.2.3` (was `>=0.2.1`), `pydantic-ai-shields>=0.3.2` (was `>=0.3.1`).
+- **Bumped minimum versions of all `pydantic-ai-*` sister packages** so a fresh install pulls the latest releases by default: `pydantic-ai-slim>=1.97.0` (was `>=1.77.0`), `pydantic-ai-backend>=0.2.7` (was `>=0.2.4`, for both `[console]` and `[docker]` extras), `summarization-pydantic-ai>=0.1.4` (was `>=0.1.3`), `subagents-pydantic-ai>=0.2.4` (was `>=0.2.1`), `pydantic-ai-shields>=0.3.2` (was `>=0.3.1`).
+
+### Internal
+
+- `# type: ignore[attr-defined]` on five `BinaryContent` attribute accesses in `pydantic_deep/processors/eviction.py`. `pydantic-ai-slim>=1.97` exposes `BinaryContent` as a `PydanticDataclass` whose fields and `identifier` property are invisible to pyright (the attributes exist at runtime — this is upstream type-info incompleteness). Keeps `make typecheck` green until upstream stubs catch up.
 
 ### Infrastructure
 

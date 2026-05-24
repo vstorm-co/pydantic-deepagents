@@ -87,7 +87,7 @@ def load_context_files(
     """
     result: list[ContextFile] = []
     for path in paths:
-        raw = backend._read_bytes(path)
+        raw = backend.read_bytes(path)
         if not raw:
             continue
         content = raw.decode("utf-8", errors="replace")
@@ -115,7 +115,7 @@ def discover_context_files(
     found: list[str] = []
     for name in filenames:
         path = f"{search_path.rstrip('/')}/{name}"
-        raw = backend._read_bytes(path)
+        raw = backend.read_bytes(path)
         if raw:
             found.append(path)
     return found

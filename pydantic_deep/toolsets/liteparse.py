@@ -120,7 +120,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
             backend = ctx.deps.backend
-            file_bytes: bytes | None = backend._read_bytes(path)
+            file_bytes: bytes | None = backend.read_bytes(path)
             if not file_bytes:
                 return f"File not found: {path}"
             try:
@@ -156,7 +156,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
             backend = ctx.deps.backend
-            file_bytes = backend._read_bytes(path)
+            file_bytes = backend.read_bytes(path)
             if not file_bytes:
                 return f"File not found: {path}"
             try:

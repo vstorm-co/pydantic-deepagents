@@ -97,7 +97,7 @@ def load_memory(
     Returns:
         MemoryFile if found, None otherwise.
     """
-    raw = backend._read_bytes(path)
+    raw = backend.read_bytes(path)
     if not raw:
         return None
     content = raw.decode("utf-8", errors="replace")

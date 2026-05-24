@@ -114,7 +114,7 @@ class TestParseDocument:
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = None
+        backend.read_bytes.return_value = None
         ctx = _ctx(backend)
         with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/missing.pdf")
@@ -125,7 +125,7 @@ class TestParseDocument:
     async def test_success(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"%PDF-1.4 fake content"
+        backend.read_bytes.return_value = b"%PDF-1.4 fake content"
         ctx = _ctx(backend)
 
         mock_result = MagicMock()
@@ -154,7 +154,7 @@ class TestParseDocument:
     async def test_cli_not_found_error(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"data"
+        backend.read_bytes.return_value = b"data"
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
@@ -171,7 +171,7 @@ class TestParseDocument:
     async def test_generic_exception(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"data"
+        backend.read_bytes.return_value = b"data"
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
@@ -201,7 +201,7 @@ class TestScreenshotDocument:
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = None
+        backend.read_bytes.return_value = None
         ctx = _ctx(backend)
         with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/missing.pdf")
@@ -211,7 +211,7 @@ class TestScreenshotDocument:
     async def test_success(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"pdfdata"
+        backend.read_bytes.return_value = b"pdfdata"
         ctx = _ctx(backend)
 
         shot1 = MagicMock()
@@ -244,7 +244,7 @@ class TestScreenshotDocument:
     async def test_no_screenshots_generated(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"pdfdata"
+        backend.read_bytes.return_value = b"pdfdata"
         ctx = _ctx(backend)
 
         ss_result = MagicMock()
@@ -264,7 +264,7 @@ class TestScreenshotDocument:
         """Screenshots with no image_bytes are skipped."""
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"pdfdata"
+        backend.read_bytes.return_value = b"pdfdata"
         ctx = _ctx(backend)
 
         shot = MagicMock()
@@ -288,7 +288,7 @@ class TestScreenshotDocument:
     async def test_target_pages_forwarded(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"pdfdata"
+        backend.read_bytes.return_value = b"pdfdata"
         ctx = _ctx(backend)
 
         shot = MagicMock()
@@ -312,7 +312,7 @@ class TestScreenshotDocument:
     async def test_cli_not_found_error(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"data"
+        backend.read_bytes.return_value = b"data"
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
@@ -328,7 +328,7 @@ class TestScreenshotDocument:
     async def test_generic_exception(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend._read_bytes.return_value = b"data"
+        backend.read_bytes.return_value = b"data"
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()

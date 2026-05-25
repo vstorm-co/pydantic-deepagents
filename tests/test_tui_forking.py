@@ -1090,3 +1090,108 @@ class TestMergeNotification:
         )
         text = _format_merge_notification("alpha", result)
         assert "errors: 1" in text
+
+    def test_notification_includes_deleted_paths(self) -> None:
+        """The deleted-paths count surfaces as ``N deleted`` in the merge notification."""
+        from apps.cli.commands import _format_merge_notification
+        from pydantic_deep.types import MergeResult
+
+        result = MergeResult(
+            fork_id="x",
+            winner_branch_id="b1",
+            discarded_branches=[],
+            history_after_merge=[],
+            applied_paths=["cat.md"],
+            applied_changes=1,
+            deleted_paths=["stale.py", "trash.py"],
+        )
+        text = _format_merge_notification("alpha", result)
+        assert "1 files applied" in text
+        assert "2 deleted" in text
+
+    def test_notification_includes_blocked_commands(self) -> None:
+        """User-denied tool calls surface as ``denied: N`` in the merge notification."""
+        from apps.cli.commands import _format_merge_notification
+        from pydantic_deep.types import MergeResult
+
+        result = MergeResult(
+            fork_id="x",
+            winner_branch_id="b1",
+            discarded_branches=[],
+            history_after_merge=[],
+            blocked_commands=["execute: pytest", "execute: make"],
+        )
+        text = _format_merge_notification("alpha", result)
+        assert "denied: 2" in text
+
+
+class TestBranchPanelBlockedBadge:
+    """Branch panel header renders ``⚠ N denied`` / ``⏸ awaiting approval`` badges.
+
+    The header reflects two pieces of runtime state on the branch:
+
+    - :attr:`BranchPanelWidget.blocked_count` — historical tally of denied
+      tool calls; rendered as ``⚠ N denied`` (orange).
+    - :attr:`BranchPanelWidget.awaiting_approval` — set while the branch
+      is suspended on an approval request; rendered as
+      ``⏸ awaiting approval`` (yellow) and takes precedence over the
+      blocked-count badge because it reflects the branch's current state.
+    """
+
+    def test_header_renders_denied_badge_when_count_nonzero(self) -> None:
+        panel = BranchPanelWidget("id-a", "alpha")
+        panel.blocked_count = 3
+        # ``_render_header`` is the canonical source for the header string —
+        # the mounted watch_blocked_count callback feeds the same value back
+        # into the Static, so testing the renderer directly avoids running
+        # the full Textual app.
+        rendered = panel._render_header()
+        assert "⚠ 3 denied" in rendered
+
+    def test_header_omits_denied_badge_when_count_zero(self) -> None:
+        panel = BranchPanelWidget("id-a", "alpha")
+        # Default value — no badge.
+        assert "denied" not in panel._render_header()
+        assert "awaiting" not in panel._render_header()
+
+    def test_header_renders_awaiting_badge_when_pending(self) -> None:
+        """``awaiting_approval=True`` shows the ⏸ badge, taking priority over denied."""
+        panel = BranchPanelWidget("id-a", "alpha")
+        panel.awaiting_approval = True
+        panel.blocked_count = 2  # also has past denials
+        rendered = panel._render_header()
+        assert "⏸ awaiting approval" in rendered
+        # denied count is suppressed while awaiting
+        assert "denied" not in rendered
+
+    async def test_blocked_badge_updates_when_count_changes(self) -> None:
+        """Reactive write triggers ``watch_blocked_count`` and refreshes the header."""
+        from textual.app import App
+        from textual.widgets import Static
+
+        class _Harness(App[None]):
+            def compose(self) -> Any:
+                yield BranchPanelWidget("id-a", "alpha")
+
+        harness = _Harness()
+        async with harness.run_test():
+            panel = harness.query_one(BranchPanelWidget)
+            panel.blocked_count = 2
+            header_widget = panel.query_one(".branch-header", Static)
+            assert "⚠ 2 denied" in str(header_widget.render())
+
+    async def test_awaiting_badge_updates_when_flag_set(self) -> None:
+        """Reactive write to ``awaiting_approval`` triggers header refresh."""
+        from textual.app import App
+        from textual.widgets import Static
+
+        class _Harness(App[None]):
+            def compose(self) -> Any:
+                yield BranchPanelWidget("id-a", "alpha")
+
+        harness = _Harness()
+        async with harness.run_test():
+            panel = harness.query_one(BranchPanelWidget)
+            panel.awaiting_approval = True
+            header_widget = panel.query_one(".branch-header", Static)
+            assert "⏸ awaiting approval" in str(header_widget.render())

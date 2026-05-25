@@ -117,6 +117,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
         Binding("right,l", "move_branch_next", "Next branch"),
         Binding("space", "toggle_branch", "Toggle branch"),
         Binding("p", "toggle_parent", "Toggle parent"),
+        Binding("m", "browse_merge_view", "Browse diff"),
         Binding("enter", "confirm", "Open diff"),
         Binding("escape", "cancel", "Cancel"),
     ]
@@ -253,7 +254,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
     def _render_action_hint(self) -> str:
         return (
             "[dim]↑/↓ file  ·  ←/→ branch  ·  Space toggle  ·  p parent  ·  "
-            "[/dim][bold reverse] Enter [/] open diff  "
+            "m browse  ·  [/dim][bold reverse] Enter [/] open diff  "
             "[dim]·  Esc cancel[/dim]"
         )
 
@@ -307,6 +308,20 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
                 path=self._paths[self._path_index],
                 branch_ids=chosen_branches,
                 include_parent=self._include_parent,
+            )
+        )
+
+    def action_browse_merge_view(self) -> None:
+        """Open :class:`MergePickerModal` in view-only mode for this fork."""
+        from apps.cli.modals.merge_picker import MergePickerModal
+
+        label_to_id = {label: bid for bid, label in self._id_to_label.items()}
+        self.app.push_screen(
+            MergePickerModal(
+                self._report,
+                self._branches,
+                label_to_id,
+                view_only=True,
             )
         )
 

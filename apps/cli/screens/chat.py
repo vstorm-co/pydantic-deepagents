@@ -45,6 +45,7 @@ from apps.cli.widgets.queued_panel import QueuedWidget
 from apps.cli.widgets.side_panel import SidePanel
 from apps.cli.widgets.status_bar import StatusBar
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
+from pydantic_deep.types import PendingApprovalRequest
 
 _FORK_POLL_INTERVAL_S: float = 0.5
 
@@ -68,6 +69,7 @@ class ChatScreen(Screen):
     ]
 
     _poll_timer: Any = None
+    _approval_in_flight: bool = False
 
     def compose(self) -> ComposeResult:
         yield DeepHeader()
@@ -1328,6 +1330,11 @@ class ChatScreen(Screen):
         Reads :meth:`ForkCoordinator.fork_cost` once per tick so the chip
         and the per-branch tabs see a coherent snapshot. The fork's status
         timer already runs at ~1 Hz; we piggyback rather than add a timer.
+
+        Also surfaces a :class:`~apps.cli.modals.branch_approval.BranchApprovalModal`
+        when any branch has a pending tool-approval request.  The modal
+        suspends the poll callback until the user responds; the answer is
+        forwarded to the branch's :class:`asyncio.Queue` to unblock it.
         """
         app = self.app
         session = app.active_fork
@@ -1354,9 +1361,39 @@ class ChatScreen(Screen):
                 aggregate_usd=agg_usd,
                 aggregate_budget_usd=agg_budget,
             )
+        pending = session.coordinator.iter_pending_approvals()
+        pending_by_bid = {bid: req for bid, req in pending}
+
         for panel in self.query(BranchPanelWidget):
             cost = per_branch_costs.get(panel.branch_id)
             panel.cost_usd = cost.cumulative_usd if cost is not None else None
+            runtime = session.coordinator.branches.get(panel.branch_id)
+            if runtime is not None:
+                panel.blocked_count = len(runtime.blocked_commands)
+                panel.awaiting_approval = panel.branch_id in pending_by_bid
+
+        # _approval_in_flight prevents stacking modals across poll ticks.
+        if not self._approval_in_flight and pending:
+            bid, request = pending[0]
+            from apps.cli.modals.branch_approval import BranchApprovalModal
+
+            runtime = session.coordinator.branches[bid]
+            branch_label = runtime.spec.label or bid
+            self._approval_in_flight = True
+
+            def _on_decision(
+                decision: bool | None,
+                _req: PendingApprovalRequest = request,
+            ) -> None:
+                self._approval_in_flight = False
+                # Dismissed without a value (e.g. app closing) → deny.
+                approved = bool(decision) if decision is not None else False
+                _req.response.put_nowait(approved)
+
+            self.app.push_screen(
+                BranchApprovalModal(branch_label, request.description),
+                _on_decision,
+            )
 
     def focus_branch_tab(self, branch_id: str) -> None:
         """Show one branch panel and hide the others (or show overview if ``OVERVIEW_TAB_ID``)."""

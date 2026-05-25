@@ -125,10 +125,13 @@ def _format_diff_report(report: BranchDiffReport) -> str:
         for change in pd.branches.values():
             if change.operation == "untouched":
                 continue
-            lines.append(
-                f"  - {change.branch_id} ({change.branch_label}) "
-                f"{change.operation} {change.size_bytes}B"
-            )
+            elif change.operation == "deleted":
+                lines.append(f"  - {change.branch_id} ({change.branch_label}) DELETED")
+            else:
+                lines.append(
+                    f"  - {change.branch_id} ({change.branch_label}) "
+                    f"{change.operation} {change.size_bytes}B"
+                )
             diff_text = change.unified_diff_vs_parent
             if diff_text:
                 lines.append(diff_text)

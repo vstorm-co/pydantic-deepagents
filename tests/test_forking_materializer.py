@@ -178,6 +178,25 @@ def test_flush_change_overwrites_read_only_file(tmp_path: Path) -> None:
     assert not (target.stat().st_mode & 0o200)
 
 
+def test_flush_delete_removes_materialised_branch_file(tmp_path: Path) -> None:
+    m = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
+    write_change = FileChange(path="src/x.py", op="write", timestamp=datetime.now(timezone.utc))
+    m.flush_change("approach_a", write_change, b"content")
+
+    delete_change = FileChange(path="src/x.py", op="delete", timestamp=datetime.now(timezone.utc))
+    m.flush_delete("approach_a", delete_change)
+
+    target = tmp_path / "fork1" / "branches" / "approach_a" / "src" / "x.py"
+    assert not target.exists()
+
+
+def test_flush_delete_is_noop_when_branch_never_wrote_path(tmp_path: Path) -> None:
+    m = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
+    delete_change = FileChange(path="absent.py", op="delete", timestamp=datetime.now(timezone.utc))
+    # Should not raise — branch directory exists but the file does not.
+    m.flush_delete("approach_a", delete_change)
+
+
 def test_snapshot_parent_path_dedupes_repeat_calls(tmp_path: Path) -> None:
     m = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
     m.snapshot_parent_path("a.py", b"first")

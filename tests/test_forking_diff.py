@@ -498,6 +498,87 @@ def test_diff_empty_runtimes_list() -> None:
 
 
 # ---------------------------------------------------------------------------
+# build_diff_report — ``operation="deleted"`` rendering for recorded deletes
+# ---------------------------------------------------------------------------
+
+
+async def test_diff_branch_with_delete_produces_deleted_operation() -> None:
+    parent = StateBackend()
+    parent.write("/x.py", "v0-line1\nv0-line2\n")
+
+    overlay_deleter = BranchOverlay(parent)
+    overlay_deleter.delete("/x.py")
+
+    overlay_modifier = BranchOverlay(parent)
+    overlay_modifier.write("/x.py", "modified\n")
+
+    report = build_diff_report(
+        "fork-delete",
+        [
+            await _make_runtime(branch_id="a", label="alpha", overlay=overlay_deleter),
+            await _make_runtime(branch_id="b", label="beta", overlay=overlay_modifier),
+        ],
+    )
+
+    assert len(report.paths) == 1
+    pd = report.paths[0]
+    assert pd.path == "/x.py"
+    deleter_change = pd.branches["a"]
+    assert deleter_change.operation == "deleted"
+    assert deleter_change.new_content is None
+    assert deleter_change.size_bytes == 0
+    assert deleter_change.is_binary is False
+    # The unified diff against /dev/null shows parent lines removed.
+    assert "/dev/null" in deleter_change.unified_diff_vs_parent
+    assert "-v0-line1" in deleter_change.unified_diff_vs_parent
+    # Different operations across branches → split.
+    assert pd.agreement == "split"
+
+
+async def test_diff_lone_deleter_branch_classified_unique() -> None:
+    parent = StateBackend()
+    parent.write("/x.py", "v0\n")
+
+    overlay_deleter = BranchOverlay(parent)
+    overlay_deleter.delete("/x.py")
+
+    overlay_untouched = BranchOverlay(parent)
+
+    report = build_diff_report(
+        "fork-lone-delete",
+        [
+            await _make_runtime(branch_id="a", label="alpha", overlay=overlay_deleter),
+            await _make_runtime(branch_id="b", label="beta", overlay=overlay_untouched),
+        ],
+    )
+
+    assert report.paths[0].agreement == "unique"
+    assert report.paths[0].branches["a"].operation == "deleted"
+    assert report.paths[0].branches["b"].operation == "untouched"
+
+
+async def test_diff_unanimous_delete_classified_as_unanimous_change() -> None:
+    parent = StateBackend()
+    parent.write("/x.py", "v0\n")
+
+    overlay_a = BranchOverlay(parent)
+    overlay_a.delete("/x.py")
+    overlay_b = BranchOverlay(parent)
+    overlay_b.delete("/x.py")
+
+    report = build_diff_report(
+        "fork-unanimous-delete",
+        [
+            await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
+            await _make_runtime(branch_id="b", label="beta", overlay=overlay_b),
+        ],
+    )
+
+    assert report.paths[0].agreement == "unanimous_change"
+    assert all(bc.operation == "deleted" for bc in report.paths[0].branches.values())
+
+
+# ---------------------------------------------------------------------------
 # Coverage edge: parent contains a binary file (resolve_parent → bytes only)
 # ---------------------------------------------------------------------------
 

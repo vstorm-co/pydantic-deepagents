@@ -993,10 +993,6 @@ async def _dispatch_acceptance_widget(
             on_pick,
         )
 
-    # Explicit parens — without them this parses as
-    # `(merge_result.fork_id if ... else fork_id) or "?"`, which would
-    # silently substitute "?" if an autonomous-commit ever produced an empty
-    # `fork_id`.
     if outcome.merge_result is not None:
         fork_id_for_widget = outcome.merge_result.fork_id
     else:
@@ -1055,10 +1051,14 @@ def _format_merge_notification(label: str, result: Any) -> str:
     the modal flow.
     """
     parts = [f"Merged: kept branch {label}", f"{len(result.applied_paths)} files applied"]
+    if result.deleted_paths:
+        parts.append(f"{len(result.deleted_paths)} deleted")
     if result.conflicts:
         parts.append(f"conflicts: {', '.join(result.conflicts)}")
     if result.errors:
         parts.append(f"errors: {len(result.errors)}")
+    if result.blocked_commands:
+        parts.append(f"denied: {len(result.blocked_commands)}")
     return " · ".join(parts)
 
 
@@ -1267,7 +1267,23 @@ def _replay_branch_into_main_chat(
         msg_list.current_assistant.finalize_text()
         msg_list.end_assistant_message()
 
+    chat.add_system_message(_build_replay_summary(label, result))
+
+
+def _build_replay_summary(label: str, result: Any) -> str:
+    """Render the post-merge replay summary shown in the main chat.
+
+    Bundles applied paths, deleted paths, and any tool calls that were denied
+    by the user during the branch run into a single multi-line system message.
+    """
     paths = list(result.applied_paths)
+    paths += [f"{p} (deleted)" for p in result.deleted_paths]
     path_str = "\n  ".join(paths) if paths else "no file changes"
     summary = f"✓ Fork merged — branch '{label}' applied. Files changed:\n  {path_str}"
-    chat.add_system_message(summary)
+    if result.blocked_commands:
+        blocked_list = "\n  ".join(f"- {entry}" for entry in result.blocked_commands)
+        summary += (
+            f"\n⚠ {len(result.blocked_commands)} tool calls denied by user during "
+            f"branch run:\n  {blocked_list}"
+        )
+    return summary

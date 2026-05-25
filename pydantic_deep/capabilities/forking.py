@@ -1,13 +1,14 @@
-"""Live Run Forking capability — entry point for the kernel.
+"""Live Run Forking capability — agent-level entry point.
 
 Adds :class:`LiveForkCapability` to an agent. The capability tracks the
-parent run's latest message snapshot (mirroring :class:`CheckpointMiddleware`)
-and, on each ``for_run``, allocates a fresh :class:`ForkCoordinator` that
-agent-facing tools (``fork_run`` et al.) use to spawn branch tasks.
+parent run's latest message snapshot (mirroring
+:class:`CheckpointMiddleware`) and, on each ``for_run`` call, allocates
+a fresh :class:`ForkCoordinator` that the agent-facing tools
+(``fork_run``, ``inspect_branches``, ``merge_or_select``, etc.) use to
+spawn and resolve branch tasks.
 
-Concurrent parent runs of the same agent get independent coordinators —
-that's what makes Stage 1's isolation primitive thread-safe at the
-``agent.run(...)`` level.
+Concurrent parent runs of the same agent get independent coordinators,
+so per-branch isolation holds at the ``agent.run(...)`` level.
 """
 
 from __future__ import annotations
@@ -41,12 +42,9 @@ class LiveForkCapability(AbstractCapability[Any]):
     max_branches: int = 10
     max_depth: int = 2
     store: ForkStateStore | None = None
-    #: Stage 5 — keep the on-disk fork artefacts under
-    #: ``.pydantic-deep/forks/{fork_id}/`` after the fork resolves.
-    #: Defaults to ``False`` (clean up on merge / abort); set ``True`` for
-    #: post-hoc inspection. Independent of apply-to-parent semantics —
-    #: keeping artefacts does not change whether the winner's writes are
-    #: flushed.
+    #: Keep on-disk fork artefacts under ``.pydantic-deep/forks/{fork_id}/``
+    #: after the fork resolves (for post-hoc inspection / external diff tools).
+    #: Independent of apply-to-parent semantics.
     keep_artifacts: bool = False
 
     _agent_ref: Any = field(default=None, init=False, repr=False)

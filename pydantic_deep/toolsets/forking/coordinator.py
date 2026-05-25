@@ -53,6 +53,7 @@ from pydantic_deep.types import (
     JudgeVerdict,
     MergeResult,
     MergeStrategy,
+    PendingApprovalRequest,
     ResolveOutcome,
 )
 
@@ -64,12 +65,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-#: How long to wait for a cancelled discarded branch to finish its ``finally``
-#: cleanup during ``merge_or_select`` before giving up and moving on.
 _CANCEL_CLEANUP_TIMEOUT_S: float = 1.0
 
-#: Native-provider cheap models — one model per env-var-guarded vendor.
-#: Checked in order; first available wins the slot in the vote panel.
+#: Checked in order; first available env var wins the slot in the vote panel.
 _NATIVE_CHEAP_MODELS: tuple[tuple[str, str], ...] = (
     ("ANTHROPIC_API_KEY", "anthropic:claude-haiku-4-5"),
     ("OPENAI_API_KEY", "openai:gpt-4o-mini"),
@@ -135,6 +133,37 @@ def _detect_vote_models(fallback: str) -> list[str]:
         return [fallback] * 3
 
     return [unique[i % len(unique)] for i in range(3)]
+
+
+def _describe_blocked_call(call: Any) -> str:
+    """Render an auto-denied tool call as ``"tool: arg"`` for surfacing.
+
+    Handles the common :class:`pydantic_ai.messages.ToolCallPart` shape
+    (``tool_name`` + ``args``) where ``args`` is typically a dict but may
+    occasionally be a plain string or absent. The renderer falls back to
+    the tool name only when no meaningful argument is available.
+    """
+    tool_name = getattr(call, "tool_name", "<unknown>")
+    raw_args = getattr(call, "args", None)
+    args_dict: dict[str, Any] | None = None
+    if isinstance(raw_args, dict):
+        args_dict = raw_args
+    else:
+        as_dict = getattr(call, "args_as_dict", None)
+        if callable(as_dict):
+            try:
+                produced = as_dict()
+            except (TypeError, ValueError) as exc:
+                # Narrow so a real bug propagates; log so denials aren't invisible.
+                logger.warning("args_as_dict() failed for %s: %s", tool_name, exc)
+                produced = None
+            if isinstance(produced, dict):
+                args_dict = produced
+    if args_dict:
+        command = args_dict.get("command")
+        if isinstance(command, str) and command:
+            return f"{tool_name}: {command}"
+    return tool_name
 
 
 def _last_assistant_text(messages: list[Any]) -> str:
@@ -254,6 +283,8 @@ class BranchRuntime:
     cost_tracker: CostTracking | None = None
     budget_usd: float | None = None
     partial_history: list[Any] = field(default_factory=list)
+    pending_approval: PendingApprovalRequest | None = None
+    blocked_commands: list[str] = field(default_factory=list)
 
 
 class ForkCoordinator:
@@ -453,10 +484,8 @@ class ForkCoordinator:
                 cloned_deps._parent_fork_coordinator = self
 
                 task = asyncio.create_task(
-                    self.agent.run(
-                        spec.steer,
-                        message_history=list(parent_history),
-                        deps=cloned_deps,
+                    self._run_branch_with_approval(
+                        branch_id, spec, list(parent_history), cloned_deps
                     )
                 )
                 status = BranchStatus(
@@ -511,6 +540,78 @@ class ForkCoordinator:
             self._cached_outcome_strategy_kind = None
             self._refresh_manifest()
             return handle
+
+    async def _run_branch_with_approval(
+        self,
+        branch_id: str,
+        spec: BranchSpec,
+        parent_history: list[Any],
+        cloned_deps: DeepAgentDeps,
+    ) -> Any:
+        """Run a branch's ``agent.run()`` and route each deferred approval to the user.
+
+        Branch tasks are plain :class:`asyncio.Task` coroutines that share
+        the same asyncio event loop as the TUI.  When a branch agent
+        triggers a deferred-approval call (e.g. ``execute``), this method:
+
+        1. Sets :attr:`BranchRuntime.pending_approval` to a
+           :class:`~pydantic_deep.types.PendingApprovalRequest` that holds
+           an :class:`asyncio.Queue`.
+        2. ``await``s :meth:`asyncio.Queue.get` — the branch suspends.
+        3. The TUI poll loop (:meth:`~apps.cli.screens.chat.ChatScreen._poll_fork_state`)
+           detects ``pending_approval``, surfaces a
+           :class:`~apps.cli.modals.branch_approval.BranchApprovalModal`, and
+           puts ``True`` (approve) or ``False`` (deny) into the queue.
+        4. The branch resumes, forwards the answer to pydantic-ai's
+           :class:`~pydantic_ai.tools.DeferredToolResults`, and continues.
+
+        Denied calls are appended to :attr:`BranchRuntime.blocked_commands`
+        for post-merge reporting.  The loop repeats until the agent stops
+        producing :class:`~pydantic_ai.output.DeferredToolRequests` output.
+        """
+        from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
+
+        result = await self.agent.run(
+            spec.steer,
+            message_history=list(parent_history),
+            deps=cloned_deps,
+        )
+        while isinstance(getattr(result, "output", None), DeferredToolRequests):
+            # Type widened to Any-value dict so Pyright accepts it as
+            # ``dict[str, DeferredToolApprovalResult | bool]`` (dict is invariant).
+            approvals: dict[str, Any] = {}
+            runtime = self.branches.get(branch_id)
+            for call in result.output.approvals:
+                description = _describe_blocked_call(call)
+                if runtime is not None:
+                    request = PendingApprovalRequest(
+                        branch_id=branch_id,
+                        description=description,
+                    )
+                    runtime.pending_approval = request
+                    try:
+                        approved = await request.response.get()
+                    finally:
+                        runtime.pending_approval = None
+                    if not approved:
+                        runtime.blocked_commands.append(description)
+                    approvals[call.tool_call_id] = approved
+                else:
+                    # No runtime → no path to user consent → deny (auto-approving
+                    # a gated tool would be a permissions hole).
+                    logger.warning(
+                        "branch %s has no runtime registered; denying deferred call %s",
+                        branch_id,
+                        description,
+                    )
+                    approvals[call.tool_call_id] = False
+            result = await self.agent.run(
+                None,
+                message_history=result.all_messages(),
+                deps=cloned_deps,
+                deferred_tool_results=DeferredToolResults(approvals=approvals),
+            )
+        return result
 
     async def terminate_branch(self, branch_id: str, *, reason: str | None = None) -> None:
         """Cancel a branch task and mark its terminal status.
@@ -576,6 +677,19 @@ class ForkCoordinator:
             return
         await self._aggregate_watcher.update(branch_id, info)
 
+    def iter_pending_approvals(self) -> list[tuple[str, PendingApprovalRequest]]:
+        """Return ``(branch_id, request)`` for every branch currently suspended on approval.
+
+        The TUI poll loop uses this instead of reading
+        :attr:`BranchRuntime.pending_approval` directly, so the coordinator
+        owns the contract about who may inspect that field.
+        """
+        return [
+            (bid, rt.pending_approval)
+            for bid, rt in self.branches.items()
+            if rt.pending_approval is not None
+        ]
+
     async def merge_or_select(self, action: str) -> MergeResult:
         """Resolve the fork by picking a winner.
 
@@ -616,6 +730,7 @@ class ForkCoordinator:
             applied_changes = 0
             conflicts: list[str] = []
             flush_errors: list[Any] = []
+            deleted_paths: list[str] = []
             winner_overlay = winner.overlay
             if winner_overlay is not None:
                 snapshot = (
@@ -628,6 +743,7 @@ class ForkCoordinator:
                 applied_changes = report.applied_changes
                 conflicts = list(report.conflicts)
                 flush_errors = list(report.errors)
+                deleted_paths = list(report.deleted_paths)
 
             discarded: list[str] = []
             for bid, rt in list(self.branches.items()):
@@ -660,6 +776,8 @@ class ForkCoordinator:
                 applied_changes=applied_changes,
                 conflicts=conflicts,
                 errors=flush_errors,
+                deleted_paths=deleted_paths,
+                blocked_commands=list(winner.blocked_commands),
             )
 
             if self.materializer is not None:  # pragma: no branch - fork() always allocates one
@@ -733,10 +851,7 @@ class ForkCoordinator:
             try:
                 result = rt.task.result()
             except Exception:
-                # The task raised — log so we know why we're falling back to
-                # the partial-history snapshot, then return it. Don't catch
-                # ``BaseException``: ``CancelledError`` / ``SystemExit`` must
-                # propagate.
+                # Narrow on Exception so CancelledError / SystemExit propagate.
                 logger.warning(
                     "branch %s result unreadable; falling back to partial_history",
                     rt.status.id,
@@ -816,9 +931,7 @@ class ForkCoordinator:
                 judge_usage=None,
             )
 
-        # Return cached outcome when the strategy kind hasn't changed — avoids
-        # re-invoking the judge LLM on a second /merge after the user dismisses
-        # the acceptance widget without committing (e.g. opens diff then escapes).
+        # Skip re-invoking the judge when the user re-opens /merge with the same strategy.
         if (
             self._cached_outcome is not None
             and self._cached_outcome_strategy_kind == effective_strategy.kind

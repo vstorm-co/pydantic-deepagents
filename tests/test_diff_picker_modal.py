@@ -13,6 +13,7 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 from pydantic_ai_backends import StateBackend
+from textual.widgets import Static
 
 from apps.cli.app import DeepApp
 from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
@@ -369,3 +370,47 @@ async def test_confirm_without_parent_sets_include_parent_false() -> None:
     assert result.include_parent is False
     assert result.path == "cat.md"
     assert result.branch_ids == ["id-a", "id-b"]
+
+
+@pytest.mark.asyncio
+async def test_browse_merge_view_pushes_merge_picker_modal() -> None:
+    """'m' keybinding pushes MergePickerModal in view-only mode."""
+    from apps.cli.modals.merge_picker import MergePickerModal
+
+    app = _make_app()
+    async with app.run_test(size=(140, 40)) as pilot:
+        await pilot.pause()
+        modal = DiffPickerModal(_report(), _statuses(), {"a": "id-a", "b": "id-b"})
+        app.push_screen(modal)
+        await pilot.pause()
+
+        modal.action_browse_merge_view()
+        await pilot.pause()
+
+        # MergePickerModal should now be on top of the screen stack —
+        # assert via the observable title ("Browse diff" vs "Resolve fork")
+        # rather than the modal's private ``_view_only`` attribute.
+        assert isinstance(app.screen, MergePickerModal)
+        title = app.screen.query_one("#merge-title", Static)
+        assert "Browse diff" in str(title.render())
+
+        # Dismiss both to clean up.
+        app.screen.dismiss(None)
+        await pilot.pause()
+        modal.dismiss(None)
+        await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_action_hint_contains_browse_hint() -> None:
+    """Action hint includes 'm browse' after the new binding was added."""
+    app = _make_app()
+    async with app.run_test(size=(140, 40)) as pilot:
+        await pilot.pause()
+        modal = DiffPickerModal(_report(), _statuses(), {"a": "id-a", "b": "id-b"})
+        app.push_screen(modal)
+        await pilot.pause()
+        hint = modal.query_one("#diff-actions", Static)
+        assert "m browse" in str(hint.render())
+        modal.dismiss(None)
+        await pilot.pause()

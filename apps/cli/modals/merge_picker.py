@@ -129,6 +129,7 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         on_open_in_editor: Any = None,
         preselected_branch_id: str | None = None,
         verdict_subtitle: str | None = None,
+        view_only: bool = False,
     ) -> None:
         super().__init__()
         self._report = report
@@ -149,11 +150,13 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
             self._selected_index = 0
         self._on_open_in_editor = on_open_in_editor
         self._verdict_subtitle = verdict_subtitle
+        self._view_only = view_only
 
     def compose(self) -> ComposeResult:
+        title = "Browse diff" if self._view_only else "Resolve fork"
         with Vertical(id="merge-container"):
             yield Static(
-                f"[bold]Resolve fork[/bold] · {self._report.fork_id}",
+                f"[bold]{title}[/bold] · {self._report.fork_id}",
                 id="merge-title",
             )
             yield Static(
@@ -168,6 +171,8 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
             yield Static(self._action_hint(), id="merge-actions")
 
     def _action_hint(self) -> str:
+        if self._view_only:
+            return "[dim]←/→ navigate  ·  Esc close[/dim]"
         selected_label = (
             self._id_to_label.get(self._ordered_ids[self._selected_index], "?")
             if self._ordered_ids
@@ -219,12 +224,17 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         return results
 
     def action_pick_selected(self) -> None:
+        if self._view_only:
+            self.dismiss(None)
+            return
         if not self._ordered_ids:
             return
         self._dismiss_with(self._ordered_ids[self._selected_index])
 
     def action_pick_by_index(self, index: int) -> None:
         """Power-user shortcut: pick branch at ``index`` (0-based)."""
+        if self._view_only:
+            return
         if 0 <= index < len(self._ordered_ids):
             self._dismiss_with(self._ordered_ids[index])
 
@@ -287,6 +297,8 @@ def _diff_preview(unified_diff: str, limit: int | None = _DIFF_PREVIEW_LINES) ->
     state of :class:`_DiffPreview`). Colours: green for ``+``, red for ``-``,
     cyan for ``@@`` hunk markers, dim for context.
     """
+    from rich.markup import escape as _escape
+
     if not unified_diff.strip():
         return ""
     rendered: list[str] = []
@@ -294,14 +306,15 @@ def _diff_preview(unified_diff: str, limit: int | None = _DIFF_PREVIEW_LINES) ->
     for line in unified_diff.splitlines():
         if line.startswith("---") or line.startswith("+++"):
             continue
+        safe = _escape(line)
         if line.startswith("@@"):
-            rendered.append(f"  [cyan]{line}[/cyan]")
+            rendered.append(f"  [cyan]{safe}[/cyan]")
         elif line.startswith("+"):
-            rendered.append(f"  [green]{line}[/green]")
+            rendered.append(f"  [green]{safe}[/green]")
         elif line.startswith("-"):
-            rendered.append(f"  [red]{line}[/red]")
+            rendered.append(f"  [red]{safe}[/red]")
         else:
-            rendered.append(f"  [dim]{line}[/dim]")
+            rendered.append(f"  [dim]{safe}[/dim]")
         if limit is not None and len(rendered) >= limit:
             truncated = True
             break

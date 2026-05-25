@@ -353,3 +353,66 @@ async def test_escape_key_dismisses_with_none():
         await pilot.pause()
         # Escape cancels — dispatcher receives None and returns without merging.
         assert captured["action"] is None
+
+
+# ---------------------------------------------------------------------------
+# MergePickerModal view_only mode
+# ---------------------------------------------------------------------------
+
+
+async def test_merge_picker_view_only_title_is_browse_diff():
+    """view_only=True changes the title to 'Browse diff'."""
+    app = _ProbeApp()
+    async with app.run_test() as pilot:
+        modal = MergePickerModal(
+            _make_report(),
+            _make_statuses(),
+            _make_label_to_id(),
+            view_only=True,
+        )
+        app.push_screen(modal)
+        await pilot.pause()
+        title = modal.query_one("#merge-title", Static)
+        assert "Browse diff" in str(title.render())
+        assert "Resolve fork" not in str(title.render())
+
+
+async def test_merge_picker_view_only_enter_dismisses_with_none():
+    """In view_only mode Enter closes the modal (returns None) instead of picking."""
+    app = _ProbeApp()
+    captured: dict[str, Any] = {}
+
+    async with app.run_test() as pilot:
+        modal = MergePickerModal(
+            _make_report(),
+            _make_statuses(),
+            _make_label_to_id(),
+            view_only=True,
+        )
+        app.push_screen(modal, lambda r: captured.update({"result": r}))
+        await pilot.pause()
+        modal.action_pick_selected()
+        await pilot.pause()
+
+    assert captured.get("result") is None
+
+
+async def test_merge_picker_view_only_pick_by_index_noop():
+    """In view_only mode numeric shortcuts do nothing."""
+    app = _ProbeApp()
+    captured: dict[str, Any] = {}
+
+    async with app.run_test() as pilot:
+        modal = MergePickerModal(
+            _make_report(),
+            _make_statuses(),
+            _make_label_to_id(),
+            view_only=True,
+        )
+        app.push_screen(modal, lambda r: captured.update({"result": r}))
+        await pilot.pause()
+        modal.action_pick_by_index(0)  # should not dismiss
+        await pilot.pause()
+        assert "result" not in captured
+        modal.dismiss(None)
+        await pilot.pause()

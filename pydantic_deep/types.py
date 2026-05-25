@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass as _dataclass
 from dataclasses import field as _field
 from datetime import datetime
@@ -93,11 +94,10 @@ class BranchSpec:
             instruction that differentiates this branch from siblings.
         model: Optional model override for the branch. ``None`` inherits
             the parent's model.
-        budget_usd: Optional per-branch budget. Enforced by
-            :class:`_BudgetWatcher` (Stage 4): when the branch's
-            ``CostTracking`` cumulative cost crosses this cap, the
-            branch is cancelled and transitions to
-            :data:`BranchState` ``"budget_exhausted"``.
+        budget_usd: Optional per-branch USD budget. Enforced by
+            :class:`_BudgetWatcher`: when the branch's ``CostTracking``
+            cumulative cost crosses this cap the branch is cancelled and
+            transitions to :data:`BranchState` ``"budget_exhausted"``.
         extra_instructions: Optional extra instructions appended to the
             branch's system prompt.
     """
@@ -115,11 +115,12 @@ class BranchIsolation:
 
     Defaults match the project's per-branch isolation policy:
     ``history`` always copies; ``backend``, ``memory``, ``todos`` copy by
-    default; ``message_queue`` is isolated; ``team_bus`` is shared (peer-to-peer
-    bus, branches CAN talk by default).
+    default; ``message_queue`` is isolated; ``team_bus`` is shared
+    (peer-to-peer bus — branches can talk to each other by default).
 
-    Stage 1 fully exercises ``backend="copy"`` and ``message_queue="isolated"``;
-    other values are accepted for forward-compat.
+    Only ``backend="copy"`` and ``message_queue="isolated"`` are exercised
+    by the current fork pipeline; the other ``share`` / ``share_readonly``
+    values are accepted for forward compatibility.
     """
 
     history: Literal["copy"] = "copy"
@@ -198,22 +199,20 @@ class ForkCostSummary:
 
 @_dataclass(frozen=True)
 class MergeStrategy:
-    """Merge strategy for resolving a fork.
+    """How a fork is resolved into a single winning branch.
 
-    Stage 6 extends :attr:`kind` to four values:
+    :attr:`kind` selects the resolution mode:
 
     - ``"manual"`` — caller picks via ``merge_or_select(action="pick:<id>")``.
     - ``"auto"`` — :class:`JudgeAgent` picks; coordinator commits immediately.
-    - ``"auto_with_fallback"`` — judge picks; if effective confidence is at or
-      above :attr:`confidence_threshold` the commit is deferred to the caller
-      (so the acceptance widget can offer an override), otherwise the caller
-      opens the manual picker with the judge's pick preselected. **Default.**
-    - ``"vote"`` — multiple judges (default: Haiku + GPT-mini + Gemini Flash)
-      evaluate independently; majority wins, tie broken by highest confidence;
-      coordinator commits immediately.
-
-    Default flips from ``"manual"`` (Stages 1–5) to ``"auto_with_fallback"`` in
-    Stage 6.
+    - ``"auto_with_fallback"`` — judge picks; if effective confidence is at
+      or above :attr:`confidence_threshold` the commit is deferred to the
+      caller (so the acceptance widget can offer an override), otherwise
+      the caller opens the manual picker with the judge's pick
+      preselected. This is the default.
+    - ``"vote"`` — multiple judges (default: Haiku + GPT-mini + Gemini
+      Flash) evaluate independently; majority wins, tie broken by highest
+      confidence; coordinator commits immediately.
     """
 
     kind: Literal["manual", "auto", "auto_with_fallback", "vote"] = "auto_with_fallback"
@@ -234,6 +233,36 @@ class ForkHandle:
     created_at: datetime
 
 
+@_dataclass
+class PendingApprovalRequest:
+    """A tool call from a branch task that is awaiting user approval.
+
+    Branch tasks run as plain :class:`asyncio.Task` coroutines and cannot
+    reach the TUI's interactive permission modal directly.  When a branch
+    agent triggers a deferred-approval tool call (e.g. ``execute``), the
+    branch sets :attr:`~BranchRuntime.pending_approval` on its own
+    :class:`BranchRuntime` and suspends until the user responds via
+    :attr:`response`.
+
+    The TUI poll loop detects a non-``None`` ``pending_approval``, surfaces
+    a :class:`~apps.cli.modals.branch_approval.BranchApprovalModal`, and
+    puts ``True`` (approve) or ``False`` (deny) into :attr:`response`.
+    The branch then resumes and forwards the answer to pydantic-ai's
+    :class:`~pydantic_ai.tools.DeferredToolResults`.
+
+    Attributes:
+        branch_id: Branch that is waiting (matches :attr:`BranchRuntime.spec.branch_id`).
+        description: Human-readable "tool_name: arg" string, shown in the modal.
+        response: Single-slot :class:`asyncio.Queue`; put ``True`` to approve,
+            ``False`` to deny.  The branch ``await``s :meth:`asyncio.Queue.get`
+            and unblocks as soon as the TUI responds.
+    """
+
+    branch_id: str
+    description: str
+    response: asyncio.Queue[bool] = _field(default_factory=lambda: asyncio.Queue(maxsize=1))
+
+
 @_dataclass(frozen=True)
 class FlushError:
     """One per-write failure observed by :meth:`BranchOverlay.flush_to`.
@@ -245,7 +274,7 @@ class FlushError:
     """
 
     path: str
-    op: Literal["write", "edit"]
+    op: Literal["write", "edit", "delete"]
     message: str
 
 
@@ -271,12 +300,17 @@ class FlushReport:
       parent ``WriteResult.error`` non-empty or parent raised). The
       failing path is excluded from ``applied_paths``; remaining writes
       still flush.
+    - ``deleted_paths`` lists paths the branch removed via the ``delete``
+      agent tool that were successfully propagated to the parent backend
+      on merge. Paths whose deletion failed (parent raised, or the
+      parent backend cannot delete) land in ``errors`` instead.
     """
 
     applied_paths: list[str]
     applied_changes: int
     conflicts: list[str]
     errors: list[FlushError]
+    deleted_paths: list[str] = _field(default_factory=list)
 
 
 @_dataclass
@@ -291,43 +325,48 @@ class MergeResult:
     applied_changes: int = 0
     conflicts: list[str] = _field(default_factory=list)
     errors: list[FlushError] = _field(default_factory=list)
+    deleted_paths: list[str] = _field(default_factory=list)
+    blocked_commands: list[str] = _field(default_factory=list)
 
 
 @_dataclass(frozen=True)
 class FileChange:
-    """Single overlay write event recorded by ``BranchOverlay``.
+    """Single overlay mutation event recorded by :class:`BranchOverlay`.
 
-    Event-level log entry: one record per successful ``write`` or ``edit``
-    on the branch overlay. The temporal-ordered ``list[FileChange]`` exposed
-    by ``BranchOverlay.changes()`` is the data spine consumed across stages:
+    Event-level log entry: one record per successful ``write``, ``edit``,
+    or ``delete`` on the branch overlay. The temporal-ordered list
+    returned by :meth:`BranchOverlay.changes` is the data spine consumed
+    by every downstream consumer of the fork pipeline:
 
-    - Stage 2 ``diff_branches`` — uses ``path`` to know which files were touched
-    - Stage 5 materializer — uses ``op`` to replay ``write`` vs ``edit`` semantics
-    - Stage 6 judge — uses ``timestamp`` for temporal heuristics
+    - :func:`build_diff_report` — uses ``path`` to know which files a
+      branch touched.
+    - :class:`ForkMaterializer` — uses ``op`` to replay ``write`` /
+      ``edit`` / ``delete`` semantics on the on-disk mirror.
+    - :class:`JudgeAgent` — uses ``timestamp`` for temporal heuristics
+      when scoring branch outcomes.
 
-    Not to be confused with :class:`BranchChange` (Stage 2), which is a
-    state-level aggregate describing a branch's per-path outcome relative
-    to the parent backend (``"created"`` / ``"modified"`` / ``"deleted"`` /
+    Not to be confused with :class:`BranchChange`, which is a state-level
+    aggregate describing a branch's per-path outcome relative to the
+    parent backend (``"created"`` / ``"modified"`` / ``"deleted"`` /
     ``"untouched"``). ``FileChange`` logs individual operations;
-    ``BranchChange`` summarizes their effect.
+    ``BranchChange`` summarises their cumulative effect.
     """
 
     path: str
-    op: Literal["write", "edit"]
+    op: Literal["write", "edit", "delete"]
     timestamp: datetime
 
 
 BranchDiffOperation = Literal["created", "modified", "deleted", "untouched"]
 """What a single branch did to a given path, relative to the parent backend.
 
-NOTE: ``"deleted"`` is reserved for future use. Stage 1 ``BranchOverlay``
-records only writes and edits — no delete operation exists in the runtime
-pipeline today, so :func:`~pydantic_deep.toolsets.forking.diff.build_diff_report`
-cannot produce ``operation="deleted"``. The classifier
-``_classify_agreement`` handles it correctly for forward compat
-(unit-tested via ``test_diff_classifies_deletion_as_split``), but the
-literal won't surface in real reports until ``BranchOverlay`` gains
-delete support.
+``"deleted"`` surfaces when a branch removed the path — either via the
+``delete_file`` agent tool, or via a shell ``rm`` invoked through
+``execute`` against a :class:`~pydantic_ai_backends.LocalBackend` parent
+(the snapshot mutation tracker propagates the deletion back into the
+overlay). The classifier ``_classify_agreement`` treats deletions like
+any other operation: all-deleters → ``unanimous_change``, mixed →
+``split``, single deleter → ``unique``.
 """
 
 
@@ -355,8 +394,8 @@ class BranchChange:
     parent yields ``operation="created"``; the same ``op="write"`` on a
     path present in the parent yields ``operation="modified"``.
 
-    Not to be confused with :class:`FileChange` (Stage 1), which is the
-    event-level log of individual writes/edits that produced this state.
+    Not to be confused with :class:`FileChange`, which is the event-level
+    log of individual writes/edits/deletes that produced this state.
     """
 
     branch_id: str
@@ -391,7 +430,13 @@ class DiffSummary:
 
 @_dataclass(frozen=True)
 class BranchDiffReport:
-    """Typed diff over fork branches — Stage 2 output of ``diff_branches``."""
+    """Typed cross-branch diff returned by :func:`diff_branches`.
+
+    Bundles a per-path :class:`PathDiff` list with a :class:`DiffSummary`
+    of aggregate metrics (agreement score, unanimous vs split path
+    counts, per-branch unique-touch counts) so callers can render or
+    score the fork's divergence without re-walking individual overlays.
+    """
 
     fork_id: str
     paths: list[PathDiff]
@@ -425,9 +470,10 @@ class ConfidenceSignals:
     - ``internal_consistency`` — ``1 - (retries + stuck_loop_hits) / turns`` for
       the winner; clamped to ``[0.0, 1.0]``. Weight 0.2.
 
-    Stage 6 ships without per-branch test integration so ``test_pass_ratio`` is
-    always ``None`` in practice; the safety rail keeps the heuristic ≤ 0.65 in
-    that case and ``auto_with_fallback`` always falls through to manual until a
+    The pipeline currently ships without a per-branch test-runner hook,
+    so ``test_pass_ratio`` is ``None`` in practice; the safety rail caps
+    the combined heuristic at ``0.65`` in that case and
+    ``auto_with_fallback`` falls through to manual resolution until a
     test-signal hook lands (see follow-ups in the live-fork doc).
     """
 
@@ -440,21 +486,18 @@ class ConfidenceSignals:
 class BranchOutcome:
     """Per-branch summary the judge sees in its prompt.
 
-    Intentionally narrow — no full message history. The judge gets the original
-    goal, the structured diff report, and one of these per branch. Keeps the
-    prompt bounded and the cost predictable.
+    Intentionally narrow — no full message history. The judge sees the
+    original goal, the structured diff report, and one ``BranchOutcome``
+    per branch. Keeps the prompt bounded and the cost predictable.
 
-    ``error_count`` is ``0`` or ``1`` for a single branch — the issue's type
-    sketch uses generic ``int`` but Stage 6 narrows it to a per-branch boolean
-    derived from terminal branch state; richer tool-error counting is left for
-    a follow-up.
+    ``error_count`` is typed as ``int`` but in practice is ``0`` or ``1``
+    per branch (derived from the terminal branch state). Richer tool-level
+    error counting is a forward-compatible extension.
     """
 
     branch_id: str
     branch_label: str
-    #: The steer message that was sent to this branch when the fork was created
-    #: (``BranchSpec.steer``). Included in the judge prompt so the judge can
-    #: evaluate each branch against its own instruction, not just the parent goal.
+    #: Included in the judge prompt so it evaluates each branch against its own steer.
     steer: str
     final_assistant_message: str
     cost_usd: float | None
@@ -481,9 +524,9 @@ class ResolveOutcome:
       ``"manual"`` (no judge ran, caller picks).
 
     :attr:`judge_usage` carries the judge's ``result.usage`` (summed across
-    judges in vote mode) so the caller can attribute the cost — Stage 6 does
-    not introduce a faked ``cost_category`` field into pydantic-ai-shields'
-    ``CostTracking`` API.
+    judges in vote mode) so the caller can attribute the cost separately
+    from branch-agent usage, without extending ``pydantic-ai-shields``'
+    :class:`CostTracking` API with a new cost category.
     """
 
     committed: bool

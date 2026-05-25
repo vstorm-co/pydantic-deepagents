@@ -93,6 +93,8 @@ class BranchPanelWidget(Vertical):
     status: reactive[BranchState] = reactive["BranchState"]("running")
     reason: reactive[str | None] = reactive["str | None"](None)
     cost_usd: reactive[float | None] = reactive["float | None"](None)
+    blocked_count: reactive[int] = reactive[int](0)
+    awaiting_approval: reactive[bool] = reactive[bool](False)
 
     def __init__(self, branch_id: str, label: str, model: str | None = None) -> None:
         super().__init__()
@@ -110,7 +112,15 @@ class BranchPanelWidget(Vertical):
         badge = state_label(self.status)
         model_part = f"  ·  [dim]{self.model}[/dim]" if self.model else ""
         cost_part = f"  ·  [dim]${self.cost_usd:.2f}[/dim]" if self.cost_usd is not None else ""
-        return f"[bold]{self.label}[/bold]  ·  {badge}{model_part}{cost_part}"
+        # ⏸ awaiting takes priority — it means the branch is actively waiting
+        # right now. The ⚠ blocked count is a historical tally of past denials.
+        if self.awaiting_approval:
+            approval_part = "  ·  [yellow]⏸ awaiting approval[/yellow]"
+        elif self.blocked_count:
+            approval_part = f"  ·  [orange1]⚠ {self.blocked_count} denied[/orange1]"
+        else:
+            approval_part = ""
+        return f"[bold]{self.label}[/bold]  ·  {badge}{model_part}{cost_part}{approval_part}"
 
     def _render_footer(self) -> str:
         base = self._STATUS_FOOTER.get(self.status, "")
@@ -130,6 +140,14 @@ class BranchPanelWidget(Vertical):
             self.query_one(".branch-footer", Static).update(self._render_footer())
 
     def watch_cost_usd(self, _old: float | None, _new: float | None) -> None:
+        with contextlib.suppress(Exception):  # widget not yet mounted
+            self.query_one(".branch-header", Static).update(self._render_header())
+
+    def watch_blocked_count(self, _old: int, _new: int) -> None:
+        with contextlib.suppress(Exception):  # widget not yet mounted
+            self.query_one(".branch-header", Static).update(self._render_header())
+
+    def watch_awaiting_approval(self, _old: bool, _new: bool) -> None:
         with contextlib.suppress(Exception):  # widget not yet mounted
             self.query_one(".branch-header", Static).update(self._render_header())
 

@@ -105,6 +105,19 @@ class ForkMaterializer:
         target.write_bytes(content)
         target.chmod(0o444)
 
+    def flush_delete(self, branch_label: str, change: FileChange) -> None:
+        """Remove the on-disk mirror for a deleted path.
+
+        Mirrors the branch's end-state so external diff tools comparing
+        ``parent/<path>`` against ``branches/{label}/<path>`` see "file
+        removed in branch". A no-op when the path was never materialised
+        in this branch.
+        """
+        target = self.branch_path(branch_label, change.path)
+        if target.exists():
+            target.chmod(0o644)
+            target.unlink()
+
     def update_manifest(self, statuses: list[BranchStatus]) -> None:
         """Refresh ``manifest.json`` with the latest per-branch status."""
         payload: dict[str, object] = {

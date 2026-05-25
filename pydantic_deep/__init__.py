@@ -248,6 +248,7 @@ from pydantic_deep.types import (
     MergeResult,
     MergeStrategy,
     PathDiff,
+    PendingApprovalRequest,
     ResolveOutcome,
     ResponseFormat,
     SubAgentConfig,
@@ -429,7 +430,7 @@ __all__ = [
     "CompiledSubAgent",
     "UploadedFile",
     "ResponseFormat",
-    # Live Run Forking (Stage 1)
+    # Live Run Forking — coordinator, isolation, diff, and public types
     "LiveForkCapability",
     "ForkCoordinator",
     "ForkStateStore",
@@ -449,6 +450,7 @@ __all__ = [
     "ForkHandle",
     "MergeStrategy",
     "MergeResult",
+    "PendingApprovalRequest",
     "FileChange",
     "BranchDiffReport",
     "PathDiff",
@@ -456,7 +458,7 @@ __all__ = [
     "DiffSummary",
     "BranchDiffAgreement",
     "BranchDiffOperation",
-    # Live Run Forking — Stage 6 (autonomous judge)
+    # Live Run Forking — autonomous judge for unattended merge resolution
     "JudgeAgent",
     "JudgeVerdict",
     "ConfidenceSignals",

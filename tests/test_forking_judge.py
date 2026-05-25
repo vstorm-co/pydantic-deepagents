@@ -1138,3 +1138,37 @@ async def test_format_diff_report_handles_empty_diff_text():
     prompt = _build_judge_prompt("g", report, _make_outcomes())
     assert "z.py" in prompt
     assert "alpha) modified" in prompt
+
+
+async def test_format_diff_report_deleted_operation_renders_deleted_label():
+    """A branch that deleted a file emits 'DELETED' rather than 'deleted 0B'."""
+    change = BranchChange(
+        branch_id="a",
+        branch_label="alpha",
+        operation="deleted",
+        new_content=None,
+        unified_diff_vs_parent="--- a/gone.py\n+++ /dev/null\n-old\n",
+        size_bytes=0,
+        is_binary=False,
+    )
+    pd = PathDiff(
+        path="gone.py",
+        parent_content="old\n",
+        branches={"a": change},
+        agreement="unique",
+    )
+    report = BranchDiffReport(
+        fork_id="f",
+        paths=[pd],
+        summary=DiffSummary(
+            total_paths_touched=1,
+            unanimous_paths=0,
+            split_paths=0,
+            per_branch_unique={"a": 1},
+            agreement_score=1.0,
+        ),
+    )
+    prompt = _build_judge_prompt("g", report, _make_outcomes())
+    assert "gone.py" in prompt
+    assert "alpha) DELETED" in prompt
+    assert "0B" not in prompt

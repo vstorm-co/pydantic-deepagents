@@ -174,6 +174,33 @@ def create_fork_toolset(  # noqa: C901
         )
 
     @toolset.tool
+    async def delete_file(ctx: RunContext[DeepAgentDeps], path: str) -> str:
+        """Delete a file inside the current branch.
+
+        Records the deletion in the branch overlay so it is propagated to
+        the parent backend on merge. Equivalent to ``execute('rm <path>')``
+        against a :class:`~pydantic_ai_backends.LocalBackend` parent — the
+        snapshot mutation tracker mirrors shell deletions back into the
+        overlay — but preferred because it works against any backend
+        (``StateBackend`` has no shell) and makes the intent explicit.
+
+        Args:
+            path: File path to delete (relative to backend root).
+
+        Returns:
+            Confirmation string ``"deleted: <path>"``, or an error string
+            when the path is absent or the tool is invoked outside a
+            branch.
+        """
+        backend = ctx.deps.backend
+        if not isinstance(backend, BranchOverlay):
+            return "delete_file is only available inside a fork branch."
+        if not backend.exists(path):
+            return f"error: '{path}' does not exist in this branch"
+        backend.delete(path)
+        return f"deleted: {path}"
+
+    @toolset.tool
     async def terminate_branch(
         ctx: RunContext[DeepAgentDeps],
         branch_id: str,

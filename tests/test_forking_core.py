@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import warnings
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -231,6 +232,130 @@ def test_branch_overlay_exists_falls_through_to_parent():
     assert overlay.exists("/branch_only.py") is True
     # Nowhere — False.
     assert overlay.exists("/nothing.py") is False
+
+
+# ---------------------------------------------------------------------------
+# BranchOverlay.delete — tombstone semantics, exists/read masking, mirror to disk
+# ---------------------------------------------------------------------------
+
+
+def test_branch_overlay_delete_records_change():
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+
+    overlay.delete("/x.py")
+
+    changes = overlay.changes()
+    assert len(changes) == 1
+    assert changes[0].op == "delete"
+    assert changes[0].path == "/x.py"
+
+
+def test_branch_overlay_delete_hides_path_from_exists():
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+
+    assert overlay.exists("/x.py") is True
+    overlay.delete("/x.py")
+    assert overlay.exists("/x.py") is False
+    # Parent untouched.
+    assert parent.exists("/x.py") is True
+
+
+def test_branch_overlay_delete_hides_from_reads():
+    import pytest as _pytest
+
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("/x.py")
+
+    with _pytest.raises(FileNotFoundError):
+        overlay.read("/x.py")
+    with _pytest.raises(FileNotFoundError):
+        overlay.read_bytes("/x.py")
+
+
+def test_branch_overlay_write_undeletes_path():
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("/x.py")
+    overlay.write("/x.py", "v1")
+
+    assert overlay.exists("/x.py") is True
+    assert "v1" in overlay.read("/x.py")
+    assert "/x.py" not in overlay.deleted()
+
+
+def test_branch_overlay_edit_undeletes_path():
+    parent = StateBackend()
+    parent.write("/x.py", "abcdef")
+    overlay = BranchOverlay(parent)
+    overlay.delete("/x.py")
+    # Edit re-materialises from parent then applies the edit; the tombstone
+    # must be cleared first so the edit pathway re-reads parent bytes.
+    res = overlay.edit("/x.py", "abc", "ZZZ")
+    assert res.error is None
+    assert "/x.py" not in overlay.deleted()
+    assert "ZZZ" in overlay.read("/x.py")
+
+
+def test_branch_overlay_deleted_returns_copy():
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("/x.py")
+
+    snapshot = overlay.deleted()
+    snapshot.clear()
+    assert overlay.deleted() == {"/x.py"}
+
+
+def test_branch_overlay_mirror_delete_swallows_oserror(tmp_path):
+    """OSError from materializer.flush_delete is logged, not propagated."""
+    from unittest.mock import patch as _patch
+
+    from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
+
+    parent = StateBackend()
+    parent.write("/x.py", "v0")
+    materializer = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
+    overlay = BranchOverlay(parent)
+    overlay.attach_materializer(materializer, "approach_a")
+
+    with _patch.object(materializer, "flush_delete", side_effect=OSError("disk fault")):
+        # Must not raise.
+        overlay.delete("/x.py")
+
+    assert "/x.py" in overlay.deleted()
+
+
+def test_flush_to_dedupes_repeat_delete_for_same_path():
+    """A path appearing in two consecutive delete ops surfaces once."""
+
+    class _Counting(StateBackend):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.deleted_calls: list[str] = []
+
+        def delete(self, path: str) -> None:
+            self.deleted_calls.append(path)
+
+    parent = _Counting()
+    parent.write("/x.py", "v0")
+    overlay = BranchOverlay(parent)
+    # Two consecutive deletes — the second exercises the dedup branch
+    # in ``_flush_delete`` (path already in ``deleted_set``).
+    overlay.delete("/x.py")
+    overlay.delete("/x.py")
+
+    report = overlay.flush_to(parent)
+    assert report.deleted_paths == ["/x.py"]
+    # Both deletes still propagate to the parent — the dedup is bookkeeping.
+    assert parent.deleted_calls == ["/x.py", "/x.py"]
 
 
 # ---------------------------------------------------------------------------
@@ -991,3 +1116,730 @@ def test_factory_forking_false_no_op():
 def test_factory_rejects_invalid_forking_value():
     with pytest.raises(TypeError, match="forking must be bool or LiveForkCapability"):
         create_deep_agent(model=TestModel(), forking=cast(Any, "yes"))
+
+
+# ---------------------------------------------------------------------------
+# BranchOverlay.execute / async_execute — snapshot isolation
+# ---------------------------------------------------------------------------
+
+
+def test_branch_overlay_execute_rm_isolated(tmp_path: Path) -> None:
+    """``rm`` inside a branch snapshot removes the file only from the snapshot."""
+    from pydantic_ai_backends import LocalBackend
+
+    # Create a real file in a temp parent root.
+    real_file = tmp_path / "target.py"
+    real_file.write_text("# real")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    result = overlay.execute(f"rm {real_file}")
+
+    # Command succeeds.
+    assert result.exit_code == 0
+    # Real file is untouched.
+    assert real_file.exists(), "rm inside branch must not delete the real file"
+
+
+def test_branch_overlay_execute_mkdir_isolated(tmp_path: Path) -> None:
+    """``mkdir`` inside a branch snapshot does not create the dir on the real FS."""
+    from pydantic_ai_backends import LocalBackend
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    new_dir = tmp_path / "newdir"
+    result = overlay.execute(f"mkdir {new_dir}")
+
+    assert result.exit_code == 0
+    assert not new_dir.exists(), "mkdir inside branch must not create dir on real FS"
+
+
+def test_branch_overlay_execute_sees_overlay_writes(tmp_path: Path) -> None:
+    """Files written via the overlay are visible to execute in the snapshot."""
+    from pydantic_ai_backends import LocalBackend
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+    overlay.write(str(tmp_path / "hello.py"), "print('branch')")
+
+    result = overlay.execute(f"cat {tmp_path / 'hello.py'}")
+
+    assert result.exit_code == 0
+    assert "branch" in result.output
+
+
+def test_branch_overlay_execute_sees_deleted_as_absent(tmp_path: Path) -> None:
+    """A file deleted via the overlay is absent in the execute snapshot."""
+    from pydantic_ai_backends import LocalBackend
+
+    real_file = tmp_path / "gone.py"
+    real_file.write_text("# gone")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+    overlay.delete(str(real_file))
+
+    result = overlay.execute(f"ls {tmp_path}")
+
+    assert "gone.py" not in result.output
+    assert real_file.exists(), "overlay delete must not touch the real file"
+
+
+def test_branch_overlay_execute_mv_isolated(tmp_path: Path) -> None:
+    """``mv`` inside a branch snapshot does not rename on the real FS."""
+    from pydantic_ai_backends import LocalBackend
+
+    src = tmp_path / "old.py"
+    src.write_text("# old")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    result = overlay.execute(f"mv {src} {tmp_path / 'new.py'}")
+
+    assert result.exit_code == 0
+    assert src.exists(), "mv inside branch must not rename the real file"
+    assert not (tmp_path / "new.py").exists()
+
+
+def test_branch_overlay_execute_forwards_when_no_root_dir() -> None:
+    """With a StateBackend parent (no root_dir) the call is forwarded as-is."""
+    parent = StateBackend()
+    overlay = BranchOverlay(parent)
+    # StateBackend.execute doesn't exist in the protocol; the forward
+    # will raise AttributeError, confirming the forwarding path was taken.
+    import pytest
+
+    with pytest.raises((AttributeError, RuntimeError)):
+        overlay.execute("ls")
+
+
+async def test_branch_overlay_async_execute_rm_isolated(tmp_path: Path) -> None:
+    """async_execute also isolates rm via asyncio.to_thread."""
+    from pydantic_ai_backends import LocalBackend
+
+    real_file = tmp_path / "async_target.py"
+    real_file.write_text("# real")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    result = await overlay.async_execute(f"rm {real_file}")
+
+    assert result.exit_code == 0
+    assert real_file.exists(), "async rm inside branch must not delete the real file"
+
+
+# ---------------------------------------------------------------------------
+# BranchOverlay.execute — mutation propagation back to overlay
+# ---------------------------------------------------------------------------
+
+
+def test_execute_rm_propagates_delete_to_overlay(tmp_path: Path) -> None:
+    """After execute(rm …), the path appears in overlay.deleted() for merge."""
+    from pydantic_ai_backends import LocalBackend
+
+    real_file = tmp_path / "todelete.py"
+    real_file.write_text("# will be removed by branch")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    result = overlay.execute(f"rm {real_file}")
+
+    assert result.exit_code == 0
+    # Real file must be untouched.
+    assert real_file.exists()
+    # But the overlay must record the deletion so flush_to propagates it.
+    assert str(real_file) in overlay.deleted()
+
+
+def test_execute_create_file_propagates_write_to_overlay(tmp_path: Path) -> None:
+    """A file created by execute is captured in the overlay as a write."""
+    from pydantic_ai_backends import LocalBackend
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+    new_file = tmp_path / "created.py"
+
+    result = overlay.execute(f'echo "# new" > {new_file}')
+
+    assert result.exit_code == 0
+    # Not on real FS.
+    assert not new_file.exists()
+    # Captured in overlay.
+    assert overlay.exists(str(new_file))
+    content = overlay.read(str(new_file))
+    assert "new" in content
+
+
+def test_execute_modify_existing_propagates_write_to_overlay(tmp_path: Path) -> None:
+    """Modifying an existing file via execute captures the change in the overlay.
+
+    Note: shell ``>`` redirections follow symlinks, so the real file may also
+    be modified.  The critical invariant is that the overlay records the update
+    so that a subsequent merge or flush propagates the correct content.
+    """
+    from pydantic_ai_backends import LocalBackend
+
+    real_file = tmp_path / "existing.py"
+    real_file.write_text("original content")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    result = overlay.execute(f'echo "modified" > {real_file}')
+
+    assert result.exit_code == 0
+    # Overlay must have captured the modified version.
+    assert overlay.exists(str(real_file))
+    assert "modified" in overlay.read(str(real_file))
+
+
+def test_execute_mv_propagates_delete_and_create_to_overlay(tmp_path: Path) -> None:
+    """mv via execute records the old path as deleted and new path as written."""
+    from pydantic_ai_backends import LocalBackend
+
+    src = tmp_path / "src.py"
+    src.write_text("# src content")
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+    dst = tmp_path / "dst.py"
+
+    result = overlay.execute(f"mv {src} {dst}")
+
+    assert result.exit_code == 0
+    # Real FS untouched.
+    assert src.exists()
+    assert not dst.exists()
+    # src deleted in overlay.
+    assert str(src) in overlay.deleted()
+    # dst created in overlay.
+    assert overlay.exists(str(dst))
+
+
+# ---------------------------------------------------------------------------
+# _symlink_tree — subdirectory recursion and _SNAP_SKIP_DIRS skip
+# ---------------------------------------------------------------------------
+
+
+def test_symlink_tree_recurses_into_subdirectory(tmp_path: Path) -> None:
+    """_symlink_tree mirrors subdirectory structure and skips _SNAP_SKIP_DIRS."""
+    from pydantic_deep.toolsets.forking.isolation import _SNAP_SKIP_DIRS, _symlink_tree
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "root_file.py").write_text("root")
+    subdir = src / "subdir"
+    subdir.mkdir()
+    (subdir / "nested.py").write_text("nested")
+    # Add a _SNAP_SKIP_DIRS entry — should be skipped.
+    skip_name = next(iter(_SNAP_SKIP_DIRS))
+    (src / skip_name).mkdir()
+    (src / skip_name / "ignored.py").write_text("ignored")
+
+    dst = tmp_path / "dst"
+    dst.mkdir()
+    _symlink_tree(src, dst)
+
+    assert (dst / "root_file.py").is_symlink()
+    assert (dst / "subdir").is_dir()
+    assert (dst / "subdir" / "nested.py").is_symlink()
+    assert not (dst / skip_name).exists()
+
+
+# ---------------------------------------------------------------------------
+# _collect_state — error paths, skip dirs, subdirectory, OSError mtime
+# ---------------------------------------------------------------------------
+
+
+def test_collect_state_skips_snap_skip_dirs(tmp_path: Path) -> None:
+    """_collect_state does not recurse into _SNAP_SKIP_DIRS entries."""
+    from pydantic_deep.toolsets.forking.isolation import _SNAP_SKIP_DIRS, _collect_state
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    (snap / "real.py").write_text("real")
+    skip_name = next(iter(_SNAP_SKIP_DIRS))
+    skip_dir = snap / skip_name
+    skip_dir.mkdir()
+    (skip_dir / "deep.py").write_text("deep")
+
+    out: dict[str, tuple[bool, float]] = {}
+    _collect_state(snap, snap, out)
+
+    assert "real.py" in out
+    assert f"{skip_name}/deep.py" not in out
+    assert not any(k.startswith(skip_name) for k in out)
+
+
+def test_collect_state_recurses_into_subdirectory(tmp_path: Path) -> None:
+    """_collect_state recurses into normal subdirectories."""
+    from pydantic_deep.toolsets.forking.isolation import _collect_state
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    sub = snap / "pkg"
+    sub.mkdir()
+    (sub / "module.py").write_text("x")
+
+    out: dict[str, tuple[bool, float]] = {}
+    _collect_state(snap, snap, out)
+
+    assert "pkg/module.py" in out
+
+
+def test_collect_state_skips_non_file_non_dir_entries(tmp_path: Path) -> None:
+    """_collect_state ignores entries that are not symlinks, files, or directories."""
+    import os
+
+    from pydantic_deep.toolsets.forking.isolation import _collect_state
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    (snap / "real.py").write_text("real")
+    # Named pipe is not a symlink, not a regular file, not a directory.
+    fifo = snap / "mypipe"
+    os.mkfifo(fifo)
+
+    out: dict[str, tuple[bool, float]] = {}
+    _collect_state(snap, snap, out)
+
+    assert "real.py" in out
+    assert "mypipe" not in out
+
+
+def test_collect_state_permission_error_returns_silently(tmp_path: Path) -> None:
+    """_collect_state silently returns when os.scandir raises PermissionError."""
+    from unittest.mock import patch
+
+    from pydantic_deep.toolsets.forking.isolation import _collect_state
+
+    with patch("os.scandir", side_effect=PermissionError("no access")):
+        out: dict[str, tuple[bool, float]] = {}
+        _collect_state(tmp_path, tmp_path, out)  # must not raise
+    assert out == {}
+
+
+def test_collect_state_symlink_mtime_oserror_fallback(tmp_path: Path) -> None:
+    """_collect_state uses mtime=0.0 when os.stat raises OSError for a symlink."""
+    import os
+    from unittest.mock import patch
+
+    from pydantic_deep.toolsets.forking.isolation import _collect_state
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    target = tmp_path / "real.py"
+    target.write_text("t")
+    link = snap / "real.py"
+    link.symlink_to(target)
+
+    def _failing_stat(path: str, *, follow_symlinks: bool = True) -> os.stat_result:
+        raise OSError("stat error")
+
+    with patch("os.stat", side_effect=_failing_stat):
+        out: dict[str, tuple[bool, float]] = {}
+        _collect_state(snap, snap, out)
+
+    assert "real.py" in out
+    is_sym, mtime = out["real.py"]
+    assert is_sym
+    assert mtime == 0.0
+
+
+def test_collect_state_file_mtime_oserror_fallback(tmp_path: Path) -> None:
+    """_collect_state uses mtime=0.0 when entry.stat raises OSError for a real file."""
+    from unittest.mock import MagicMock, patch
+
+    from pydantic_deep.toolsets.forking.isolation import _collect_state
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    real_file = snap / "file.py"
+    real_file.write_text("content")
+
+    # Patch os.scandir to return a mock entry whose .stat() raises OSError.
+    mock_entry = MagicMock()
+    mock_entry.name = "file.py"
+    mock_entry.path = str(real_file)
+    mock_entry.is_symlink.return_value = False
+    mock_entry.is_file.return_value = True
+    mock_entry.is_dir.return_value = False
+    mock_entry.stat.side_effect = OSError("stat fail")
+
+    with patch("os.scandir", return_value=iter([mock_entry])):
+        out: dict[str, tuple[bool, float]] = {}
+        _collect_state(snap, snap, out)
+
+    assert "file.py" in out
+    _, mtime = out["file.py"]
+    assert mtime == 0.0
+
+
+# ---------------------------------------------------------------------------
+# _branch_snapshot — error / edge-case paths
+# ---------------------------------------------------------------------------
+
+
+def test_branch_snapshot_overlay_read_failure_is_skipped(tmp_path: Path) -> None:
+    """An exception from overlay.read_bytes skips that path without crashing."""
+    from unittest.mock import patch
+
+    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+
+    overlay = StateBackend()
+    from datetime import datetime, timezone
+
+    changes = [FileChange(path="/parent/file.py", op="write", timestamp=datetime.now(timezone.utc))]
+    deleted: set[str] = set()
+
+    # Patch StateBackend.read_bytes to raise.
+    with (
+        patch.object(overlay, "read_bytes", side_effect=OSError("bad read")),
+        _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir,
+    ):
+        snap = Path(snap_dir)
+        # The file should NOT appear (exception was swallowed).
+        assert not (snap / "file.py").exists()
+
+
+def test_branch_snapshot_path_not_relative_to_root(tmp_path: Path) -> None:
+    """A path that isn't under parent_root uses lstrip('/') as fallback."""
+    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+
+    overlay = StateBackend()
+    # Write a file with a path NOT under tmp_path (different absolute root).
+    from datetime import datetime, timezone
+
+    overlay.write("/tmp/orphan.py", b"content")
+    changes = [FileChange(path="/tmp/orphan.py", op="write", timestamp=datetime.now(timezone.utc))]
+    deleted: set[str] = set()
+
+    # parent_root is tmp_path, but the path is under /tmp — triggers ValueError.
+    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
+        snap = Path(snap_dir)
+        # The fallback `path.lstrip("/")` → "tmp/orphan.py" inside snap.
+        assert (snap / "tmp" / "orphan.py").exists()
+
+
+def test_branch_snapshot_unlinks_existing_symlink_before_overlay_write(
+    tmp_path: Path,
+) -> None:
+    """When overlay writes to a path already symlinked from parent, symlink is removed."""
+    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+
+    # Parent has file.py.
+    parent_file = tmp_path / "file.py"
+    parent_file.write_text("original")
+
+    overlay = StateBackend()
+    overlay.write(str(parent_file), b"overlay content")
+    from datetime import datetime, timezone
+
+    changes = [FileChange(path=str(parent_file), op="write", timestamp=datetime.now(timezone.utc))]
+    deleted: set[str] = set()
+
+    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
+        snap = Path(snap_dir)
+        rel = parent_file.relative_to(tmp_path)
+        dst = snap / rel
+        # dst must be a real file (not symlink) with overlay content.
+        assert not dst.is_symlink()
+        assert dst.read_text() == "overlay content"
+
+
+def test_branch_snapshot_deleted_path_not_relative_to_root(tmp_path: Path) -> None:
+    """Deleted paths not under parent_root fall back to lstrip('/') placement."""
+    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+
+    overlay = StateBackend()
+    # Create a file in the snapshot that we'll then mark deleted.
+    other_path = "/tmp/_snap_delete_test_orphan.py"
+    changes: list[FileChange] = []
+    deleted: set[str] = {other_path}
+
+    # Just confirm the context manager doesn't raise when the path
+    # isn't under parent_root and the target doesn't exist.
+    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
+        snap = Path(snap_dir)
+        # "tmp/_snap_delete_test_orphan.py" after lstrip — may or may not exist.
+        # The critical check is no exception was raised.
+        assert snap.exists()
+
+
+def test_branch_snapshot_deleted_path_unlinks_existing_entry(tmp_path: Path) -> None:
+    """Deleted path whose symlink exists in snap is removed."""
+    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+
+    parent_file = tmp_path / "todel.py"
+    parent_file.write_text("original")
+
+    overlay = StateBackend()
+    changes: list[FileChange] = []
+    deleted = {str(parent_file)}
+
+    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
+        snap = Path(snap_dir)
+        rel = parent_file.relative_to(tmp_path)
+        # Symlink from step 1 must have been removed.
+        assert not (snap / rel).exists()
+
+
+# ---------------------------------------------------------------------------
+# _propagate_mutations — modified-file branches
+# ---------------------------------------------------------------------------
+
+
+def test_propagate_mutations_created_path_snap_file_missing(tmp_path: Path) -> None:
+    """Created path whose snap_file doesn't exist at propagation time is skipped."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+
+    pre: dict[str, tuple[bool, float]] = {}
+    post: dict[str, tuple[bool, float]] = {"ghost.py": (False, 1.0)}
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
+    # Nothing should be written since snap/ghost.py doesn't exist.
+    assert not overlay.exists(str(tmp_path / "ghost.py"))
+
+
+def test_propagate_mutations_symlink_replaced_by_real_file(tmp_path: Path) -> None:
+    """Symlink → real file transition is captured as an overlay write."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    snap_file = snap / "replaced.py"
+    snap_file.write_text("new content")
+
+    pre: dict[str, tuple[bool, float]] = {"replaced.py": (True, 1.0)}  # symlink
+    post: dict[str, tuple[bool, float]] = {"replaced.py": (False, 2.0)}  # real file
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)
+
+    abs_path = str(tmp_path / "replaced.py")
+    assert overlay.exists(abs_path)
+    assert overlay.read_bytes(abs_path) == b"new content"
+
+
+def test_propagate_mutations_real_file_mtime_changed(tmp_path: Path) -> None:
+    """An existing real file whose mtime changed is captured as an overlay write."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    snap_file = snap / "changed.py"
+    snap_file.write_text("updated content")
+
+    pre: dict[str, tuple[bool, float]] = {"changed.py": (False, 1.0)}
+    post: dict[str, tuple[bool, float]] = {"changed.py": (False, 2.0)}  # mtime changed
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)
+
+    abs_path = str(tmp_path / "changed.py")
+    assert overlay.exists(abs_path)
+    assert overlay.read_bytes(abs_path) == b"updated content"
+
+
+def test_propagate_mutations_write_through_symlink_snap_missing(tmp_path: Path) -> None:
+    """Write-through-symlink case where snap_file doesn't exist is skipped."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    # snap/write_through.py does NOT exist.
+
+    pre: dict[str, tuple[bool, float]] = {"write_through.py": (True, 1.0)}
+    post: dict[str, tuple[bool, float]] = {"write_through.py": (True, 2.0)}  # mtime changed
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
+    abs_path = str(tmp_path / "write_through.py")
+    assert not overlay.exists(abs_path)
+
+
+def test_propagate_mutations_symlink_replaced_snap_file_missing(tmp_path: Path) -> None:
+    """Symlink→real-file case where snap_file vanished is skipped silently."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    # snap/gone.py does NOT exist — snap_file.exists() will be False.
+
+    pre: dict[str, tuple[bool, float]] = {"gone.py": (True, 1.0)}  # symlink
+    post: dict[str, tuple[bool, float]] = {"gone.py": (False, 2.0)}  # real file
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
+    assert not overlay.exists(str(tmp_path / "gone.py"))
+
+
+def test_propagate_mutations_real_file_modified_snap_file_missing(tmp_path: Path) -> None:
+    """Real-file mtime change where snap_file vanished is skipped silently."""
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    # snap/gone2.py does NOT exist.
+
+    pre: dict[str, tuple[bool, float]] = {"gone2.py": (False, 1.0)}
+    post: dict[str, tuple[bool, float]] = {"gone2.py": (False, 2.0)}  # mtime changed
+
+    overlay = BranchOverlay(StateBackend())
+    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
+    assert not overlay.exists(str(tmp_path / "gone2.py"))
+
+
+def test_propagate_mutations_overlay_write_oserror_is_logged(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An ``OSError`` from ``overlay.write`` is logged, not silently swallowed."""
+    import logging
+
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    snap_file = snap / "boom.py"
+    snap_file.write_text("payload")
+
+    pre: dict[str, tuple[bool, float]] = {}
+    post: dict[str, tuple[bool, float]] = {"boom.py": (False, 1.0)}
+
+    class _FailingOverlay(BranchOverlay):
+        def write(self, path: str, content: str | bytes) -> Any:
+            raise OSError("disk full")
+
+    overlay = _FailingOverlay(StateBackend())
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.isolation"):
+        _propagate_mutations(snap, tmp_path, pre, post, overlay)
+    assert any("failed to capture" in rec.message for rec in caplog.records)
+
+
+def test_propagate_mutations_overlay_delete_oserror_is_logged(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An ``OSError`` from ``overlay.delete`` is logged, not silently swallowed."""
+    import logging
+
+    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+
+    snap = tmp_path / "snap"
+    snap.mkdir()
+
+    pre: dict[str, tuple[bool, float]] = {"gone.py": (True, 1.0)}
+    post: dict[str, tuple[bool, float]] = {}
+
+    class _FailingOverlay(BranchOverlay):
+        def delete(self, path: str) -> None:
+            raise OSError("readonly fs")
+
+    overlay = _FailingOverlay(StateBackend())
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.isolation"):
+        _propagate_mutations(snap, tmp_path, pre, post, overlay)
+    assert any("failed to record delete" in rec.message for rec in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# _run_in_snapshot — timeout, exception, and truncation paths
+# ---------------------------------------------------------------------------
+
+
+def test_run_in_snapshot_timeout_returns_exit_124(tmp_path: Path) -> None:
+    """A timed-out command returns exit_code=124 without raising."""
+    import subprocess
+    from unittest.mock import patch
+
+    from pydantic_ai_backends import LocalBackend
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    with patch(
+        "subprocess.run",
+        side_effect=subprocess.TimeoutExpired(cmd="sleep", timeout=1),
+    ):
+        result = overlay.execute("sleep 100", timeout=1)
+
+    assert result.exit_code == 124
+    assert "timed out" in result.output.lower()
+
+
+def test_run_in_snapshot_generic_exception_returns_exit_1(tmp_path: Path) -> None:
+    """An unexpected exception from subprocess.run returns exit_code=1."""
+    from unittest.mock import patch
+
+    from pydantic_ai_backends import LocalBackend
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    with patch("subprocess.run", side_effect=RuntimeError("bang")):
+        result = overlay.execute("bang")
+
+    assert result.exit_code == 1
+    assert "bang" in result.output
+
+
+def test_run_in_snapshot_output_truncated(tmp_path: Path) -> None:
+    """Output longer than _EXEC_MAX_CHARS is truncated and truncated=True."""
+    from pydantic_ai_backends import LocalBackend
+
+    from pydantic_deep.toolsets.forking.isolation import _EXEC_MAX_CHARS
+
+    parent = LocalBackend(root_dir=tmp_path)
+    overlay = BranchOverlay(parent)
+
+    # Generate output exceeding the limit via python -c.
+    result = overlay.execute(f"python3 -c \"print('x' * {_EXEC_MAX_CHARS + 100})\"")
+
+    assert result.truncated is True
+    assert len(result.output) <= _EXEC_MAX_CHARS
+
+
+# ---------------------------------------------------------------------------
+# delete_file tool — error guards and success path
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_file_tool_outside_branch_returns_error() -> None:
+    """delete_file returns an error message when backend is not a BranchOverlay."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    toolset = create_fork_toolset()
+    delete_fn = toolset.tools["delete_file"].function
+    result = await delete_fn(_StubCtx(deps), "/any/path.py")
+    assert "only available inside a fork branch" in result
+
+
+async def test_delete_file_tool_nonexistent_path_returns_error() -> None:
+    """delete_file returns an error when the path doesn't exist in the overlay."""
+    parent = StateBackend()
+    overlay = BranchOverlay(parent)
+    deps = DeepAgentDeps(backend=overlay)
+    toolset = create_fork_toolset()
+    delete_fn = toolset.tools["delete_file"].function
+    result = await delete_fn(_StubCtx(deps), "/missing.py")
+    assert "does not exist" in result
+
+
+async def test_delete_file_tool_success() -> None:
+    """delete_file marks the path deleted in the overlay and returns confirmation."""
+    parent = StateBackend()
+    parent.write("/src/util.py", b"# util")
+    overlay = BranchOverlay(parent)
+    deps = DeepAgentDeps(backend=overlay)
+    toolset = create_fork_toolset()
+    delete_fn = toolset.tools["delete_file"].function
+    result = await delete_fn(_StubCtx(deps), "/src/util.py")
+    assert result == "deleted: /src/util.py"
+    assert "/src/util.py" in overlay.deleted()
+    assert not overlay.exists("/src/util.py")

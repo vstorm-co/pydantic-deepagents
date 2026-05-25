@@ -188,13 +188,32 @@ def _build_branch_change(
             is_binary=False,
         )
 
-    # ``BranchOverlay`` has no delete op, so ``_read_path_bytes`` always
-    # returns bytes here. ``raise`` rather than ``assert`` to survive ``python -O``.
+    if path in overlay.deleted():
+        diff_text = "".join(
+            difflib.unified_diff(
+                (parent_text or "").splitlines(keepends=True),
+                [],
+                fromfile=f"a/{path}",
+                tofile="/dev/null",
+                n=3,
+            )
+        )
+        return BranchChange(
+            branch_id=branch_id,
+            branch_label=branch_label,
+            operation="deleted",
+            new_content=None,
+            unified_diff_vs_parent=_truncate_unified_diff(diff_text),
+            size_bytes=0,
+            is_binary=False,
+        )
+
+    # raise > assert so the invariant guard survives python -O.
     raw = _read_path_bytes(overlay, path)
     if raw is None:  # pragma: no cover - invariant guard; see comment above
         raise RuntimeError(
             f"overlay recorded a change for {path!r} but its content is missing — "
-            f"BranchOverlay contract violated (no-delete invariant)."
+            f"BranchOverlay contract violated."
         )
 
     is_binary = _is_binary_bytes(raw)

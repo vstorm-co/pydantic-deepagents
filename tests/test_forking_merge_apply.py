@@ -605,3 +605,201 @@ async def test_fork_with_share_readonly_backend_skips_materializer_attach(
     # merge_or_select still resolves cleanly even without overlays.
     result = await coord.merge_or_select(f"pick:{handle.branches[0]}")
     assert result.applied_paths == []
+
+
+# ---------------------------------------------------------------------------
+# flush_to — delete-op propagation to the parent backend
+# ---------------------------------------------------------------------------
+
+
+class _DeleteCapturingBackend(StateBackend):  # type: ignore[misc]
+    """Test stub: a backend that records ``delete(path)`` calls."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.deleted: list[str] = []
+
+    def delete(self, path: str) -> None:
+        self.deleted.append(path)
+
+
+class _ExecuteCapturingBackend(StateBackend):  # type: ignore[misc]
+    """Test stub: backend with ``execute_enabled=True`` that captures commands."""
+
+    execute_enabled: bool = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.commands: list[str] = []
+
+    def execute(self, command: str, timeout: int | None = None) -> None:
+        self.commands.append(command)
+
+
+def test_flush_to_propagates_delete_via_parent_delete_method(tmp_path: Path) -> None:
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = _DeleteCapturingBackend()
+    parent.write("doomed.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("doomed.py")
+
+    report = overlay.flush_to(parent)
+
+    assert parent.deleted == ["doomed.py"]
+    assert report.deleted_paths == ["doomed.py"]
+    assert report.applied_paths == []
+    assert report.errors == []
+    assert report.applied_changes == 1
+
+
+def test_flush_to_propagates_delete_via_execute(tmp_path: Path) -> None:
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = _ExecuteCapturingBackend()
+    parent.write("doomed.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("doomed.py")
+
+    report = overlay.flush_to(parent)
+
+    assert parent.commands == ["rm -f doomed.py"]
+    assert report.deleted_paths == ["doomed.py"]
+    assert report.errors == []
+
+
+def test_flush_to_delete_error_is_surfaced(tmp_path: Path) -> None:
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = _DeleteCapturingBackend()
+    parent.write("doomed.py", "v0")
+
+    def _raise(path: str) -> None:
+        raise PermissionError("read-only volume")
+
+    overlay = BranchOverlay(parent)
+    overlay.delete("doomed.py")
+
+    with patch.object(parent, "delete", side_effect=_raise):
+        report = overlay.flush_to(parent)
+
+    assert report.deleted_paths == []
+    assert len(report.errors) == 1
+    assert report.errors[0].path == "doomed.py"
+    assert report.errors[0].op == "delete"
+    assert "read-only volume" in report.errors[0].message
+
+
+def test_flush_to_delete_on_state_backend_records_unsupported_error(tmp_path: Path) -> None:
+    """``StateBackend`` has neither execute_enabled nor delete — surface an error."""
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = StateBackend()
+    parent.write("doomed.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("doomed.py")
+
+    report = overlay.flush_to(parent)
+
+    assert report.deleted_paths == []
+    assert len(report.errors) == 1
+    assert report.errors[0].op == "delete"
+    assert "does not support delete" in report.errors[0].message
+
+
+def test_flush_to_delete_via_execute_nonzero_exit_records_error(tmp_path: Path) -> None:
+    """``rm -f`` exiting non-zero (e.g. permission denied) surfaces as a FlushError."""
+    from pydantic_ai_backends import ExecuteResponse
+
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    class _FailingExecuteBackend(StateBackend):  # type: ignore[misc]
+        execute_enabled: bool = True
+
+        def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse:
+            return ExecuteResponse(
+                output="rm: /foo: Permission denied\n",
+                exit_code=1,
+            )
+
+    parent = _FailingExecuteBackend()
+    parent.write("doomed.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("doomed.py")
+
+    report = overlay.flush_to(parent)
+
+    # The delete is rejected: no entry in deleted_paths, one error captured.
+    assert report.deleted_paths == []
+    assert len(report.errors) == 1
+    assert report.errors[0].op == "delete"
+    assert report.errors[0].path == "doomed.py"
+    assert "rm exited 1" in report.errors[0].message
+    assert "Permission denied" in report.errors[0].message
+
+
+def test_flush_to_write_then_delete_propagates_delete_and_drops_applied(
+    tmp_path: Path,
+) -> None:
+    """``write; delete`` sequence ends as a deletion — no spurious applied_paths entry."""
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = _DeleteCapturingBackend()
+    parent.write("foo.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.write("foo.py", "branch_content")
+    overlay.delete("foo.py")
+
+    report = overlay.flush_to(parent)
+
+    assert parent.deleted == ["foo.py"]
+    assert report.deleted_paths == ["foo.py"]
+    assert report.applied_paths == []  # write was superseded
+
+
+def test_flush_to_delete_then_write_propagates_write_and_drops_deleted(
+    tmp_path: Path,
+) -> None:
+    """``delete; write`` sequence ends as a write — the path leaves ``deleted_paths``."""
+    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+
+    parent = _DeleteCapturingBackend()
+    parent.write("foo.py", "v0")
+    overlay = BranchOverlay(parent)
+    overlay.delete("foo.py")
+    overlay.write("foo.py", "branch_content")
+
+    report = overlay.flush_to(parent)
+
+    # Delete still propagates, then write puts content back.
+    assert parent.deleted == ["foo.py"]
+    assert report.applied_paths == ["foo.py"]
+    assert report.deleted_paths == []
+    assert parent.read_bytes("foo.py") == b"branch_content"
+
+
+async def test_coordinator_merge_propagates_deleted_paths_into_result(
+    tmp_path: Path,
+) -> None:
+    """End-to-end: agent deletes a file mid-branch; merge result lists the path."""
+
+    class _DeletingAgent(_StubAgent):
+        async def run(
+            self, steer: str, *, message_history: Any = None, deps: Any = None
+        ) -> _StubResult:
+            deps.backend.delete("doomed.py")
+            return _StubResult()
+
+    parent = _DeleteCapturingBackend()
+    parent.write("doomed.py", "v0")
+    coord = _make_coord(_DeletingAgent(), parent, tmp_path)
+    handle = await coord.fork(
+        [BranchSpec(label="alpha", steer="alpha"), BranchSpec(label="beta", steer="beta")],
+        parent_history=[],
+        isolation=BranchIsolation(),
+    )
+    await asyncio.gather(*[rt.task for rt in coord.branches.values()])
+    result = await coord.merge_or_select(f"pick:{handle.branches[0]}")
+
+    assert result.deleted_paths == ["doomed.py"]
+    assert "doomed.py" in parent.deleted

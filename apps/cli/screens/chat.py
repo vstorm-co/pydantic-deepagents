@@ -409,7 +409,7 @@ class ChatScreen(Screen):
     def _is_fork_inspection(text: str) -> bool:
         """Return True for ``/fork diff`` and its argumented form.
 
-        Stage 5 inspection commands are allowed during an active fork —
+        Inspection commands are allowed during an active fork —
         but only the ``diff`` sub-command of ``/fork``. ``/fork``
         without args would re-enter the picker modal and clobber state;
         ``/fork-config`` is similarly blocked.

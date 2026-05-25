@@ -1,4 +1,4 @@
-"""TUI tests for Stage 6 acceptance widget + picker preselect (issue #107).
+"""TUI tests for the acceptance widget and picker preselect (issue #107).
 
 Covers test cases 9–11 from the issue's Test plan:
 

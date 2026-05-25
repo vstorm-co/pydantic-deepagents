@@ -1,4 +1,4 @@
-"""Tests for the Stage-4 N-row :class:`ForkPickerModal` refactor.
+"""Tests for the N-row :class:`ForkPickerModal`.
 
 Verifies that the picker:
 

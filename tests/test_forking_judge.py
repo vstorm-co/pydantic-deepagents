@@ -1,4 +1,4 @@
-"""Live Run Forking — Stage 6 judge tests (issue #107)."""
+"""Live Run Forking — judge tests (issue #107)."""
 
 from __future__ import annotations
 
@@ -508,7 +508,7 @@ async def test_resolve_uses_handle_strategy_when_none_passed():
 
 
 async def test_merge_strategy_default_is_auto_with_fallback():
-    """Regression guard for the Stage 6 default flip."""
+    """Regression guard: default :class:`MergeStrategy` must be ``auto_with_fallback``."""
     assert MergeStrategy().kind == "auto_with_fallback"
     assert MergeStrategy().confidence_threshold == 0.80
 

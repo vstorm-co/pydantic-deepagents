@@ -40,8 +40,8 @@ class MergePickerResult:
 class MergePickerModal(ModalScreen["MergePickerResult | None"]):
     """Pick the winner of an active fork.
 
-    Stage 3 caps branches at 2, so the modal hard-codes ``1`` / ``2`` key
-    bindings. Stage 4 lifts the cap and can generalise this to N keys.
+    Bindings ``1``–``9`` pick the corresponding branch panel directly;
+    for more than 9 branches, arrow navigation is the primary method.
     """
 
     DEFAULT_CSS = """

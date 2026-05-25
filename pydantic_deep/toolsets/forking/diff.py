@@ -1,15 +1,13 @@
-"""Diff builder over fork branches — Stage 2 of Live Run Forking.
+"""Diff builder over fork branches.
 
 Produces a typed :class:`BranchDiffReport` by walking each branch's
 :class:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay` changes,
 grouping them by path, and rendering unified diffs against the shared
-parent backend. Consumed by Stage 3 (CLI merge picker), Stage 5 (IDE
-bridge), and Stage 6 (judge).
+parent backend. Consumed by the CLI merge picker, IDE bridge, and judge.
 
 The module exposes :func:`build_diff_report` (public) and helpers; the
 agent-facing ``diff_branches`` tool lives in this package's ``__init__``
-to keep the toolset's tool registry in one file (mirrors the Stage 1
-pattern).
+to keep the toolset's tool registry in one file.
 
 **Read consistency.** :func:`build_diff_report` does not acquire the
 coordinator's ``_lock``. While a branch is still writing, an in-flight
@@ -190,12 +188,8 @@ def _build_branch_change(
             is_binary=False,
         )
 
-    # Stage 1 ``BranchOverlay`` records a change for every successful write,
-    # and has no delete op — so ``_read_path_bytes`` is guaranteed to return
-    # bytes here. ``_classify_agreement`` is unit-tested for the deletion case
-    # via ``test_diff_classifies_deletion_as_split``; when the overlay grows
-    # delete support, this function will need a branch to surface it.
-    # ``raise`` rather than ``assert`` so the guard survives ``python -O``.
+    # ``BranchOverlay`` has no delete op, so ``_read_path_bytes`` always
+    # returns bytes here. ``raise`` rather than ``assert`` to survive ``python -O``.
     raw = _read_path_bytes(overlay, path)
     if raw is None:  # pragma: no cover - invariant guard; see comment above
         raise RuntimeError(
@@ -241,9 +235,9 @@ def build_diff_report(
 ) -> BranchDiffReport:
     """Build a :class:`BranchDiffReport` from a list of branch runtimes.
 
-    This is the public entry point for the Stage 2 diff explorer. The
+    This is the public entry point for the diff explorer. The
     agent-facing :func:`diff_branches` tool calls into this; downstream
-    consumers (Stage 3 CLI, Stage 6 judge) call it directly for
+    consumers (CLI merge picker, judge) call it directly for
     programmatic access.
 
     Args:

@@ -1,4 +1,4 @@
-"""Tests for :class:`JudgeLoadingScreen` — Stage 6 judge progress overlay.
+"""Tests for :class:`JudgeLoadingScreen` — judge progress overlay.
 
 Drives the screen through Textual's :class:`Pilot`, asserting that:
 

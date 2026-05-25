@@ -1,8 +1,7 @@
 """Fork state storage protocol and in-memory implementation.
 
-Stage 1 ships ``InMemoryForkStateStore`` only. Persistent stores
-(file-backed, SQLite, etc.) are explicitly out of scope until after the
-full Stage 6 lands.
+``InMemoryForkStateStore`` is the default store. Persistent stores
+(file-backed, SQLite, etc.) are not yet implemented.
 """
 
 from __future__ import annotations

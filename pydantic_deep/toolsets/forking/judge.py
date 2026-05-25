@@ -1,4 +1,4 @@
-"""Autonomous judge for Live Run Forking — Stage 6 of the epic.
+"""Autonomous judge for Live Run Forking.
 
 This module wires a cheap model behind the :class:`MergeStrategy` ``"auto"`` /
 ``"auto_with_fallback"`` / ``"vote"`` paths. The judge sees the original goal,
@@ -8,8 +8,8 @@ which keeps the prompt bounded and the cost predictable.
 
 The combined confidence is ``heuristic × judge.confidence``; the heuristic is
 ``0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 * internal_consistency``,
-capped at ``0.65`` when no test signal is available (Stage 6 ships without
-per-branch test integration; the cap forces fallback-to-manual in practice).
+capped at ``0.65`` when no test signal is available (no per-branch test
+integration yet; the cap forces fallback-to-manual in practice).
 
 The agent-facing :meth:`ForkCoordinator.resolve` calls into this module; the
 toolset's ``__init__`` re-exports :class:`JudgeAgent` and helpers for
@@ -110,7 +110,7 @@ def _format_outcomes(outcomes: list[BranchOutcome]) -> str:
 def _format_diff_report(report: BranchDiffReport) -> str:
     """Compact textual rendering of a :class:`BranchDiffReport`.
 
-    Stage 2's ``build_diff_report`` already truncates each path's unified diff
+    :func:`build_diff_report` already truncates each path's unified diff
     at 500 lines via ``create_content_preview``; we don't re-truncate here.
     """
     summary = report.summary

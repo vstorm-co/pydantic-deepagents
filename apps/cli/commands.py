@@ -140,9 +140,6 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                 app.message_history = history[-keep:]
                 app.notify(f"Trimmed to last {keep} messages")
             elif mode == "llm":
-                # LLM-based: keep more context (last 30) since we can't
-                # easily call the summarization processor from here.
-                # Try to use ContextManagerCapability if available.
                 compacted = False
                 try:
                     agent = app.agent
@@ -722,7 +719,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
     The judge is invoked via ``app.push_screen(JudgeLoadingScreen, callback)``
     rather than ``push_screen_wait`` — the latter requires a Textual worker
     context that the slash-command router doesn't provide and would break
-    pre-Stage-6 tests that drive ``/merge`` from a coroutine directly.
+    tests that drive ``/merge`` from a coroutine directly.
     """
     from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 
@@ -815,10 +812,6 @@ async def _dispatch_merge(app: DeepApp) -> None:
         _push_picker()
         return
 
-    # Non-manual: push the loading screen with a callback. Using
-    # ``push_screen + callback`` instead of ``push_screen_wait`` lets the
-    # router invoke ``/merge`` from a plain coroutine — Stage 3's manual-merge
-    # test and the slash-command dispatcher both rely on that.
     from apps.cli.widgets.judge_loading import JudgeLoadingScreen
 
     async def _on_judge_complete(result: Any) -> None:

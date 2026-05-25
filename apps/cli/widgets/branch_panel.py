@@ -2,9 +2,9 @@
 
 A :class:`BranchPanelWidget` wraps a :class:`MessageList` (the same widget
 the parent chat uses) so tool-call rendering and assistant-message layout
-are visually identical. The panel does not stream branch output live in
-Stage 3; it shows status and replays the final ``all_messages()`` list
-once the branch task completes — the chat screen attaches an
+are visually identical. The panel does not stream branch output live;
+it shows status and replays the final ``all_messages()`` list once the
+branch task completes — the chat screen attaches an
 ``asyncio.Task.add_done_callback`` per branch to populate it.
 """
 

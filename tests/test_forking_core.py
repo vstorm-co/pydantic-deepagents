@@ -1,4 +1,4 @@
-"""Live Run Forking — Stage 1 kernel tests (issue #102)."""
+"""Live Run Forking — coordinator and branch kernel tests (issue #102)."""
 
 from __future__ import annotations
 

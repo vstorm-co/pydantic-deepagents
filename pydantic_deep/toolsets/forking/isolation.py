@@ -4,8 +4,8 @@ The overlay wraps a parent :class:`BackendProtocol` so a branch's writes
 land in an isolated layer while reads of untouched paths fall through to
 the parent. Every overlay write is recorded in
 :attr:`BranchOverlay._changes` — the temporally-ordered list returned by
-:meth:`BranchOverlay.changes`, which is the data spine consumed by Stage 2's
-diff, Stage 5's materializer, and Stage 6's judge.
+:meth:`BranchOverlay.changes`, which is the data spine consumed by the diff
+builder, disk materializer, and judge.
 
 ``clone_for_branch`` produces a fresh :class:`DeepAgentDeps` for a branch
 based on a :class:`BranchIsolation` policy.
@@ -44,24 +44,18 @@ class BranchOverlay:
     Reads consult the overlay first; if a path has not been written in
     this branch, the read falls through to the parent backend. Writes go
     to the overlay only and are logged to ``_changes`` for downstream
-    consumers (Stage 2/5/6).
+    consumers (diff builder, materializer, judge).
 
-    The overlay is intentionally minimal in Stage 1 — it implements the
-    subset of :class:`BackendProtocol` exercised by the kernel test plan
-    (read, write, edit, ``ls_info``, ``glob_info``, ``grep_raw``,
-    ``read_bytes``). Forwarding for the latter three merges overlay and
-    parent results with the overlay taking precedence.
+    The overlay implements the subset of :class:`BackendProtocol` exercised
+    by branch operations (read, write, edit, ``ls_info``, ``glob_info``,
+    ``grep_raw``, ``read_bytes``). Forwarding for the latter three merges
+    overlay and parent results with the overlay taking precedence.
     """
 
     def __init__(self, parent: BackendProtocol) -> None:
         self._parent = parent
         self._overlay = StateBackend()
         self._changes: list[FileChange] = []
-        #: Stage 5 hook — populated by the coordinator when forking with
-        #: ``LiveForkCapability``. Each successful overlay write/edit
-        #: mirrors to disk via :meth:`ForkMaterializer.flush_change` and
-        #: triggers a one-shot parent snapshot for the path via
-        #: :meth:`ForkMaterializer.snapshot_parent_path`.
         self._materializer: ForkMaterializer | None = None
         self._branch_label: str | None = None
 
@@ -175,8 +169,8 @@ class BranchOverlay:
         path: str | None = None,
         **kwargs: Any,
     ) -> list[GrepMatch] | str:
-        # Stage 1: forward to parent. Overlay grep is a Stage 2 concern when
-        # diff_branches needs cross-overlay grep — punt for now.
+        # Forward to parent. Overlay grep (cross-branch grep in diff_branches)
+        # is not yet implemented — punt for now.
         result: list[GrepMatch] | str = self._parent.grep_raw(pattern, path, **kwargs)
         return result
 
@@ -230,7 +224,7 @@ class BranchOverlay:
         parent: BackendProtocol,
         pre_flush_snapshot: dict[str, bytes | None] | None = None,
     ) -> FlushReport:
-        """Replay this overlay's writes onto ``parent`` — Stage 5 addendum.
+        """Replay this overlay's writes onto ``parent``.
 
         Args:
             parent: Destination backend. Usually the parent run's backend;
@@ -324,7 +318,7 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
     """Clone ``DeepAgentDeps`` for a branch according to ``isolation``.
 
     See :class:`BranchIsolation` for per-flag semantics. Memory isolation
-    in Stage 1 follows the backend (memory lives at
+    follows the backend (memory lives at
     ``{memory_dir}/{agent_name}/MEMORY.md`` inside the backend); the
     ``memory`` flag is recorded for forward-compat but has no separate
     effect here. ``team_bus`` is a no-op when the teams capability is not

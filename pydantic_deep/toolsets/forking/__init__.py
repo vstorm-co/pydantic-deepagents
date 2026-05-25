@@ -1,9 +1,9 @@
-"""Agent-facing tools for Live Run Forking (Stage 1 kernel).
+"""Agent-facing tools for Live Run Forking.
 
 Exposes ``create_fork_toolset()`` returning a :class:`FunctionToolset` with
 four tools:
 
-- ``fork_run`` — spawn N branch tasks (max 2 in Stage 1).
+- ``fork_run`` — spawn N branch tasks.
 - ``inspect_branches`` — read current branch statuses.
 - ``merge_or_select`` — resolve the fork by picking a winner.
 - ``terminate_branch`` — cancel one branch task.
@@ -111,7 +111,7 @@ def create_fork_toolset(  # noqa: C901
                 ``extra_instructions``.
             isolation: Optional per-branch isolation overrides
                 (see :class:`BranchIsolation`).
-            strategy: Optional merge strategy (Stage 1: only ``{"kind": "manual"}``).
+            strategy: Optional merge strategy (defaults to ``{"kind": "auto_with_fallback"}``).
             aggregate_budget_usd: Optional fork-wide cap; when set, hitting
                 the sum across branches terminates every still-running
                 branch with state ``"aggregate_budget_exhausted"``.
@@ -159,7 +159,7 @@ def create_fork_toolset(  # noqa: C901
         ctx: RunContext[DeepAgentDeps],
         action: str,
     ) -> str:
-        """Resolve the fork — Stage 1 supports ``action='pick:<branch_id>'``."""
+        """Resolve the fork via ``action='pick:<branch_id>'``."""
         coordinator = _coordinator_from_ctx(ctx)
         if coordinator is None:
             return NOT_ENABLED_MESSAGE
@@ -206,7 +206,7 @@ def create_fork_toolset(  # noqa: C901
         Returns a :class:`BranchDiffReport` on success, or a string error
         message (forking disabled, no active fork, mismatched fork id).
 
-        The mixed return type mirrors the Stage 1 forking tools'
+        The mixed return type mirrors the forking tools'
         error-as-string convention so the LLM sees errors consistently.
         Programmatic Python consumers should call
         :func:`build_diff_report` directly instead — the builder takes

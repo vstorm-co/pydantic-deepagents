@@ -1,4 +1,4 @@
-"""Live Run Forking — Stage 4 budget + aggregate cap tests (issue #105).
+"""Live Run Forking — budget and aggregate cap tests (issue #105).
 
 The 7 cases from the issue's Test plan. Cost callbacks fire in two places
 in production: ``CostTracking.after_run`` invokes ``on_cost_update`` once

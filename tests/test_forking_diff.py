@@ -1,4 +1,4 @@
-"""Live Run Forking — Stage 2 diff explorer tests (issue #103)."""
+"""Live Run Forking — diff explorer tests (issue #103)."""
 
 from __future__ import annotations
 
@@ -651,7 +651,7 @@ async def test_diff_tool_returns_typed_report_on_success() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Public build_diff_report — documented entry point used by docs / Stage 3/6
+# Public build_diff_report — documented entry point used by the CLI, judge, and docs
 # ---------------------------------------------------------------------------
 
 

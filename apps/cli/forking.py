@@ -1,14 +1,14 @@
-"""CLI bridge for Live Run Forking — Stage 3.
+"""CLI bridge for Live Run Forking.
 
-The TUI talks to the Stage 1 :class:`ForkCoordinator` through this thin
+The TUI talks to the :class:`ForkCoordinator` through this thin
 wrapper rather than going through the agent-facing ``fork_run`` tool: the
 user types ``/fork`` directly, so we construct a coordinator ourselves
 (mirroring what :meth:`LiveForkCapability.for_run` does inside an
 ``agent.run()``) and call :meth:`ForkCoordinator.fork` with the parent's
 message history.
 
-The Stage 1 coordinator handles the pre-fork / post-fork checkpoint
-anchors internally; the CLI bridge must not re-create them.
+The coordinator handles the pre-fork / post-fork checkpoint anchors
+internally; the CLI bridge must not re-create them.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ class CLIForkSession:
     """App-level wrapper around a single active :class:`ForkCoordinator`.
 
     Attributes:
-        coordinator: The Stage 1 coordinator owning per-branch tasks.
+        coordinator: The :class:`ForkCoordinator` owning per-branch tasks.
         handle: The :class:`ForkHandle` returned by :meth:`ForkCoordinator.fork`.
         label_to_id: Resolves user-supplied branch labels (e.g. ``"a"``,
             ``"approach_a"``) to the coordinator's internal UUID branch ids.
@@ -166,9 +166,9 @@ async def start_fork_from_cli(
 ) -> CLIForkSession:
     """Construct a :class:`ForkCoordinator` for ``app`` and fork it.
 
-    The Stage 1 :meth:`LiveForkCapability.for_run` only allocates a
-    coordinator at the start of an ``agent.run()``; since the CLI fires
-    ``/fork`` outside of any run, we mirror that allocation here. The
+    :meth:`LiveForkCapability.for_run` only allocates a coordinator at the
+    start of an ``agent.run()``; since the CLI fires ``/fork`` outside of
+    any run, we mirror that allocation here. The
     fresh coordinator is assigned to ``app.deps.fork_coordinator`` so the
     agent-facing ``fork_run`` / ``inspect_branches`` / ``merge_or_select``
     tools also resolve to the same coordinator if the agent driving any

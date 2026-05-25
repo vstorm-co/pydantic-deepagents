@@ -1,7 +1,7 @@
 """Acceptance modal for above-threshold ``auto_with_fallback`` resolution.
 
-Stage 6 of Live Run Forking — shown by the CLI when
-:meth:`ForkCoordinator.resolve` returns ``auto_eligible=True`` (the judge's
+Shown by the CLI when :meth:`ForkCoordinator.resolve` returns
+``auto_eligible=True`` (the judge's
 confidence is at or above the threshold but the commit was deferred so the
 user can override). The widget renders the judge's verdict, then dispatches
 on three actions:

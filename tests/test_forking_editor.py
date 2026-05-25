@@ -1,4 +1,4 @@
-"""Stage 5 — :class:`EditorDetector` tests (issue #106)."""
+""":class:`EditorDetector` tests (issue #106)."""
 
 from __future__ import annotations
 
@@ -101,7 +101,7 @@ def test_tui_invoke_returns_empty_list_and_spawns_no_processes() -> None:
 
 
 def test_custom_invoke_uses_template_substitution() -> None:
-    """Stage 5 ``custom`` kind: env var template gets ``{parent}`` / ``{branches}`` filled in."""
+    """``custom`` kind: env var template gets ``{parent}`` / ``{branches}`` filled in."""
     with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         EditorDetector.invoke(

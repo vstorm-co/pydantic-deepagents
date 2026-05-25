@@ -1,4 +1,4 @@
-"""Tests for the CLI fork integration — Stage 3 of Live Run Forking (issue #104).
+"""Tests for the CLI fork integration (issue #104).
 
 Follows the ``TestMessageQueueIntegration`` pattern from ``test_tui.py``:
 build a :class:`DeepApp` with a real forking-enabled agent, drive
@@ -86,8 +86,8 @@ async def _start_fork(
     """Helper — start a fork; if ``slow`` is True, branch tasks block on a barrier.
 
     ``strategy`` lets a test pin a specific :class:`MergeStrategy` for ``/merge``
-    flow tests. ``None`` keeps the dataclass default (Stage 6:
-    ``auto_with_fallback``). The strategy is patched onto
+    flow tests. ``None`` keeps the dataclass default (``auto_with_fallback``).
+    The strategy is patched onto
     ``session.handle.merge_strategy`` after fork to avoid threading a kwarg
     through :func:`start_fork_from_cli` (production never overrides per-call).
     """
@@ -872,7 +872,7 @@ class TestOrphanToolCallScrub:
 
 
 # =====================================================================
-# Stage 5 CLI/TUI tests (H–M from plan)
+# CLI/TUI diff-explorer tests (H–M from plan)
 # =====================================================================
 
 

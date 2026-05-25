@@ -5,12 +5,11 @@ The coordinator is the workhorse of Live Run Forking. It owns the
 serialises mutating operations via a per-coordinator lock, and resolves
 merges by awaiting the picked winner's task.
 
-Stage 1 limits (``max_branches=2``, ``max_depth=1``) are lifted to ``10`` /
-``2`` in Stage 4, which also adds per-branch :class:`CostTracking`-driven
-budget caps (:class:`_BudgetWatcher`), a fork-wide aggregate cap
-(:class:`_AggregateBudgetWatcher`), the :meth:`ForkCoordinator.fork_cost`
-method, and partial-history capture so a budget-exhausted branch can still
-be picked as merge winner.
+Supports up to ``max_branches=10`` parallel branches and ``max_depth=2``
+nested forks. Per-branch :class:`CostTracking`-driven budget caps are
+managed by :class:`_BudgetWatcher`; a fork-wide aggregate cap by
+:class:`_AggregateBudgetWatcher`. Partial-history capture ensures
+budget-exhausted branches can still be picked as merge winners.
 """
 
 from __future__ import annotations
@@ -125,10 +124,6 @@ def _detect_vote_models(fallback: str) -> list[str]:
     if os.environ.get("OPENROUTER_API_KEY"):
         pool.extend(_OPENROUTER_CHEAP_MODELS)
 
-    # Deduplicate while preserving insertion order. Defensive — the four
-    # provider sources today produce disjoint model strings, so this branch
-    # only ever exits via the True path; ``no branch`` documents the intent
-    # without making the dedup a NOP.
     seen: set[str] = set()
     unique: list[str] = []
     for m in pool:  # pragma: no branch
@@ -258,10 +253,6 @@ class BranchRuntime:
     status: BranchStatus
     cost_tracker: CostTracking | None = None
     budget_usd: float | None = None
-    #: Snapshot of the branch's history captured on every
-    #: ``before_model_request``. When a budget watcher cancels the task
-    #: mid-run, ``merge_or_select`` falls back to this list because the
-    #: awaited task raises ``CancelledError`` and produces no result.
     partial_history: list[Any] = field(default_factory=list)
 
 
@@ -303,10 +294,6 @@ class ForkCoordinator:
         self.checkpoint_store = checkpoint_store
         self.aggregate_budget_usd = aggregate_budget_usd
         self.keep_artifacts = keep_artifacts
-        #: Base directory for materialized fork artefacts. Defaults to
-        #: ``.pydantic-deep/forks/`` under the current working directory;
-        #: the per-fork subdirectory ``{materializer_root}/{fork_id}`` is
-        #: created on each :meth:`fork` call.
         self.materializer_root: Path = (
             materializer_root if materializer_root is not None else Path(".pydantic-deep") / "forks"
         )
@@ -316,10 +303,6 @@ class ForkCoordinator:
         self.capability: LiveForkCapability | None = None
         self._aggregate_watcher: _AggregateBudgetWatcher | None = None
         self.materializer: ForkMaterializer | None = None
-        #: Cached outcome from the last :meth:`resolve` call.  Cleared on
-        #: :meth:`fork` (new fork resets state) and :meth:`merge_or_select`
-        #: (merge consumes the outcome).  Lets the CLI re-show the acceptance
-        #: widget on a second ``/merge`` without re-invoking the judge LLM.
         self._cached_outcome: ResolveOutcome | None = None
         self._cached_outcome_strategy_kind: str | None = None
 
@@ -327,7 +310,7 @@ class ForkCoordinator:
     def fork_id(self) -> str | None:
         """The active fork's id, or ``None`` if ``fork()`` has not been called yet.
 
-        Exposed so consumers (e.g. Stage 2's ``diff_branches`` tool) can
+        Exposed so consumers (e.g. the ``diff_branches`` tool) can
         validate caller-supplied ``fork_id`` without reaching into the
         coordinator's private ``_handle`` attribute.
         """
@@ -774,7 +757,7 @@ class ForkCoordinator:
     ) -> ConfidenceSignals:
         """Build :class:`ConfidenceSignals` for the winning branch.
 
-        Stage 6 ships without per-branch test integration, so
+        No per-branch test integration is available yet, so
         ``test_pass_ratio`` is always ``None``; the cap-at-0.65 safety rail in
         :func:`compute_confidence` keeps ``auto_with_fallback`` falling back to
         manual until a real test signal lands (see follow-ups).

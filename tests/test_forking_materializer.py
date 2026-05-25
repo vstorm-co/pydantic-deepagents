@@ -1,4 +1,4 @@
-"""Stage 5 — :class:`ForkMaterializer` and disk-mirror tests (issue #106)."""
+""":class:`ForkMaterializer` and disk-mirror tests (issue #106)."""
 
 from __future__ import annotations
 

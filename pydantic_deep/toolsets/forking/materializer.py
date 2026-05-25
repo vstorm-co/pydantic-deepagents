@@ -1,4 +1,4 @@
-"""Disk materializer for Live Run Forking — Stage 5.
+"""Disk materializer for Live Run Forking.
 
 Every successful :meth:`BranchOverlay.write` / :meth:`BranchOverlay.edit` is
 mirrored to disk under ``.pydantic-deep/forks/{fork_id}/branches/{label}/``
@@ -6,7 +6,7 @@ in real time, while the parent backend's pre-fork state is captured under
 ``.pydantic-deep/forks/{fork_id}/parent/`` (per-path, lazily, on the first
 overlay write for that path). The on-disk artefacts are the input to the
 PyCharm / VS Code diff tools wired in :mod:`pydantic_deep.toolsets.forking.editor`
-and to the Stage 5 addendum's ``flush_to`` conflict detection (the
+and to the ``flush_to`` conflict detection (the
 :meth:`pre_flush_snapshot` accessor exposes the snapshotted parent bytes
 to :meth:`BranchOverlay.flush_to`).
 

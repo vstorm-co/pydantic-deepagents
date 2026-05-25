@@ -1,4 +1,4 @@
-"""External diff tool detection and invocation — Stage 5.
+"""External diff tool detection and invocation.
 
 Detects which diff tool is available on the user's machine and launches it
 against the materialised parent + branch snapshots produced by
@@ -15,7 +15,7 @@ Detection priority (per project memory):
 3. ``code`` on ``PATH`` → VS Code pairwise — one ``Popen`` per branch,
    each ``["code", "--diff", parent, branch]``.
 4. Otherwise the kind becomes ``"tui"`` and :meth:`EditorDetector.invoke`
-   returns an empty list — the CLI dispatcher falls back to the Stage 3
+   returns an empty list — the CLI dispatcher falls back to the
    :class:`MergePickerModal` in diff-explore mode.
 """
 

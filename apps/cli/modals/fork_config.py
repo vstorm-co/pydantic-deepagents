@@ -31,7 +31,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Static
+from textual.widgets import Button, Input, Select, Static
 
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp
@@ -135,6 +135,16 @@ class ForkConfigModal(ModalScreen[None]):
         Binding("escape", "cancel", "Cancel"),
     ]
 
+    _STRATEGY_OPTIONS: list[tuple[str, str]] = [
+        (
+            "auto_with_fallback — judge picks; you confirm above threshold (default)",
+            "auto_with_fallback",
+        ),
+        ("manual — always open the picker", "manual"),
+        ("auto — judge picks and commits immediately", "auto"),
+        ("vote — three judges vote, majority wins", "vote"),
+    ]
+
     def __init__(self) -> None:
         super().__init__()
         self._branch_count: int = 1
@@ -142,6 +152,9 @@ class ForkConfigModal(ModalScreen[None]):
         self._branch_models: list[str | None] = []
         self._branch_budgets: list[float | None] = []
         self._agent_model: str = ""
+        self._merge_strategy: str = "auto_with_fallback"
+        self._judge_model: str = "anthropic:claude-haiku-4-5-20251001"
+        self._confidence_threshold: float = 0.80
 
     def _snapshot_app_state(self) -> None:
         """Snapshot fork knobs off :class:`DeepApp` once at compose time."""
@@ -151,6 +164,11 @@ class ForkConfigModal(ModalScreen[None]):
         self._branch_models = self._pad(list(app.fork_branch_models), None)
         self._branch_budgets = self._pad(list(app.fork_branch_budgets), None)
         self._agent_model = str(getattr(app, "model_name", "")) or "default"
+        self._merge_strategy = str(getattr(app, "fork_merge_strategy", "auto_with_fallback"))
+        self._judge_model = str(
+            getattr(app, "fork_judge_model", "anthropic:claude-haiku-4-5-20251001")
+        )
+        self._confidence_threshold = float(getattr(app, "fork_confidence_threshold", 0.80))
 
     def _pad(self, items: list, fill: object) -> list:
         """Pad/truncate ``items`` to ``self._branch_count`` slots."""
@@ -177,6 +195,27 @@ class ForkConfigModal(ModalScreen[None]):
                     placeholder="(unset)",
                     value=self._fmt_float(self._aggregate_budget),
                     id="fork-config-aggregate",
+                )
+            with Vertical(classes="fork-config-field"):
+                yield Static("Merge strategy")
+                yield Select(
+                    [(label, value) for label, value in self._STRATEGY_OPTIONS],
+                    value=self._merge_strategy,
+                    id="fork-config-strategy",
+                )
+            with Vertical(classes="fork-config-field"):
+                yield Static("Judge model  [dim](for auto / auto_with_fallback)[/dim]")
+                yield Button(
+                    self._judge_model,
+                    id="fork-config-judge-model-btn",
+                    classes="fork-config-model-btn",
+                )
+            with Vertical(classes="fork-config-field"):
+                yield Static("Confidence threshold  [dim](auto_with_fallback: 0.0–1.0)[/dim]")
+                yield Input(
+                    placeholder="0.80",
+                    value=str(self._confidence_threshold),
+                    id="fork-config-threshold",
                 )
             with Vertical(id="fork-config-rows"):
                 for i in range(self._branch_count):
@@ -260,8 +299,11 @@ class ForkConfigModal(ModalScreen[None]):
         await self.action_save()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Open the model picker for ``Branch N`` rows."""
+        """Open the model picker for branch rows or the judge model button."""
         btn_id = event.button.id or ""
+        if btn_id == "fork-config-judge-model-btn":
+            self._open_judge_model_picker()
+            return
         prefix = "fork-config-model-btn-"
         if not btn_id.startswith(prefix):
             return
@@ -272,6 +314,21 @@ class ForkConfigModal(ModalScreen[None]):
         if idx < 0 or idx >= len(self._branch_models):  # pragma: no cover - defensive
             return
         self._open_model_picker_for(idx)
+
+    def _open_judge_model_picker(self) -> None:
+        """Push :class:`ModelPickerModal` and write the result back to the judge model button."""
+        from apps.cli.modals.model_picker import ModelPickerModal
+
+        btn = self.query_one("#fork-config-judge-model-btn", Button)
+        current = str(btn.label)
+
+        def _on_pick(picked: str | None) -> None:
+            if not picked:
+                return
+            btn.label = picked
+            self._judge_model = picked
+
+        self.app.push_screen(ModelPickerModal(current), _on_pick)
 
     def _open_model_picker_for(self, idx: int) -> None:
         """Push :class:`ModelPickerModal` and write the result back to slot ``idx``."""
@@ -336,7 +393,34 @@ class ForkConfigModal(ModalScreen[None]):
         else:
             self._clear_error()
 
-    # ── save / cancel ──────────────────────────────────────────────────
+    def _read_judge_settings(self) -> tuple[str, str, float] | None:
+        """Validate and return ``(strategy, judge_model, threshold)`` or ``None`` on error."""
+        strategy_widget = self.query_one("#fork-config-strategy", Select)
+        strategy_value = strategy_widget.value
+        strategy = "auto_with_fallback" if strategy_value is Select.BLANK else str(strategy_value)
+
+        judge_model = str(self.query_one("#fork-config-judge-model-btn", Button).label).strip()
+        if not judge_model:
+            judge_model = "anthropic:claude-haiku-4-5-20251001"
+        if ":" not in judge_model:
+            self._show_error(
+                f"Judge model {judge_model!r} missing provider prefix "
+                "(e.g. 'anthropic:claude-haiku-4-5' or 'openrouter:anthropic/claude-haiku-4-5')"
+            )
+            return None
+
+        threshold_raw = self._input("fork-config-threshold").value.strip()
+        threshold: float = 0.80
+        if threshold_raw:
+            try:
+                threshold = float(threshold_raw)
+            except ValueError:
+                self._show_error(f"Confidence threshold: invalid number {threshold_raw!r}")
+                return None
+            if not 0.0 <= threshold <= 1.0:
+                self._show_error("Confidence threshold must be in [0.0, 1.0]")
+                return None
+        return strategy, judge_model, threshold
 
     async def action_save(self) -> None:
         count_raw = self._input("fork-config-count").value.strip()
@@ -389,11 +473,19 @@ class ForkConfigModal(ModalScreen[None]):
                 return
             budgets.append(parsed_b)
 
+        judge_settings = self._read_judge_settings()
+        if judge_settings is None:
+            return
+        strategy, judge_model_raw, threshold = judge_settings
+
         app = self._app()
         app.fork_branch_count = count
         app.fork_aggregate_budget_usd = aggregate_budget
         app.fork_branch_models = models
         app.fork_branch_budgets = budgets
+        app.fork_merge_strategy = strategy  # type: ignore[assignment]
+        app.fork_judge_model = judge_model_raw
+        app.fork_confidence_threshold = threshold
 
         _persist(app, "fork_branch_count", str(count))
         _persist(
@@ -411,6 +503,9 @@ class ForkConfigModal(ModalScreen[None]):
             "fork_branch_budgets",
             ",".join("" if b is None else str(b) for b in budgets),
         )
+        _persist(app, "fork_merge_strategy", strategy)
+        _persist(app, "fork_judge_model", judge_model_raw)
+        _persist(app, "fork_confidence_threshold", str(threshold))
         app.notify("Fork config saved")
         self.dismiss(None)
 

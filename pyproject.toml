@@ -114,7 +114,7 @@ build-backend = "hatchling.build"
 # (e.g. >=0.2.8) once a new release ships and remove this block.
 # See vstorm-co/pydantic-ai-backend#37.
 [tool.uv.sources]
-pydantic-ai-backend = { git = "https://github.com/vstorm-co/pydantic-ai-backend.git", branch = "feat/backend-exists-predicate" }
+pydantic-ai-backend = { path = "../pydantic-ai-backend", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["pydantic_deep", "apps"]

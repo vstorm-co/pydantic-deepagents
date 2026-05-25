@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 import uuid
 import warnings
 from dataclasses import dataclass, field
@@ -25,22 +26,35 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 from pydantic_ai_shields import CostInfo, CostTracking
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
+from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.toolsets.forking.judge import (
+    JudgeAgent,
+    _majority_pick,
+    compute_confidence,
+    count_retry_parts,
+    count_stuck_loop_hits,
+)
 from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 from pydantic_deep.toolsets.forking.store import ForkStateStore
 from pydantic_deep.types import (
     BranchCost,
     BranchIsolation,
+    BranchOutcome,
     BranchSpec,
     BranchStatus,
+    ConfidenceSignals,
     ForkCostSummary,
     ForkHandle,
+    JudgeVerdict,
     MergeResult,
     MergeStrategy,
+    ResolveOutcome,
 )
 
 if TYPE_CHECKING:
@@ -54,6 +68,98 @@ logger = logging.getLogger(__name__)
 #: How long to wait for a cancelled discarded branch to finish its ``finally``
 #: cleanup during ``merge_or_select`` before giving up and moving on.
 _CANCEL_CLEANUP_TIMEOUT_S: float = 1.0
+
+#: Native-provider cheap models — one model per env-var-guarded vendor.
+#: Checked in order; first available wins the slot in the vote panel.
+_NATIVE_CHEAP_MODELS: tuple[tuple[str, str], ...] = (
+    ("ANTHROPIC_API_KEY", "anthropic:claude-haiku-4-5"),
+    ("OPENAI_API_KEY", "openai:gpt-4o-mini"),
+    ("MISTRAL_API_KEY", "mistral:mistral-small-latest"),
+    ("GROQ_API_KEY", "groq:llama-3.1-8b-instant"),
+    ("COHERE_API_KEY", "cohere:command-r"),
+)
+
+#: Google uses several different env var names depending on the SDK version.
+_GOOGLE_ENV_VARS: tuple[str, ...] = (
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "GOOGLE_GENERATIVE_AI_API_KEY",
+)
+_GOOGLE_CHEAP_MODEL = "google-gla:gemini-3.1-flash-lite-preview"
+
+#: OpenRouter: one API key, three cheap model-family representatives.
+_OPENROUTER_CHEAP_MODELS: tuple[str, ...] = (
+    "openrouter:anthropic/claude-haiku-4-5",
+    "openrouter:openai/gpt-5.4",
+    "openrouter:google/gemini-3.1-flash-lite-preview",
+)
+
+
+def _detect_vote_models(fallback: str) -> list[str]:
+    """Build a diverse 3-judge panel from whichever API keys are present.
+
+    Detection order:
+
+    1. Native providers (Anthropic, OpenAI, Mistral, Groq, Cohere) — each
+       contributes one cheap model when its env var is set.
+    2. Google — checked via several possible env var names.
+    3. OpenRouter — contributes three different model-family representatives
+       (haiku, gpt-mini, gemini-flash) through a single key, maximising
+       diversity when only one API key is configured.
+
+    The collected models are deduplicated (OpenRouter + Anthropic key would
+    otherwise produce two haiku variants), then cycled to fill exactly 3
+    slots. If no keys are detected the ``fallback`` model is used three
+    times — same behaviour as before, but at least won't crash on a missing
+    key.
+    """
+    pool: list[str] = []
+
+    for env_var, model in _NATIVE_CHEAP_MODELS:
+        if os.environ.get(env_var):
+            pool.append(model)
+
+    if any(os.environ.get(v) for v in _GOOGLE_ENV_VARS):
+        pool.append(_GOOGLE_CHEAP_MODEL)
+
+    if os.environ.get("OPENROUTER_API_KEY"):
+        pool.extend(_OPENROUTER_CHEAP_MODELS)
+
+    # Deduplicate while preserving insertion order. Defensive — the four
+    # provider sources today produce disjoint model strings, so this branch
+    # only ever exits via the True path; ``no branch`` documents the intent
+    # without making the dedup a NOP.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for m in pool:  # pragma: no branch
+        if m not in seen:
+            unique.append(m)
+            seen.add(m)
+
+    if not unique:
+        return [fallback] * 3
+
+    return [unique[i % len(unique)] for i in range(3)]
+
+
+def _last_assistant_text(messages: list[Any]) -> str:
+    """Join the text parts of the final :class:`ModelResponse` in ``messages``.
+
+    Returns ``""`` when no model response is present (e.g. a branch that was
+    cancelled before any assistant turn fired). Used by
+    :meth:`ForkCoordinator._build_branch_outcomes` to seed the per-branch
+    ``final_assistant_message`` shown to the judge.
+    """
+    for msg in reversed(messages):
+        if not isinstance(msg, ModelResponse):
+            continue
+        chunks: list[str] = []
+        for part in msg.parts:
+            text = getattr(part, "content", None)
+            if isinstance(text, str):
+                chunks.append(text)
+        return "".join(chunks)
+    return ""
 
 
 class ForkBranchLimitError(Exception):
@@ -210,6 +316,12 @@ class ForkCoordinator:
         self.capability: LiveForkCapability | None = None
         self._aggregate_watcher: _AggregateBudgetWatcher | None = None
         self.materializer: ForkMaterializer | None = None
+        #: Cached outcome from the last :meth:`resolve` call.  Cleared on
+        #: :meth:`fork` (new fork resets state) and :meth:`merge_or_select`
+        #: (merge consumes the outcome).  Lets the CLI re-show the acceptance
+        #: widget on a second ``/merge`` without re-invoking the judge LLM.
+        self._cached_outcome: ResolveOutcome | None = None
+        self._cached_outcome_strategy_kind: str | None = None
 
     @property
     def fork_id(self) -> str | None:
@@ -412,6 +524,8 @@ class ForkCoordinator:
             )
             await self.store.save(handle)
             self._handle = handle
+            self._cached_outcome = None
+            self._cached_outcome_strategy_kind = None
             self._refresh_manifest()
             return handle
 
@@ -568,7 +682,264 @@ class ForkCoordinator:
             if self.materializer is not None:  # pragma: no branch - fork() always allocates one
                 self.materializer.cleanup()
 
+            self._cached_outcome = None
+            self._cached_outcome_strategy_kind = None
+
             return merge_result
+
+    def _build_branch_outcomes(self) -> tuple[list[BranchOutcome], str]:
+        """Materialise per-branch summaries + the parent's first user message.
+
+        ``goal`` is the first :class:`UserPromptPart` content found in any
+        branch's history — every branch shares the parent's pre-fork history,
+        so the first one we encounter is canonical. Returns ``""`` if no
+        ``UserPromptPart`` is present (defensive; the prompt builder handles
+        an empty goal gracefully).
+        """
+        outcomes: list[BranchOutcome] = []
+        goal = ""
+        goal_found = False
+        terminal_error_states = {
+            "failed",
+            "terminated",
+            "budget_exhausted",
+            "aggregate_budget_exhausted",
+        }
+        for branch_id, rt in self.branches.items():
+            messages = self._messages_for(rt)
+            if not goal_found:
+                for msg in messages:
+                    if not isinstance(msg, ModelRequest):
+                        continue
+                    for part in msg.parts:
+                        if isinstance(part, UserPromptPart) and isinstance(part.content, str):
+                            goal = part.content
+                            goal_found = True
+                            break
+                    if goal_found:
+                        break
+            final_msg = _last_assistant_text(messages)
+            turns = sum(1 for m in messages if isinstance(m, ModelResponse))
+            cost = rt.cost_tracker.total_cost if rt.cost_tracker is not None else None
+            outcomes.append(
+                BranchOutcome(
+                    branch_id=branch_id,
+                    branch_label=rt.spec.label,
+                    steer=rt.spec.steer,
+                    final_assistant_message=final_msg,
+                    cost_usd=cost,
+                    turns=turns,
+                    error_count=1 if rt.status.state in terminal_error_states else 0,
+                    retry_count=count_retry_parts(messages),
+                    stuck_loop_hits=count_stuck_loop_hits(messages),
+                )
+            )
+        return outcomes, goal
+
+    @staticmethod
+    def _messages_for(rt: BranchRuntime) -> list[Any]:
+        """Return the best-available message list for one branch runtime.
+
+        Prefers the completed task's ``result.all_messages()`` when the task
+        finished cleanly; otherwise falls back to the live
+        ``partial_history`` snapshot captured by
+        :class:`LiveForkCapability.before_model_request`. Always returns a
+        ``list`` so downstream consumers can iterate without a None-check.
+        """
+        if rt.task.done() and not rt.task.cancelled():
+            try:
+                result = rt.task.result()
+            except Exception:
+                # The task raised — log so we know why we're falling back to
+                # the partial-history snapshot, then return it. Don't catch
+                # ``BaseException``: ``CancelledError`` / ``SystemExit`` must
+                # propagate.
+                logger.warning(
+                    "branch %s result unreadable; falling back to partial_history",
+                    rt.status.id,
+                    exc_info=True,
+                )
+                return list(rt.partial_history)
+            messages_fn = getattr(result, "all_messages", None)
+            if callable(messages_fn):
+                produced: Any = messages_fn()
+                return list(produced)
+        return list(rt.partial_history)
+
+    def _compute_signals(
+        self,
+        report: Any,
+        outcomes: list[BranchOutcome],
+        winner_id: str,
+    ) -> ConfidenceSignals:
+        """Build :class:`ConfidenceSignals` for the winning branch.
+
+        Stage 6 ships without per-branch test integration, so
+        ``test_pass_ratio`` is always ``None``; the cap-at-0.65 safety rail in
+        :func:`compute_confidence` keeps ``auto_with_fallback`` falling back to
+        manual until a real test signal lands (see follow-ups).
+        """
+        quality_spread = 1.0 - report.summary.agreement_score
+        winner = next((o for o in outcomes if o.branch_id == winner_id), None)
+        if winner is None:
+            internal_consistency = 0.0
+        else:
+            denom = max(winner.turns, 1)
+            raw = 1.0 - (winner.retry_count + winner.stuck_loop_hits) / denom
+            internal_consistency = max(0.0, min(1.0, raw))
+        return ConfidenceSignals(
+            quality_spread=quality_spread,
+            test_pass_ratio=None,
+            internal_consistency=internal_consistency,
+        )
+
+    async def resolve(
+        self,
+        strategy: MergeStrategy | None = None,
+    ) -> ResolveOutcome:
+        """Dispatch on :attr:`MergeStrategy.kind` — judge runs for non-manual modes.
+
+        - ``"manual"`` → early-return ``ResolveOutcome(committed=False,
+          auto_eligible=False, verdict=None, ...)``; the caller picks via
+          :meth:`merge_or_select`.
+        - ``"auto"`` → judge picks, ``merge_or_select`` fires immediately.
+        - ``"auto_with_fallback"`` → judge picks. If the combined confidence is
+          at or above :attr:`MergeStrategy.confidence_threshold` the commit is
+          **deferred** to the caller (``committed=False,
+          auto_eligible=True``) so the CLI's acceptance widget can offer an
+          override; otherwise ``auto_eligible=False`` and the caller opens
+          the manual picker preselected.
+        - ``"vote"`` → multiple judges evaluate concurrently; majority wins,
+          ties broken by highest individual confidence; ``merge_or_select``
+          fires immediately on the synthetic majority verdict.
+
+        The judge's ``result.usage()`` rides on
+        :attr:`ResolveOutcome.judge_usage` (summed across judges for
+        ``"vote"``) so the caller can attribute cost without faking a
+        ``cost_category`` field on pydantic-ai-shields' ``CostTracking``.
+        """
+        if self._handle is None:
+            raise RuntimeError("resolve() called before fork() — no active fork.")
+        effective_strategy = strategy if strategy is not None else self._handle.merge_strategy
+
+        if effective_strategy.kind == "manual":
+            return ResolveOutcome(
+                committed=False,
+                auto_eligible=False,
+                verdict=None,
+                signals=None,
+                effective_confidence=0.0,
+                merge_result=None,
+                judge_usage=None,
+            )
+
+        # Return cached outcome when the strategy kind hasn't changed — avoids
+        # re-invoking the judge LLM on a second /merge after the user dismisses
+        # the acceptance widget without committing (e.g. opens diff then escapes).
+        if (
+            self._cached_outcome is not None
+            and self._cached_outcome_strategy_kind == effective_strategy.kind
+        ):
+            logger.debug("resolve: returning cached outcome (kind=%r)", effective_strategy.kind)
+            return self._cached_outcome
+
+        outcomes, goal = self._build_branch_outcomes()
+        diff_report = build_diff_report(self._handle.fork_id, list(self.branches.values()))
+
+        verdict, judge_usage = await self._run_judges(
+            effective_strategy, goal, diff_report, outcomes
+        )
+
+        signals = self._compute_signals(diff_report, outcomes, verdict.winner_branch_id)
+        effective_confidence = compute_confidence(signals, verdict.confidence)
+
+        if effective_strategy.kind in ("auto", "vote"):
+            # auto/vote commit immediately — no point caching a committed outcome.
+            return await self._commit_and_wrap(
+                verdict=verdict,
+                signals=signals,
+                effective_confidence=effective_confidence,
+                judge_usage=judge_usage,
+            )
+        # kind == "auto_with_fallback" — commit is deferred; cache so the user
+        # can re-open /merge without re-paying for the judge call.
+        above_threshold = effective_confidence >= effective_strategy.confidence_threshold
+        outcome = ResolveOutcome(
+            committed=False,
+            auto_eligible=above_threshold,
+            verdict=verdict,
+            signals=signals,
+            effective_confidence=effective_confidence,
+            merge_result=None,
+            judge_usage=judge_usage,
+        )
+        self._cached_outcome = outcome
+        self._cached_outcome_strategy_kind = effective_strategy.kind
+        return outcome
+
+    async def _commit_and_wrap(
+        self,
+        *,
+        verdict: JudgeVerdict,
+        signals: ConfidenceSignals,
+        effective_confidence: float,
+        judge_usage: Any,
+    ) -> ResolveOutcome:
+        """Commit the merge for ``auto`` / ``vote`` modes and wrap the result.
+
+        Extracted from :meth:`resolve` so both modes share one code path —
+        keeps the two paths from drifting if the commit semantics ever grow
+        (e.g. an additional checkpoint, a notification hook).
+        """
+        merge_result = await self.merge_or_select(f"pick:{verdict.winner_branch_id}")
+        return ResolveOutcome(
+            committed=True,
+            auto_eligible=False,
+            verdict=verdict,
+            signals=signals,
+            effective_confidence=effective_confidence,
+            merge_result=merge_result,
+            judge_usage=judge_usage,
+        )
+
+    async def _run_judges(
+        self,
+        strategy: MergeStrategy,
+        goal: str,
+        diff_report: Any,
+        outcomes: list[BranchOutcome],
+    ) -> tuple[JudgeVerdict, Any]:
+        """Run one or multiple judges depending on ``strategy.kind``.
+
+        For ``"vote"`` mode the judges are evaluated concurrently via
+        :func:`asyncio.gather`; the synthetic majority verdict is built by
+        :func:`_majority_pick` and the ``usage`` field aggregates the list of
+        per-judge usage objects so the caller has full visibility.
+
+        ``strategy.judge_models`` distinguishes ``None`` (use the project
+        default triple) from ``[]`` (an explicit empty list — raised as a
+        :class:`ValueError`, never silently replaced with defaults).
+        """
+        if strategy.kind == "vote":
+            if strategy.judge_models is None:
+                models = _detect_vote_models(strategy.judge_model)
+                logger.debug("vote: auto-detected judge panel %s", models)
+            elif not strategy.judge_models:
+                raise ValueError(
+                    "MergeStrategy(kind='vote') requires at least one judge model; "
+                    "pass `judge_models=None` for the default triple."
+                )
+            else:
+                models = list(strategy.judge_models)
+            judges = [JudgeAgent(m) for m in models]
+            results = await asyncio.gather(
+                *(j.evaluate(goal, diff_report, outcomes) for j in judges)
+            )
+            verdicts = [v for v, _ in results]
+            usages = [u for _, u in results]
+            return _majority_pick(verdicts), usages
+        judge = JudgeAgent(strategy.judge_model)
+        return await judge.evaluate(goal, diff_report, outcomes)
 
     def inspect_branches(self) -> list[BranchStatus]:
         """Return a snapshot of every branch's current status."""

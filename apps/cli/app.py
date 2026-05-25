@@ -53,8 +53,6 @@ class DeepApp(App):
         Binding("f5", "show_context", "Context"),
     ]
 
-    # ── Reactive state ────────────────────────────────────────────
-
     is_streaming: reactive[bool] = reactive(False)
     model_name: reactive[str] = reactive("")
     app_version: reactive[str] = reactive("0.0.0")
@@ -68,6 +66,9 @@ class DeepApp(App):
     fork_aggregate_budget_usd: reactive[float | None] = reactive["float | None"](None)
     fork_branch_models: reactive[list[str | None]] = reactive(list, always_update=True)
     fork_branch_budgets: reactive[list[float | None]] = reactive(list, always_update=True)
+    fork_merge_strategy: reactive[str] = reactive("auto_with_fallback")
+    fork_judge_model: reactive[str] = reactive("anthropic:claude-haiku-4-5")
+    fork_confidence_threshold: reactive[float] = reactive(0.80)
 
     agent_task: asyncio.Task[None] | None = None
 
@@ -145,6 +146,9 @@ class DeepApp(App):
             self.fork_aggregate_budget_usd = config.fork_aggregate_budget_usd
             self.fork_branch_models = list(config.fork_branch_models)
             self.fork_branch_budgets = list(config.fork_branch_budgets)
+            self.fork_merge_strategy = config.fork_merge_strategy
+            self.fork_judge_model = config.fork_judge_model
+            self.fork_confidence_threshold = config.fork_confidence_threshold
         except Exception:  # pragma: no cover - defensive: bad config shouldn't break startup
             pass
 

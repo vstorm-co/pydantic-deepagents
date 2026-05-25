@@ -73,7 +73,8 @@ class ForkOverviewWidget(Vertical):
             "[yellow]running[/yellow])\n"
             "  [cyan]Enter[/cyan]          on a [green]done[/green] branch panel — "
             "merge it as winner\n"
-            "  [cyan]/merge[/cyan]         open the side-by-side picker with diffs\n"
+            "  [cyan]/merge[/cyan]         resolve using strategy from /fork-config "
+            "(judge or manual picker)\n"
             "  [cyan]/fork diff[/cyan]     pick file + branches → open in external diff tool\n"
             "  [cyan]Esc[/cyan]            on a branch panel — terminate that branch\n"
             "                 on this overview — abort the whole fork",

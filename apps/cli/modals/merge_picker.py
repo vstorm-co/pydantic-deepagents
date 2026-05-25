@@ -64,6 +64,11 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         color: $text-muted;
         margin: 0 0 1 0;
     }
+    MergePickerModal > #merge-container > #merge-verdict {
+        height: auto;
+        color: $accent;
+        margin: 0 0 1 0;
+    }
     MergePickerModal > #merge-container > #merge-panels {
         height: 1fr;
     }
@@ -122,6 +127,8 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         label_to_id: dict[str, str],
         *,
         on_open_in_editor: Any = None,
+        preselected_branch_id: str | None = None,
+        verdict_subtitle: str | None = None,
     ) -> None:
         super().__init__()
         self._report = report
@@ -136,8 +143,12 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
                 ordered.append(status.id)
                 self._id_to_label.setdefault(status.id, status.label)
         self._ordered_ids = ordered
-        self._selected_index = 0
+        if preselected_branch_id is not None and preselected_branch_id in self._ordered_ids:
+            self._selected_index = self._ordered_ids.index(preselected_branch_id)
+        else:
+            self._selected_index = 0
         self._on_open_in_editor = on_open_in_editor
+        self._verdict_subtitle = verdict_subtitle
 
     def compose(self) -> ComposeResult:
         with Vertical(id="merge-container"):
@@ -149,6 +160,8 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
                 f"touched paths: {self._report.summary.total_paths_touched}",
                 id="merge-meta",
             )
+            if self._verdict_subtitle is not None:
+                yield Static(self._verdict_subtitle, id="merge-verdict")
             with Horizontal(id="merge-panels"):
                 for slot, branch_id in enumerate(self._ordered_ids, start=1):
                     yield self._render_branch_panel(slot, branch_id)

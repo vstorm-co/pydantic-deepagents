@@ -26,6 +26,7 @@ from pydantic_deep.types import (
     BranchSpec,
     BranchStatus,
     MergeResult,
+    MergeStrategy,
 )
 
 if TYPE_CHECKING:
@@ -209,11 +210,17 @@ async def start_fork_from_cli(
     from pydantic_deep.processors.patch import patch_tool_calls_processor
 
     safe_history = patch_tool_calls_processor(list(app.message_history))
+    merge_strategy = MergeStrategy(
+        kind=app.fork_merge_strategy,  # type: ignore[arg-type]
+        judge_model=app.fork_judge_model,
+        confidence_threshold=app.fork_confidence_threshold,
+    )
     handle = await coordinator.fork(
         result.specs,
         parent_history=safe_history,
         isolation=isolation,
         aggregate_budget_usd=result.aggregate_budget_usd,
+        strategy=merge_strategy,
     )
     label_to_id: dict[str, str] = {}
     for branch_id in handle.branches:

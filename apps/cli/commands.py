@@ -702,7 +702,28 @@ def _dispatch_fork_config(app: DeepApp) -> None:
 
 
 async def _dispatch_merge(app: DeepApp) -> None:
-    """Handle ``/merge`` — open the picker modal and apply the chosen winner."""
+    """Handle ``/merge`` — dispatch on :attr:`MergeStrategy.kind`.
+
+    Three resolution paths:
+
+    - ``manual`` (legacy) → push :class:`MergePickerModal` directly.
+    - ``auto`` / ``vote`` → push :class:`JudgeLoadingScreen` with a callback;
+      on success the callback commits and notifies, on failure it falls back
+      to the manual picker.
+    - ``auto_with_fallback`` →
+        - **above threshold:** push :class:`MergeAcceptanceWidget` (commit
+          deferred to ``[enter]``); ``[d]`` opens the diff explorer and
+          re-pushes the widget on return; ``[o]`` opens the picker
+          preselected on the judge's pick.
+        - **below threshold:** push :class:`MergePickerModal` preselected
+          with the judge's pick and a verdict subtitle explaining the
+          uncertainty.
+
+    The judge is invoked via ``app.push_screen(JudgeLoadingScreen, callback)``
+    rather than ``push_screen_wait`` — the latter requires a Textual worker
+    context that the slash-command router doesn't provide and would break
+    pre-Stage-6 tests that drive ``/merge`` from a coroutine directly.
+    """
     from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 
     session = app.active_fork
@@ -714,15 +735,15 @@ async def _dispatch_merge(app: DeepApp) -> None:
         app.notify("Cannot build diff report", severity="error")
         return
     statuses = session.inspect()
+    strategy = session.handle.merge_strategy
 
-    async def _on_pick(picked: MergePickerResult | None) -> None:
-        if picked is None:
-            return
+    async def _commit_pick(branch_id: str) -> None:
+        """Shared post-pick commit path used by every flow."""
         active = app.active_fork
         if active is None:  # pragma: no cover - defensive: another flow cleared it
             return
         try:
-            result = await active.merge(picked.branch_id)
+            result = await active.merge(branch_id)
         except Exception as e:  # pragma: no cover - defensive
             from apps.cli.debug_log import get_logger
 
@@ -732,11 +753,20 @@ async def _dispatch_merge(app: DeepApp) -> None:
 
         from pydantic_deep.processors.patch import patch_tool_calls_processor
 
-        app.message_history = patch_tool_calls_processor(list(result.history_after_merge))
-        runtime = active.coordinator.branches.get(picked.branch_id)
-        label = runtime.spec.label if runtime else picked.branch_id
+        parent_len = len(app.message_history)
+        patched = patch_tool_calls_processor(list(result.history_after_merge))
+        app.message_history = patched
+        runtime = active.coordinator.branches.get(branch_id)
+        label = runtime.spec.label if runtime else branch_id
+        steer = runtime.spec.steer if runtime else ""
         app.active_fork = None
+        _replay_branch_into_main_chat(app, patched[parent_len:], label, steer, result)
         app.notify(_format_merge_notification(label, result), severity="information")
+
+    async def _on_pick(picked: MergePickerResult | None) -> None:
+        if picked is None:
+            return
+        await _commit_pick(picked.branch_id)
 
     def _on_open_in_editor(branch_id: str) -> None:
         """Bridge the merge picker's ``o`` binding into the diff picker.
@@ -757,15 +787,272 @@ async def _dispatch_merge(app: DeepApp) -> None:
             return
         _open_diff_picker(app, kind=kind, initial_branch_id=branch_id)
 
-    app.push_screen(
-        MergePickerModal(
-            report,
-            statuses,
-            session.label_to_id,
+    def _push_picker(
+        *,
+        preselected_id: str | None = None,
+        subtitle: str | None = None,
+    ) -> None:
+        """Push :class:`MergePickerModal` with the shared per-dispatch context.
+
+        Closes over ``report`` / ``statuses`` / ``session.label_to_id`` /
+        ``_on_open_in_editor`` / ``_on_pick`` so each call site collapses to
+        one line. ``preselected_id`` and ``subtitle`` carry the only
+        per-call-site variation across the three picker call sites.
+        """
+        app.push_screen(
+            MergePickerModal(
+                report,
+                statuses,
+                session.label_to_id,
+                on_open_in_editor=_on_open_in_editor,
+                preselected_branch_id=preselected_id,
+                verdict_subtitle=subtitle,
+            ),
+            _on_pick,
+        )
+
+    if strategy.kind == "manual":
+        _push_picker()
+        return
+
+    # Non-manual: push the loading screen with a callback. Using
+    # ``push_screen + callback`` instead of ``push_screen_wait`` lets the
+    # router invoke ``/merge`` from a plain coroutine — Stage 3's manual-merge
+    # test and the slash-command dispatcher both rely on that.
+    from apps.cli.widgets.judge_loading import JudgeLoadingScreen
+
+    async def _on_judge_complete(result: Any) -> None:
+        await _handle_judge_result(
+            app,
+            result=result,
+            session=session,
+            strategy=strategy,
+            report=report,
+            statuses=statuses,
+            push_picker=_push_picker,
+            commit_pick=_commit_pick,
             on_open_in_editor=_on_open_in_editor,
-        ),
-        _on_pick,
+            on_pick=_on_pick,
+        )
+
+    app.push_screen(JudgeLoadingScreen(session.coordinator, strategy), _on_judge_complete)
+
+
+async def _handle_judge_result(
+    app: DeepApp,
+    *,
+    result: Any,
+    session: Any,
+    strategy: Any,
+    report: Any,
+    statuses: list[Any],
+    push_picker: Any,
+    commit_pick: Any,
+    on_open_in_editor: Any,
+    on_pick: Any,
+) -> None:
+    """Route :class:`JudgeLoadingScreen`'s dismiss value to the right next screen.
+
+    Extracted from :func:`_dispatch_merge` so the nested closure layer doesn't
+    push :func:`_dispatch_merge` over ``ruff C901``. Each branch corresponds
+    to one downstream screen: error → fall back to manual picker;
+    committed-by-resolve → notification only; below-threshold → picker with
+    preselect; above-threshold → acceptance widget.
+    """
+    from apps.cli.widgets.judge_loading import JudgeAborted
+
+    if isinstance(result, Exception):
+        from apps.cli.debug_log import get_logger
+
+        exc_name = type(result).__name__
+        severity = "information" if isinstance(result, JudgeAborted) else "warning"
+        get_logger().error("Judge resolve failed", exc_info=True, exc_name=exc_name)
+        app.notify(
+            f"{exc_name}: {result} — falling back to manual picker.",
+            severity=severity,
+        )
+        push_picker()
+        return
+
+    outcome = result
+    if outcome.committed and outcome.merge_result is not None:
+        from pydantic_deep.processors.patch import patch_tool_calls_processor
+
+        parent_len = len(app.message_history)
+        patched = patch_tool_calls_processor(list(outcome.merge_result.history_after_merge))
+        app.message_history = patched
+        runtime = session.coordinator.branches.get(outcome.merge_result.winner_branch_id)
+        label = runtime.spec.label if runtime else outcome.merge_result.winner_branch_id
+        steer = runtime.spec.steer if runtime else ""
+        app.active_fork = None
+        _replay_branch_into_main_chat(app, patched[parent_len:], label, steer, outcome.merge_result)
+        app.notify(_format_auto_merge_notification(label, outcome), severity="information")
+        return
+
+    if not outcome.auto_eligible:
+        verdict = outcome.verdict
+        if verdict is None:  # pragma: no cover - defensive: non-manual always has a verdict
+            push_picker()
+            return
+        _runtime = session.coordinator.branches.get(verdict.winner_branch_id)
+        _winner_label = _runtime.spec.label if _runtime else verdict.winner_branch_id
+        subtitle = _format_verdict_subtitle(
+            outcome=outcome,
+            threshold=strategy.confidence_threshold,
+            above_threshold=False,
+            winner_label=_winner_label,
+        )
+        push_picker(preselected_id=verdict.winner_branch_id, subtitle=subtitle)
+        return
+
+    # Case B — auto_with_fallback above threshold. Defer the commit to the
+    # acceptance widget so [o] override stays meaningful (Test 11).
+    await _dispatch_acceptance_widget(
+        app,
+        report=report,
+        statuses=statuses,
+        outcome=outcome,
+        strategy=strategy,
+        on_pick=on_pick,
+        on_open_in_editor=on_open_in_editor,
+        commit_pick=commit_pick,
     )
+
+
+async def _dispatch_acceptance_widget(
+    app: DeepApp,
+    *,
+    report: Any,
+    statuses: list[Any],
+    outcome: Any,
+    strategy: Any,
+    on_pick: Any,
+    on_open_in_editor: Any,
+    commit_pick: Any,
+) -> None:
+    """Push :class:`MergeAcceptanceWidget`; route its three actions.
+
+    Extracted from :func:`_dispatch_merge` to keep that function's
+    complexity bounded — ``ruff C901`` would flag the combined function.
+    """
+    from apps.cli.modals.merge_picker import MergePickerModal
+    from apps.cli.widgets.merge_acceptance import (
+        MergeAcceptanceAction,
+        MergeAcceptanceWidget,
+    )
+
+    session = app.active_fork
+    if session is None:  # pragma: no cover - defensive
+        return
+    verdict = outcome.verdict
+    winner_id = verdict.winner_branch_id
+    runtime = session.coordinator.branches.get(winner_id)
+    winner_label = runtime.spec.label if runtime else winner_id
+
+    async def _on_acceptance(action: MergeAcceptanceAction | None) -> None:
+        if action is None:
+            # User pressed Escape — cancel without merging. The cached judge
+            # outcome means the next /merge shows this widget again instantly.
+            return
+        if action == "accept":
+            await commit_pick(winner_id)
+            return
+        if action == "diff":
+            # Re-push the acceptance widget after the diff explorer closes so
+            # Test 10's "returning preserves the verdict context" holds.
+            async def _on_diff_dismissed(_: Any) -> None:
+                await _dispatch_acceptance_widget(
+                    app,
+                    report=report,
+                    statuses=statuses,
+                    outcome=outcome,
+                    strategy=strategy,
+                    on_pick=on_pick,
+                    on_open_in_editor=on_open_in_editor,
+                    commit_pick=commit_pick,
+                )
+
+            app.push_screen(
+                MergePickerModal(
+                    report,
+                    statuses,
+                    session.label_to_id,
+                    on_open_in_editor=on_open_in_editor,
+                ),
+                _on_diff_dismissed,
+            )
+            return
+        subtitle = _format_verdict_subtitle(
+            outcome=outcome,
+            threshold=strategy.confidence_threshold,
+            above_threshold=True,
+            winner_label=winner_label,
+        )
+        app.push_screen(
+            MergePickerModal(
+                report,
+                statuses,
+                session.label_to_id,
+                on_open_in_editor=on_open_in_editor,
+                preselected_branch_id=winner_id,
+                verdict_subtitle=subtitle,
+            ),
+            on_pick,
+        )
+
+    # Explicit parens — without them this parses as
+    # `(merge_result.fork_id if ... else fork_id) or "?"`, which would
+    # silently substitute "?" if an autonomous-commit ever produced an empty
+    # `fork_id`.
+    if outcome.merge_result is not None:
+        fork_id_for_widget = outcome.merge_result.fork_id
+    else:
+        fork_id_for_widget = session.coordinator.fork_id or "?"
+
+    app.push_screen(
+        MergeAcceptanceWidget(
+            fork_id=fork_id_for_widget,
+            winner_label=winner_label,
+            effective_confidence=outcome.effective_confidence,
+            verdict=verdict,
+        ),
+        _on_acceptance,
+    )
+
+
+def _format_auto_merge_notification(label: str, outcome: Any) -> str:
+    """Render the post-auto-merge notification — confidence + 1-line reasoning."""
+    verdict = outcome.verdict
+    parts = [
+        f"Auto-merged: kept branch {label}",
+        f"confidence {outcome.effective_confidence:.2f}",
+    ]
+    if verdict is not None and verdict.reasoning:
+        # First sentence only — keeps the notification one line on most terminals.
+        first_sentence = verdict.reasoning.split(". ", 1)[0].rstrip(".")
+        parts.append(first_sentence)
+    return " · ".join(parts)
+
+
+def _format_verdict_subtitle(
+    *, outcome: Any, threshold: float, above_threshold: bool, winner_label: str
+) -> str:
+    """Compose the verdict-subtitle string the picker mounts as a Static row."""
+    verdict = outcome.verdict
+    if verdict is None:  # pragma: no cover - dispatcher only calls this with a verdict
+        return ""
+    confidence = outcome.effective_confidence
+    if above_threshold:
+        header = (
+            f"Judge picked: [bold]{winner_label}[/bold] "
+            f"(confidence {confidence:.2f} ≥ threshold {threshold:.2f})"
+        )
+    else:
+        header = (
+            f"Judge picked: [bold]{winner_label}[/bold] "
+            f"(confidence {confidence:.2f} — below threshold {threshold:.2f})"
+        )
+    return f"{header}\nWhy: {verdict.reasoning}"
 
 
 def _format_merge_notification(label: str, result: Any) -> str:
@@ -915,3 +1202,79 @@ def _open_diff_picker(
         DiffPickerModal(report, statuses, session.label_to_id, initial_branch_id=initial_branch_id),
         _on_pick,
     )
+
+
+def _replay_branch_into_main_chat(
+    app: DeepApp,
+    branch_messages: list[Any],
+    label: str,
+    steer: str,
+    result: Any,
+) -> None:
+    """Append the winning branch's new messages to the main MessageList.
+
+    ``branch_messages`` is the slice of the patched history that belongs
+    to the branch (everything after the parent's pre-fork history).  The
+    steer appears as a user message, the branch's tool calls and text
+    responses follow, and a compact system summary closes the turn so the
+    parent agent has file-change context for its next run.
+    """
+    from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
+
+    from apps.cli.text_heuristics import looks_like_error
+
+    try:
+        from apps.cli.screens.chat import ChatScreen
+        from apps.cli.widgets.message_list import MessageList
+
+        chat = app.screen
+        if not isinstance(chat, ChatScreen):
+            return
+        msg_list = chat.query_one(MessageList)
+    except Exception:
+        return
+
+    completed_call_ids: set[str] = {
+        part.tool_call_id
+        for msg in branch_messages
+        for part in getattr(msg, "parts", [])
+        if isinstance(part, ToolReturnPart)
+    }
+
+    for msg in branch_messages:
+        for part in getattr(msg, "parts", []):
+            if isinstance(part, UserPromptPart):
+                content = part.content
+                if isinstance(content, str) and content:
+                    msg_list.append_user_message(content)
+            elif isinstance(part, TextPart):
+                if part.content:
+                    assistant_msg = msg_list.begin_assistant_message()
+                    assistant_msg.append_text(part.content)
+                    assistant_msg.finalize_text()
+                    msg_list.end_assistant_message()
+            elif isinstance(part, ToolCallPart):
+                args = part.args_as_dict()
+                call_id = part.tool_call_id
+                assistant_msg = msg_list.current_assistant
+                if assistant_msg is None:
+                    assistant_msg = msg_list.begin_assistant_message()
+                assistant_msg.add_tool_call(part.tool_name, args, call_id)
+                if call_id not in completed_call_ids:
+                    assistant_msg.complete_tool_call(call_id, "No return", 0.0, True)
+            elif isinstance(part, ToolReturnPart):
+                content_str = str(part.content)
+                assistant_msg = msg_list.current_assistant
+                if assistant_msg is not None:
+                    assistant_msg.complete_tool_call(
+                        part.tool_call_id, content_str, 0.0, looks_like_error(content_str)
+                    )
+
+    if msg_list.current_assistant is not None:
+        msg_list.current_assistant.finalize_text()
+        msg_list.end_assistant_message()
+
+    paths = list(result.applied_paths)
+    path_str = "\n  ".join(paths) if paths else "no file changes"
+    summary = f"✓ Fork merged — branch '{label}' applied. Files changed:\n  {path_str}"
+    chat.add_system_message(summary)

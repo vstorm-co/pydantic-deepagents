@@ -7,6 +7,7 @@ from dataclasses import field as _field
 from datetime import datetime
 from typing import Any, Literal, TypedDict, TypeVar
 
+from pydantic import BaseModel, Field
 from pydantic_ai.output import OutputSpec
 from pydantic_ai_backends import (
     EditResult as EditResult,
@@ -80,9 +81,6 @@ class UploadedFile(TypedDict):
     line_count: int | None  # Number of lines (for text files)
     mime_type: str | None  # MIME type (e.g., text/plain)
     encoding: str  # Encoding (e.g., utf-8, binary)
-
-
-# Live Run Forking — Stage 1 kernel types (see issue #102)
 
 
 @_dataclass(frozen=True)
@@ -202,12 +200,27 @@ class ForkCostSummary:
 class MergeStrategy:
     """Merge strategy for resolving a fork.
 
-    Stage 1 supports ``kind="manual"`` only — the agent (or user) picks a
-    winner via ``merge_or_select(action="pick:<id>")``. Stage 6 extends this
-    to ``"auto"``, ``"auto_with_fallback"``, ``"vote"``.
+    Stage 6 extends :attr:`kind` to four values:
+
+    - ``"manual"`` — caller picks via ``merge_or_select(action="pick:<id>")``.
+    - ``"auto"`` — :class:`JudgeAgent` picks; coordinator commits immediately.
+    - ``"auto_with_fallback"`` — judge picks; if effective confidence is at or
+      above :attr:`confidence_threshold` the commit is deferred to the caller
+      (so the acceptance widget can offer an override), otherwise the caller
+      opens the manual picker with the judge's pick preselected. **Default.**
+    - ``"vote"`` — multiple judges (default: Haiku + GPT-mini + Gemini Flash)
+      evaluate independently; majority wins, tie broken by highest confidence;
+      coordinator commits immediately.
+
+    Default flips from ``"manual"`` (Stages 1–5) to ``"auto_with_fallback"`` in
+    Stage 6.
     """
 
-    kind: Literal["manual"] = "manual"
+    kind: Literal["manual", "auto", "auto_with_fallback", "vote"] = "auto_with_fallback"
+    judge_model: str = "anthropic:claude-haiku-4-5-20251001"
+    judge_models: list[str] | None = None
+    confidence_threshold: float = 0.80
+    show_reasoning: bool = True
 
 
 @_dataclass
@@ -383,3 +396,100 @@ class BranchDiffReport:
     fork_id: str
     paths: list[PathDiff]
     summary: DiffSummary
+
+
+class JudgeVerdict(BaseModel):
+    """Structured output of :meth:`JudgeAgent.evaluate`.
+
+    Pydantic ``BaseModel`` (not dataclass) because pydantic-ai's ``output_type``
+    contract requires a ``BaseModel``-shaped schema for structured output.
+    """
+
+    winner_branch_id: str
+    confidence: float
+    reasoning: str
+    rejected_with_reasons: dict[str, str] = Field(default_factory=dict)
+    caveats: list[str] = Field(default_factory=list)
+    recommended_followup: str | None = None
+
+
+@_dataclass(frozen=True)
+class ConfidenceSignals:
+    """Three weighted signals combined by ``compute_confidence``.
+
+    - ``quality_spread`` — ``1 - agreement_score`` from :class:`BranchDiffReport`.
+      High = branches diverged meaningfully; weight 0.4.
+    - ``test_pass_ratio`` — passed / total tests in the winner branch. ``None``
+      when no per-branch test signal is available; the cap-at-0.65 safety rail
+      kicks in. Weight 0.4.
+    - ``internal_consistency`` — ``1 - (retries + stuck_loop_hits) / turns`` for
+      the winner; clamped to ``[0.0, 1.0]``. Weight 0.2.
+
+    Stage 6 ships without per-branch test integration so ``test_pass_ratio`` is
+    always ``None`` in practice; the safety rail keeps the heuristic ≤ 0.65 in
+    that case and ``auto_with_fallback`` always falls through to manual until a
+    test-signal hook lands (see follow-ups in the live-fork doc).
+    """
+
+    quality_spread: float
+    test_pass_ratio: float | None
+    internal_consistency: float
+
+
+@_dataclass(frozen=True)
+class BranchOutcome:
+    """Per-branch summary the judge sees in its prompt.
+
+    Intentionally narrow — no full message history. The judge gets the original
+    goal, the structured diff report, and one of these per branch. Keeps the
+    prompt bounded and the cost predictable.
+
+    ``error_count`` is ``0`` or ``1`` for a single branch — the issue's type
+    sketch uses generic ``int`` but Stage 6 narrows it to a per-branch boolean
+    derived from terminal branch state; richer tool-error counting is left for
+    a follow-up.
+    """
+
+    branch_id: str
+    branch_label: str
+    #: The steer message that was sent to this branch when the fork was created
+    #: (``BranchSpec.steer``). Included in the judge prompt so the judge can
+    #: evaluate each branch against its own instruction, not just the parent goal.
+    steer: str
+    final_assistant_message: str
+    cost_usd: float | None
+    turns: int
+    error_count: int
+    retry_count: int
+    stuck_loop_hits: int
+
+
+@_dataclass(frozen=True)
+class ResolveOutcome:
+    """Outcome envelope returned by :meth:`ForkCoordinator.resolve`.
+
+    Three commit semantics live behind the same envelope so the caller (CLI)
+    can branch cleanly:
+
+    - ``committed=True``: the coordinator already ran ``merge_or_select``; see
+      :attr:`merge_result`. Modes that hit this path: ``"auto"`` and ``"vote"``.
+    - ``committed=False, auto_eligible=True``: above-threshold
+      ``"auto_with_fallback"``. Commit is deferred to the caller so the
+      acceptance widget can offer an ``[o]`` override before the merge fires.
+    - ``committed=False, auto_eligible=False``: below-threshold
+      ``"auto_with_fallback"`` (caller opens picker preselected) OR
+      ``"manual"`` (no judge ran, caller picks).
+
+    :attr:`judge_usage` carries the judge's ``result.usage`` (summed across
+    judges in vote mode) so the caller can attribute the cost — Stage 6 does
+    not introduce a faked ``cost_category`` field into pydantic-ai-shields'
+    ``CostTracking`` API.
+    """
+
+    committed: bool
+    auto_eligible: bool
+    verdict: JudgeVerdict | None
+    signals: ConfidenceSignals | None
+    effective_confidence: float
+    merge_result: MergeResult | None
+    judge_usage: Any | None = None

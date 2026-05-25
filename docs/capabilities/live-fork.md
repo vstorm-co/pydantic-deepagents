@@ -13,7 +13,7 @@ This page is the canonical reference for the whole feature; it grows incremental
 | 3 — CLI | **Shipped** | `/fork`, branch tabs, `MergePickerModal`, `>>{branch_id}` routing |
 | 4 — N branches + budget | **Shipped** | `max_branches>2`, `max_depth>1`, per-branch `budget_usd` enforcement, aggregate cap, `fork_cost()` |
 | 5 — IDE materializer + apply-on-merge | **Shipped** | Real-time disk mirror under `.pydantic-deep/forks/`, `pycharm diff` / `code --diff` integration, `/fork diff`, flush of winner's writes to parent backend on merge |
-| 6 — Autonomous judge | Coming | `MergeStrategy.kind="auto"` / `"auto_with_fallback"` / `"vote"`, confidence scoring |
+| 6 — Autonomous judge | **Shipped** | [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent], `MergeStrategy.kind="auto"` / `"auto_with_fallback"` (default) / `"vote"`, confidence scoring, `ForkCoordinator.resolve()` |
 
 ## Quick start
 
@@ -414,6 +414,8 @@ Once the merge resolves, `app.message_history` is the winner's `history_after_me
 - Stage 2 diff types: [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport], [`PathDiff`][pydantic_deep.types.PathDiff], [`BranchChange`][pydantic_deep.types.BranchChange], [`DiffSummary`][pydantic_deep.types.DiffSummary], [`BranchDiffAgreement`][pydantic_deep.types.BranchDiffAgreement], [`BranchDiffOperation`][pydantic_deep.types.BranchDiffOperation].
 - Stage 2 builder: [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report] — public entry point shared by the `diff_branches` tool and programmatic callers.
 - Errors: [`ForkBranchLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkBranchLimitError], [`ForkDepthLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkDepthLimitError].
+- Stage 6 judge: [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent], [`compute_confidence`][pydantic_deep.toolsets.forking.judge.compute_confidence], [`count_retry_parts`][pydantic_deep.toolsets.forking.judge.count_retry_parts], [`count_stuck_loop_hits`][pydantic_deep.toolsets.forking.judge.count_stuck_loop_hits].
+- Stage 6 types: [`JudgeVerdict`][pydantic_deep.types.JudgeVerdict], [`ConfidenceSignals`][pydantic_deep.types.ConfidenceSignals], [`BranchOutcome`][pydantic_deep.types.BranchOutcome], [`ResolveOutcome`][pydantic_deep.types.ResolveOutcome].
 
 ## Examples
 
@@ -468,12 +470,78 @@ for branch_id, runtime in coordinator.branches.items():
         print(branch_id, change.op, change.path, change.timestamp)
 ```
 
+## Autonomous merge
+
+Stage 6 replaces manual-only resolution with a cheap judge model. The default [`MergeStrategy.kind`][pydantic_deep.types.MergeStrategy] is now `"auto_with_fallback"`: a single judge inspects the structured diff + per-branch outcomes, picks a winner with confidence, and either auto-merges or hands off to the manual picker with the judge's pick preselected.
+
+```python
+from pydantic_deep.types import MergeStrategy
+
+# Default — auto-with-fallback, threshold 0.80, Haiku judge.
+strategy = MergeStrategy()
+
+# Explicit auto mode — commit immediately, no widget interaction.
+strategy = MergeStrategy(kind="auto", judge_model="anthropic:claude-haiku-4-5-20251001")
+
+# Vote mode — three judges across vendors; majority wins, ties broken by confidence.
+strategy = MergeStrategy(kind="vote")
+
+# Opt out — back to Stages 1–5 manual flow.
+strategy = MergeStrategy(kind="manual")
+```
+
+Pass the strategy to `fork_run` (agent-facing tool) or `ForkCoordinator.fork(..., strategy=...)` (programmatic). The CLI's `/merge` command reads the strategy off `session.handle.merge_strategy` and dispatches automatically.
+
+### Modes
+
+| Kind | Behaviour | Commit timing |
+|---|---|---|
+| `manual` | Caller picks via `merge_or_select(action="pick:<id>")`. Stages 1–5 flow, unchanged. | Caller |
+| `auto` | Judge picks; coordinator commits immediately. User sees only the result + reasoning. | Inside `resolve()` |
+| `auto_with_fallback` *(default)* | Judge picks. **Above threshold:** commit is deferred to the caller so `MergeAcceptanceWidget` can offer `[o]` override. **Below threshold:** caller opens the manual picker preselected with the judge's pick. | Caller (above) / Caller (below) |
+| `vote` | Three judges (Haiku + GPT-mini + Gemini Flash by default) evaluate concurrently. Majority wins, tie → highest individual confidence. | Inside `resolve()` |
+
+### Confidence scoring
+
+Three signals weighted into a single heuristic, then multiplied by the judge's own reported confidence:
+
+| Signal | Source | Weight |
+|---|---|---|
+| `quality_spread` | `1 - agreement_score` from [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] | 0.4 |
+| `test_pass_ratio` | passed / total tests across the winner branch — currently always `None` (see callout) | 0.4 |
+| `internal_consistency` | `1 - (retry_count + stuck_loop_hits) / max(turns, 1)` for the winner | 0.2 |
+
+`effective_confidence = heuristic × judge_confidence`. Clamped to `[0.0, 1.0]`.
+
+!!! warning "Auto-commit is currently dormant"
+    Stage 6 ships without per-branch test-runner integration, so `test_pass_ratio` is always `None`. When the test signal is missing, the heuristic is **capped at 0.65** before the multiplication — a deliberate safety rail. With the default threshold of 0.80, `auto_with_fallback` always falls back to the manual picker until a test-signal hook lands (tracked as a follow-up). `auto` mode commits regardless of confidence.
+
+### Acceptance widget vs. picker fall-through
+
+The deferred-commit ordering on `auto_with_fallback` is load-bearing: the acceptance widget shows *before* the merge fires, so `[o] override` can route to the manual picker with the judge's pick preselected. The widget exposes three bindings:
+
+- `[enter]` — accept; the dispatcher calls `merge_or_select(f"pick:{winner_id}")` to commit.
+- `[d]` — view diff; opens the diff explorer and re-pushes the widget on return (the verdict context survives the round-trip).
+- `[o]` — override; opens [`MergePickerModal`][apps.cli.modals.merge_picker.MergePickerModal] with the judge's pick preselected and the verdict reasoning shown as a subtitle.
+- `[escape]` — cancel; dismisses the widget without committing. The cached judge outcome means the next `/merge` re-shows the widget instantly without re-invoking the judge LLM.
+
+### Judge prompt boundedness
+
+The judge sees three sections only: the original goal, the structured `BranchDiffReport`, and one [`BranchOutcome`][pydantic_deep.types.BranchOutcome] bullet per branch (final message + cost + turns + error/retry counts). **Full per-branch message history is never included.** The prompt builder caps each section and the total length at `_MAX_JUDGE_PROMPT_CHARS = 32_000` chars (truncated tail with marker). This keeps the prompt's cost predictable and prevents the judge from reasoning over noise.
+
+### Cost attribution
+
+The judge runs via a freshly-constructed [`pydantic_ai.Agent`][pydantic_ai.Agent] inside [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent] — its calls are **not** counted against `parent_deps._branch_cost_tracking`. The judge's `result.usage` is surfaced on [`ResolveOutcome.judge_usage`][pydantic_deep.types.ResolveOutcome] (a list of usage objects for `kind="vote"`) so the caller can attribute the cost. `pydantic-ai-shields`' `CostTracking` API has no `cost_category` field today; a stricter integration would need an upstream change.
+
+### Override in vote mode
+
+`vote` mode commits immediately on the synthetic majority verdict — there is no fall-through or `[o]` override. To re-pick after a vote, rewind via the post-fork checkpoint anchor. Confirmable interactive vote mode is tracked as a follow-up.
+
 ## Limitations / non-goals
 
 Stage 1 deliberately shipped the minimum kernel. The following are **not** supported until later stages:
 
 - **Live per-token streaming inside branch panels** — Stage 3 renders each branch's final messages once its `asyncio.Task` completes; mid-run streaming inside the panel would require reworking the coordinator's task spawn. Status badges (`●`/`✓`/`✗`/`⊘`/`$`/`$$`) update live via a 0.5 s poller.
-- **Autonomous merge** (judge model, confidence scoring, vote mode) — Stage 6.
 - **Persistent fork state** — `InMemoryForkStateStore` is the only store across all stages; process restart loses fork state.
 - **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded everywhere; "pick a winner" is the model.
 
@@ -502,3 +570,14 @@ Stage 5 deliberately keeps external diff integration narrow — the following ar
 - **Inline hunk-level accept/reject** (PyCharm plugin or TUI).
 - **Real-time write-back during a fork** — branches own their overlays in isolation while running; cross-branch propagation only happens at merge.
 - **File-aware checkpoint rewind across `post-fork:<id>`** — the merged conversation history is preserved by the checkpoint anchor but file writes are not.
+
+Stage 6 ships the judge but intentionally scopes it tightly:
+
+- **Learning from past judge decisions** (RLHF-style calibration) — out of scope; every fork is judged in isolation.
+- **Custom confidence signal plugins** — the three built-in signals are fixed; no extension point for now.
+- **Per-domain judge prompts** (code vs. research) — single generic prompt; specialise later if needed.
+- **`combine` acceptance mode** — only meaningful for non-code outputs; intentionally excluded.
+- **Streaming the judge's evaluation** — we wait for the full `JudgeVerdict`; no partial results.
+- **Per-branch test integration** — `test_pass_ratio` is always `None` until a test-runner hook lands; the 0.65 cap forces `auto_with_fallback` to fall back to manual in practice.
+- **`cost_category="judge"` attribution in `CostTracking`** — `pydantic-ai-shields` has no such field; the judge's usage rides on [`ResolveOutcome.judge_usage`][pydantic_deep.types.ResolveOutcome] instead.
+- **Override after `auto` / `vote` commit** — both modes commit immediately inside `resolve()`; switching winners after the fact requires rewinding via the `post-fork:<fork_id>` checkpoint anchor.

@@ -1,0 +1,40 @@
+name: uv-lock-sync
+
+# Runs after Renovate bumps pyproject.toml on its branch.
+# Renovate's pep621 manager updates pyproject.toml but does not know how
+# to regenerate uv.lock — this workflow fills that gap.
+
+on:
+  push:
+    branches:
+      - renovate/**
+
+jobs:
+  sync:
+    name: Sync uv.lock
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Use the default GITHUB_TOKEN — has write access to the branch
+          # that Renovate already pushed to.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Regenerate uv.lock
+        run: uv lock
+
+      - name: Commit if uv.lock changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          git diff --staged --quiet && echo "uv.lock unchanged" || (
+            git commit -m "chore: sync uv.lock after Renovate bump" &&
+            git push
+          )

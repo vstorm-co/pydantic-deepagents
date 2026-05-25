@@ -85,7 +85,9 @@ _STR_FIELDS = frozenset(
 
 _INT_FIELDS = frozenset({"max_history", "thinking_budget", "fork_branch_count"})
 
-_FLOAT_FIELDS = frozenset({"temperature", "fork_aggregate_budget_usd"})
+_FLOAT_FIELDS = frozenset({"temperature", "fork_aggregate_budget_usd", "fork_confidence_threshold"})
+
+_FORK_MERGE_STRATEGY_VALUES = frozenset({"manual", "auto", "auto_with_fallback", "vote"})
 
 
 @dataclass
@@ -156,6 +158,31 @@ class CliConfig:
     written to TOML as ``list[str]`` (quoted floats) with empty strings
     standing in for ``None`` to keep the format aligned with
     :attr:`fork_branch_models`."""
+    fork_merge_strategy: Literal["manual", "auto", "auto_with_fallback", "vote"] = (
+        "auto_with_fallback"
+    )
+    """Merge strategy used when ``/merge`` is called.
+
+    - ``"manual"`` — you always pick via the picker modal.
+    - ``"auto"`` — judge picks and commits immediately.
+    - ``"auto_with_fallback"`` — judge picks; above the confidence threshold you
+      see the acceptance widget, below it falls back to the picker preselected.
+    - ``"vote"`` — three judges (Haiku + GPT-4o-mini + Gemini Flash) vote;
+      majority wins, commits immediately.
+
+    Set via ``/fork-config``."""
+    fork_judge_model: str = "anthropic:claude-haiku-4-5"
+    """Model used as the judge in ``auto`` / ``auto_with_fallback`` modes.
+
+    Any pydantic-ai model string is valid, e.g.
+    ``"openrouter:anthropic/claude-haiku-4-5"`` or
+    ``"openai:gpt-4o-mini"``. Set via ``/fork-config``."""
+    fork_confidence_threshold: float = 0.80
+    """Confidence threshold for ``auto_with_fallback``.
+
+    Combined confidence must be at or above this value for the acceptance
+    widget to appear; below it falls through to the manual picker.
+    Set via ``/fork-config``."""
 
 
 def load_config(path: Path | None = None) -> CliConfig:
@@ -240,6 +267,13 @@ def validate_config(config: CliConfig) -> list[str]:
     for i, b in enumerate(config.fork_branch_budgets):
         if b is not None and b <= 0:
             warnings.append(f"fork_branch_budgets[{i}] must be positive, got {b}")
+    if config.fork_merge_strategy not in _FORK_MERGE_STRATEGY_VALUES:
+        warnings.append(
+            f"Unknown fork_merge_strategy '{config.fork_merge_strategy}'. "
+            f"Valid values: {', '.join(sorted(_FORK_MERGE_STRATEGY_VALUES))}"
+        )
+    if config.fork_confidence_threshold < 0.0 or config.fork_confidence_threshold > 1.0:
+        warnings.append("fork_confidence_threshold must be in [0.0, 1.0]")
     return warnings
 
 
@@ -319,6 +353,15 @@ def _coerce_value(key: str, value: str) -> Any:
         if not value:
             return []
         return [v.strip() if v.strip() else "" for v in value.split(",")]
+    if key == "fork_merge_strategy":
+        v = value.strip().lower()
+        if v not in _FORK_MERGE_STRATEGY_VALUES:
+            msg = (
+                f"Invalid fork_merge_strategy '{value}'. "
+                f"Valid: {', '.join(sorted(_FORK_MERGE_STRATEGY_VALUES))}"
+            )
+            raise ValueError(msg)
+        return v
     if key == "working_dir" and value.lower() in ("none", "null", ""):
         return None
     return value

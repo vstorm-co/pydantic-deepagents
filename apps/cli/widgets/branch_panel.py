@@ -66,7 +66,7 @@ class BranchPanelWidget(Vertical):
             "[green]Branch finished.[/green]  "
             "[cyan]Enter[/cyan] to merge this branch as winner  ·  "
             "[cyan]Tab[/cyan] to view the other branch  ·  "
-            "[cyan]/merge[/cyan] for side-by-side diff"
+            "[cyan]/merge[/cyan] to resolve (strategy from /fork-config)"
         ),
         "failed": (
             "[red]Branch failed.[/red]  "

@@ -30,17 +30,28 @@ from pydantic_deep.toolsets.forking.coordinator import (
 from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.editor import EditorDetector, EditorKind
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.toolsets.forking.judge import (
+    JUDGE_SYSTEM_PROMPT,
+    JudgeAgent,
+    compute_confidence,
+    count_retry_parts,
+    count_stuck_loop_hits,
+)
 from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 from pydantic_deep.toolsets.forking.store import ForkStateStore, InMemoryForkStateStore
 from pydantic_deep.types import (
     BranchCost,
     BranchDiffReport,
     BranchIsolation,
+    BranchOutcome,
     BranchSpec,
+    ConfidenceSignals,
     FlushError,
     FlushReport,
     ForkCostSummary,
+    JudgeVerdict,
     MergeStrategy,
+    ResolveOutcome,
 )
 
 NOT_ENABLED_MESSAGE = (
@@ -259,8 +270,10 @@ def create_fork_toolset(  # noqa: C901
 __all__ = [
     "BranchCost",
     "BranchDiffReport",
+    "BranchOutcome",
     "BranchOverlay",
     "BranchRuntime",
+    "ConfidenceSignals",
     "EditorDetector",
     "EditorKind",
     "FlushError",
@@ -272,8 +285,15 @@ __all__ = [
     "ForkMaterializer",
     "ForkStateStore",
     "InMemoryForkStateStore",
+    "JUDGE_SYSTEM_PROMPT",
+    "JudgeAgent",
+    "JudgeVerdict",
     "NOT_ENABLED_MESSAGE",
+    "ResolveOutcome",
     "build_diff_report",
     "clone_for_branch",
+    "compute_confidence",
+    "count_retry_parts",
+    "count_stuck_loop_hits",
     "create_fork_toolset",
 ]

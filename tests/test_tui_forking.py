@@ -77,8 +77,20 @@ def _specs() -> list[BranchSpec]:
     ]
 
 
-async def _start_fork(app: DeepApp, *, slow: bool = False) -> CLIForkSession:
-    """Helper — start a fork; if ``slow`` is True, branch tasks block on a barrier."""
+async def _start_fork(
+    app: DeepApp,
+    *,
+    slow: bool = False,
+    strategy: Any = None,
+) -> CLIForkSession:
+    """Helper — start a fork; if ``slow`` is True, branch tasks block on a barrier.
+
+    ``strategy`` lets a test pin a specific :class:`MergeStrategy` for ``/merge``
+    flow tests. ``None`` keeps the dataclass default (Stage 6:
+    ``auto_with_fallback``). The strategy is patched onto
+    ``session.handle.merge_strategy`` after fork to avoid threading a kwarg
+    through :func:`start_fork_from_cli` (production never overrides per-call).
+    """
     if slow:
         barrier = asyncio.Event()
         app._fork_test_barrier = barrier  # type: ignore[attr-defined]
@@ -91,6 +103,8 @@ async def _start_fork(app: DeepApp, *, slow: bool = False) -> CLIForkSession:
         app.agent.run = _blocking_run  # type: ignore[union-attr, method-assign]
 
     session = await start_fork_from_cli(app, ForkPickerResult(specs=_specs()))
+    if strategy is not None:
+        session.handle.merge_strategy = strategy
     app.active_fork = session
     return session
 
@@ -272,12 +286,13 @@ class TestMergeFlow:
 
     async def test_merge_picker_invokes_coordinator(self, fork_app: DeepApp) -> None:
         from apps.cli.commands import dispatch_command
+        from pydantic_deep.types import MergeStrategy
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             await pilot.pause()
 
-            session = await _start_fork(fork_app)
+            session = await _start_fork(fork_app, strategy=MergeStrategy(kind="manual"))
             await _drain_tasks(session)
             await pilot.pause()
 

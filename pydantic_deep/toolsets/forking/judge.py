@@ -43,23 +43,17 @@ _MAX_JUDGE_PROMPT_CHARS: int = 32_000
 _MAX_GOAL_CHARS: int = 2_000
 _MAX_OUTCOME_MESSAGE_CHARS: int = 400
 
-#: Weights for the three confidence signals — must sum to 1.0 (asserted at
-#: import time so a future weight tweak can't silently re-balance the
-#: heuristic).
+#: Three confidence-signal weights — must sum to 1.0 (asserted on next line).
 _QUALITY_SPREAD_WEIGHT: float = 0.4
 _TEST_RATIO_WEIGHT: float = 0.4
 _INTERNAL_CONSISTENCY_WEIGHT: float = 0.2
 assert _QUALITY_SPREAD_WEIGHT + _TEST_RATIO_WEIGHT + _INTERNAL_CONSISTENCY_WEIGHT == 1.0
 
-#: Safety rail when no test signal is available — the weighted heuristic is
-#: capped at this value before multiplying by the judge's own confidence,
-#: which (with the default threshold ≥ 0.80) forces ``auto_with_fallback``
-#: to fall back to manual until a test-runner hook lands.
+#: Safety rail when no test signal: caps heuristic so ``auto_with_fallback``
+#: falls back to manual until a test-runner hook lands.
 _NO_TEST_HEURISTIC_CAP: float = 0.65
 
-#: ``RetryPromptPart.content`` substrings that originate from
-#: :class:`StuckLoopDetection`. Documented as best-effort — see
-#: ``pydantic_deep/capabilities/stuck_loop.py`` for the source strings.
+#: Best-effort — see ``pydantic_deep/capabilities/stuck_loop.py`` for the source strings.
 _STUCK_LOOP_MARKERS: tuple[str, ...] = (
     "identical arguments",
     "alternating between",

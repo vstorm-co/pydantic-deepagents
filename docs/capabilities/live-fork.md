@@ -55,6 +55,27 @@ asyncio.run(main())
 
 The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_select` are regular tools. There is no CLI surface yet (Stage 3).
 
+## Agent-initiated forks (autonomous)
+
+The agent can call `fork_run` itself during a normal `agent.run()` — no `/fork` command required. The CLI auto-adopts the coordinator the agent allocates, so:
+
+- Branch panels light up automatically when the agent's `fork_run` call returns and the parent turn ends.
+- `>>{label} <msg>` steering, the merge picker, and the diff / acceptance modals all behave identically to user-initiated forks.
+- `/fork` is blocked while the auto-adopted fork is unresolved — the user sees an *"agent already forked — resolve it first"* notification instead of opening the picker.
+
+The agent is responsible for resolving the fork before its turn ends (via `merge_or_select`). If it does not, the coordinator is stashed on `deps.fork_coordinator` and the **next** parent turn picks it up — so the user can still merge or abort manually. [`BASE_PROMPT`][pydantic_deep.prompts.BASE_PROMPT] includes a `## Forking` section that walks the agent through the protocol; the [`fork_run`][pydantic_deep.toolsets.forking.create_fork_toolset], [`inspect_branches`][pydantic_deep.toolsets.forking.create_fork_toolset] and [`merge_or_select`][pydantic_deep.toolsets.forking.create_fork_toolset] tool docstrings double-down on the polling / resolution contract.
+
+### Stash + adopt mechanics
+
+The CLI lifecycle around an unresolved agent-initiated fork:
+
+1. `agent.run()` starts → [`LiveForkCapability.for_run`][pydantic_deep.capabilities.forking.LiveForkCapability.for_run] either allocates a fresh [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] OR preserves the previous turn's coordinator if it is **not** [`is_resolved`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.is_resolved].
+2. Agent calls `fork_run` → coordinator gains a `ForkHandle` and live branches.
+3. Parent turn ends → [`ChatScreen`][apps.cli.screens.chat.ChatScreen] calls [`reconcile_active_fork`][apps.cli.forking.reconcile_active_fork], which either adopts the coordinator (creating a `CLIForkSession` with `adopted=True`) or clears `app.active_fork` if the agent merged itself within the same turn.
+4. User merges (`/merge` or branch-tab `Enter`) OR aborts (overview `Esc`) → coordinator overlays are released → `is_resolved` flips to `True` → next `for_run` allocates fresh.
+
+Branches survive the parent turn ending only because step 1 preserves the coordinator and step 3 stashes it on `app.active_fork`. Manual abort (`Esc` on the overview) explicitly tears the stash down via `coordinator.aclose()`.
+
 ## Configuration
 
 ### `create_deep_agent()` parameter

@@ -67,6 +67,24 @@ When reading multiple files or exploring large files, use pagination:
 - Be specific in task descriptions — subagents don't have your full context.
 - Synthesize subagent results before presenting to the user.
 
+## Forking
+
+When you call `fork_run` to explore alternative approaches in parallel:
+
+1. After `fork_run` returns, branches keep running in the background. \
+Poll their status with `inspect_branches` — NOT `wait_tasks`, which handles \
+subagent task ids, not branch ids.
+2. Wait until every branch reaches a terminal status (`done`, `failed`, \
+`terminated`, `budget_exhausted`, `aggregate_budget_exhausted`). Give \
+branches time — they may take dozens of seconds, especially when running \
+real tools.
+3. Resolve the fork with `merge_or_select(action="pick:<id>")` before \
+yielding back to the user. An unresolved fork leaves branches running and \
+the user without a winner.
+
+Inspect per-branch costs with `fork_cost` and per-path differences with \
+`diff_branches` to inform the pick.
+
 ## Code Quality
 
 - Don't add features, refactor code, or make "improvements" beyond what was \

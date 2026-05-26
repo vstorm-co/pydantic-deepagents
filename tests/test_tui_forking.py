@@ -916,9 +916,7 @@ class TestForkOpenDiffCommand:
             await _drain_tasks(session)
             await pilot.pause()
 
-            # Trigger a branch write so the picker has at least one path
-            # to render (an empty report would also be a valid path but
-            # the user-facing common case is "at least one touched file").
+            # Trigger a branch write so the picker has at least one path to render.
             for rt in session.coordinator.branches.values():
                 if rt.overlay is not None:
                     rt.overlay.write("foo.py", "branch content")
@@ -931,9 +929,7 @@ class TestForkOpenDiffCommand:
                 await dispatch_command(fork_app, "/fork diff")
                 await pilot.pause()
 
-            # The dispatcher should have pushed the diff picker modal
-            # (not invoked the editor — invocation happens when the user
-            # confirms inside the picker).
+            # Dispatcher pushes the picker modal — editor invocation happens on user confirm.
             assert isinstance(fork_app.screen, DiffPickerModal)
             await fork_app.pop_screen()
 
@@ -1141,10 +1137,7 @@ class TestBranchPanelBlockedBadge:
     def test_header_renders_denied_badge_when_count_nonzero(self) -> None:
         panel = BranchPanelWidget("id-a", "alpha")
         panel.blocked_count = 3
-        # ``_render_header`` is the canonical source for the header string —
-        # the mounted watch_blocked_count callback feeds the same value back
-        # into the Static, so testing the renderer directly avoids running
-        # the full Textual app.
+        # Test the renderer directly to avoid running the full Textual app.
         rendered = panel._render_header()
         assert "⚠ 3 denied" in rendered
 
@@ -1195,3 +1188,235 @@ class TestBranchPanelBlockedBadge:
             panel.awaiting_approval = True
             header_widget = panel.query_one(".branch-header", Static)
             assert "⏸ awaiting approval" in str(header_widget.render())
+
+
+class TestAdoptAgentCoordinator:
+    """B2 — adopt_agent_coordinator + reconcile_active_fork.
+
+    Covers the autonomous fork path: the agent calls ``fork_run`` inside an
+    ``agent.run()``, leaving a coordinator on ``deps.fork_coordinator`` that
+    the CLI side must wrap in a :class:`CLIForkSession`.
+    """
+
+    async def test_returns_none_when_deps_unset(self) -> None:
+        """No deps on the app → adopter returns ``None`` (defensive)."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        app = _make_app()
+        app.deps = None
+        assert adopt_agent_coordinator(app) is None
+
+    async def test_returns_none_when_coordinator_missing(self) -> None:
+        """No coordinator on deps → adopter returns ``None``."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        app = _make_app()
+        assert app.deps is not None
+        app.deps.fork_coordinator = None
+        assert adopt_agent_coordinator(app) is None
+
+    async def test_returns_none_when_no_branches(self) -> None:
+        """Coordinator with no branches (fork() never called) → ``None``."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        app = _make_app()
+        async with app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            # Allocate a coordinator without calling fork()
+            cap = resolve_capability(app.agent)
+            assert cap is not None
+
+            class _Ctx:
+                deps = app.deps
+
+            await cap.for_run(_Ctx())
+            assert adopt_agent_coordinator(app) is None
+
+    async def test_wraps_existing_coordinator(self, fork_app: DeepApp) -> None:
+        """Adopter builds a :class:`CLIForkSession` from a live coordinator."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            # Pretend the agent allocated this coordinator: drop active_fork
+            # so the adopter cold-starts on the existing deps.fork_coordinator.
+            fork_app.active_fork = None
+            assert fork_app.deps is not None
+            fork_app.deps.fork_coordinator = session.coordinator
+
+            adopted = adopt_agent_coordinator(fork_app)
+            assert adopted is not None
+            assert adopted.coordinator is session.coordinator
+            assert adopted.handle is session.coordinator.handle
+            assert adopted.adopted is True
+            # label_to_id is populated from the existing handle
+            assert set(adopted.label_to_id.keys()) == {"a", "b"}
+            await _drain_tasks(session)
+
+    async def test_returns_none_when_already_resolved(self, fork_app: DeepApp) -> None:
+        """Resolved coordinator (post-merge) is NOT adopted — UI does not flash."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await _drain_tasks(session)
+            # Force the post-merge state: every overlay released.
+            for runtime in session.coordinator.branches.values():
+                runtime.overlay = None
+            assert session.coordinator.is_resolved is True
+
+            fork_app.active_fork = None
+            assert fork_app.deps is not None
+            fork_app.deps.fork_coordinator = session.coordinator
+
+            assert adopt_agent_coordinator(fork_app) is None
+
+    async def test_idempotent_when_already_active(self, fork_app: DeepApp) -> None:
+        """Calling adopter twice returns the existing wrapper unchanged."""
+        from apps.cli.forking import adopt_agent_coordinator
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            # active_fork is already set by _start_fork — but mark adopted=True
+            # to simulate the auto-adopted path.
+            fork_app.active_fork.adopted = True  # type: ignore[union-attr]
+            assert fork_app.deps is not None
+            fork_app.deps.fork_coordinator = session.coordinator
+
+            adopted_again = adopt_agent_coordinator(fork_app)
+            assert adopted_again is fork_app.active_fork
+            await _drain_tasks(session)
+
+
+class TestReconcileActiveFork:
+    """B2 — reconcile_active_fork: post-turn cleanup + adoption combined.
+
+    Tests the two transitions that the user-driven ``/fork`` cannot trigger:
+    agent merged its own fork (cleanup), and agent forked without merging
+    (adopt).
+    """
+
+    async def test_clears_active_fork_when_resolved(self, fork_app: DeepApp) -> None:
+        """If the agent merged itself, the helper clears ``app.active_fork``."""
+        from apps.cli.forking import reconcile_active_fork
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await _drain_tasks(session)
+            # Simulate agent-driven merge: release every overlay.
+            for runtime in session.coordinator.branches.values():
+                runtime.overlay = None
+            assert session.coordinator.is_resolved is True
+
+            mutated = reconcile_active_fork(fork_app)
+            assert mutated is True
+            assert fork_app.active_fork is None
+
+    async def test_adopts_when_no_active_fork(self, fork_app: DeepApp) -> None:
+        """If the agent forked without merging, helper adopts the coordinator."""
+        from apps.cli.forking import reconcile_active_fork
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            # Pretend the user-driven /fork never ran: detach the CLI session
+            # but leave the coordinator on deps where the agent would have put it.
+            fork_app.active_fork = None
+            assert fork_app.deps is not None
+            fork_app.deps.fork_coordinator = session.coordinator
+
+            mutated = reconcile_active_fork(fork_app)
+            assert mutated is True
+            assert fork_app.active_fork is not None
+            assert fork_app.active_fork.adopted is True
+            await _drain_tasks(session)
+
+    async def test_no_op_when_no_fork_state(self, fork_app: DeepApp) -> None:
+        """If the agent never forked, the helper does nothing."""
+        from apps.cli.forking import reconcile_active_fork
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            assert fork_app.deps is not None
+            fork_app.deps.fork_coordinator = None
+            assert fork_app.active_fork is None
+
+            assert reconcile_active_fork(fork_app) is False
+            assert fork_app.active_fork is None
+
+
+class TestForkCommandBlockedWhenAdopted:
+    """B2 — ``/fork`` shows the adopted-specific notification when active_fork.adopted."""
+
+    async def test_notification_says_agent_already_forked(self, fork_app: DeepApp) -> None:
+        """User typing ``/fork`` during an auto-adopted fork gets the adopted message."""
+        from apps.cli.commands import dispatch_command
+
+        notifications: list[tuple[str, str]] = []
+        original_notify = fork_app.notify
+
+        def _capture_notify(
+            message: str,
+            *,
+            title: str = "",
+            severity: str = "information",
+            timeout: float = 5,
+        ) -> None:
+            notifications.append((message, severity))
+            original_notify(message, title=title, severity=severity, timeout=timeout)
+
+        fork_app.notify = _capture_notify  # type: ignore[method-assign]
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            # Mark the session as auto-adopted.
+            session.adopted = True
+            fork_app.active_fork = session
+
+            await dispatch_command(fork_app, "/fork")
+            await pilot.pause()
+
+            assert any("agent already forked" in msg.lower() for msg, _ in notifications), (
+                notifications
+            )
+            await _drain_tasks(session)
+
+    async def test_notification_says_fork_already_active_when_not_adopted(
+        self, fork_app: DeepApp
+    ) -> None:
+        """User-initiated forks keep the original wording (regression guard)."""
+        from apps.cli.commands import dispatch_command
+
+        notifications: list[tuple[str, str]] = []
+        original_notify = fork_app.notify
+
+        def _capture_notify(
+            message: str,
+            *,
+            title: str = "",
+            severity: str = "information",
+            timeout: float = 5,
+        ) -> None:
+            notifications.append((message, severity))
+            original_notify(message, title=title, severity=severity, timeout=timeout)
+
+        fork_app.notify = _capture_notify  # type: ignore[method-assign]
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            # session.adopted defaults to False (user-initiated path)
+            assert session.adopted is False
+
+            await dispatch_command(fork_app, "/fork")
+            await pilot.pause()
+
+            assert any("fork already active" in msg.lower() for msg, _ in notifications), (
+                notifications
+            )
+            await _drain_tasks(session)

@@ -255,6 +255,58 @@ class TestEdgeCases:
             await _fire(cap, "grep", {"p": "x"}, "same")
 
 
+class TestIgnoreTools:
+    """Tests for the ignore_tools exemption list."""
+
+    async def test_ignored_tool_never_triggers_repeated(self):
+        """A tool in ignore_tools is not tracked and never fires."""
+        cap = StuckLoopDetection(max_repeated=2, ignore_tools={"poll"})
+        # Fire 5 times — should never raise.
+        for _ in range(5):
+            result = await _fire(cap, "poll", {}, "same")
+        assert result == "same"
+
+    async def test_ignored_tool_does_not_affect_other_tools(self):
+        """Ignoring one tool leaves detection active for others."""
+        from pydantic_ai.exceptions import ModelRetry
+
+        cap = StuckLoopDetection(max_repeated=2, ignore_tools={"poll"})
+        # poll calls are silently skipped
+        await _fire(cap, "poll")
+        await _fire(cap, "poll")
+        # grep calls still trigger detection
+        await _fire(cap, "grep", {"p": "x"})
+        with pytest.raises(ModelRetry, match="identical arguments"):
+            await _fire(cap, "grep", {"p": "x"})
+
+    async def test_ignored_tool_skips_noop_detection(self):
+        """Ignored tool also bypasses no-op detection."""
+        cap = StuckLoopDetection(max_repeated=2, ignore_tools={"inspect_branches"})
+        for _ in range(4):
+            await _fire(cap, "inspect_branches", {}, "running")
+
+    async def test_for_run_preserves_ignore_tools(self):
+        """for_run clone retains the ignore_tools set."""
+        from pydantic_ai.exceptions import ModelRetry
+
+        cap = StuckLoopDetection(max_repeated=2, ignore_tools={"poll"})
+
+        clone = await cap.for_run(_ctx())
+        assert clone.ignore_tools == {"poll"}
+        # poll still exempt on clone
+        for _ in range(3):
+            await _fire(clone, "poll")
+        # other tool still fires on clone
+        await _fire(clone, "grep", {"p": "x"})
+        with pytest.raises(ModelRetry):
+            await _fire(clone, "grep", {"p": "x"})
+
+    async def test_empty_ignore_tools_is_default(self):
+        """Default construction has an empty ignore_tools set."""
+        cap = StuckLoopDetection(max_repeated=3)
+        assert cap.ignore_tools == set()
+
+
 class TestStuckLoopError:
     """Tests for StuckLoopError exception."""
 
@@ -294,6 +346,40 @@ class TestAgentIntegration:
             stuck_loop_detection=False,
         )
         assert not self._has_stuck_loop(agent)
+
+    def _get_stuck_loop(self, agent: object) -> StuckLoopDetection | None:
+        root = getattr(agent, "_root_capability", None)
+        if root is None:
+            return None  # pragma: no cover
+        for cap in getattr(root, "capabilities", []):
+            if isinstance(cap, StuckLoopDetection):
+                return cap
+        return None  # pragma: no cover
+
+    def test_forking_adds_inspect_branches_to_ignore(self):
+        """When forking=True, inspect_branches is exempt from stuck-loop checks."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=False,
+            include_skills=False,
+            cost_tracking=False,
+            forking=True,
+        )
+        sld = self._get_stuck_loop(agent)
+        assert sld is not None
+        assert "inspect_branches" in sld.ignore_tools
+
+    def test_no_forking_ignore_tools_empty(self):
+        """Without forking, ignore_tools stays empty."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=False,
+            include_skills=False,
+            cost_tracking=False,
+        )
+        sld = self._get_stuck_loop(agent)
+        assert sld is not None
+        assert sld.ignore_tools == set()
 
 
 class TestExports:

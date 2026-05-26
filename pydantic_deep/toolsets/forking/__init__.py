@@ -103,7 +103,25 @@ def create_fork_toolset(  # noqa: C901
         strategy: dict[str, Any] | None = None,
         aggregate_budget_usd: float | None = None,
     ) -> str:
-        """Spawn branch tasks sharing the parent's history up to this point.
+        """Spawn N branch tasks sharing the parent's history up to the call site.
+
+        Branches run in the background. This call returns immediately with
+        the branch ids — it does NOT wait for completion. To wait, poll
+        with ``inspect_branches`` until every branch reaches a terminal
+        state (``done``, ``failed``, ``terminated``, ``budget_exhausted``,
+        ``aggregate_budget_exhausted``).
+
+        Do NOT use ``wait_tasks`` for branches — that tool is for subagent
+        task ids and will return "not found" for branch ids. Branch ids
+        only resolve through the forking tools (``inspect_branches``,
+        ``merge_or_select``, ``terminate_branch``, ``diff_branches``,
+        ``fork_cost``).
+
+        The fork is unresolved until ``merge_or_select(action="pick:<id>")``
+        returns. The parent run MUST call ``merge_or_select`` before
+        yielding back to the user — an unresolved fork at the end of a
+        turn leaves branch tasks running and the user looking at dark
+        panels until the next turn re-adopts the coordinator.
 
         Args:
             specs: List of branch specs; each item needs at least ``label``
@@ -122,6 +140,12 @@ def create_fork_toolset(  # noqa: C901
         if coordinator.capability is None:  # pragma: no cover - defensive
             return "Fork coordinator missing capability back-reference."
         parent_history = coordinator.capability.latest_messages
+        # Strip trailing in-progress ModelRequest: pydantic-ai rejects two
+        # consecutive ModelRequests in branch history.
+        from pydantic_ai.messages import ModelRequest as _ModelRequest
+
+        if parent_history and isinstance(parent_history[-1], _ModelRequest):
+            parent_history = parent_history[:-1]
         try:
             handle = await coordinator.fork(
                 _coerce_specs(specs),
@@ -141,7 +165,28 @@ def create_fork_toolset(  # noqa: C901
 
     @toolset.tool
     async def inspect_branches(ctx: RunContext[DeepAgentDeps]) -> str:
-        """Return the current status of every branch in this fork."""
+        """Return the current status of every branch in this fork.
+
+        This is the correct polling primitive for fork status — NOT
+        ``wait_tasks`` (which is for subagent task ids and will not see
+        branch ids). Use it in a loop after ``fork_run`` until every
+        branch reaches a terminal state, then call ``merge_or_select``.
+
+        Typical polling loop::
+
+            fork_run(specs=[...])
+            while True:
+                statuses = inspect_branches()
+                # branch states are emitted one per line — parse and check
+                # every one of them; stop when none are "running".
+                if no branch is still running:
+                    break
+            merge_or_select(action="pick:<winner_id>")
+
+        Terminal states: ``done``, ``failed``, ``terminated``,
+        ``budget_exhausted``, ``aggregate_budget_exhausted``.
+        Non-terminal: ``running``.
+        """
         coordinator = _coordinator_from_ctx(ctx)
         if coordinator is None:
             return NOT_ENABLED_MESSAGE
@@ -159,16 +204,116 @@ def create_fork_toolset(  # noqa: C901
         ctx: RunContext[DeepAgentDeps],
         action: str,
     ) -> str:
-        """Resolve the fork via ``action='pick:<branch_id>'``."""
+        """Resolve the fork by picking a winner. REQUIRED before turn ends.
+
+        The fork is not considered resolved until this returns. Skipping
+        it leaves branches running into the next parent turn, where the
+        CLI re-adopts the coordinator and presents the user with stale
+        fork panels they did not ask for.
+
+        ``action`` syntax:
+            ``"pick:<branch_id>"`` — flush this branch's overlay writes
+            to the parent backend, cancel and discard the other branches,
+            and replay the winner's full message history into the parent
+            run.
+            ``"auto"`` — let the judge evaluate all branches and pick the
+            winner automatically according to the fork's configured
+            :class:`MergeStrategy` (``"auto"``, ``"auto_with_fallback"``,
+            or ``"vote"``).  Use this when the fork was created with a
+            non-``"manual"`` strategy so the judge's verdict drives the
+            choice rather than your own assessment of the branches.
+
+        When to use ``"auto"`` vs ``"pick:<id>"`` vs ``"abort"``:
+            Use ``"auto"`` when the fork's strategy is not ``"manual"`` —
+            the judge runs, evaluates the diff and outcomes, and commits
+            the best branch.  Use ``"pick:<id>"`` only for ``"manual"``
+            strategy forks or when you have a specific reason to override
+            automatic evaluation.  Use ``"abort"`` to discard every branch
+            without merging — required when every branch ended in a
+            failed / terminated / budget-exhausted state so no winner is
+            mergeable.  ``"auto"`` auto-detects the all-failed case and
+            calls ``"abort"`` for you, so you only need ``"abort"`` when
+            you want to bail out early on your own.
+        """
         coordinator = _coordinator_from_ctx(ctx)
         if coordinator is None:
             return NOT_ENABLED_MESSAGE
+
+        # Detect when every branch is in a non-mergeable terminal state.
+        _failed_states = {
+            "failed",
+            "terminated",
+            "budget_exhausted",
+            "aggregate_budget_exhausted",
+        }
+        _branches = list(coordinator.branches.values())
+        all_failed = bool(_branches) and all(rt.status.state in _failed_states for rt in _branches)
+
+        if action == "abort" or (action == "auto" and all_failed):
+            # Nothing mergeable — release overlays and discard everything.
+            try:
+                aborted = await coordinator.abort_fork()
+            except RuntimeError as e:
+                return f"merge_or_select abort failed: {e}"
+            if all_failed and _branches:
+                err_lines = [
+                    f"- {rt.status.label} ({rt.status.state}): "
+                    f"{rt.status.error or '(no error message)'}"
+                    for rt in _branches
+                ]
+                return (
+                    f"Fork aborted: every branch failed before merge "
+                    f"({len(aborted)} branch(es)).\n"
+                    + "\n".join(err_lines)
+                    + "\nThe parent run can continue from the pre-fork checkpoint; "
+                    "do NOT call merge_or_select again on this fork."
+                )
+            return f"Fork aborted: discarded {len(aborted)} branch(es) without merging."
+
+        def _label(bid: str) -> str:
+            """Resolve a branch id to its human-readable label, or fall back to the id."""
+            rt = coordinator.branches.get(bid)
+            return rt.spec.label if rt is not None else bid
+
+        def _winner_str(bid: str) -> str:
+            """Render the winner as ``label (short-id)`` for tool output."""
+            return f"{_label(bid)} ({bid[:8]})"
+
+        if action == "auto":
+            try:
+                outcome = await coordinator.resolve()
+            except Exception as e:
+                return f"merge_or_select auto failed: {e}"
+            if outcome.committed and outcome.merge_result is not None:
+                r = outcome.merge_result
+                verdict_summary = ""
+                if outcome.verdict is not None:
+                    verdict_summary = (
+                        f", judge_pick={_winner_str(outcome.verdict.winner_branch_id)}"
+                        f" (confidence={outcome.effective_confidence:.2f})"
+                    )
+                return (
+                    f"Merged fork {r.fork_id}: winner={_winner_str(r.winner_branch_id)}"
+                    f"{verdict_summary}, "
+                    f"discarded={len(r.discarded_branches)}, "
+                    f"history={len(r.history_after_merge)} messages"
+                )
+            # Strategy was manual or auto_with_fallback below threshold —
+            # fall through with the judge's recommended pick if available.
+            if outcome.verdict is not None:
+                action = f"pick:{outcome.verdict.winner_branch_id}"
+            else:
+                return (
+                    "merge_or_select auto: strategy is 'manual' — "
+                    "call merge_or_select(action='pick:<branch_id>') explicitly."
+                )
+
         try:
             result = await coordinator.merge_or_select(action)
         except ValueError as e:
             return f"merge_or_select failed: {e}"
         return (
-            f"Merged fork {result.fork_id}: winner={result.winner_branch_id}, "
+            f"Merged fork {result.fork_id}: winner={_winner_str(result.winner_branch_id)}, "
             f"discarded={len(result.discarded_branches)}, "
             f"history={len(result.history_after_merge)} messages"
         )

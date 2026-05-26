@@ -710,6 +710,35 @@ class ChatScreen(Screen):
                                             team_event=(tool_name, args),
                                         )
 
+                                    # Only show overlay for action="auto" — pick/abort return fast
+                                    # and a flashing overlay there would be misleading.
+                                    if (
+                                        tool_name == "merge_or_select"
+                                        and args.get("action") == "auto"
+                                    ):
+                                        _coord = None
+                                        _active_fork = app.active_fork
+                                        if _active_fork is not None:
+                                            _coord = _active_fork.coordinator
+                                        else:
+                                            _coord = getattr(
+                                                getattr(app, "deps", None),
+                                                "fork_coordinator",
+                                                None,
+                                            )
+                                        if _coord is not None and _coord.handle is not None:
+                                            from apps.cli.widgets.judge_loading import (
+                                                JudgeLoadingScreen,
+                                            )
+
+                                            _overlay = JudgeLoadingScreen(
+                                                _coord,
+                                                _coord.handle.merge_strategy,
+                                                passive=True,
+                                            )
+                                            self._passive_judge_overlay = _overlay
+                                            app.push_screen(_overlay)
+
                                 elif isinstance(event, FunctionToolResultEvent):
                                     tool_name = getattr(event.result, "tool_name", "unknown")
                                     call_id = getattr(event.result, "tool_call_id", tool_name)
@@ -744,6 +773,22 @@ class ChatScreen(Screen):
                                             "error" if is_error else "completed"
                                         )
                                         self._update_subagents_panel(_subagent_tasks)
+
+                                    if tool_name == "fork_run":
+                                        from apps.cli.forking import reconcile_active_fork
+
+                                        reconcile_active_fork(app)
+
+                                    # Dismiss overlay + reconcile active_fork so panels disappear
+                                    # the same turn instead of lingering until end-of-run.
+                                    if tool_name == "merge_or_select":
+                                        overlay = getattr(self, "_passive_judge_overlay", None)
+                                        if overlay is not None:
+                                            overlay.dismiss(None)
+                                            self._passive_judge_overlay = None
+                                        from apps.cli.forking import reconcile_active_fork
+
+                                        reconcile_active_fork(app)
 
                     elif isinstance(node, End):
                         pass
@@ -888,6 +933,10 @@ class ChatScreen(Screen):
                             status.message_count = len(app.message_history)  # type: ignore
                         except Exception:
                             pass
+
+                from apps.cli.forking import reconcile_active_fork
+
+                reconcile_active_fork(app)
 
                 # Auto-save session
                 self._save_session()

@@ -87,6 +87,10 @@ class StuckLoopDetection(AbstractCapability[Any]):
         detect_repeated: Enable repeated identical call detection.
         detect_alternating: Enable A-B-A-B pattern detection.
         detect_noop: Enable no-op (same result) detection.
+        ignore_tools: Tool names exempt from all stuck-loop checks.
+            Use for polling primitives that are intentionally called
+            many times with identical arguments — e.g.
+            ``{"inspect_branches"}`` when forking is enabled.
     """
 
     max_repeated: int = 3
@@ -94,6 +98,7 @@ class StuckLoopDetection(AbstractCapability[Any]):
     detect_repeated: bool = True
     detect_alternating: bool = True
     detect_noop: bool = True
+    ignore_tools: set[str] = field(default_factory=set)
 
     _call_history: list[tuple[str, str]] = field(default_factory=list, init=False, repr=False)
     """Per-run history of (tool_name, args_hash) tuples."""
@@ -175,6 +180,9 @@ class StuckLoopDetection(AbstractCapability[Any]):
         result: Any,
     ) -> Any:
         """Track tool calls and detect stuck patterns."""
+        if call.tool_name in self.ignore_tools:
+            return result
+
         call_key = (call.tool_name, _hash_args(args))
         self._call_history.append(call_key)
 

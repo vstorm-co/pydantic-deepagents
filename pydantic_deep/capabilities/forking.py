@@ -42,9 +42,7 @@ class LiveForkCapability(AbstractCapability[Any]):
     max_branches: int = 10
     max_depth: int = 2
     store: ForkStateStore | None = None
-    #: Keep on-disk fork artefacts under ``.pydantic-deep/forks/{fork_id}/``
-    #: after the fork resolves (for post-hoc inspection / external diff tools).
-    #: Independent of apply-to-parent semantics.
+    #: Independent of apply-to-parent semantics — disk artefacts stay even on abandon.
     keep_artifacts: bool = False
 
     _agent_ref: Any = field(default=None, init=False, repr=False)
@@ -65,7 +63,17 @@ class LiveForkCapability(AbstractCapability[Any]):
         return list(self._latest_messages)
 
     async def for_run(self, ctx: RunContext[Any]) -> LiveForkCapability:
-        """Return a fresh per-run capability with an independent coordinator."""
+        """Return a fresh per-run capability with an independent coordinator.
+
+        Preserves an unresolved coordinator from a previous turn rather
+        than overwriting it. If the previous parent run forked but did
+        not call ``merge_or_select`` before yielding back to the user,
+        the coordinator stays on ``deps.fork_coordinator`` so the next
+        turn (or the CLI adopter) can still resolve or abort it; the
+        new capability clone takes ownership via the ``capability``
+        back-reference so per-run state (e.g. ``latest_messages``)
+        flows through the right instance.
+        """
         clone = replace(
             self,
             max_branches=self.max_branches,
@@ -77,6 +85,12 @@ class LiveForkCapability(AbstractCapability[Any]):
         clone._agent_ref = self._agent_ref
 
         assert clone.store is not None  # __post_init__ guarantees this
+
+        existing = getattr(ctx.deps, "fork_coordinator", None)
+        if existing is not None and not existing.is_resolved:
+            existing.capability = clone
+            return clone
+
         coordinator = ForkCoordinator(
             agent=clone._agent_ref,
             parent_deps=ctx.deps,
@@ -88,6 +102,19 @@ class LiveForkCapability(AbstractCapability[Any]):
         coordinator.capability = clone
         ctx.deps.fork_coordinator = coordinator
         return clone
+
+    async def after_run(self, ctx: RunContext[Any], *, result: Any) -> Any:
+        """Anchor for the post-turn stash protocol — currently a no-op.
+
+        The coordinator survives a parent turn ending because
+        :meth:`for_run` refuses to overwrite an unresolved one on the
+        next turn (see above). This hook exists as a documented
+        anchor so future strategy changes (eager artefact cleanup on
+        abort, post-turn telemetry, partial-history persistence) plug
+        in here without restructuring the lifecycle. ``result`` is
+        returned unchanged.
+        """
+        return result
 
     async def before_model_request(
         self,

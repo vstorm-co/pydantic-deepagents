@@ -347,6 +347,32 @@ class ForkCoordinator:
         """
         return self._handle.fork_id if self._handle is not None else None
 
+    @property
+    def handle(self) -> ForkHandle | None:
+        """The :class:`ForkHandle` returned by :meth:`fork`, or ``None`` before fork.
+
+        Read-only public accessor for the same value :meth:`fork` returns.
+        Cross-package consumers (the CLI adopter, debug inspectors) read this
+        instead of reaching into ``_handle``.
+        """
+        return self._handle
+
+    @property
+    def is_resolved(self) -> bool:
+        """True when the coordinator no longer owns live branch state.
+
+        Resolved iff either the coordinator has not yet forked
+        (``_handle is None``) or every branch's overlay has been released
+        (``rt.overlay is None``) — which only happens inside
+        :meth:`merge_or_select` (winner flushed, losers cancelled) and
+        :meth:`aclose` (abort). This is the canonical "safe to discard"
+        signal used by the CLI adopter and :meth:`LiveForkCapability.for_run`
+        to distinguish a fork that needs preserving from one that does not.
+        """
+        if self._handle is None:
+            return True
+        return all(rt.overlay is None for rt in self.branches.values())
+
     def _resolve_checkpoint_store(self) -> CheckpointStore | None:
         explicit = self.checkpoint_store
         if explicit is not None:
@@ -787,6 +813,41 @@ class ForkCoordinator:
             self._cached_outcome_strategy_kind = None
 
             return merge_result
+
+    async def abort_fork(self) -> list[str]:
+        """Discard the entire fork without merging — releases overlays, cancels tasks.
+
+        Use when every branch has failed (or otherwise become unmergeable)
+        so the fork can be resolved without picking a winner.  Mirrors the
+        cleanup half of :meth:`merge_or_select` but without flushing any
+        overlay onto the parent backend.
+
+        Returns the list of branch ids that were aborted.  After this
+        call, :attr:`is_resolved` becomes ``True`` and a new fork can be
+        started on the same coordinator.
+        """
+        if self._handle is None:
+            raise RuntimeError("abort_fork called before fork()")
+
+        async with self._lock:
+            aborted: list[str] = []
+            for bid, rt in list(self.branches.items()):
+                if not rt.task.done():
+                    rt.task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
+                        try:
+                            await asyncio.wait_for(rt.task, timeout=_CANCEL_CLEANUP_TIMEOUT_S)
+                        except Exception:  # pragma: no cover - defensive
+                            logger.warning("aborted branch %s cleanup raised", bid, exc_info=True)
+                rt.overlay = None
+                aborted.append(bid)
+
+            if self.materializer is not None:  # pragma: no branch
+                self.materializer.cleanup()
+
+            self._cached_outcome = None
+            self._cached_outcome_strategy_kind = None
+            return aborted
 
     def _build_branch_outcomes(self) -> tuple[list[BranchOutcome], str]:
         """Materialise per-branch summaries + the parent's first user message.

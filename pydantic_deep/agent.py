@@ -485,9 +485,9 @@ def create_deep_agent(  # noqa: C901
             branches has cost implications. When enabled without
             ``include_checkpoints=True``, ``fork()`` emits a runtime warning
             at call time since the ``fork:<id>`` / ``post-fork:<id>`` rewind
-            anchors require a checkpoint store. CLI integration landed in
-            Stage 3; per-branch + aggregate budget enforcement landed in
-            Stage 4.
+            anchors require a checkpoint store. Per-branch budgets are
+            enforced via ``BranchSpec.budget_usd``; fork-wide aggregate caps
+            via :attr:`LiveForkCapability.aggregate_budget_usd`.
         model_settings: Provider-specific model settings (temperature, thinking,
             etc.). Passed directly to the pydantic-ai Agent. Common keys:
             ``temperature``, ``max_tokens``, ``anthropic_thinking``,
@@ -901,9 +901,6 @@ def create_deep_agent(  # noqa: C901
     # patch_tool_calls capability is added later (see capabilities section below).
     _patch_tool_calls = patch_tool_calls
 
-    # Eviction capability is added later (see capabilities section below).
-    # Previously this was a history processor; now it uses after_tool_execute
-    # to intercept large outputs before they enter message history.
     _eviction_token_limit = eviction_token_limit
     _max_binary_content = max_binary_content
     _on_eviction = on_eviction
@@ -978,9 +975,8 @@ def create_deep_agent(  # noqa: C901
     if all_processors:
         agent_create_kwargs["history_processors"] = all_processors
 
-    # Build effective model_settings with prompt caching defaults.
     # Anthropic-specific keys are silently ignored by non-Anthropic models,
-    # so we always set them — no provider detection needed.
+    # so we set them unconditionally — no provider detection needed.
     effective_model_settings: dict[str, Any] = {
         "anthropic_cache_instructions": True,
         "anthropic_cache_tool_definitions": True,
@@ -1036,7 +1032,10 @@ def create_deep_agent(  # noqa: C901
     if stuck_loop_detection:
         from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 
-        all_capabilities.append(StuckLoopDetection())
+        # Polling tools are intentionally called many times with identical
+        # arguments — exempt them so the detector doesn't fire on normal usage.
+        _sld_ignore: set[str] = {"inspect_branches"} if forking else set()
+        all_capabilities.append(StuckLoopDetection(ignore_tools=_sld_ignore))
 
     if message_queue is not None:
         from pydantic_deep.capabilities.message_queue import MessageQueueCapability

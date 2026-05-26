@@ -173,3 +173,62 @@ async def test_spinner_label_includes_abort_hint() -> None:
         # Tidy up so the test loop terminates cleanly.
         screen.action_abort()
         await pilot.pause()
+
+
+# ---------------------------------------------------------------------------
+# Passive mode — no task spawned, dismissed externally, escape safe.
+# ---------------------------------------------------------------------------
+
+
+async def test_passive_mode_does_not_start_task() -> None:
+    """``passive=True`` shows the spinner but never calls ``resolve()``."""
+    app = _ProbeApp()
+    resolve_called = False
+
+    async def _resolve(_s: Any) -> Any:
+        nonlocal resolve_called
+        resolve_called = True  # pragma: no cover - must NOT be called
+        return None
+
+    coordinator = SimpleNamespace(resolve=_resolve)
+    async with app.run_test() as pilot:
+        screen = JudgeLoadingScreen(coordinator, MergeStrategy(kind="auto"), passive=True)
+        app.push_screen(screen)
+        await pilot.pause()
+        # No judge task should have been created.
+        assert screen._judge_task is None
+        assert not resolve_called
+        # External dismiss (simulates FunctionToolResultEvent handler).
+        screen.dismiss(None)
+        await pilot.pause()
+
+
+async def test_passive_mode_label_differs_from_active() -> None:
+    """Passive label says 'Agent evaluating' instead of 'Judge evaluating'."""
+    app = _ProbeApp()
+    coordinator = SimpleNamespace(resolve=AsyncMock(return_value=None))
+    async with app.run_test() as pilot:
+        screen = JudgeLoadingScreen(coordinator, MergeStrategy(kind="auto"), passive=True)
+        app.push_screen(screen)
+        await pilot.pause()
+        label = screen.query_one("#judge-label", Static)
+        text = str(label.render())
+        assert "Agent evaluating" in text
+        assert "esc to abort" not in text
+        screen.dismiss(None)
+        await pilot.pause()
+
+
+async def test_passive_mode_escape_dismisses_with_judgeaborted() -> None:
+    """Pressing Escape in passive mode dismisses (no task to cancel)."""
+    app = _ProbeApp()
+    coordinator = SimpleNamespace(resolve=AsyncMock(return_value=None))
+    captured: dict[str, Any] = {}
+
+    async with app.run_test() as pilot:
+        screen = JudgeLoadingScreen(coordinator, MergeStrategy(kind="auto"), passive=True)
+        app.push_screen(screen, lambda v: captured.__setitem__("value", v))
+        await pilot.pause()
+        await pilot.press("escape")
+        await pilot.pause()
+        assert isinstance(captured.get("value"), JudgeAborted)

@@ -86,11 +86,17 @@ class CLIForkSession:
         label_to_id: Resolves user-supplied branch labels (e.g. ``"a"``,
             ``"approach_a"``) to the coordinator's internal UUID branch ids.
             Populated once after ``fork()`` returns.
+        adopted: ``True`` when the session wraps a coordinator the agent
+            allocated mid-run (via the ``fork_run`` tool); ``False`` for
+            user-initiated forks via the ``/fork`` command. The ``/fork``
+            command guard branches on this so the user gets a different
+            notification when the active fork was started by the agent.
     """
 
     coordinator: ForkCoordinator
     handle: Any
     label_to_id: dict[str, str] = field(default_factory=dict)
+    adopted: bool = False
 
     def _resolve_id(self, label_or_id: str) -> str | None:
         """Return the canonical branch id for ``label_or_id``, or ``None`` if unknown."""
@@ -229,10 +235,98 @@ async def start_fork_from_cli(
     return CLIForkSession(coordinator=coordinator, handle=handle, label_to_id=label_to_id)
 
 
+def reconcile_active_fork(app: DeepApp) -> bool:
+    """Reconcile ``app.active_fork`` with ``deps.fork_coordinator`` after a turn.
+
+    Called at the end of every parent ``agent.run()`` to handle the two
+    agent-initiated fork transitions the user-driven ``/fork`` path cannot
+    observe:
+
+    - **Agent merged its own fork** — ``app.active_fork`` wraps a
+      coordinator that is now resolved (e.g. ``MergeStrategy.kind="auto"``
+      drove ``merge_or_select`` itself). Clear ``app.active_fork`` so the
+      panels go away, mirroring :meth:`ChatScreen.action_merge_focused_branch`.
+    - **Agent forked but did not merge** — no ``app.active_fork`` yet, but
+      ``deps.fork_coordinator`` has live branches. Adopt via
+      :func:`adopt_agent_coordinator` so the panels light up.
+
+    The combination of both transitions in one call lets the timing edge
+    case (agent forks AND merges within a single turn) cleanly land on
+    ``app.active_fork is None`` without a brief UI flash.
+
+    Returns ``True`` when the function mutated ``app.active_fork`` —
+    useful for tests that need to assert the transition happened (the
+    final value is also readable from ``app.active_fork`` directly).
+    """
+    active = app.active_fork
+    if active is not None and active.coordinator.is_resolved:
+        app.active_fork = None
+        return True
+    if active is None:
+        adopted = adopt_agent_coordinator(app)
+        if adopted is not None:
+            app.active_fork = adopted
+            return True
+    return False
+
+
+def adopt_agent_coordinator(app: DeepApp) -> CLIForkSession | None:
+    """Wrap a coordinator the agent allocated mid-run in a :class:`CLIForkSession`.
+
+    ``LiveForkCapability.for_run`` allocates a :class:`ForkCoordinator` at
+    the start of every ``agent.run()`` and stores it on
+    ``deps.fork_coordinator``. When the agent itself calls ``fork_run``
+    during that run, the coordinator gains a :class:`ForkHandle` and live
+    branches — but ``app.active_fork`` (the TUI's reactive entry point)
+    stays ``None`` because the CLI ``/fork`` path never executed.
+
+    This helper closes the gap: it inspects the running deps, builds the
+    same wrapper :func:`start_fork_from_cli` produces, and tags it as
+    ``adopted=True`` so the ``/fork`` command guard can distinguish
+    user-initiated vs agent-initiated forks.
+
+    Returns ``None`` when there is nothing to adopt:
+
+    - ``app.deps`` is unset (app not fully booted);
+    - no coordinator on deps;
+    - coordinator has no branches (agent did not call ``fork_run``);
+    - coordinator is already resolved (``is_resolved`` is True) — covers
+      the timing case where the agent forks and merges in a single turn,
+      so the UI does not flash a panel for a fork that's already done.
+
+    Idempotent: if ``app.active_fork`` already wraps the same coordinator,
+    the existing session is returned unchanged.
+    """
+    deps = app.deps
+    if deps is None:
+        return None
+    coordinator = getattr(deps, "fork_coordinator", None)
+    if coordinator is None or not coordinator.branches or coordinator.is_resolved:
+        return None
+    existing = app.active_fork
+    if existing is not None and existing.coordinator is coordinator:
+        return existing
+    handle = coordinator.handle
+    if handle is None:  # pragma: no cover - defensive: branches non-empty implies handle set
+        return None
+    label_to_id: dict[str, str] = {}
+    for branch_id in handle.branches:
+        runtime = coordinator.branches[branch_id]
+        label_to_id[runtime.spec.label] = branch_id
+    return CLIForkSession(
+        coordinator=coordinator,
+        handle=handle,
+        label_to_id=label_to_id,
+        adopted=True,
+    )
+
+
 __all__ = [
     "CLIForkSession",
     "ForkPickerResult",
     "ForkingNotEnabledError",
+    "adopt_agent_coordinator",
+    "reconcile_active_fork",
     "resolve_capability",
     "start_fork_from_cli",
 ]

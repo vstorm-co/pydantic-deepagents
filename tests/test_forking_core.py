@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import pytest
 from pydantic_ai import Agent
-from pydantic_ai.messages import ModelRequest, UserPromptPart
+from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai_backends import StateBackend
 
@@ -848,6 +848,96 @@ async def test_fork_tool_happy_path():
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
 
 
+async def test_fork_tool_strips_trailing_model_request_from_parent_history():
+    """fork_run strips a trailing ModelRequest from latest_messages.
+
+    ``before_model_request`` captures the in-progress request, so the snapshot
+    always ends with a ModelRequest.  Passing that verbatim to branches would
+    create two consecutive ModelRequests, which pydantic-ai rejects.  The tool
+    must strip it so branches receive a history ending with a ModelResponse.
+    """
+    deps = DeepAgentDeps(backend=StateBackend())
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+    # Simulate a snapshot that includes the current in-progress ModelRequest
+    # at the end (exactly what before_model_request captures).
+    cap._latest_messages = [
+        ModelRequest(parts=[UserPromptPart(content="user turn 1")]),
+        ModelResponse(parts=[TextPart(content="assistant reply")]),
+        ModelRequest(parts=[UserPromptPart(content="in-progress request")]),
+    ]
+    assert cap.store is not None
+    coord = ForkCoordinator(
+        agent=cap._agent_ref,
+        parent_deps=deps,
+        max_branches=cap.max_branches,
+        max_depth=cap.max_depth,
+        store=cap.store,
+        checkpoint_store=InMemoryCheckpointStore(),
+    )
+    coord.capability = cap
+    deps.fork_coordinator = coord
+
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    out = await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}],
+        None,
+        {"kind": "manual"},
+    )
+    assert "Forked: fork_id=" in out
+    # Branches should have received only the first two messages (the trailing
+    # ModelRequest was stripped), so the history passed to agent.run() is valid.
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+    for rt in coord.branches.values():
+        all_msgs = rt.task.result().all_messages()
+        user_texts = [
+            part.content
+            for msg in all_msgs
+            if isinstance(msg, ModelRequest)
+            for part in msg.parts
+            if isinstance(part, UserPromptPart)
+        ]
+        # "in-progress request" was stripped — should NOT appear in branch history
+        assert "in-progress request" not in user_texts
+        # The steer ("A") should be present as the new first request
+        assert "A" in user_texts
+
+
+async def test_fork_tool_no_strip_when_history_ends_with_response():
+    """When latest_messages ends with a ModelResponse, nothing is stripped."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+    cap._latest_messages = [
+        ModelRequest(parts=[UserPromptPart(content="user turn 1")]),
+        ModelResponse(parts=[TextPart(content="assistant reply")]),
+    ]
+    assert cap.store is not None
+    coord = ForkCoordinator(
+        agent=cap._agent_ref,
+        parent_deps=deps,
+        max_branches=cap.max_branches,
+        max_depth=cap.max_depth,
+        store=cap.store,
+        checkpoint_store=InMemoryCheckpointStore(),
+    )
+    coord.capability = cap
+    deps.fork_coordinator = coord
+
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    out = await fork_fn(
+        _StubCtx(deps),
+        [{"label": "b", "steer": "B"}],
+        None,
+        {"kind": "manual"},
+    )
+    assert "Forked: fork_id=" in out
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+
+
 async def test_fork_tool_returns_error_string_on_limit():
     deps = DeepAgentDeps(backend=StateBackend())
     cap = LiveForkCapability(max_branches=2)
@@ -929,7 +1019,170 @@ async def test_merge_tool_happy_path():
     branch_id = next(iter(deps.fork_coordinator.branches))
     merge_fn = toolset.tools["merge_or_select"].function
     out = await merge_fn(_StubCtx(deps), f"pick:{branch_id}")
-    assert f"winner={branch_id}" in out
+    # Output renders winner as "label (short-id)" so the agent (and the user
+    # reading the tool log) sees the human-friendly branch name, not just the UUID.
+    assert "winner=a (" in out
+    assert branch_id[:8] in out
+
+
+async def test_merge_tool_action_auto_uses_judge_and_commits():
+    """action='auto' calls coordinator.resolve() and commits via judge verdict."""
+    from unittest.mock import patch
+
+    from pydantic_deep import JudgeVerdict
+
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    # Fork with an auto strategy so resolve() commits immediately.
+    await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}, {"label": "b", "steer": "B"}],
+        None,
+        {"kind": "auto"},
+    )
+    assert deps.fork_coordinator is not None
+    coord = deps.fork_coordinator
+    # Wait for branches so the coordinator has outcomes to judge.
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+    winner_id = next(iter(coord.branches))
+
+    # Stub the judge so we don't need a real API key.
+    class _FakeJudge:
+        def __init__(self, model: Any) -> None:
+            pass
+
+        async def evaluate(self, goal: str, diff_report: Any, outcomes: list[Any]) -> Any:
+            return JudgeVerdict(winner_branch_id=winner_id, reasoning="fake", confidence=0.9), None
+
+    merge_fn = toolset.tools["merge_or_select"].function
+    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _FakeJudge):
+        out = await merge_fn(_StubCtx(deps), "auto")
+    # Should have committed the merge automatically.
+    assert "winner=" in out
+    assert coord.is_resolved
+
+
+async def test_merge_tool_action_auto_on_manual_strategy_returns_advisory():
+    """action='auto' on a manual-strategy fork falls back to a human-readable error."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    # Fork with manual strategy — resolve() is a no-op (returns manual outcome).
+    await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}],
+        None,
+        {"kind": "manual"},
+    )
+    assert deps.fork_coordinator is not None
+    coord = deps.fork_coordinator
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+
+    merge_fn = toolset.tools["merge_or_select"].function
+    out = await merge_fn(_StubCtx(deps), "auto")
+    # Should surface a message telling the agent to pick explicitly.
+    assert "manual" in out.lower()
+    # Fork should still be unresolved (we didn't commit).
+    assert not coord.is_resolved
+    # Cleanup: commit the winner so tests don't leak open branches.
+    branch_id = next(iter(coord.branches))
+    await merge_fn(_StubCtx(deps), f"pick:{branch_id}")
+
+
+async def test_merge_tool_action_abort_discards_all_branches():
+    """action='abort' releases overlays and cancels every branch without merging."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}, {"label": "b", "steer": "B"}],
+        None,
+        {"kind": "manual"},
+    )
+    assert deps.fork_coordinator is not None
+    coord = deps.fork_coordinator
+    # Don't even wait for branches — abort should cancel any still-running task.
+    merge_fn = toolset.tools["merge_or_select"].function
+    out = await merge_fn(_StubCtx(deps), "abort")
+    assert "aborted" in out.lower()
+    # Every branch should have its overlay released.
+    assert all(rt.overlay is None for rt in coord.branches.values())
+    # Coordinator should report itself resolved (no overlays left).
+    assert coord.is_resolved
+
+
+async def test_merge_tool_action_auto_autoaborts_when_all_branches_failed():
+    """action='auto' auto-aborts when every branch is in a failed state."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}, {"label": "b", "steer": "B"}],
+        None,
+        {"kind": "auto"},
+    )
+    assert deps.fork_coordinator is not None
+    coord = deps.fork_coordinator
+    # Wait for branches to reach terminal state, then force them to "failed".
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+    for rt in coord.branches.values():
+        rt.status.state = "failed"
+        rt.status.error = "synthetic test failure"
+
+    merge_fn = toolset.tools["merge_or_select"].function
+    # The judge must NOT be called when we already know everything failed.
+    out = await merge_fn(_StubCtx(deps), "auto")
+    assert "every branch failed" in out.lower() or "fork aborted" in out.lower()
+    assert "synthetic test failure" in out
+    # All overlays released; nothing further to merge.
+    assert all(rt.overlay is None for rt in coord.branches.values())
+
+
+async def test_coordinator_abort_fork_releases_overlays():
+    """ForkCoordinator.abort_fork cancels tasks and releases overlays."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    fork_fn = toolset.tools["fork_run"].function
+    await fork_fn(
+        _StubCtx(deps),
+        [{"label": "a", "steer": "A"}, {"label": "b", "steer": "B"}],
+        None,
+        {"kind": "manual"},
+    )
+    assert deps.fork_coordinator is not None
+    coord = deps.fork_coordinator
+    aborted = await coord.abort_fork()
+    assert len(aborted) == 2
+    assert all(rt.overlay is None for rt in coord.branches.values())
+
+
+async def test_coordinator_abort_fork_raises_when_not_forked():
+    """abort_fork on a coordinator without an active fork raises RuntimeError."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    cap = _build_capability_with_coordinator(deps)
+    assert deps.fork_coordinator is not None
+    # Don't call fork(); abort_fork should error.
+    with pytest.raises(RuntimeError, match="abort_fork called before fork"):
+        await deps.fork_coordinator.abort_fork()
+    del cap  # silence unused-variable
+
+
+async def test_merge_tool_abort_fails_gracefully_when_no_fork():
+    """action='abort' on a coordinator without an active fork returns a clean error."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    _build_capability_with_coordinator(deps)
+    toolset = create_fork_toolset()
+    merge_fn = toolset.tools["merge_or_select"].function
+    out = await merge_fn(_StubCtx(deps), "abort")
+    assert "abort failed" in out.lower()
 
 
 async def test_terminate_tool_happy_path():
@@ -1071,10 +1324,7 @@ async def test_branch_overlay_records_no_change_on_edit_failure():
     assert res.error is not None
     # No FileChange recorded for a failed edit
     assert all(c.op == "write" for c in overlay.changes())
-    # The materialization write is recorded but not the edit
-    # (overlay copied parent_bytes via _overlay.write which doesn't log)
-    # Actually our overlay.write() is the public method; here we used
-    # _overlay.write() directly (bypassing _changes log).  Confirm:
+    # _overlay.write() bypasses the _changes log; no edit op recorded.
     edit_ops = [c for c in overlay.changes() if c.op == "edit"]
     assert edit_ops == []
 
@@ -1843,3 +2093,188 @@ async def test_delete_file_tool_success() -> None:
     assert result == "deleted: /src/util.py"
     assert "/src/util.py" in overlay.deleted()
     assert not overlay.exists("/src/util.py")
+
+
+# ---------------------------------------------------------------------------
+# Step 0 — Coordinator public surfaces (handle + is_resolved)
+# ---------------------------------------------------------------------------
+
+
+def test_coordinator_handle_returns_none_before_fork():
+    """``coord.handle`` is ``None`` until ``fork()`` runs."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps)
+    assert coord.handle is None
+
+
+async def test_coordinator_handle_returns_fork_handle_after_fork():
+    """``coord.handle`` returns the same :class:`ForkHandle` ``fork()`` returned."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
+    returned = await coord.fork(
+        [BranchSpec(label="a", steer="A")],
+        parent_history=_seed_history("p"),
+    )
+    assert coord.handle is returned
+
+
+def test_is_resolved_true_when_no_handle():
+    """A coordinator that has not forked is resolved (no live state to discard)."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps)
+    assert coord.is_resolved is True
+
+
+async def test_is_resolved_false_when_branches_have_overlays():
+    """After ``fork()`` but before merge, ``is_resolved`` is False."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
+    await coord.fork(
+        [BranchSpec(label="a", steer="A")],
+        parent_history=_seed_history("p"),
+    )
+    assert coord.is_resolved is False
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+
+
+async def test_is_resolved_true_after_merge():
+    """``merge_or_select`` releases every overlay → ``is_resolved`` becomes True."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
+    handle = await coord.fork(
+        [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        parent_history=_seed_history("p"),
+    )
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+    winner_id = handle.branches[0]
+    await coord.merge_or_select(f"pick:{winner_id}")
+    assert coord.is_resolved is True
+
+
+# ---------------------------------------------------------------------------
+# B1 — Prompt content assertions
+# ---------------------------------------------------------------------------
+
+
+def test_fork_run_docstring_warns_against_wait_tasks():
+    """``fork_run`` docstring must steer the agent away from ``wait_tasks``."""
+    toolset = create_fork_toolset()
+    doc = toolset.tools["fork_run"].function.__doc__ or ""
+    assert "wait_tasks" in doc
+    assert "NOT" in doc or "Do not" in doc.lower() or "do not" in doc.lower()
+
+
+def test_inspect_branches_docstring_is_polling_primitive():
+    """``inspect_branches`` docstring must frame it as the polling primitive."""
+    toolset = create_fork_toolset()
+    doc = toolset.tools["inspect_branches"].function.__doc__ or ""
+    assert "poll" in doc.lower()
+
+
+def test_merge_or_select_docstring_marks_required():
+    """``merge_or_select`` docstring must flag it as required."""
+    toolset = create_fork_toolset()
+    doc = toolset.tools["merge_or_select"].function.__doc__ or ""
+    assert "required" in doc.lower() or "REQUIRED" in doc
+
+
+def test_base_prompt_has_forking_section():
+    """``BASE_PROMPT`` must include a ``## Forking`` section."""
+    from pydantic_deep.prompts import BASE_PROMPT
+
+    assert "## Forking" in BASE_PROMPT
+
+
+# ---------------------------------------------------------------------------
+# B3 — Stash invariant on LiveForkCapability.for_run / after_run
+# ---------------------------------------------------------------------------
+
+
+async def test_for_run_preserves_unresolved_coordinator():
+    """An unresolved coordinator survives across ``for_run`` calls."""
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+
+    deps = DeepAgentDeps(backend=StateBackend())
+
+    class _Ctx:
+        def __init__(self, d: DeepAgentDeps) -> None:
+            self.deps = d
+
+    # First call allocates a coordinator
+    await cap.for_run(_Ctx(deps))
+    coord = deps.fork_coordinator
+    assert coord is not None
+    # Simulate an unresolved fork: install a fake handle + leave overlays attached
+    from datetime import datetime, timezone
+
+    coord._handle = ForkHandle(
+        fork_id="fk-test",
+        branches=[],
+        parent_checkpoint_id=None,
+        merge_strategy=MergeStrategy(),
+        created_at=datetime.now(timezone.utc),
+    )
+
+    class _RuntimeStub:
+        def __init__(self) -> None:
+            self.overlay = object()  # non-None ⇒ unresolved
+
+    coord.branches["bid-1"] = cast(Any, _RuntimeStub())
+    assert coord.is_resolved is False
+
+    # Second for_run must not allocate a new coordinator
+    await cap.for_run(_Ctx(deps))
+    assert deps.fork_coordinator is coord
+
+
+async def test_for_run_allocates_new_coordinator_when_previous_resolved():
+    """When the previous coordinator is resolved, ``for_run`` allocates a fresh one."""
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+    deps = DeepAgentDeps(backend=StateBackend())
+
+    class _Ctx:
+        def __init__(self, d: DeepAgentDeps) -> None:
+            self.deps = d
+
+    await cap.for_run(_Ctx(deps))
+    first = deps.fork_coordinator
+    assert first is not None
+    # No handle ⇒ is_resolved True ⇒ overwrite allowed
+    assert first.is_resolved is True
+
+    await cap.for_run(_Ctx(deps))
+    assert deps.fork_coordinator is not first
+
+
+async def test_for_run_allocates_when_no_existing_coordinator():
+    """Happy path: no existing coordinator → a fresh one is allocated."""
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+    deps = DeepAgentDeps(backend=StateBackend())
+    assert deps.fork_coordinator is None
+
+    class _Ctx:
+        def __init__(self, d: DeepAgentDeps) -> None:
+            self.deps = d
+
+    await cap.for_run(_Ctx(deps))
+    assert deps.fork_coordinator is not None
+
+
+async def test_after_run_is_passthrough():
+    """``after_run`` is a documented no-op anchor — returns ``result`` unchanged."""
+    cap = LiveForkCapability()
+    cap._agent_ref = _make_test_agent()
+    deps = DeepAgentDeps(backend=StateBackend())
+
+    class _Ctx:
+        def __init__(self, d: DeepAgentDeps) -> None:
+            self.deps = d
+
+    sentinel = object()
+    before = deps.fork_coordinator
+    returned = await cap.after_run(_Ctx(deps), result=sentinel)
+    assert returned is sentinel
+    assert deps.fork_coordinator is before

@@ -16,9 +16,8 @@ from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.types import FileData, Todo, UploadedFile
 
-#: Default usage limits for deep agents — no request limit.
-#: pydantic-ai defaults to ``request_limit=50`` which is too low for
-#: autonomous agents that routinely need 50-200+ requests on complex tasks.
+#: pydantic-ai's default ``request_limit=50`` is too low for autonomous agents
+#: that routinely need 50-200+ requests on complex tasks.
 DEFAULT_USAGE_LIMITS = UsageLimits(request_limit=None)
 
 

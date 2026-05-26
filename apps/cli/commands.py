@@ -638,7 +638,13 @@ async def _dispatch_fork(app: DeepApp) -> None:
         )
         return
     if app.active_fork is not None:
-        app.notify("Fork already active — /merge to resolve first", severity="warning")
+        if app.active_fork.adopted:
+            app.notify(
+                "agent already forked — resolve it first (/merge or pick a branch).",
+                severity="warning",
+            )
+        else:
+            app.notify("Fork already active — /merge to resolve first", severity="warning")
         return
     task = app.agent_task
     if task is not None and not task.done():

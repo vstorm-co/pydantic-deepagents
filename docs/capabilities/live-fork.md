@@ -2,18 +2,7 @@
 
 *git branch, but for cognition.*
 
-**Live Run Forking** splits a running agent into multiple parallel branches that share the same conversation history up to the fork point, then explore different approaches in isolation. The branches run concurrently as `asyncio.Task`s with their own `DeepAgentDeps` (separate backends, todos, message queues). When one finishes, you pick a winner via `merge_or_select(action="pick:<id>")`: the winner's overlay writes are flushed onto the parent backend and the rest of the branches are cancelled with their writes discarded.
-
-This page is the canonical reference for the whole feature; it grows incrementally as stages land.
-
-| Stage | Status | What it ships |
-|---|---|---|
-| 1 — Kernel | **Shipped** | [`LiveForkCapability`][pydantic_deep.capabilities.forking.LiveForkCapability], [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator], [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay], 4 agent-facing tools |
-| 2 — Diff Branches | **Shipped** | `diff_branches()` report consumed by judge / IDE |
-| 3 — CLI | **Shipped** | `/fork`, branch tabs, `MergePickerModal`, `>>{branch_id}` routing |
-| 4 — N branches + budget | **Shipped** | `max_branches>2`, `max_depth>1`, per-branch `budget_usd` enforcement, aggregate cap, `fork_cost()` |
-| 5 — IDE materializer + apply-on-merge | **Shipped** | Real-time disk mirror under `.pydantic-deep/forks/`, `pycharm diff` / `code --diff` integration, `/fork diff`, flush of winner's writes to parent backend on merge |
-| 6 — Autonomous judge | **Shipped** | [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent], `MergeStrategy.kind="auto"` / `"auto_with_fallback"` (default) / `"vote"`, confidence scoring, `ForkCoordinator.resolve()` |
+**Live Run Forking** splits a running agent into multiple parallel branches that share the same conversation history up to the fork point, then explore different approaches in isolation. The branches run concurrently as `asyncio.Task`s with their own `DeepAgentDeps` (separate backends, todos, message queues). When branches finish, you pick a winner — manually via `merge_or_select(action="pick:<id>")`, or automatically via the built-in judge — the winner's overlay writes are flushed onto the parent backend and the rest of the branches are cancelled with their writes discarded.
 
 ## Quick start
 
@@ -53,7 +42,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_select` are regular tools. There is no CLI surface yet (Stage 3).
+The agent drives the fork itself — `fork_run`, `inspect_branches`, `merge_or_select` are regular tools.
 
 ## Agent-initiated forks (autonomous)
 
@@ -88,14 +77,16 @@ Branches survive the parent turn ending only because step 1 preserves the coordi
 
 | Knob | Type | Default | Effect |
 |---|---|---|---|
-| `max_branches` | `int` | `10` | Maximum branches per `fork_run` call. Stage 1 hard-defaulted to `2`; Stage 4 raised the default. |
-| `max_depth` | `int` | `2` | Maximum fork nesting depth. Stage 1 hard-defaulted to `1`; Stage 4 raised it so one level of fork-of-fork is allowed. |
-| `store` | `ForkStateStore \| None` | `InMemoryForkStateStore()` | Where `ForkHandle` records are persisted for inspection. In-memory only across all stages — process restart loses the state. |
-| `keep_artifacts` | `bool` | `False` | Stage 5. When `True`, the on-disk fork directory under `.pydantic-deep/forks/{fork_id}/` is preserved after merge / abort for post-hoc inspection. Independent of apply-on-merge semantics. |
+| `max_branches` | `int` | `10` | Maximum branches per `fork_run` call. |
+| `max_depth` | `int` | `2` | Maximum fork nesting depth. One level of fork-of-fork is allowed. |
+| `store` | `ForkStateStore \| None` | `InMemoryForkStateStore()` | Where `ForkHandle` records are persisted for inspection. In-memory only — process restart loses the state. |
+| `keep_artifacts` | `bool` | `False` | When `True`, the on-disk fork directory under `.pydantic-deep/forks/{fork_id}/` is preserved after merge / abort for post-hoc inspection. Independent of apply-on-merge semantics. |
+| `test_command` | `str \| None` | `None` | Shell command run against each branch's materialised tree during [`ForkCoordinator.resolve`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.resolve] to feed the `test_pass_ratio` confidence signal. See [Test-runner hook](#test-runner-hook-for-test_pass_ratio). |
+| `test_timeout_s` | `float` | `60.0` | Wall-clock cap (seconds) per branch test run. On timeout the branch's `test_pass_ratio` is `None` (treated as "no signal"), not `0.0`. |
 
-### Per-branch budgets (Stage 4)
+### Per-branch budgets
 
-[`BranchSpec.budget_usd`][pydantic_deep.types.BranchSpec] is **enforced** as of Stage 4. When a branch's [`CostTracking`][pydantic_ai_shields.CostTracking] cumulative cost crosses its cap, the branch is cancelled and its state transitions to [`"budget_exhausted"`][pydantic_deep.types.BranchState]; siblings keep running.
+[`BranchSpec.budget_usd`][pydantic_deep.types.BranchSpec] is enforced. When a branch's [`CostTracking`][pydantic_ai_shields.CostTracking] cumulative cost crosses its cap, the branch is cancelled and its state transitions to [`"budget_exhausted"`][pydantic_deep.types.BranchState]; siblings keep running.
 
 Pass a fork-wide cap at the `fork_run` call:
 
@@ -115,33 +106,34 @@ await agent.run(
 # )
 ```
 
-When the sum of branch costs crosses `aggregate_budget_usd`, every still-running branch is terminated with state [`"aggregate_budget_exhausted"`][pydantic_deep.types.BranchState]. See [Limitations](#limitations-non-goals) below for the best-effort caveat.
+When the sum of branch costs crosses `aggregate_budget_usd`, every still-running branch is terminated with state [`"aggregate_budget_exhausted"`][pydantic_deep.types.BranchState]. See [Limitations](#limitations--non-goals) below for the best-effort caveat.
 
 ### Per-branch isolation
 
 [`BranchIsolation`][pydantic_deep.types.BranchIsolation] controls what each branch shares with the parent. Defaults are deliberately conservative — branches see the parent's history but mutate their own backends, todos, and message queues.
 
-| Flag | Default | Stage 1 effect |
+| Flag | Default | Effect |
 |---|---|---|
 | `history` | `"copy"` | Always copied. Not configurable. |
 | `backend` | `"copy"` | Wraps the parent backend in a [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay] — reads fall through, writes land in an overlay. `"share_readonly"` / `"share"` accepted for forward-compat. |
-| `memory` | `"copy"` | Recorded; concrete effect lands when memory gets a separate path (Stage 4). |
+| `memory` | `"copy"` | Recorded; concrete effect lands when memory gets a separate path. |
 | `todos` | `"copy"` | Branch starts with an empty todo list. |
-| `message_queue` | `"isolated"` | Branch gets a fresh `MessageQueue` — external steering with `>>a` is per-branch (delivered in Stage 3). |
+| `message_queue` | `"isolated"` | Branch gets a fresh `MessageQueue` — external steering with `>>a` is per-branch. |
 | `team_bus` | `"shared"` | Default-shared so branches can talk via the existing peer-to-peer bus. |
 
 ## Agent-facing tools
 
-When `forking` is enabled, the agent gains six tools:
+When `forking` is enabled, the agent gains seven tools:
 
 | Tool | Surface |
 |---|---|
-| `fork_run(specs, isolation=None, strategy=None, aggregate_budget_usd=None)` | Spawn ≤`max_branches` branch tasks (Stage 4 default `10`). Each `spec` needs `label` and `steer`; optional `model`, `budget_usd`, `extra_instructions`. `aggregate_budget_usd` adds a fork-wide cap. |
-| `inspect_branches()` | Return current per-branch state: `running`, `done`, `failed`, `terminated`, `budget_exhausted` (Stage 4), `aggregate_budget_exhausted` (Stage 4). |
-| `merge_or_select(action)` | Resolve the fork. Stage 1 supports `action="pick:<branch_id>"` only; an exhausted branch can still be picked — see [Capturing partial history](#capturing-partial-history). |
+| `fork_run(specs, isolation=None, strategy=None, aggregate_budget_usd=None)` | Spawn up to `max_branches` branch tasks. Each `spec` needs `label` and `steer`; optional `model`, `budget_usd`, `extra_instructions`. `aggregate_budget_usd` adds a fork-wide cap. |
+| `inspect_branches()` | Return current per-branch state: `running`, `done`, `failed`, `terminated`, `budget_exhausted`, `aggregate_budget_exhausted`. |
+| `merge_or_select(action)` | Resolve the fork. `action="pick:<branch_id>"` picks a winner manually; `action="auto"` lets the judge decide; `action="abort"` discards all branches. |
 | `terminate_branch(branch_id)` | Cancel one branch's task; the branch transitions to `terminated`. |
-| `diff_branches(fork_id, paths=None)` | **Stage 2.** Build a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] covering every path any branch touched. See [Diff explorer](#diff-explorer). |
-| `fork_cost(fork_id)` | **Stage 4.** Return a typed [`ForkCostSummary`][pydantic_deep.types.ForkCostSummary] with per-branch [`BranchCost`][pydantic_deep.types.BranchCost] entries and an aggregate. |
+| `delete_file(path)` | Delete a file inside the current branch overlay. Records the deletion so it propagates on merge. |
+| `diff_branches(fork_id, paths=None)` | Build a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] covering every path any branch touched. See [Diff explorer](#diff-explorer). |
+| `fork_cost(fork_id)` | Return a typed [`ForkCostSummary`][pydantic_deep.types.ForkCostSummary] with per-branch [`BranchCost`][pydantic_deep.types.BranchCost] entries and an aggregate. |
 
 ## How it works
 
@@ -188,7 +180,7 @@ If `include_checkpoints` is `False`, `fork_run` still works but emits a `UserWar
 
 ### `BranchOverlay` write tracking
 
-`BranchOverlay.changes()` returns the temporal-ordered `list[FileChange]` of every write in this branch. Stage 2's `diff_branches()` reads this list per branch to build the [`BranchDiffReport`](#diff-explorer); Stage 5's `ForkMaterializer` and Stage 6's judge consume the same API — preserve it across stage upgrades.
+`BranchOverlay.changes()` returns the temporal-ordered `list[FileChange]` of every write in this branch. `diff_branches()` reads this list per branch to build the [`BranchDiffReport`](#diff-explorer); the `ForkMaterializer` and judge consume the same API.
 
 ### Capturing partial history
 
@@ -202,7 +194,7 @@ Caveat: any tool call that was in-flight at termination time is **not** reflecte
 
 Once branches are running (or have completed), the agent compares what each branch did to shared files with a single tool call: `diff_branches(fork_id, paths=None)`. The tool returns a typed [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport]; on error (`fork_id` mismatch, forking disabled, no active fork) it returns a short string instead so the agent can self-correct.
 
-Programmatic Python callers (Stage 3 CLI, Stage 6 judge, custom tooling) use the same builder directly via [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report]:
+Programmatic Python callers (CLI, judge, custom tooling) use the same builder directly via [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report]:
 
 ```python
 from pydantic_deep import build_diff_report
@@ -242,9 +234,9 @@ Unlike the agent-facing `diff_branches` tool, `build_diff_report` does not valid
 
 For each path, the builder labels how the branches relate:
 
-- `unanimous_change` — ≥2 branches touched the path with identical content.
+- `unanimous_change` — two or more branches touched the path with identical content.
 - `unanimous_no_change` — only surfaces when an explicit `paths` filter includes paths no branch touched (kept for transparency).
-- `split` — ≥2 branches touched the path with differing content.
+- `split` — two or more branches touched the path with differing content.
 - `unique` — exactly one branch touched the path; counted in `summary.per_branch_unique[branch_id]`.
 
 ### Binary and large-file handling
@@ -258,7 +250,7 @@ Pass `paths=["src/app.py", "src/utils.py"]` to restrict the report to specific p
 
 ## External diff tool integration
 
-Stage 5 mirrors every branch's working tree to disk in real time so external diff tools (PyCharm, VS Code) can show the user what changed. The materialised layout lives at `.pydantic-deep/forks/{fork_id}/` and is removed on merge resolution unless [`LiveForkCapability(keep_artifacts=True)`][pydantic_deep.capabilities.forking.LiveForkCapability] is set.
+Every branch's working tree is mirrored to disk in real time so external diff tools (PyCharm, VS Code) can show the user what changed. The materialised layout lives at `.pydantic-deep/forks/{fork_id}/` and is removed on merge resolution unless [`LiveForkCapability(keep_artifacts=True)`][pydantic_deep.capabilities.forking.LiveForkCapability] is set.
 
 ```
 .pydantic-deep/forks/{fork_id}/
@@ -326,7 +318,7 @@ When a fork spawns inside another fork (`max_depth=2`), the inner fork's parent 
 
 ## CLI integration
 
-Stage 3 ships forking in the Textual TUI (`pydantic-deep` CLI). Once `forking=True` is on the agent — flipped automatically by `create_cli_agent()` — every TUI session can fork the current run.
+The Textual TUI (`pydantic-deep` CLI) has full forking support. Once `forking=True` is on the agent — flipped automatically by `create_cli_agent()` — every TUI session can fork the current run.
 
 ```text
 ┌─ pydantic-deep ────────────────────────────────────────┐
@@ -348,7 +340,7 @@ Stage 3 ships forking in the Textual TUI (`pydantic-deep` CLI). Once `forking=Tr
 | Command | Action |
 |---|---|
 | `/fork` | Open the picker modal, collect `N` `(label, steer)` pairs (where `N = app.fork_branch_count`), spawn branches. Blocked while an agent run is in flight (Esc first, then `/fork`). |
-| `/fork-branches N` | Set the branch count used by the next `/fork` (range `[1, max_branches]`; kernel default `10`). Persists to `.pydantic-deep/config.toml`. No arg → print current value. |
+| `/fork-branches N` | Set the branch count used by the next `/fork` (range `[1, max_branches]`; default `10`). Persists to `.pydantic-deep/config.toml`. No arg → print current value. |
 | `/fork-budget per-branch <usd>` | Default `budget_usd` prefilled into every branch row in the picker. Persisted. |
 | `/fork-budget aggregate <usd>` | Fork-wide budget cap passed to `coordinator.fork(aggregate_budget_usd=…)`. Persisted. |
 | `/fork-budget clear` | Reset both budgets to unset. |
@@ -448,78 +440,11 @@ $ pydantic-deep
 "Merged: kept branch whimsical"
 ```
 
-Once the merge resolves, `app.message_history` is the winner's `history_after_merge`. Stage 1's coordinator has already saved the `post-fork:{fork_id}` checkpoint anchor — `/load` lets you rewind there later.
-
-## API reference
-
-- [`LiveForkCapability`][pydantic_deep.capabilities.forking.LiveForkCapability] — capability registered on the agent. Owns `max_branches`, `max_depth`, `store`, and the per-run [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] allocated via `for_run`.
-- [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] — workhorse for a single parent run. Owns branch tasks, serialises mutations via an `asyncio.Lock`, resolves merges by awaiting the picked winner.
-- [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay] — copy-on-write backend wrapper. Reads fall through to the parent; writes land in an isolated `StateBackend` overlay and are recorded.
-- [`clone_for_branch`][pydantic_deep.toolsets.forking.isolation.clone_for_branch] — clones `DeepAgentDeps` per `BranchIsolation` policy.
-- [`create_fork_toolset`][pydantic_deep.toolsets.forking.create_fork_toolset] — agent-facing tools factory. Wired automatically by `create_deep_agent(forking=...)`.
-- Types: [`BranchSpec`][pydantic_deep.types.BranchSpec], [`BranchIsolation`][pydantic_deep.types.BranchIsolation], [`BranchStatus`][pydantic_deep.types.BranchStatus], [`ForkHandle`][pydantic_deep.types.ForkHandle], [`MergeStrategy`][pydantic_deep.types.MergeStrategy], [`MergeResult`][pydantic_deep.types.MergeResult], [`FileChange`][pydantic_deep.types.FileChange].
-- Stage 2 diff types: [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport], [`PathDiff`][pydantic_deep.types.PathDiff], [`BranchChange`][pydantic_deep.types.BranchChange], [`DiffSummary`][pydantic_deep.types.DiffSummary], [`BranchDiffAgreement`][pydantic_deep.types.BranchDiffAgreement], [`BranchDiffOperation`][pydantic_deep.types.BranchDiffOperation].
-- Stage 2 builder: [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report] — public entry point shared by the `diff_branches` tool and programmatic callers.
-- Errors: [`ForkBranchLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkBranchLimitError], [`ForkDepthLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkDepthLimitError].
-- Stage 6 judge: [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent], [`compute_confidence`][pydantic_deep.toolsets.forking.judge.compute_confidence], [`count_retry_parts`][pydantic_deep.toolsets.forking.judge.count_retry_parts], [`count_stuck_loop_hits`][pydantic_deep.toolsets.forking.judge.count_stuck_loop_hits].
-- Stage 6 types: [`JudgeVerdict`][pydantic_deep.types.JudgeVerdict], [`ConfidenceSignals`][pydantic_deep.types.ConfidenceSignals], [`BranchOutcome`][pydantic_deep.types.BranchOutcome], [`ResolveOutcome`][pydantic_deep.types.ResolveOutcome].
-
-## Examples
-
-### Programmatic fork (without the agent driving it)
-
-Useful when you want to script fork-and-pick in tests or harnesses:
-
-```python
-from pydantic_deep import (
-    BranchIsolation,
-    BranchSpec,
-    DeepAgentDeps,
-    LiveForkCapability,
-    StateBackend,
-    create_deep_agent,
-)
-
-
-fork_cap = LiveForkCapability()
-agent = create_deep_agent(model="anthropic:claude-sonnet-4-6", forking=fork_cap)
-deps = DeepAgentDeps(backend=StateBackend())
-
-# Run once so the capability's for_run() allocates a per-run coordinator.
-result = await agent.run("warm up the run loop", deps=deps)
-coordinator = deps.fork_coordinator       # set by LiveForkCapability.for_run
-assert coordinator is not None
-
-handle = await coordinator.fork(
-    [
-        BranchSpec(label="conservative", steer="Take the safest approach."),
-        BranchSpec(label="aggressive",  steer="Optimise for performance."),
-    ],
-    parent_history=list(result.all_messages()),
-    isolation=BranchIsolation(),          # defaults
-)
-
-# ... wait / inspect ...
-
-merge = await coordinator.merge_or_select(f"pick:{handle.branches[0]}")
-print(merge.winner_branch_id, len(merge.history_after_merge))
-```
-
-### Inspecting overlay writes
-
-Stage 1 already exposes the data spine that Stages 2/5/6 will consume:
-
-```python
-for branch_id, runtime in coordinator.branches.items():
-    if runtime.overlay is None:
-        continue
-    for change in runtime.overlay.changes():
-        print(branch_id, change.op, change.path, change.timestamp)
-```
+Once the merge resolves, `app.message_history` is the winner's `history_after_merge`. The coordinator has already saved the `post-fork:{fork_id}` checkpoint anchor — `/load` lets you rewind there later.
 
 ## Autonomous merge
 
-Stage 6 replaces manual-only resolution with a cheap judge model. The default [`MergeStrategy.kind`][pydantic_deep.types.MergeStrategy] is now `"auto_with_fallback"`: a single judge inspects the structured diff + per-branch outcomes, picks a winner with confidence, and either auto-merges or hands off to the manual picker with the judge's pick preselected.
+The default [`MergeStrategy.kind`][pydantic_deep.types.MergeStrategy] is `"auto_with_fallback"`: a cheap judge model inspects the structured diff + per-branch outcomes, picks a winner with confidence, and either auto-merges or hands off to the manual picker with the judge's pick preselected.
 
 ```python
 from pydantic_deep.types import MergeStrategy
@@ -533,7 +458,7 @@ strategy = MergeStrategy(kind="auto", judge_model="anthropic:claude-haiku-4-5-20
 # Vote mode — three judges across vendors; majority wins, ties broken by confidence.
 strategy = MergeStrategy(kind="vote")
 
-# Opt out — back to Stages 1–5 manual flow.
+# Opt out — back to manual flow.
 strategy = MergeStrategy(kind="manual")
 ```
 
@@ -543,10 +468,20 @@ Pass the strategy to `fork_run` (agent-facing tool) or `ForkCoordinator.fork(...
 
 | Kind | Behaviour | Commit timing |
 |---|---|---|
-| `manual` | Caller picks via `merge_or_select(action="pick:<id>")`. Stages 1–5 flow, unchanged. | Caller |
+| `manual` | Caller picks via `merge_or_select(action="pick:<id>")`. | Caller |
 | `auto` | Judge picks; coordinator commits immediately. User sees only the result + reasoning. | Inside `resolve()` |
 | `auto_with_fallback` *(default)* | Judge picks. **Above threshold:** commit is deferred to the caller so `MergeAcceptanceWidget` can offer `[o]` override. **Below threshold:** caller opens the manual picker preselected with the judge's pick. | Caller (above) / Caller (below) |
-| `vote` | Three judges (Haiku + GPT-mini + Gemini Flash by default) evaluate concurrently. Majority wins, tie → highest individual confidence. | Inside `resolve()` |
+| `vote` | Three judges (auto-detected from available API keys) evaluate concurrently. Majority wins, tie → highest individual confidence. | Inside `resolve()` |
+
+### Vote judge panel detection
+
+For `vote` mode, the judge panel is built dynamically from whichever API keys are present in the environment. Detection priority:
+
+1. **Native providers** (Anthropic, OpenAI, Mistral, Groq, Cohere) — each contributes one cheap model when its env var is set.
+2. **Google** — checked via `GOOGLE_API_KEY`, `GEMINI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`.
+3. **OpenRouter** — contributes three different model-family representatives through a single key, maximising diversity when only one API key is configured.
+
+Collected models are deduplicated and cycled to fill exactly 3 slots. If no keys are detected, the `judge_model` fallback is used three times.
 
 ### Confidence scoring
 
@@ -555,7 +490,7 @@ Three signals weighted into a single heuristic, then multiplied by the judge's o
 | Signal | Source | Weight |
 |---|---|---|
 | `quality_spread` | `1 - agreement_score` from [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport] | 0.4 |
-| `test_pass_ratio` | passed / total tests across the winner branch — currently always `None` (see callout) | 0.4 |
+| `test_pass_ratio` | passed / total tests across the winner branch — `None` when no `test_command` is configured | 0.4 |
 | `internal_consistency` | `1 - (retry_count + stuck_loop_hits) / max(turns, 1)` for the winner | 0.2 |
 
 `effective_confidence = heuristic × judge_confidence`. Clamped to `[0.0, 1.0]`.
@@ -609,22 +544,87 @@ The judge sees three sections only: the original goal, the structured `BranchDif
 
 ### Cost attribution
 
-The judge runs via a freshly-constructed [`pydantic_ai.Agent`][pydantic_ai.Agent] inside [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent] — its calls are **not** counted against `parent_deps._branch_cost_tracking`. The judge's `result.usage` is surfaced on [`ResolveOutcome.judge_usage`][pydantic_deep.types.ResolveOutcome] (a list of usage objects for `kind="vote"`) so the caller can attribute the cost. `pydantic-ai-shields`' `CostTracking` API has no `cost_category` field today; a stricter integration would need an upstream change.
+The judge runs via a freshly-constructed [`pydantic_ai.Agent`][pydantic_ai.Agent] inside [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent] — its calls are **not** counted against `parent_deps._branch_cost_tracking`. The judge's `result.usage` is surfaced on [`ResolveOutcome.judge_usage`][pydantic_deep.types.ResolveOutcome] (a list of usage objects for `kind="vote"`) so the caller can attribute the cost.
 
 ### Override in vote mode
 
 `vote` mode commits immediately on the synthetic majority verdict — there is no fall-through or `[o]` override. To re-pick after a vote, rewind via the post-fork checkpoint anchor. Confirmable interactive vote mode is tracked as a follow-up.
 
+## API reference
+
+- [`LiveForkCapability`][pydantic_deep.capabilities.forking.LiveForkCapability] — capability registered on the agent. Owns `max_branches`, `max_depth`, `store`, and the per-run [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] allocated via `for_run`.
+- [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] — workhorse for a single parent run. Owns branch tasks, serialises mutations via an `asyncio.Lock`, resolves merges by awaiting the picked winner.
+- [`BranchOverlay`][pydantic_deep.toolsets.forking.isolation.BranchOverlay] — copy-on-write backend wrapper. Reads fall through to the parent; writes land in an isolated `StateBackend` overlay and are recorded.
+- [`clone_for_branch`][pydantic_deep.toolsets.forking.isolation.clone_for_branch] — clones `DeepAgentDeps` per `BranchIsolation` policy.
+- [`create_fork_toolset`][pydantic_deep.toolsets.forking.create_fork_toolset] — agent-facing tools factory. Wired automatically by `create_deep_agent(forking=...)`.
+- [`build_diff_report`][pydantic_deep.toolsets.forking.diff.build_diff_report] — public entry point for the diff explorer, shared by the `diff_branches` tool and programmatic callers.
+- [`ForkMaterializer`][pydantic_deep.toolsets.forking.materializer.ForkMaterializer] — real-time disk mirror for IDE integration.
+- [`EditorDetector`][pydantic_deep.toolsets.forking.editor.EditorDetector] — diff tool detection and invocation (PyCharm, VS Code, custom, TUI fallback).
+- [`JudgeAgent`][pydantic_deep.toolsets.forking.judge.JudgeAgent] — autonomous merge judge with structured verdict output.
+- [`compute_confidence`][pydantic_deep.toolsets.forking.judge.compute_confidence], [`count_retry_parts`][pydantic_deep.toolsets.forking.judge.count_retry_parts], [`count_stuck_loop_hits`][pydantic_deep.toolsets.forking.judge.count_stuck_loop_hits] — confidence signal helpers.
+- Types: [`BranchSpec`][pydantic_deep.types.BranchSpec], [`BranchIsolation`][pydantic_deep.types.BranchIsolation], [`BranchStatus`][pydantic_deep.types.BranchStatus], [`ForkHandle`][pydantic_deep.types.ForkHandle], [`MergeStrategy`][pydantic_deep.types.MergeStrategy], [`MergeResult`][pydantic_deep.types.MergeResult], [`FileChange`][pydantic_deep.types.FileChange].
+- Diff types: [`BranchDiffReport`][pydantic_deep.types.BranchDiffReport], [`PathDiff`][pydantic_deep.types.PathDiff], [`BranchChange`][pydantic_deep.types.BranchChange], [`DiffSummary`][pydantic_deep.types.DiffSummary], [`BranchDiffAgreement`][pydantic_deep.types.BranchDiffAgreement], [`BranchDiffOperation`][pydantic_deep.types.BranchDiffOperation].
+- Judge types: [`JudgeVerdict`][pydantic_deep.types.JudgeVerdict], [`ConfidenceSignals`][pydantic_deep.types.ConfidenceSignals], [`BranchOutcome`][pydantic_deep.types.BranchOutcome], [`ResolveOutcome`][pydantic_deep.types.ResolveOutcome].
+- Cost types: [`BranchCost`][pydantic_deep.types.BranchCost], [`ForkCostSummary`][pydantic_deep.types.ForkCostSummary], [`FlushError`][pydantic_deep.types.FlushError], [`FlushReport`][pydantic_deep.types.FlushReport].
+- Errors: [`ForkBranchLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkBranchLimitError], [`ForkDepthLimitError`][pydantic_deep.toolsets.forking.coordinator.ForkDepthLimitError].
+
+## Examples
+
+### Programmatic fork (without the agent driving it)
+
+Useful when you want to script fork-and-pick in tests or harnesses:
+
+```python
+from pydantic_deep import (
+    BranchIsolation,
+    BranchSpec,
+    DeepAgentDeps,
+    LiveForkCapability,
+    StateBackend,
+    create_deep_agent,
+)
+
+
+fork_cap = LiveForkCapability()
+agent = create_deep_agent(model="anthropic:claude-sonnet-4-6", forking=fork_cap)
+deps = DeepAgentDeps(backend=StateBackend())
+
+# Run once so the capability's for_run() allocates a per-run coordinator.
+result = await agent.run("warm up the run loop", deps=deps)
+coordinator = deps.fork_coordinator       # set by LiveForkCapability.for_run
+assert coordinator is not None
+
+handle = await coordinator.fork(
+    [
+        BranchSpec(label="conservative", steer="Take the safest approach."),
+        BranchSpec(label="aggressive",  steer="Optimise for performance."),
+    ],
+    parent_history=list(result.all_messages()),
+    isolation=BranchIsolation(),          # defaults
+)
+
+# ... wait / inspect ...
+
+merge = await coordinator.merge_or_select(f"pick:{handle.branches[0]}")
+print(merge.winner_branch_id, len(merge.history_after_merge))
+```
+
+### Inspecting overlay writes
+
+```python
+for branch_id, runtime in coordinator.branches.items():
+    if runtime.overlay is None:
+        continue
+    for change in runtime.overlay.changes():
+        print(branch_id, change.op, change.path, change.timestamp)
+```
+
 ## Limitations / non-goals
 
-Stage 1 deliberately shipped the minimum kernel. The following are **not** supported until later stages:
+The following are **not** supported:
 
-- ~~**Live per-token streaming inside branch panels**~~ — **Now supported.** Branch panels update incrementally via a 0.5 s polling loop (`replay_messages_append`) and optionally stream token-by-token via `agent.iter()` when the `branch_runner` is set (the CLI sets it automatically in `enter_fork_view`).
-- **Persistent fork state** — `InMemoryForkStateStore` is the only store across all stages; process restart loses fork state.
-- **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded everywhere; "pick a winner" is the model.
-
-Stage 4 added per-branch + aggregate budget enforcement. The following stay out of scope:
-
+- **Persistent fork state** — `InMemoryForkStateStore` is the only store; process restart loses fork state.
+- **Auto-merge of branch outputs into a single Pydantic blob** — intentionally excluded; "pick a winner" is the model.
 - **Predictive termination** — branches are cancelled when the cap is *crossed*, not extrapolated.
 - **Per-tool cost caps** within a branch.
 - **Cost projection** before a branch is spawned.
@@ -633,13 +633,13 @@ Stage 4 added per-branch + aggregate budget enforcement. The following stay out 
 !!! note "Aggregate budget enforcement is best-effort"
     Under concurrent cost callbacks the running sum can briefly exceed `aggregate_budget_usd` before every branch sees its cancel — the coordinator serialises termination dispatch under its own lock, but cost callbacks from sibling branches can race the watcher. Strict enforcement would require per-tool-call cost checks (out of scope).
 
-Stage 2's `diff_branches` is purely textual — these are deferred or out of scope by design:
+Diff limitations:
 
 - **Semantic / AST-based diff** — pure text diff only.
 - **Rename detection** — a branch that renames a file shows as delete+create.
 - **Diff of tool-call sequences** — process diff is not tracked; only outcomes are diffed.
 
-Stage 5 deliberately keeps external diff integration narrow — the following are **not** supported and tracked as follow-up issues:
+IDE integration limitations:
 
 - **Native IDE plugin** (file watcher, in-IDE accept/override buttons) — would require a JetBrains/VS Code plugin.
 - **Bidirectional edits** — the user editing a branch file on disk does not flow back into the run; the on-disk tree is inspection-only.
@@ -649,11 +649,11 @@ Stage 5 deliberately keeps external diff integration narrow — the following ar
 - **Real-time write-back during a fork** — branches own their overlays in isolation while running; cross-branch propagation only happens at merge.
 - **File-aware checkpoint rewind across `post-fork:<id>`** — the merged conversation history is preserved by the checkpoint anchor but file writes are not.
 
-Stage 6 ships the judge but intentionally scopes it tightly:
+Judge limitations:
 
-- **Learning from past judge decisions** (RLHF-style calibration) — out of scope; every fork is judged in isolation.
-- **Custom confidence signal plugins** — the three built-in signals are fixed; no extension point for now.
-- **Per-domain judge prompts** (code vs. research) — single generic prompt; specialise later if needed.
+- **Learning from past judge decisions** (RLHF-style calibration) — every fork is judged in isolation.
+- **Custom confidence signal plugins** — the three built-in signals are fixed; no extension point.
+- **Per-domain judge prompts** (code vs. research) — single generic prompt.
 - **`combine` acceptance mode** — only meaningful for non-code outputs; intentionally excluded.
 - **Streaming the judge's evaluation** — we wait for the full `JudgeVerdict`; no partial results.
 - **Test-count parsing (passed / total)** — `test_pass_ratio` is computed from the process exit code only; a pytest/jest-plugin counter is a follow-up.

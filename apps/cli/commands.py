@@ -676,13 +676,7 @@ async def _dispatch_fork(app: DeepApp) -> None:
 
 
 def _dispatch_fork_config(app: DeepApp) -> None:
-    """Handle ``/fork-config`` — open the settings modal.
-
-    Mirrors the guards in :func:`_dispatch_fork`: blocked when no agent is
-    configured, when a fork is already active (mutating settings mid-fork is
-    confusing UX — the active coordinator's ``max_branches`` was already
-    fixed at construction time), and when an agent run is in flight.
-    """
+    """Handle ``/fork-config`` — open the settings modal."""
     from apps.cli.modals.fork_config import ForkConfigModal
 
     if app.agent is None:
@@ -705,28 +699,7 @@ def _dispatch_fork_config(app: DeepApp) -> None:
 
 
 async def _dispatch_merge(app: DeepApp) -> None:
-    """Handle ``/merge`` — dispatch on :attr:`MergeStrategy.kind`.
-
-    Three resolution paths:
-
-    - ``manual`` (legacy) → push :class:`MergePickerModal` directly.
-    - ``auto`` / ``vote`` → push :class:`JudgeLoadingScreen` with a callback;
-      on success the callback commits and notifies, on failure it falls back
-      to the manual picker.
-    - ``auto_with_fallback`` →
-        - **above threshold:** push :class:`MergeAcceptanceWidget` (commit
-          deferred to ``[enter]``); ``[d]`` opens the diff explorer and
-          re-pushes the widget on return; ``[o]`` opens the picker
-          preselected on the judge's pick.
-        - **below threshold:** push :class:`MergePickerModal` preselected
-          with the judge's pick and a verdict subtitle explaining the
-          uncertainty.
-
-    The judge is invoked via ``app.push_screen(JudgeLoadingScreen, callback)``
-    rather than ``push_screen_wait`` — the latter requires a Textual worker
-    context that the slash-command router doesn't provide and would break
-    tests that drive ``/merge`` from a coroutine directly.
-    """
+    """Handle ``/merge`` — dispatch on :attr:`MergeStrategy.kind`."""
     from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 
     session = app.active_fork
@@ -852,14 +825,7 @@ async def _handle_judge_result(
     on_open_in_editor: Any,
     on_pick: Any,
 ) -> None:
-    """Route :class:`JudgeLoadingScreen`'s dismiss value to the right next screen.
-
-    Extracted from :func:`_dispatch_merge` so the nested closure layer doesn't
-    push :func:`_dispatch_merge` over ``ruff C901``. Each branch corresponds
-    to one downstream screen: error → fall back to manual picker;
-    committed-by-resolve → notification only; below-threshold → picker with
-    preselect; above-threshold → acceptance widget.
-    """
+    """Route JudgeLoadingScreen result to the appropriate next screen."""
     from apps.cli.widgets.judge_loading import JudgeAborted
 
     if isinstance(result, Exception):
@@ -908,8 +874,7 @@ async def _handle_judge_result(
         push_picker(preselected_id=verdict.winner_branch_id, subtitle=subtitle)
         return
 
-    # Case B — auto_with_fallback above threshold. Defer the commit to the
-    # acceptance widget so [o] override stays meaningful (Test 11).
+    # auto_with_fallback above threshold — defer to acceptance widget
     await _dispatch_acceptance_widget(
         app,
         report=report,
@@ -933,11 +898,7 @@ async def _dispatch_acceptance_widget(
     on_open_in_editor: Any,
     commit_pick: Any,
 ) -> None:
-    """Push :class:`MergeAcceptanceWidget`; route its three actions.
-
-    Extracted from :func:`_dispatch_merge` to keep that function's
-    complexity bounded — ``ruff C901`` would flag the combined function.
-    """
+    """Push :class:`MergeAcceptanceWidget` and route its actions."""
     from apps.cli.modals.merge_picker import MergePickerModal
     from apps.cli.widgets.merge_acceptance import (
         MergeAcceptanceAction,
@@ -954,15 +915,13 @@ async def _dispatch_acceptance_widget(
 
     async def _on_acceptance(action: MergeAcceptanceAction | None) -> None:
         if action is None:
-            # User pressed Escape — cancel without merging. The cached judge
-            # outcome means the next /merge shows this widget again instantly.
+            # Escape pressed — cancel without merging
             return
         if action == "accept":
             await commit_pick(winner_id)
             return
         if action == "diff":
-            # Re-push the acceptance widget after the diff explorer closes so
-            # Test 10's "returning preserves the verdict context" holds.
+            # Re-engage acceptance widget after diff explorer closes
             async def _on_diff_dismissed(_: Any) -> None:
                 await _dispatch_acceptance_widget(
                     app,
@@ -1027,7 +986,6 @@ def _format_auto_merge_notification(label: str, outcome: Any) -> str:
         f"confidence {outcome.effective_confidence:.2f}",
     ]
     if verdict is not None and verdict.reasoning:
-        # First sentence only — keeps the notification one line on most terminals.
         first_sentence = verdict.reasoning.split(". ", 1)[0].rstrip(".")
         parts.append(first_sentence)
     return " · ".join(parts)
@@ -1055,11 +1013,7 @@ def _format_verdict_subtitle(
 
 
 def _format_merge_notification(label: str, result: Any) -> str:
-    """Render the post-merge notification — applied count, conflicts, errors.
-
-    Kept stand-alone so tests can pin the text shape without exercising
-    the modal flow.
-    """
+    """Render the post-merge notification — applied count, conflicts, errors."""
     parts = [f"Merged: kept branch {label}", f"{len(result.applied_paths)} files applied"]
     if result.deleted_paths:
         parts.append(f"{len(result.deleted_paths)} deleted")

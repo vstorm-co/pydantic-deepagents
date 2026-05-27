@@ -446,9 +446,6 @@ def create_cli_agent(  # noqa: C901
         include_liteparse=effective_liteparse,
         # Self-improvement
         include_improve=True,
-        # Live Run Forking — CLI surface (`/fork`, branch tabs, `/merge`) requires this on.
-        # test_command is auto-detected from project files (pyproject.toml, pytest.ini, …);
-        # it is intentionally NOT exposed in /fork-config so the user cannot override it.
         forking=LiveForkCapability(test_command=_detect_fork_test_command(effective_backend)),
         # Web tools — explicit params override config
         web_search=(

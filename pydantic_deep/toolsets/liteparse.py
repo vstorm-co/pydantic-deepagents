@@ -11,6 +11,8 @@ Requirements:
 
 from __future__ import annotations
 
+import contextlib
+import importlib
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -18,20 +20,22 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets import FunctionToolset
 
+# Dynamic imports keep ``liteparse`` opaque to static type checkers — its API
+# shape differs between versions, so binding to ``Any`` here avoids both
+# missing-attribute errors when stubs are absent and unused-ignore noise when
+# stubs happen to be present.
 _HAS_LITEPARSE = False
+_LiteParse: Any = None
+_CLINotFoundError: type[BaseException] = type("_CLINotFoundError", (Exception,), {})
 
 try:
-    from liteparse import LiteParse as _LiteParse
-    from liteparse.types import CLINotFoundError as _CLINotFoundError
-
+    _LiteParse = importlib.import_module("liteparse").LiteParse
     _HAS_LITEPARSE = True
 except ImportError:  # pragma: no cover
+    pass
 
-    class _LiteParse:  # type: ignore[no-redef]
-        def __init__(self, **kwargs: Any) -> None: ...  # pragma: no cover
-
-    class _CLINotFoundError(Exception):  # type: ignore[no-redef]
-        pass  # pragma: no cover
+with contextlib.suppress(ImportError, AttributeError):
+    _CLINotFoundError = importlib.import_module("liteparse.types").CLINotFoundError
 
 
 _NOT_INSTALLED_MSG = (

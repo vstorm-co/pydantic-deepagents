@@ -21,7 +21,7 @@ import os
 import shlex
 import uuid
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -157,6 +157,29 @@ def _detect_vote_models(fallback: str) -> list[str]:
         return [fallback] * 3
 
     return [unique[i % len(unique)] for i in range(3)]
+
+
+def _ensure_unique_labels(specs: list[BranchSpec]) -> list[BranchSpec]:
+    """Return ``specs`` with guaranteed non-empty, unique branch labels.
+
+    Empty/blank labels become ``branch-{n}``; duplicates are auto-suffixed
+    (``-2``, ``-3``, …). Without this, a blank or duplicate label collapses
+    the CLI ``label_to_id`` map (and the inverse in diff_picker), making one
+    branch unreachable and ``>>label`` steering ambiguous — ``BranchSpec`` and
+    the agent-facing ``fork_run`` tool otherwise pass labels through verbatim.
+    """
+    used: set[str] = set()
+    out: list[BranchSpec] = []
+    for i, spec in enumerate(specs):
+        base = (spec.label or "").strip() or f"branch-{i + 1}"
+        label = base
+        suffix = 2
+        while label in used:
+            label = f"{base}-{suffix}"
+            suffix += 1
+        used.add(label)
+        out.append(spec if label == spec.label else replace(spec, label=label))
+    return out
 
 
 def _strategy_cache_key(strategy: MergeStrategy) -> tuple[Any, ...]:
@@ -503,6 +526,9 @@ class ForkCoordinator:
                 f"Parent run is already at fork depth {self.parent_deps._fork_depth}; "
                 f"max_depth={self.max_depth}."
             )
+
+        # Guarantee non-empty, unique labels so label_to_id / steering never collapse.
+        specs = _ensure_unique_labels(specs)
 
         async with self._lock:
             fork_id = str(uuid.uuid4())

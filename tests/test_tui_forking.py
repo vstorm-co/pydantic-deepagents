@@ -687,6 +687,8 @@ class TestForkPickerValidation:
             assert modal._read_branch_row(0) == ("", "")
             assert modal._read_branch_row(1) == ("", "")
 
+            from textual.widgets import Static
+
             modal.query_one("#branch-0-label", Input).value = "x"
             modal.query_one("#branch-0-steer", Input).value = "steer A"
             modal.query_one("#branch-1-label", Input).value = "x"
@@ -694,9 +696,16 @@ class TestForkPickerValidation:
             modal.action_submit()
             await pilot.pause()
 
+            # Duplicate labels are rejected: error shown, modal stays open.
+            error = modal.query_one("#fork-picker-error", Static)
+            assert "distinct" in str(getattr(error, "content", "")).lower()
+            assert isinstance(fork_app.screen, ForkPickerModal)
+
+            # Distinct labels now submit successfully (modal dismisses).
             modal.query_one("#branch-1-label", Input).value = "y"
             modal.action_submit()
             await pilot.pause()
+            assert not isinstance(fork_app.screen, ForkPickerModal)
 
 
 class TestResolveCapability:

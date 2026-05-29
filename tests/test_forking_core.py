@@ -99,6 +99,38 @@ async def test_fork_spawns_two_tasks_with_parent_history():
         assert "parent turn 1" in seeded_texts
 
 
+async def test_fork_enforces_unique_non_empty_labels():
+    """fork() dedupes duplicate/blank labels so label_to_id can't collapse.
+
+    The agent-facing fork_run tool passes labels through verbatim and has no
+    picker to enforce distinctness, so the coordinator must.
+    """
+    deps = DeepAgentDeps(backend=StateBackend())
+    agent = _make_test_agent()
+    coord = _make_coordinator(
+        agent, deps, max_branches=4, checkpoint_store=InMemoryCheckpointStore()
+    )
+
+    handle = await coord.fork(
+        [
+            BranchSpec(label="dup", steer="A"),
+            BranchSpec(label="dup", steer="B"),
+            BranchSpec(label="", steer="C"),
+            BranchSpec(label="   ", steer="D"),
+        ],
+        parent_history=_seed_history("p"),
+    )
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+
+    labels = [coord.branches[bid].spec.label for bid in handle.branches]
+    # All labels are non-empty and unique.
+    assert all(label.strip() for label in labels)
+    assert len(set(labels)) == len(labels)
+    # The first 'dup' keeps its label; the second is suffixed.
+    assert "dup" in labels
+    assert "dup-2" in labels
+
+
 # ---------------------------------------------------------------------------
 # Test 2 — each branch gets its `steer` as first new UserPromptPart.
 # ---------------------------------------------------------------------------

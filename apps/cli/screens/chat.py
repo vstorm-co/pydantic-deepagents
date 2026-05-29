@@ -537,8 +537,12 @@ class ChatScreen(Screen):
         but only the ``diff`` sub-command of ``/fork``. ``/fork``
         without args would re-enter the picker modal and clobber state;
         ``/fork-config`` is similarly blocked.
+
+        Case-insensitive: command dispatch lowercases the verb, so ``/FORK diff``
+        must pass this allow-check too (it is functionally identical to
+        ``/fork diff``).
         """
-        stripped = text.strip()
+        stripped = text.strip().lower()
         return stripped.startswith("/fork ") and stripped[6:].lstrip().startswith("diff")
 
     async def on_user_submitted(self, event: UserSubmitted) -> None:  # noqa: C901
@@ -551,7 +555,11 @@ class ChatScreen(Screen):
         active_fork = app.active_fork
 
         if active_fork is not None:
-            match = re.match(r"^>>(\w+)\s+(.*)", text)
+            # \S+ (not \w+) so hyphenated/dotted labels like `approach-a` — which
+            # ForkPickerModal accepts — can be steered. The label is resolved
+            # against the live branches below, so an over-broad capture just falls
+            # through to the unknown-branch notice.
+            match = re.match(r"^>>(\S+)\s+(.*)", text)
             if match is not None:
                 branch_id_or_label, msg = match.group(1), match.group(2).strip()
                 if msg:

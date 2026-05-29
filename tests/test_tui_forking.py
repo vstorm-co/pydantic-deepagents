@@ -82,6 +82,7 @@ async def _start_fork(
     *,
     slow: bool = False,
     strategy: Any = None,
+    specs: list[BranchSpec] | None = None,
 ) -> CLIForkSession:
     """Helper — start a fork; if ``slow`` is True, branch tasks block on a barrier.
 
@@ -102,7 +103,7 @@ async def _start_fork(
 
         app.agent.run = _blocking_run  # type: ignore[union-attr, method-assign]
 
-    session = await start_fork_from_cli(app, ForkPickerResult(specs=_specs()))
+    session = await start_fork_from_cli(app, ForkPickerResult(specs=specs or _specs()))
     if strategy is not None:
         session.handle.merge_strategy = strategy
     app.active_fork = session
@@ -184,6 +185,42 @@ class TestBranchSteering:
             assert a_queue.pending_count() == (1, 0)
             assert b_queue.pending_count() == (0, 0)
 
+            drained = await a_queue.drain_steering()
+            assert drained[0].content == "focus on tests"
+
+            await session.abort()
+
+    async def test_steer_routes_to_hyphenated_label(self, fork_app: DeepApp) -> None:
+        """A hyphenated label like `approach-a` (accepted by the picker) is steerable.
+
+        Regression: the steering regex used \\w+, which can't match a hyphen, so
+        `>>approach-a ...` was rejected as an unknown branch.
+        """
+        from apps.cli.messages import UserSubmitted
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+
+            session = await _start_fork(
+                fork_app,
+                slow=True,
+                specs=[
+                    BranchSpec(label="approach-a", steer="A"),
+                    BranchSpec(label="approach-b", steer="B"),
+                ],
+            )
+            await pilot.pause()
+
+            a_id = session.label_to_id["approach-a"]
+
+            fork_app.screen.post_message(UserSubmitted(">>approach-a focus on tests"))
+            await pilot.pause()
+            await pilot.pause()
+
+            a_queue = session.coordinator.branches[a_id].deps.message_queue
+            assert a_queue is not None
+            assert a_queue.pending_count() == (1, 0)
             drained = await a_queue.drain_steering()
             assert drained[0].content == "focus on tests"
 
@@ -1006,6 +1043,13 @@ class TestForkOpenDiffAllowList:
         assert ChatScreen._is_fork_inspection("/fork") is False
         assert ChatScreen._is_fork_inspection("/fork-config") is False
         assert ChatScreen._is_fork_inspection("/fork random") is False
+
+    def test_is_fork_inspection_is_case_insensitive(self) -> None:
+        # Command dispatch lowercases the verb, so uppercase /FORK diff must also
+        # pass the allow-check (regression: it was tested on original-case text).
+        assert ChatScreen._is_fork_inspection("/FORK diff") is True
+        assert ChatScreen._is_fork_inspection("/Fork Diff src/foo.py") is True
+        assert ChatScreen._is_fork_inspection("/FORK") is False
 
 
 class TestMergePickerOpenInEditor:

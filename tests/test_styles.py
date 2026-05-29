@@ -12,10 +12,13 @@ from pydantic_ai.models.test import TestModel
 from pydantic_deep import create_deep_agent
 from pydantic_deep.styles import (
     BUILTIN_STYLES,
+    BULLET_STYLE,
     CONCISE_STYLE,
     CONVERSATIONAL_STYLE,
     EXPLANATORY_STYLE,
     FORMAL_STYLE,
+    JSON_ONLY_STYLE,
+    MARKDOWN_STYLE,
     OutputStyle,
     discover_styles,
     format_style_prompt,
@@ -65,9 +68,17 @@ class TestBuiltinStyles:
     """Tests for built-in output styles."""
 
     def test_all_builtins_exist(self) -> None:
-        """All 4 built-in styles are registered."""
-        assert len(BUILTIN_STYLES) == 4
-        assert set(BUILTIN_STYLES.keys()) == {"concise", "explanatory", "formal", "conversational"}
+        """All 7 built-in styles are registered."""
+        assert len(BUILTIN_STYLES) == 7
+        assert set(BUILTIN_STYLES.keys()) == {
+            "concise",
+            "explanatory",
+            "formal",
+            "conversational",
+            "markdown",
+            "json-only",
+            "bullet",
+        }
 
     def test_concise_style(self) -> None:
         """Concise style has correct fields."""
@@ -93,12 +104,38 @@ class TestBuiltinStyles:
         assert CONVERSATIONAL_STYLE.description
         assert "friendly" in CONVERSATIONAL_STYLE.content.lower()
 
+    def test_markdown_style(self) -> None:
+        """Markdown style has correct fields."""
+        assert MARKDOWN_STYLE.name == "markdown"
+        assert MARKDOWN_STYLE.description
+        assert "markdown" in MARKDOWN_STYLE.content.lower()
+        assert "fenced code block" in MARKDOWN_STYLE.content.lower()
+
+    def test_json_only_style(self) -> None:
+        """JSON-only style has correct fields."""
+        assert JSON_ONLY_STYLE.name == "json-only"
+        assert JSON_ONLY_STYLE.description
+        assert "json" in JSON_ONLY_STYLE.content.lower()
+        # No preamble / no fences are the key constraints
+        assert "no preamble" in JSON_ONLY_STYLE.content.lower()
+        assert "no markdown code fences" in JSON_ONLY_STYLE.content.lower()
+
+    def test_bullet_style(self) -> None:
+        """Bullet style has correct fields."""
+        assert BULLET_STYLE.name == "bullet"
+        assert BULLET_STYLE.description
+        assert "bullet" in BULLET_STYLE.content.lower()
+        assert "no paragraphs" in BULLET_STYLE.content.lower()
+
     def test_registry_values_match_constants(self) -> None:
         """Registry values are the same objects as module constants."""
         assert BUILTIN_STYLES["concise"] is CONCISE_STYLE
         assert BUILTIN_STYLES["explanatory"] is EXPLANATORY_STYLE
         assert BUILTIN_STYLES["formal"] is FORMAL_STYLE
         assert BUILTIN_STYLES["conversational"] is CONVERSATIONAL_STYLE
+        assert BUILTIN_STYLES["markdown"] is MARKDOWN_STYLE
+        assert BUILTIN_STYLES["json-only"] is JSON_ONLY_STYLE
+        assert BUILTIN_STYLES["bullet"] is BULLET_STYLE
 
 
 class TestResolveStyle:
@@ -108,6 +145,18 @@ class TestResolveStyle:
         """Resolves a built-in style by name."""
         style = resolve_style("concise")
         assert style is CONCISE_STYLE
+
+    def test_resolve_markdown_style(self) -> None:
+        """Resolves the markdown built-in by name."""
+        assert resolve_style("markdown") is MARKDOWN_STYLE
+
+    def test_resolve_json_only_style(self) -> None:
+        """Resolves the json-only built-in by name (hyphenated)."""
+        assert resolve_style("json-only") is JSON_ONLY_STYLE
+
+    def test_resolve_bullet_style(self) -> None:
+        """Resolves the bullet built-in by name."""
+        assert resolve_style("bullet") is BULLET_STYLE
 
     def test_resolve_all_builtins(self) -> None:
         """All built-in names resolve correctly."""
@@ -399,7 +448,7 @@ class TestStyleExports:
         from pydantic_deep import BUILTIN_STYLES
 
         assert BUILTIN_STYLES is not None
-        assert len(BUILTIN_STYLES) == 4
+        assert len(BUILTIN_STYLES) == 7
 
     def test_resolve_style_importable(self) -> None:
         """resolve_style is importable from pydantic_deep."""

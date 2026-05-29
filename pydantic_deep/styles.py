@@ -9,6 +9,9 @@ Built-in styles:
     - ``explanatory``: Step-by-step reasoning, examples, definitions
     - ``formal``: Professional, structured, numbered sections
     - ``conversational``: Friendly, casual, uses analogies
+    - ``markdown``: Well-formed markdown with headings and fenced code
+    - ``json-only``: Strict JSON output, no preamble or commentary
+    - ``bullet``: Bulleted lists only, no paragraphs
 
 Example:
     ```python
@@ -110,11 +113,53 @@ Use a friendly, conversational tone:
 - Keep technical accuracy while being approachable""",
 )
 
+MARKDOWN_STYLE = OutputStyle(
+    name="markdown",
+    description="Well-formed markdown with headings and fenced code",
+    content="""\
+Format every response as well-formed markdown:
+- Use ATX headings (`#`, `##`, `###`) to structure non-trivial responses
+- Wrap every code snippet in a fenced code block with a language tag
+- Use inline backticks for file paths, identifiers, and commands
+- Use tables for tabular data; use bulleted or numbered lists where appropriate
+- Never reply with raw prose only — always include at least one markdown element
+- Do not wrap the entire response in a single outer code fence""",
+)
+
+JSON_ONLY_STYLE = OutputStyle(
+    name="json-only",
+    description="Strict JSON output, no preamble or commentary",
+    content="""\
+Output strictly valid JSON and nothing else:
+- The entire response MUST be a single JSON value (object or array)
+- No preamble, no trailing commentary, no explanations
+- No markdown code fences around the JSON
+- No comments inside the JSON (JSON does not support comments)
+- Use double-quoted keys and strings; no trailing commas
+- If you cannot answer in JSON, return `{"error": "<short reason>"}`
+- Downstream tooling will parse the output directly — any non-JSON content will break it""",
+)
+
+BULLET_STYLE = OutputStyle(
+    name="bullet",
+    description="Bulleted lists only, no paragraphs",
+    content="""\
+Answer every question as a bulleted list:
+- Use `-` for every bullet; no paragraphs and no prose-only replies
+- One idea per bullet; keep each bullet short (ideally one sentence)
+- Nest with two-space indentation when sub-points are needed
+- Code snippets may appear inside a bullet as fenced code blocks
+- Do not include intro or outro sentences outside the list""",
+)
+
 BUILTIN_STYLES: dict[str, OutputStyle] = {
     "concise": CONCISE_STYLE,
     "explanatory": EXPLANATORY_STYLE,
     "formal": FORMAL_STYLE,
     "conversational": CONVERSATIONAL_STYLE,
+    "markdown": MARKDOWN_STYLE,
+    "json-only": JSON_ONLY_STYLE,
+    "bullet": BULLET_STYLE,
 }
 """Registry of built-in output styles, keyed by name."""
 

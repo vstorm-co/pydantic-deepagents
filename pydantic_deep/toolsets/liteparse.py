@@ -35,7 +35,7 @@ _CLINotFoundError: type[BaseException] = type("_CLINotFoundError", (Exception,),
 try:
     _LiteParse = importlib.import_module("liteparse").LiteParse
     _HAS_LITEPARSE = True
-except ImportError:  # pragma: no cover
+except (ImportError, AttributeError):  # pragma: no cover
     pass
 
 # Resolve the CLI-not-found error class for the friendly handler, tolerating the fact

@@ -19,6 +19,9 @@ agent = create_deep_agent(output_style="concise")
 | `explanatory` | Step-by-step reasoning, examples, definitions |
 | `formal` | Professional, structured, numbered sections |
 | `conversational` | Friendly, casual, uses analogies |
+| `markdown` | Well-formed markdown with headings and fenced code |
+| `json-only` | Strict JSON output, no preamble or commentary |
+| `bullet` | Bulleted lists only, no paragraphs |
 
 ```python
 # Minimal, code-focused responses
@@ -32,7 +35,52 @@ agent = create_deep_agent(output_style="formal")
 
 # Friendly teaching style
 agent = create_deep_agent(output_style="conversational")
+
+# Stable markdown for downstream renderers
+agent = create_deep_agent(output_style="markdown")
+
+# Strict JSON for piping into jq / parsers
+agent = create_deep_agent(output_style="json-only")
+
+# Bulleted summaries / status updates
+agent = create_deep_agent(output_style="bullet")
 ```
+
+**`json-only` is a prompt — not a guarantee.**
+
+The model is *asked* to produce valid JSON, but nothing validates the
+result. If you know the shape of the output, prefer `output_type` (see
+below) — it gives you a real guarantee, `json-only` doesn't.
+
+### `json-only` vs `output_type`
+
+| | `json-only` (style) | `output_type` (structured output) |
+|---|---|---|
+| Mechanism | Prompt directive | Provider-native JSON / tool-calling mode |
+| Validation | None | Schema-validated, retries on failure |
+| Result type | `str` | Typed Pydantic model |
+| Use when | Shape is free-form or unknown | Shape is known and fixed |
+
+If your output has a known shape, use `output_type`:
+
+```python
+from pydantic import BaseModel
+from pydantic_deep import create_deep_agent
+
+class Result(BaseModel):
+    status: str
+    items: list[str]
+
+agent = create_deep_agent(output_type=Result)
+```
+
+Reach for `json-only` only when `output_type` doesn't fit:
+
+- Free-form JSON where the shape depends on the input (e.g. extracting metadata from arbitrary documents)
+- Models / providers without structured-output support (some OpenRouter models, local LLMs, older APIs)
+- CLI piping where you want raw JSON on stdout without wrapping in a typed model
+- Streaming where partial-JSON parsing against a schema is impractical
+- Intermediate tool outputs in multi-step agents, where the final `output_type` is `str` but a step needs JSON
 
 ## Custom Styles
 
@@ -93,7 +141,7 @@ styles = discover_styles("/path/to/styles")
 When you pass a string name to `output_style`, the resolution order is:
 
 1. Return `OutputStyle` instances directly
-2. Look up in `BUILTIN_STYLES` (`concise`, `explanatory`, `formal`, `conversational`)
+2. Look up in `BUILTIN_STYLES` (`concise`, `explanatory`, `formal`, `conversational`, `markdown`, `json-only`, `bullet`)
 3. Search `styles_dir` directories for matching `.md` files
 4. Raise `ValueError` if not found
 
@@ -116,7 +164,7 @@ Be extremely concise in all responses:
 | Component | Description |
 |-----------|-------------|
 | [`OutputStyle`][pydantic_deep.styles.OutputStyle] | Style dataclass (name, description, content) |
-| [`BUILTIN_STYLES`][pydantic_deep.styles.BUILTIN_STYLES] | Registry of 4 built-in styles |
+| [`BUILTIN_STYLES`][pydantic_deep.styles.BUILTIN_STYLES] | Registry of 7 built-in styles |
 | [`resolve_style`][pydantic_deep.styles.resolve_style] | Resolve style name to OutputStyle |
 | [`discover_styles`][pydantic_deep.styles.discover_styles] | Discover styles from a directory |
 | [`load_style_from_file`][pydantic_deep.styles.load_style_from_file] | Load a single style from a markdown file |

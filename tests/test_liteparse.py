@@ -79,6 +79,34 @@ class TestLiteparseToolsetInit:
         assert "screenshot_document" in ts.tools
 
 
+# ── Module-level import guards ────────────────────────────────────────────────
+
+
+class TestModuleImportGuards:
+    def test_attribute_error_on_liteparse_import_leaves_has_liteparse_false(self) -> None:
+        """If liteparse is installed but LiteParse attr is missing, _HAS_LITEPARSE stays False."""
+        import importlib
+        import sys
+        import types
+
+        fake_liteparse = types.ModuleType("liteparse")
+        # No LiteParse attribute → attribute access raises AttributeError.
+        original = sys.modules.get("liteparse")
+        sys.modules["liteparse"] = fake_liteparse
+        try:
+            import pydantic_deep.toolsets.liteparse as mod
+
+            importlib.reload(mod)
+            assert mod._HAS_LITEPARSE is False
+            assert mod._LiteParse is None
+        finally:
+            if original is None:
+                sys.modules.pop("liteparse", None)
+            else:
+                sys.modules["liteparse"] = original
+            importlib.reload(mod)
+
+
 # ── _get_parser ───────────────────────────────────────────────────────────────
 
 

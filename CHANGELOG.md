@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.23] - 2026-05-29
+
+### Added
+
+- **Live Run Forking — split an in-flight `agent.run()` into N parallel branches** ([#123](https://github.com/vstorm-co/pydantic-deepagents/pull/123), closes epic #101). Opt-in via `forking=True` on `create_deep_agent()`. Branches share history up to the fork point, each diverging with its own steer message; a coordinator resolves the fork via one of four acceptance modes (`manual`, `auto`, `auto_with_fallback` default, `vote`), and the winning branch's history is adopted as the parent run's continuation.
+  - **Core (`LiveForkCapability`)** — `ForkCoordinator` (per-parent-run via `for_run()`, serialises mutations through an `asyncio.Lock`, captures partial history on cancellation); `BranchOverlay` copy-on-write backend (reads fall through to parent, writes land in an isolated overlay, `changes()` exposes the temporal `list[FileChange]` spine); `clone_for_branch` per-`BranchIsolation` policy; `InMemoryForkStateStore` / `ForkStateStore` protocol.
+  - **Diff & merge** — `BranchDiffReport` builder with agreement classification (`unanimous_change`, `split`, `unique`); `ForkMaterializer` real-time disk mirror under `.pydantic-deep/forks/{fork_id}/`; `EditorDetector` (PyCharm / VS Code / custom / TUI fallback); `JudgeAgent` autonomous merge judge with structured `JudgeVerdict` on minimal context; `compute_confidence` (`quality_spread×0.4 + test_pass_ratio×0.4 + internal_consistency×0.2`, capped at 0.65 without a test signal).
+  - **Test-runner hook** — `LiveForkCapability(test_command=…, test_timeout_s=…)` runs a shell command against each branch's materialised snapshot via `asyncio.create_subprocess_exec` (cross-platform, no shell dependency); exit code → `test_pass_ratio`; snapshot I/O on a thread executor; `UV_NO_SYNC=1` avoids dependency re-resolution in branch snapshots.
+  - **Agent tools** — `fork_run`, `inspect_branches`, `merge_or_select`, `terminate_branch`, `diff_branches`, `fork_cost`.
+  - **CLI** — `/fork`, `/merge`, `/fork-config`, `/fork diff [<path>]`, `/fork-branches N`, `/fork-budget`, `/fork-model` (persisted to `.pydantic-deep/config.toml`); `CLIForkSession` bridge with stash-and-adopt reconciliation of agent-initiated coordinators; live per-branch streaming panels (`BranchPanelWidget`, `ForkTabsWidget`, `ForkOverviewWidget`, `ForkBadgeWidget`), `JudgeLoadingScreen`, `MergeAcceptanceWidget`, `BranchApprovalModal` tool-approval gate; `>>label msg` per-branch steering; interactive follow-up chat on a focused `done` branch.
+  - **Docs** — `docs/capabilities/live-fork.md` full reference.
+
+- **Automatic fallback-model retry on primary-model failure** ([#125](https://github.com/vstorm-co/pydantic-deepagents/pull/125), closes [#112](https://github.com/vstorm-co/pydantic-deepagents/issues/112)) — new `fallback_model: str | Model | list[str | Model] | None = None` parameter on `create_deep_agent()`, wrapping the primary in pydantic-ai's `FallbackModel` (single model or ordered chain). Fallback fires on `ModelAPIError` but **not** on auth errors (messages containing `401`/`403`/`unauthorized`/`forbidden`, case-insensitive), which propagate instead of silently hopping to a model that would fail identically. New `HookEvent.MODEL_FALLBACK_TRIGGERED` + `HooksCapability.dispatch_model_fallback()` for observability (payload: `primary`, `fallback`, original exception). TUI: `/model` chains into a new `FallbackPickerModal` (provider/key-status indicators + "No fallback"), persisted to config; `CliConfig.fallback_model`. New `docs/advanced/fallback-models.md`.
+
+- **Security hook preset — `default_security_hook()`** ([#127](https://github.com/vstorm-co/pydantic-deepagents/pull/127), closes [#110](https://github.com/vstorm-co/pydantic-deepagents/issues/110)) — batteries-included `list[Hook]` preset that blocks common tool-misuse patterns (destructive shell commands, path-traversal writes, sensitive-file reads) and redacts obvious secrets from tool output. Drop-in via `create_deep_agent(hooks=default_security_hook())`. Three `DEFAULT_*` regex tuples for blocked commands, sensitive read paths, and secret-token shapes; supports custom-pattern overrides and shadow/warn mode. Exported from the top-level package. New "Built-in Security Preset" docs section and runnable `examples/security_gate/` demo.
+
+- **Three new built-in output styles** ([#126](https://github.com/vstorm-co/pydantic-deepagents/pull/126), closes [#111](https://github.com/vstorm-co/pydantic-deepagents/issues/111)) — `markdown`, `json-only`, and `bullet`, covering machine-readable / pipe-friendly response shapes the conversational styles (concise / explanatory / formal / conversational) don't address. Registered in `BUILTIN_STYLES`; docs gain usage examples and a `json-only`-vs-`output_type` comparison (the style is a prompt directive only — no validation guarantees, by design).
+
+### Fixed
+
+- **`update` command silently failed for pip-installed users** ([#124](https://github.com/vstorm-co/pydantic-deepagents/pull/124), fixes [#122](https://github.com/vstorm-co/pydantic-deepagents/issues/122)). `run_update()` ran `uv tool upgrade pydantic-deep` whenever `uv` was on `PATH`, but that only works for installs done via `uv tool install`. Users who installed via `pip install pydantic-deep[cli]` saw the upgrade fail with no fallback. The early `return` on a non-zero `uv` exit code is removed, so the command now falls through to `pip install --upgrade pydantic-deep[cli]`.
+
 ## [0.3.22] - 2026-05-24
 
 ### Fixed

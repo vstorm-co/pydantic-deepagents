@@ -355,12 +355,13 @@ def _coerce_value(key: str, value: str) -> Any:
         return float(value)
     if key in ("shell_allow_list", "approve_tools"):
         return [v.strip() for v in value.split(",") if v.strip()]
-    if key == "fork_branch_models":
-        return [v.strip() or None for v in value.split(",")] if value else []
-    if key == "fork_branch_budgets":
-        if not value:
-            return []
-        return [v.strip() if v.strip() else "" for v in value.split(",")]
+    if key in ("fork_branch_models", "fork_branch_budgets"):
+        # Keep the list count-aligned with fork_branch_count: the persisted string
+        # encodes one slot per branch (N-1 commas), so an all-default 1-branch
+        # config is "" → [None], and "," → [None, None]. Special-casing the empty
+        # string to [] dropped the positional length, so code indexing model/budget
+        # by branch slot would rely on the picker's padding to avoid an IndexError.
+        return [v.strip() or None for v in value.split(",")]
     if key == "fork_merge_strategy":
         v = value.strip().lower()
         if v not in _FORK_MERGE_STRATEGY_VALUES:

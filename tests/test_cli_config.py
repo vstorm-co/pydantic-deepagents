@@ -199,6 +199,26 @@ class TestCoerceValue:
     def test_string_value(self) -> None:
         assert _coerce_value("model", "openai:gpt-4o") == "openai:gpt-4o"
 
+    def test_fork_branch_lists_keep_positional_length(self) -> None:
+        # The persisted string encodes one slot per branch; an all-default
+        # 1-branch config ("") must coerce to [None], not [] (which would drop
+        # the positional length and desync from fork_branch_count).
+        assert _coerce_value("fork_branch_models", "") == [None]
+        assert _coerce_value("fork_branch_budgets", "") == [None]
+        assert _coerce_value("fork_branch_models", ",") == [None, None]
+        assert _coerce_value("fork_branch_models", "a:b,") == ["a:b", None]
+        assert _coerce_value("fork_branch_budgets", "1.5,") == ["1.5", None]
+
+    def test_fork_branch_models_round_trips_single_default(self, tmp_path: Path) -> None:
+        # A 1-branch all-default models list persists and reloads as [None],
+        # keeping length aligned with fork_branch_count=1.
+        cfg_path = tmp_path / "config.toml"
+        set_config_value(cfg_path, "fork_branch_count", "1")
+        set_config_value(cfg_path, "fork_branch_models", "")
+        loaded = load_config(cfg_path)
+        assert loaded.fork_branch_models == [None]
+        assert len(loaded.fork_branch_models) == loaded.fork_branch_count
+
     def test_optional_float_none(self) -> None:
         # float | None fields may be cleared to None.
         for field in ("temperature", "fork_aggregate_budget_usd"):

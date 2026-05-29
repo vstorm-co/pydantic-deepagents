@@ -600,11 +600,13 @@ def create_deep_agent(  # noqa: C901
         require_write_approval = interrupt_on.get("write_file", False) or interrupt_on.get(
             "edit_file", False
         )
-        # Default False: only require approval when explicitly configured.
-        # Default True caused a broken state — execute deferred but DeferredToolRequests
-        # never added to output types (has_interrupt_tools checked any(interrupt_on.values())
-        # which is False for an empty dict). Use explicit {"execute": True} to require approval.
-        require_execute_approval = interrupt_on.get("execute", False)
+        # When `interrupt_on` enables any interrupt, default execute to gated too:
+        # DeferredToolRequests is wired in that case (has_interrupt_tools is True), so the
+        # approval channel exists and a caller who enabled e.g. edit interrupts keeps shell
+        # execute gated as before. For an empty `interrupt_on` no interrupt tools are wired,
+        # so default to False to avoid the previously broken "execute deferred but no channel"
+        # state. An explicit {"execute": ...} always wins.
+        require_execute_approval = interrupt_on.get("execute", any(interrupt_on.values()))
 
         # Determine if execute should be included
         # If explicitly set, use that; otherwise auto-detect from backend type

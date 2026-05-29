@@ -118,6 +118,84 @@ This is a test skill.
         )
         assert agent is not None
 
+    @staticmethod
+    def _execute_requires_approval(agent: object) -> bool | None:
+        """Return the resolved ``requires_approval`` flag of the console ``execute`` tool.
+
+        Returns ``None`` if the console toolset / execute tool is not present.
+        """
+        seen: set[int] = set()
+
+        def find_console(obj: object):
+            if id(obj) in seen:
+                return None
+            seen.add(id(obj))
+            if getattr(obj, "id", None) == "deep-console":
+                return obj
+            for attr in ("toolsets", "toolset", "wrapped", "_toolset", "tools", "_toolsets"):
+                child = getattr(obj, attr, None)
+                if child is None:
+                    continue
+                if isinstance(child, dict):
+                    items = list(child.values())
+                elif isinstance(child, (list, tuple, set)):
+                    items = list(child)
+                else:
+                    items = [child]
+                for item in items:
+                    found = find_console(item)
+                    if found is not None:
+                        return found
+            return None
+
+        console = find_console(agent)
+        if console is None:
+            return None
+        execute = getattr(console, "tools", {}).get("execute")
+        if execute is None:
+            return None
+        return getattr(execute, "requires_approval", None)
+
+    def test_execute_gated_when_other_interrupt_enabled(self):
+        """A non-empty interrupt_on that omits execute still gates shell execute.
+
+        Regression: the default must follow ``any(interrupt_on.values())`` so a caller
+        enabling edit/write interrupts keeps shell ``execute`` behind human approval.
+        """
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            interrupt_on={"edit_file": True},
+            include_execute=True,
+        )
+        assert self._execute_requires_approval(agent) is True
+
+    def test_execute_not_gated_when_interrupt_on_empty(self):
+        """An empty interrupt_on wires no interrupt tools, so execute defaults ungated."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            interrupt_on={},
+            include_execute=True,
+        )
+        assert self._execute_requires_approval(agent) is False
+
+    def test_explicit_execute_false_overrides_default(self):
+        """An explicit {"execute": False} wins even when other interrupts are enabled."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            interrupt_on={"execute": False, "edit_file": True},
+            include_execute=True,
+        )
+        assert self._execute_requires_approval(agent) is False
+
+    def test_explicit_execute_true_gates(self):
+        """An explicit {"execute": True} gates execute."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            interrupt_on={"execute": True},
+            include_execute=True,
+        )
+        assert self._execute_requires_approval(agent) is True
+
     def test_create_with_user_capabilities(self):
         """Test creating with user-provided capabilities."""
         from pydantic_ai.capabilities import Thinking

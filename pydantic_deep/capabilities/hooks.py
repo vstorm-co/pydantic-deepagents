@@ -334,7 +334,13 @@ class HooksCapability(AbstractCapability[Any]):
             hook_result = await _run_hook(hook, hook_input, backend)
 
             if hook_result.modified_result is not None:
-                current_result = hook_result.modified_result
+                if isinstance(current_result, str):
+                    current_result = hook_result.modified_result
+                else:
+                    logger.debug(
+                        "[hooks] modified_result skipped: original result is %s, not str",
+                        type(current_result).__name__,
+                    )
                 hook_input = _build_hook_input(
                     HookEvent.POST_TOOL_USE,
                     call.tool_name,
@@ -451,9 +457,13 @@ class HooksCapability(AbstractCapability[Any]):
 # Default destructive-command patterns matched against the ``command`` arg of
 # the ``execute`` tool. Each entry is a regex; the first match denies the call.
 DEFAULT_BLOCKED_COMMANDS: tuple[str, ...] = (
-    # ``rm -rf /`` and variants like ``rm -rfv /``, ``rm -fr /``
-    r"\brm\s+-[a-zA-Z]*[rR][a-zA-Z]*[fF][a-zA-Z]*\s+/(?:\s|$)",
-    r"\brm\s+-[a-zA-Z]*[fF][a-zA-Z]*[rR][a-zA-Z]*\s+/(?:\s|$)",
+    # rm with recursive+force short flags (-rf, -fr, -rfv, etc.) targeting
+    # root (/), root-glob (/*), home dir (~), $HOME, or current dir (.)
+    r"\brm\s+-[a-zA-Z]*[rR][a-zA-Z]*[fF][a-zA-Z]*\s+(?:/\*?|~(?=\s|$)|\$\{?HOME\}?(?=\s|$)|\.)(?:\s|/|$)",
+    r"\brm\s+-[a-zA-Z]*[fF][a-zA-Z]*[rR][a-zA-Z]*\s+(?:/\*?|~(?=\s|$)|\$\{?HOME\}?(?=\s|$)|\.)(?:\s|/|$)",
+    # rm with long options --recursive/--force (any order) on dangerous targets
+    r"\brm\s+--recursive\s+--force\s+(?:/\*?|~(?=\s|$)|\$\{?HOME\}?(?=\s|$)|\.)(?:\s|/|$)",
+    r"\brm\s+--force\s+--recursive\s+(?:/\*?|~(?=\s|$)|\$\{?HOME\}?(?=\s|$)|\.)(?:\s|/|$)",
     # Classic fork bomb
     r":\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:",
     # Filesystem nuke
@@ -478,11 +488,26 @@ DEFAULT_BLOCKED_READ_PATHS: tuple[str, ...] = (
 )
 
 
+# Default sensitive-path patterns blocked for ``write_file``/``edit_file``.
+# Writing to these paths is at least as dangerous as reading them, so we apply
+# a symmetric denylist independent of ``allowed_write_roots``.
+DEFAULT_BLOCKED_WRITE_PATHS: tuple[str, ...] = (
+    r"(?:^|/|~/)\.ssh(?:/|$)",           # SSH keys, authorized_keys
+    r"(?:^|/)etc/(?:passwd|shadow|sudoers)\b",  # Critical system auth files
+    r"(?:^|/)etc/cron",                   # Cron configs (persistence vector)
+    r"(?:^|/|~/)\.aws/credentials\b",    # AWS credentials
+    r"(?:^|/)\.env(?:\.[\w.-]+)?$",      # .env / .env.production (hold secrets)
+    r"(?:^|/|~/)\.(?:bash_profile|bashrc|profile|zshrc|zprofile)\b",  # Shell startup
+)
+
+
 # Secret-shaped tokens redacted from POST_TOOL_USE output. Each pattern is
 # replaced with ``[REDACTED]`` when ``redact_secrets`` is enabled.
 DEFAULT_SECRET_PATTERNS: tuple[str, ...] = (
     r"AKIA[0-9A-Z]{16}",  # AWS access key ID
-    r"sk-[A-Za-z0-9]{20,}",  # OpenAI-style API keys
+    # OpenAI-style API keys: legacy (sk-<alphanum>), and current formats
+    # sk-proj-…, sk-svcacct-…, sk-admin-… which contain hyphens/underscores
+    r"sk-(?:proj|svcacct|admin)?-?[A-Za-z0-9_-]{20,}",
     r"ghp_[A-Za-z0-9]{36}",  # GitHub personal access token (classic)
     r"github_pat_[A-Za-z0-9_]{22,}",  # GitHub fine-grained PAT
     # JWT-shaped tokens (header.payload.signature, base64url segments)
@@ -495,8 +520,13 @@ _WRITE_TOOLS: tuple[str, ...] = ("write_file", "edit_file")
 
 
 def _normalize_path(raw: str) -> str:
-    """Expand ``~`` and resolve a path without requiring it to exist."""
-    return str(Path(raw).expanduser().resolve(strict=False))
+    """Resolve a path without requiring it to exist.
+
+    Does NOT expand ``~`` — callers must validate that paths are absolute before
+    calling this, because ``~`` expands against the *controller* HOME which may
+    differ from the agent backend's filesystem namespace.
+    """
+    return str(Path(raw).resolve(strict=False))
 
 
 def _path_escapes_roots(path: str, roots: Sequence[str]) -> bool:
@@ -544,6 +574,7 @@ def _check_write(
     args: dict[str, Any],
     *,
     allowed_write_roots: Sequence[str] | None,
+    blocked_write_paths: Sequence[re.Pattern[str]],
 ) -> str | None:
     """Return a denial reason if ``write_file``/``edit_file`` targets an unsafe path."""
     path = args.get("path")
@@ -552,8 +583,21 @@ def _check_write(
     # Path-traversal segments are always suspicious, even without explicit roots.
     if re.search(r"(?:^|/)\.\.(?:/|$)", path):
         return f"Blocked path-traversal write: {path}"
-    if allowed_write_roots and _path_escapes_roots(path, allowed_write_roots):
-        return f"Blocked write outside allowed roots: {path}"
+    # Sensitive write-path denylist (applied unconditionally, independent of roots).
+    for pattern in blocked_write_paths:
+        if pattern.search(path):
+            return f"Blocked write to sensitive path: {path}"
+    if allowed_write_roots:
+        # Reject paths we cannot safely compare against backend-absolute roots.
+        # ``~`` expands against the controller's HOME which may differ from the
+        # agent backend's filesystem namespace (e.g. DockerSandbox).
+        if path.startswith("~") or not Path(path).is_absolute():
+            return (
+                f"Blocked write: cannot verify relative/home-relative path against "
+                f"allowed roots (use an absolute backend path): {path}"
+            )
+        if _path_escapes_roots(path, allowed_write_roots):
+            return f"Blocked write outside allowed roots: {path}"
     return None
 
 
@@ -587,6 +631,7 @@ def default_security_hook(
     *,
     blocked_commands: Sequence[str] | None = None,
     allowed_write_roots: Sequence[str | Path] | None = None,
+    blocked_write_paths: Sequence[str] | None = None,
     blocked_read_paths: Sequence[str] | None = None,
     redact_secrets: bool = True,
     secret_patterns: Sequence[str] | None = None,
@@ -596,9 +641,9 @@ def default_security_hook(
 
     The returned hooks gate `execute`, `write_file`, `edit_file`, and
     `read_file` against destructive command patterns, path-traversal writes,
-    and sensitive-path reads. When `redact_secrets` is enabled, a second hook
-    scrubs obvious secret shapes (AWS access keys, GitHub PATs, OpenAI-style
-    `sk-` keys, JWTs) from `POST_TOOL_USE` output before the model sees it.
+    sensitive-path writes, and sensitive-path reads. When `redact_secrets` is
+    enabled, a second hook scrubs obvious secret shapes (AWS access keys,
+    GitHub PATs, OpenAI `sk-` keys, JWTs) from `POST_TOOL_USE` output.
 
     The defaults are opt-out: pass `mode="warn"` to log instead of block,
     pass `blocked_commands=[]` to disable a category, or extend any list with
@@ -609,8 +654,14 @@ def default_security_hook(
         blocked_commands: Regex patterns matched against the `command` arg of
             the `execute` tool. Defaults to `DEFAULT_BLOCKED_COMMANDS`.
         allowed_write_roots: If set, `write_file`/`edit_file` paths must
-            resolve under one of these roots. Path-traversal (`..`) segments
+            resolve under one of these roots. Paths must be absolute (no `~`
+            or relative segments) — `~` expands against the *controller*
+            HOME, which may differ from the agent backend's filesystem
+            namespace (e.g. DockerSandbox). Path-traversal (`..`) segments
             are blocked unconditionally regardless of this setting.
+        blocked_write_paths: Regex patterns matched against the `path` arg of
+            `write_file`/`edit_file`. Defaults to `DEFAULT_BLOCKED_WRITE_PATHS`.
+            Applied unconditionally, independent of `allowed_write_roots`.
         blocked_read_paths: Regex patterns matched against the `path` arg of
             `read_file`. Defaults to `DEFAULT_BLOCKED_READ_PATHS`.
         redact_secrets: When True (default), add a `POST_TOOL_USE` hook that
@@ -633,9 +684,20 @@ def default_security_hook(
     read_patterns = _compile_all(
         DEFAULT_BLOCKED_READ_PATHS if blocked_read_paths is None else blocked_read_paths
     )
-    write_roots: tuple[str, ...] | None = (
-        tuple(str(p) for p in allowed_write_roots) if allowed_write_roots else None
+    write_path_patterns = _compile_all(
+        DEFAULT_BLOCKED_WRITE_PATHS if blocked_write_paths is None else blocked_write_paths
     )
+    write_roots: tuple[str, ...] | None = None
+    if allowed_write_roots:
+        validated: list[str] = []
+        for p in allowed_write_roots:
+            s = str(p)
+            if s.startswith("~") or not Path(s).is_absolute():
+                raise ValueError(
+                    f"allowed_write_roots must be absolute paths (no ~ or relative): {s!r}"
+                )
+            validated.append(s)
+        write_roots = tuple(validated)
 
     async def _pre_tool_use(hook_input: HookInput) -> HookResult:
         tool_name = hook_input.tool_name
@@ -644,7 +706,11 @@ def default_security_hook(
         if tool_name == "execute":
             reason = _check_execute(args, blocked_commands=cmd_patterns)
         elif tool_name in _WRITE_TOOLS:
-            reason = _check_write(args, allowed_write_roots=write_roots)
+            reason = _check_write(
+                args,
+                allowed_write_roots=write_roots,
+                blocked_write_paths=write_path_patterns,
+            )
         elif tool_name == "read_file":
             reason = _check_read(args, blocked_read_paths=read_patterns)
         if reason is None:
@@ -685,6 +751,7 @@ def default_security_hook(
 __all__ = [
     "DEFAULT_BLOCKED_COMMANDS",
     "DEFAULT_BLOCKED_READ_PATHS",
+    "DEFAULT_BLOCKED_WRITE_PATHS",
     "DEFAULT_SECRET_PATTERNS",
     "EXIT_ALLOW",
     "EXIT_DENY",

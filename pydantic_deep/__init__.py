@@ -104,6 +104,10 @@ from pydantic_deep.capabilities import (
     make_config_for_mode,
 )
 from pydantic_deep.capabilities.hooks import (
+    DEFAULT_BLOCKED_COMMANDS,
+    DEFAULT_BLOCKED_READ_PATHS,
+    DEFAULT_BLOCKED_WRITE_PATHS,
+    DEFAULT_SECRET_PATTERNS,
     EXIT_ALLOW,
     EXIT_DENY,
     Hook,
@@ -339,6 +343,10 @@ __all__ = [
     "create_summarization_processor",
     "create_sliding_window_processor",
     # Hooks (Claude Code-style lifecycle hooks)
+    "DEFAULT_BLOCKED_COMMANDS",
+    "DEFAULT_BLOCKED_READ_PATHS",
+    "DEFAULT_BLOCKED_WRITE_PATHS",
+    "DEFAULT_SECRET_PATTERNS",
     "Hook",
     "HookEvent",
     "HookInput",

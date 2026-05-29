@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from unittest.mock import MagicMock
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
@@ -22,6 +23,7 @@ from pydantic_deep import DeepAgentDeps, create_deep_agent, default_security_hoo
 from pydantic_deep.capabilities.hooks import (
     DEFAULT_BLOCKED_COMMANDS,
     DEFAULT_BLOCKED_READ_PATHS,
+    DEFAULT_BLOCKED_WRITE_PATHS,
     DEFAULT_SECRET_PATTERNS,
     EXIT_ALLOW,
     EXIT_DENY,
@@ -1049,6 +1051,7 @@ class TestSecurityHookDefaults:
     def test_default_constants_exposed(self) -> None:
         assert DEFAULT_BLOCKED_COMMANDS
         assert DEFAULT_BLOCKED_READ_PATHS
+        assert DEFAULT_BLOCKED_WRITE_PATHS
         assert DEFAULT_SECRET_PATTERNS
 
 
@@ -1058,9 +1061,23 @@ class TestSecurityHookExecuteRules:
     @pytest.mark.parametrize(
         "command",
         [
+            # short flags — bare root
             "rm -rf /",
             "rm -rfv /",
             "rm -fr /",
+            # short flags — root glob (not stopped by --preserve-root)
+            "rm -rf /*",
+            "rm -fr /*",
+            # short flags — home dir shorthand
+            "rm -rf ~",
+            "rm -fr ~",
+            # short flags — current dir wipe
+            "rm -rf .",
+            # long options — any order, bare root
+            "rm --recursive --force /",
+            "rm --force --recursive /",
+            # long options — root glob
+            "rm --recursive --force /*",
             ":(){:|:&};:",
             "mkfs.ext4 /dev/sda1",
             "dd if=/dev/zero of=/dev/sda bs=1M",
@@ -1084,6 +1101,9 @@ class TestSecurityHookExecuteRules:
             "echo hello",
             "python script.py",
             "git status",
+            # rm -rf on non-dangerous targets must still be allowed
+            "rm -rf /tmp/mytemp",
+            "rm -rf ~/Downloads/cache",
         ],
     )
     async def test_allows_benign_commands(self, command: str) -> None:
@@ -1158,6 +1178,71 @@ class TestSecurityHookWriteRules:
         result = await handler(_sec_input("write_file", {"path": None}))
         assert result.allow is True
 
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/home/user/.ssh/authorized_keys",
+            "~/.ssh/id_rsa",
+            "/etc/passwd",
+            "/etc/shadow",
+            "/etc/cron.d/backdoor",
+            "/home/user/.aws/credentials",
+            ".env",
+            ".env.production",
+            "/home/user/.bashrc",
+            "~/.zshrc",
+        ],
+    )
+    async def test_blocks_sensitive_write_paths_by_default(self, path: str) -> None:
+        """Sensitive write paths are blocked even without allowed_write_roots."""
+        hooks = default_security_hook()
+        handler = _sec_pre_handler(hooks)
+        result = await handler(_sec_input("write_file", {"path": path}))
+        assert result.allow is False
+        assert "sensitive" in (result.reason or "")
+
+    async def test_custom_blocked_write_paths_replace_defaults(self, tmp_path: Path) -> None:
+        hooks = default_security_hook(blocked_write_paths=[r"\.danger$"])
+        handler = _sec_pre_handler(hooks)
+        # Custom pattern fires.
+        blocked = await handler(_sec_input("write_file", {"path": "/tmp/file.danger"}))
+        assert blocked.allow is False
+        # Default sensitive paths no longer enforced.
+        ok = await handler(_sec_input("write_file", {"path": "/etc/passwd"}))
+        assert ok.allow is True
+
+    async def test_empty_blocked_write_paths_disables_category(self) -> None:
+        hooks = default_security_hook(blocked_write_paths=[])
+        handler = _sec_pre_handler(hooks)
+        # Default sensitive-write denylist is disabled.
+        result = await handler(_sec_input("write_file", {"path": "/etc/passwd"}))
+        assert result.allow is True
+
+    async def test_allowed_write_roots_rejects_tilde_paths(self, tmp_path: Path) -> None:
+        """~-prefixed paths cannot be safely resolved against backend roots."""
+        hooks = default_security_hook(allowed_write_roots=[str(tmp_path)])
+        handler = _sec_pre_handler(hooks)
+        result = await handler(_sec_input("write_file", {"path": "~/output.txt"}))
+        assert result.allow is False
+        assert "relative/home-relative" in (result.reason or "")
+
+    async def test_allowed_write_roots_rejects_relative_paths(self, tmp_path: Path) -> None:
+        """Relative paths cannot be safely resolved against backend roots."""
+        hooks = default_security_hook(allowed_write_roots=[str(tmp_path)])
+        handler = _sec_pre_handler(hooks)
+        result = await handler(_sec_input("write_file", {"path": "output/file.txt"}))
+        assert result.allow is False
+        assert "relative/home-relative" in (result.reason or "")
+
+    def test_allowed_write_roots_raises_on_relative_root(self) -> None:
+        """Relative or ~-prefixed roots are rejected at construction time."""
+        with pytest.raises(ValueError, match="absolute"):
+            default_security_hook(allowed_write_roots=["relative/path"])
+
+    def test_allowed_write_roots_raises_on_tilde_root(self) -> None:
+        with pytest.raises(ValueError, match="absolute"):
+            default_security_hook(allowed_write_roots=["~/workspace"])
+
 
 class TestSecurityHookReadRules:
     """`read_file` blocks credentials and other sensitive paths."""
@@ -1219,7 +1304,12 @@ class TestSecurityHookSecretRedaction:
         "secret",
         [
             "AKIAIOSFODNN7EXAMPLE",
+            # Legacy OpenAI key (alphanumeric body)
             "sk-abc123def456ghi789jklmno",
+            # Current OpenAI key formats (contain hyphens/underscores)
+            "sk-proj-abc123XYZ_def456-ghi789jklmnopqrstuv",
+            "sk-svcacct-abc123XYZ_def456-ghi789jklmnopqrstu",
+            "sk-admin-abc123XYZ_def456-ghi789jklmnopqrstuv",
             "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
             "github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
             "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.dQw4w9WgXcQ_payload",
@@ -1260,6 +1350,50 @@ class TestSecurityHookSecretRedaction:
         # Default pattern no longer enforced.
         kept = await handler(_sec_post_input("execute", "AKIAIOSFODNN7EXAMPLE"))
         assert kept.modified_result is None
+
+
+class TestAfterToolExecuteNonStringResult:
+    """HooksCapability.after_tool_execute does not coerce non-string results to str."""
+
+    async def test_non_string_result_preserved_when_no_secret(self) -> None:
+        """A dict result that contains no secret must pass through unchanged."""
+        secret_free_dict = {"key": "value", "count": 42}
+        cap = HooksCapability(hooks=default_security_hook())
+
+        ctx = MagicMock()
+        ctx.deps = MagicMock()
+        ctx.deps.backend = None
+
+        call = MagicMock()
+        call.tool_name = "read_file"
+        tool_def = MagicMock()
+
+        result = await cap.after_tool_execute(
+            ctx, call=call, tool_def=tool_def, args={}, result=secret_free_dict
+        )
+        assert result == secret_free_dict
+        assert isinstance(result, dict)
+
+    async def test_non_string_result_preserved_when_secret_present(self) -> None:
+        """A dict result whose str() representation contains a secret must NOT be
+        coerced to a string — the original object is returned unchanged."""
+        dict_with_secret = {"key": "AKIAIOSFODNN7EXAMPLE"}
+        cap = HooksCapability(hooks=default_security_hook())
+
+        ctx = MagicMock()
+        ctx.deps = MagicMock()
+        ctx.deps.backend = None
+
+        call = MagicMock()
+        call.tool_name = "read_file"
+        tool_def = MagicMock()
+
+        result = await cap.after_tool_execute(
+            ctx, call=call, tool_def=tool_def, args={}, result=dict_with_secret
+        )
+        # Type must be preserved — not coerced to a redacted string.
+        assert result == dict_with_secret
+        assert isinstance(result, dict)
 
 
 class TestSecurityHookWarnMode:

@@ -269,16 +269,16 @@ The defaults are opt-out, not opt-in: turn things off explicitly when you need t
 
 | Tool | Rule |
 |------|------|
-| `execute` | `rm -rf /`, fork bombs (`:(){:|:&};:`), `mkfs`, `dd …of=/dev/…`, `curl`/`wget` piped into a shell |
-| `write_file`, `edit_file` | Paths containing `..` traversal segments; optionally, anything outside `allowed_write_roots` |
+| `execute` | `rm -rf /`, `rm -rf /*`, `rm --recursive --force /`, `rm -rf ~`, fork bombs (`:(){:|:&};:`), `mkfs`, `dd …of=/dev/…`, `curl`/`wget` piped into a shell |
+| `write_file`, `edit_file` | Paths containing `..` traversal segments; `~/.ssh/`, `/etc/passwd|shadow|sudoers`, `/etc/cron*`, `~/.aws/credentials`, `.env` files, shell startup files; optionally, anything outside `allowed_write_roots` |
 | `read_file` | `/etc/shadow`, `~/.ssh/*`, `.env*`, `~/.aws/credentials`, GCP `application_default_credentials.json` |
-| All tools (POST) | Redacts AWS access keys (`AKIA…`), OpenAI keys (`sk-…`), GitHub PATs (`ghp_…`, `github_pat_…`), JWT-shaped tokens |
+| All tools (POST) | Redacts AWS access keys (`AKIA…`), OpenAI keys (legacy `sk-…` and current `sk-proj-…`, `sk-svcacct-…`, `sk-admin-…`), GitHub PATs (`ghp_…`, `github_pat_…`), JWT-shaped tokens |
 
 The pre-tool rules emit `HookResult(allow=False, reason=…)`, which surfaces to the model as a `ModelRetry` — the agent sees the denial reason and can adjust.
 
 ### Customizing
 
-**Tighten the write boundary.** By default only `..` traversal is blocked. Pass `allowed_write_roots` to require every write to resolve inside one of those directories:
+**Tighten the write boundary.** By default, `..` traversal and a sensitive-path denylist (`~/.ssh/`, `/etc/passwd`, etc.) are blocked. Pass `allowed_write_roots` to additionally require every write to resolve inside one of those directories. Roots must be **absolute** paths — `~`-prefixed and relative paths are rejected at construction time, because `~` expands against the controller's HOME which may differ from the agent backend's namespace (e.g. DockerSandbox):
 
 ```python
 hooks = default_security_hook(allowed_write_roots=["/workspace", "/tmp/agent"])
@@ -294,7 +294,7 @@ hooks = default_security_hook(
 )
 ```
 
-The same pattern works for `blocked_read_paths` and `secret_patterns`.
+The same pattern works for `blocked_write_paths`, `blocked_read_paths`, and `secret_patterns`.
 
 **Disable a category.** Pass an empty list, or `redact_secrets=False` to drop the POST hook entirely:
 
@@ -348,7 +348,8 @@ For hard isolation, run the agent against a `DockerSandbox` backend. Use this pr
 | [`HooksCapability`][pydantic_deep.capabilities.hooks.HooksCapability] | Capability that dispatches hooks on tool events |
 | [`default_security_hook`][pydantic_deep.capabilities.hooks.default_security_hook] | Built-in safety preset (returns `list[Hook]`) |
 | [`DEFAULT_BLOCKED_COMMANDS`][pydantic_deep.capabilities.hooks.DEFAULT_BLOCKED_COMMANDS] | Default destructive-command regex tuple |
-| [`DEFAULT_BLOCKED_READ_PATHS`][pydantic_deep.capabilities.hooks.DEFAULT_BLOCKED_READ_PATHS] | Default sensitive-path regex tuple |
+| [`DEFAULT_BLOCKED_READ_PATHS`][pydantic_deep.capabilities.hooks.DEFAULT_BLOCKED_READ_PATHS] | Default sensitive read-path regex tuple |
+| [`DEFAULT_BLOCKED_WRITE_PATHS`][pydantic_deep.capabilities.hooks.DEFAULT_BLOCKED_WRITE_PATHS] | Default sensitive write-path regex tuple |
 | [`DEFAULT_SECRET_PATTERNS`][pydantic_deep.capabilities.hooks.DEFAULT_SECRET_PATTERNS] | Default secret-token regex tuple |
 | `EXIT_ALLOW` | Exit code `0` -- allow |
 | `EXIT_DENY` | Exit code `2` -- deny |

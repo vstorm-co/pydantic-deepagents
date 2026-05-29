@@ -430,6 +430,50 @@ class TestTabCyclesFocus:
             await session.abort()
 
 
+class TestForkTabsCostRender:
+    """Cost must render even when set in the same tick as statuses (chip mount race)."""
+
+    async def test_cost_renders_when_set_same_tick_as_statuses(self, fork_app: DeepApp) -> None:
+        from textual.widgets import Static
+
+        from pydantic_deep.types import BranchCost
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+
+            session = await _start_fork(fork_app, slow=True)
+            await pilot.pause()
+
+            tabs = fork_app.screen.query_one(ForkTabsWidget)
+            statuses = session.inspect()
+            costs = {
+                s.id: BranchCost(
+                    branch_id=s.id,
+                    branch_label=s.label,
+                    cumulative_usd=0.42,
+                    budget_usd=1.00,
+                    remaining_usd=0.58,
+                    state=s.state,
+                )
+                for s in statuses
+            }
+
+            # Set statuses then costs back-to-back, exactly as _poll_fork_state does:
+            # watch_statuses mounts chips async while watch_branch_costs is sync.
+            tabs.statuses = statuses
+            tabs.branch_costs = costs
+            await pilot.pause()
+            await pilot.pause()
+
+            sid = statuses[0].id
+            chip = tabs.query_one(f"#fork-tab-{sid}", Static)
+            text = str(getattr(chip, "content", ""))
+            assert "$0.42" in text, f"cost missing from chip text: {text!r}"
+
+            await session.abort()
+
+
 class TestForkingDisabled:
     async def test_dispatch_fork_when_disabled_notifies(self) -> None:
         """If forking is not enabled on the agent, /fork should notify and bail."""

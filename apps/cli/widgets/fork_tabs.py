@@ -101,7 +101,19 @@ class ForkTabsWidget(Horizontal):
         _old: dict[str, BranchCost],
         _new: dict[str, BranchCost],
     ) -> None:
-        """Re-render chip text in-place when per-branch costs change."""
+        """Re-render chip text in-place when per-branch costs change.
+
+        ``watch_statuses`` mounts chips with ``await self.mount(...)`` (async),
+        so when ``_poll_fork_state`` sets ``statuses`` then ``branch_costs`` in the
+        same turn the chip may not exist yet on this synchronous pass. Re-apply
+        once immediately (for already-mounted chips) and again after the next
+        refresh (once the pending mounts have completed) so a freshly mounted
+        chip still gets its ``$x/$y`` cost instead of lagging a tick.
+        """
+        self._apply_costs()
+        self.call_after_refresh(self._apply_costs)
+
+    def _apply_costs(self) -> None:
         for status in self.statuses:
             chip_id = self._chip_id(status.id)
             chip = next(

@@ -440,7 +440,7 @@ __all__ = [
     "CompiledSubAgent",
     "UploadedFile",
     "ResponseFormat",
-    # Live Run Forking — coordinator, isolation, diff, and public types
+    # Live Run Forking - coordinator, isolation, diff, and public types
     "LiveForkCapability",
     "ForkCoordinator",
     "ForkStateStore",
@@ -468,7 +468,7 @@ __all__ = [
     "DiffSummary",
     "BranchDiffAgreement",
     "BranchDiffOperation",
-    # Live Run Forking — autonomous judge for unattended merge resolution
+    # Live Run Forking - autonomous judge for unattended merge resolution
     "JudgeAgent",
     "JudgeVerdict",
     "ConfidenceSignals",

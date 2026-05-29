@@ -5,11 +5,11 @@ the persistent ``messages.json`` file maintained by
 :class:`~pydantic_ai_summarization.ContextManagerMiddleware`.
 
 The middleware saves every message continuously. This module only *reads*
-the file — it never writes. The search tool is useful after context
+the file - it never writes. The search tool is useful after context
 compression, when older messages have been replaced by a summary.
 
 Search uses BM25 ranking (the same algorithm behind Elasticsearch/Lucene)
-for relevance-scored results. Multi-word queries are tokenized — each word
+for relevance-scored results. Multi-word queries are tokenized - each word
 is scored independently, and rare words (high IDF) contribute more than
 common ones.
 
@@ -81,9 +81,7 @@ _TOKENIZE_RE = re.compile(r"[a-zA-Z0-9]+")
 """Regex for tokenizing text into words (splits on non-alphanumeric including underscores)."""
 
 
-# ---------------------------------------------------------------------------
 # BM25 implementation
-# ---------------------------------------------------------------------------
 
 
 def _tokenize(text: str) -> list[str]:
@@ -168,9 +166,7 @@ def _bm25_rank(
     return results
 
 
-# ---------------------------------------------------------------------------
 # Message formatting (for search results)
-# ---------------------------------------------------------------------------
 
 
 def _format_message(msg: ModelMessage) -> str:
@@ -252,7 +248,7 @@ def create_history_search_toolset(
 
         Args:
             query: Text to search for. Multi-word queries search each word
-                independently — rare terms score higher than common ones.
+                independently - rare terms score higher than common ones.
         """
         messages = _load_messages(messages_path)
 

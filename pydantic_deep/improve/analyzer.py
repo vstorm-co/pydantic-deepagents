@@ -1,4 +1,4 @@
-"""Improvement analyzer — orchestrates the full improve pipeline.
+"""Improvement analyzer - orchestrates the full improve pipeline.
 
 Discovers recent sessions, extracts insights in parallel, loads current
 context files, synthesizes proposed changes, and optionally applies them.
@@ -165,7 +165,7 @@ class ImprovementAnalyzer:
         current_context = self._load_current_context()
         tool_sequences = self._load_tool_sequences(session_paths)
 
-        # 4. Synthesize (pass raw tool traces — Meta-Harness: traces >> summaries)
+        # 4. Synthesize (pass raw tool traces - Meta-Harness: traces >> summaries)
         proposed_changes: list[ProposedChange] = []
         if insights:
             proposed_changes = await self._synthesizer.synthesize(

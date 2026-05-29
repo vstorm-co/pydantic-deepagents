@@ -1,4 +1,4 @@
-"""Insight synthesizer — merges insights from multiple sessions into proposed changes.
+"""Insight synthesizer - merges insights from multiple sessions into proposed changes.
 
 Uses a pydantic-ai Agent with structured output to synthesize session insights
 and current context files into minimal, high-confidence proposed changes.
@@ -79,7 +79,7 @@ class InsightSynthesizer:
             insights_json=self._format_insights_for_prompt(insights),
         )
 
-        # Build user prompt — append raw tool sequences when available
+        # Build user prompt - append raw tool sequences when available
         user_prompt = "Synthesize the insights into proposed changes."
         if tool_sequences:
             traces = self._format_tool_sequences(tool_sequences)

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pydantic_deep.types import SubAgentConfig
 
-# ── Research subagent ────────────────────────────────────────────────────
+# Research subagent
 
 RESEARCH_DESCRIPTION = (
     "Research agent for exploring codebases, searching the web, "
@@ -50,7 +50,7 @@ RESEARCH_SUBAGENT: SubAgentConfig = {
     "instructions": RESEARCH_INSTRUCTIONS,
 }
 
-# ── All built-in subagents ───────────────────────────────────────────────
+# All built-in subagents
 
 BUILTIN_SUBAGENTS: list[SubAgentConfig] = [
     RESEARCH_SUBAGENT,

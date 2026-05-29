@@ -67,7 +67,7 @@ def _find_orphaned_calls(messages: list[ModelMessage]) -> dict[int, list[ToolRet
             for req_part in next_msg.parts:
                 # A `RetryPromptPart` carries the original `tool_call_id` when a tool raises
                 # `ModelRetry` (see pydantic-ai `_tool_manager._wrap_error_as_retry`), so it
-                # counts as an answer to the call — otherwise we'd inject a synthetic
+                # counts as an answer to the call - otherwise we'd inject a synthetic
                 # `ToolReturnPart` with the same id and trip strict providers like Bedrock.
                 if (
                     isinstance(req_part, (ToolReturnPart, RetryPromptPart))
@@ -177,7 +177,7 @@ def patch_tool_calls_processor(
                 patched.append(ModelRequest(parts=patched_parts))
                 skip_indices.add(next_idx)
             else:
-                # No next ModelRequest — create one with just synthetic parts
+                # No next ModelRequest - create one with just synthetic parts
                 patched.append(ModelRequest(parts=synthetic_parts))
 
         messages = patched
@@ -221,10 +221,10 @@ class PatchToolCallsCapability(AbstractCapability[Any]):
 
     Repairs two cases before each model request:
 
-    1. **Orphaned tool calls** — ``ToolCallPart`` without a matching
+    1. **Orphaned tool calls** - ``ToolCallPart`` without a matching
        ``ToolReturnPart`` → injects a synthetic return with
        ``"Tool call was cancelled."``.
-    2. **Orphaned tool results** — ``ToolReturnPart`` without a matching
+    2. **Orphaned tool results** - ``ToolReturnPart`` without a matching
        ``ToolCallPart`` → removes the orphaned return.
 
     This replaces the ``patch_tool_calls_processor`` history processor with a

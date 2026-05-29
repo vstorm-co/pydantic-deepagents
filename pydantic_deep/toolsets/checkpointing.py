@@ -12,14 +12,14 @@ Building blocks from pydantic-ai:
 
 Components:
 
-- :class:`Checkpoint` — immutable snapshot of conversation state
-- :class:`CheckpointStore` — protocol for checkpoint storage backends
-- :class:`InMemoryCheckpointStore` — default in-memory store
-- :class:`FileCheckpointStore` — persistent store using JSON files
-- :class:`CheckpointMiddleware` — auto-checkpoint via middleware hooks
-- :class:`CheckpointToolset` — agent tools for manual save/list/rewind
-- :class:`RewindRequested` — exception to signal app-level rewind
-- :func:`fork_from_checkpoint` — utility for session forking
+- :class:`Checkpoint` - immutable snapshot of conversation state
+- :class:`CheckpointStore` - protocol for checkpoint storage backends
+- :class:`InMemoryCheckpointStore` - default in-memory store
+- :class:`FileCheckpointStore` - persistent store using JSON files
+- :class:`CheckpointMiddleware` - auto-checkpoint via middleware hooks
+- :class:`CheckpointToolset` - agent tools for manual save/list/rewind
+- :class:`RewindRequested` - exception to signal app-level rewind
+- :func:`fork_from_checkpoint` - utility for session forking
 
 Example:
     ```python
@@ -79,7 +79,7 @@ class RewindRequested(Exception):
 
     This exception propagates out of ``agent.run()`` / ``agent.iter()``
     because pydantic-ai only catches ``ModelRetry`` and
-    ``UnexpectedModelBehavior`` — arbitrary exceptions propagate to the caller.
+    ``UnexpectedModelBehavior`` - arbitrary exceptions propagate to the caller.
 
     The caller (e.g. the app's run loop) catches this, restores
     ``session.message_history`` from :attr:`messages`, and restarts.
@@ -337,9 +337,9 @@ class CheckpointMiddleware(AbstractCapability[Any]):
     Args:
         store: Fallback checkpoint store (used if deps has no store).
         frequency: When to auto-checkpoint:
-            ``"every_turn"`` — before each model request,
-            ``"every_tool"`` — after each tool call,
-            ``"manual_only"`` — no auto-checkpoints.
+            ``"every_turn"`` - before each model request,
+            ``"every_tool"`` - after each tool call,
+            ``"manual_only"`` - no auto-checkpoints.
         max_checkpoints: Maximum number of checkpoints to keep.
     """
 

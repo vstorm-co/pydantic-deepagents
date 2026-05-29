@@ -2,7 +2,7 @@
 
 Provides a real async Playwright browser to the agent via ``BrowserCapability``.
 The browser lifecycle (launch on run start, close on run end) is managed through
-``wrap_run`` — guaranteeing cleanup even when the agent raises an exception.
+``wrap_run`` - guaranteeing cleanup even when the agent raises an exception.
 
 Example::
 
@@ -209,7 +209,7 @@ class BrowserCapability(AbstractCapability[Any]):
         """Filter browser tools based on availability and approval state.
 
         - When Chromium is not installed (``launch_error`` is set), browser
-          tools are hidden from the model entirely — no point offering tools
+          tools are hidden from the model entirely - no point offering tools
           that always return an error.
         - When the browser is available, any browser tool marked as
           ``unapproved`` is reset to ``function`` so it never triggers
@@ -239,7 +239,7 @@ class BrowserCapability(AbstractCapability[Any]):
 
         Both Playwright and Chromium are started only when the first browser
         tool is actually called.  Runs that never use the browser incur zero
-        Playwright overhead — no subprocess is spawned, no browser window
+        Playwright overhead - no subprocess is spawned, no browser window
         appears.
 
         A ``finally`` block guarantees cleanup of the browser and the
@@ -253,7 +253,7 @@ class BrowserCapability(AbstractCapability[Any]):
         assert async_playwright is not None  # guaranteed by _require_browser()
         _start_playwright = async_playwright  # local non-None reference for the closure
 
-        _pw_ctx: Any = None  # Playwright context manager — entered lazily
+        _pw_ctx: Any = None  # Playwright context manager - entered lazily
 
         async def _launch() -> None:
             nonlocal _pw_ctx

@@ -176,7 +176,7 @@ def format_context_prompt(
 class ContextToolset(FunctionToolset[Any]):
     """Toolset that injects project context files into agent system prompt.
 
-    Has no tools — only provides instructions via get_instructions().
+    Has no tools - only provides instructions via get_instructions().
     Uses runtime backend (ctx.deps.backend) to load files.
 
     Works with both main agents and subagents.

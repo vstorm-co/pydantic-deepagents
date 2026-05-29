@@ -3,10 +3,10 @@
 Exposes ``create_fork_toolset()`` returning a :class:`FunctionToolset` with
 four tools:
 
-- ``fork_run`` — spawn N branch tasks.
-- ``inspect_branches`` — read current branch statuses.
-- ``merge_or_select`` — resolve the fork by picking a winner.
-- ``terminate_branch`` — cancel one branch task.
+- ``fork_run`` - spawn N branch tasks.
+- ``inspect_branches`` - read current branch statuses.
+- ``merge_or_select`` - resolve the fork by picking a winner.
+- ``terminate_branch`` - cancel one branch task.
 
 All tools read the per-run :class:`ForkCoordinator` from
 ``ctx.deps.fork_coordinator``. The coordinator is allocated by
@@ -106,12 +106,12 @@ def create_fork_toolset(  # noqa: C901
         """Spawn N branch tasks sharing the parent's history up to the call site.
 
         Branches run in the background. This call returns immediately with
-        the branch ids — it does NOT wait for completion. To wait, poll
+        the branch ids - it does NOT wait for completion. To wait, poll
         with ``inspect_branches`` until every branch reaches a terminal
         state (``done``, ``failed``, ``terminated``, ``budget_exhausted``,
         ``aggregate_budget_exhausted``).
 
-        Do NOT use ``wait_tasks`` for branches — that tool is for subagent
+        Do NOT use ``wait_tasks`` for branches - that tool is for subagent
         task ids and will return "not found" for branch ids. Branch ids
         only resolve through the forking tools (``inspect_branches``,
         ``merge_or_select``, ``terminate_branch``, ``diff_branches``,
@@ -119,7 +119,7 @@ def create_fork_toolset(  # noqa: C901
 
         The fork is unresolved until ``merge_or_select(action="pick:<id>")``
         returns. The parent run MUST call ``merge_or_select`` before
-        yielding back to the user — an unresolved fork at the end of a
+        yielding back to the user - an unresolved fork at the end of a
         turn leaves branch tasks running and the user looking at dark
         panels until the next turn re-adopts the coordinator.
 
@@ -167,7 +167,7 @@ def create_fork_toolset(  # noqa: C901
     async def inspect_branches(ctx: RunContext[DeepAgentDeps]) -> str:
         """Return the current status of every branch in this fork.
 
-        This is the correct polling primitive for fork status — NOT
+        This is the correct polling primitive for fork status - NOT
         ``wait_tasks`` (which is for subagent task ids and will not see
         branch ids). Use it in a loop after ``fork_run`` until every
         branch reaches a terminal state, then call ``merge_or_select``.
@@ -177,7 +177,7 @@ def create_fork_toolset(  # noqa: C901
             fork_run(specs=[...])
             while True:
                 statuses = inspect_branches()
-                # branch states are emitted one per line — parse and check
+                # branch states are emitted one per line - parse and check
                 # every one of them; stop when none are "running".
                 if no branch is still running:
                     break
@@ -212,11 +212,11 @@ def create_fork_toolset(  # noqa: C901
         fork panels they did not ask for.
 
         ``action`` syntax:
-            ``"pick:<branch_id>"`` — flush this branch's overlay writes
+            ``"pick:<branch_id>"`` - flush this branch's overlay writes
             to the parent backend, cancel and discard the other branches,
             and replay the winner's full message history into the parent
             run.
-            ``"auto"`` — let the judge evaluate all branches and pick the
+            ``"auto"`` - let the judge evaluate all branches and pick the
             winner automatically according to the fork's configured
             :class:`MergeStrategy` (``"auto"``, ``"auto_with_fallback"``,
             or ``"vote"``).  Use this when the fork was created with a
@@ -224,12 +224,12 @@ def create_fork_toolset(  # noqa: C901
             choice rather than your own assessment of the branches.
 
         When to use ``"auto"`` vs ``"pick:<id>"`` vs ``"abort"``:
-            Use ``"auto"`` when the fork's strategy is not ``"manual"`` —
+            Use ``"auto"`` when the fork's strategy is not ``"manual"`` -
             the judge runs, evaluates the diff and outcomes, and commits
             the best branch.  Use ``"pick:<id>"`` only for ``"manual"``
             strategy forks or when you have a specific reason to override
             automatic evaluation.  Use ``"abort"`` to discard every branch
-            without merging — required when every branch ended in a
+            without merging - required when every branch ended in a
             failed / terminated / budget-exhausted state so no winner is
             mergeable.  ``"auto"`` auto-detects the all-failed case and
             calls ``"abort"`` for you, so you only need ``"abort"`` when
@@ -250,7 +250,7 @@ def create_fork_toolset(  # noqa: C901
         all_failed = bool(_branches) and all(rt.status.state in _failed_states for rt in _branches)
 
         if action == "abort" or (action == "auto" and all_failed):
-            # Nothing mergeable — release overlays and discard everything.
+            # Nothing mergeable - release overlays and discard everything.
             try:
                 aborted = await coordinator.abort_fork()
             except RuntimeError as e:
@@ -298,7 +298,7 @@ def create_fork_toolset(  # noqa: C901
                     f"discarded={len(r.discarded_branches)}, "
                     f"history={len(r.history_after_merge)} messages"
                 )
-            # Strategy was manual or auto_with_fallback below threshold —
+            # Strategy was manual or auto_with_fallback below threshold -
             # fall through with the judge's recommended pick if available.
             if outcome.verdict is not None:
                 action = f"pick:{outcome.verdict.winner_branch_id}"
@@ -311,7 +311,7 @@ def create_fork_toolset(  # noqa: C901
         try:
             result = await coordinator.merge_or_select(action)
         except (ValueError, RuntimeError) as e:
-            # Bad action, or winner cancelled/budget-exhausted/failed — report, don't crash the run.
+            # Bad action, or winner cancelled/budget-exhausted/failed - report, don't crash the run.
             return f"merge_or_select failed: {e}"
         return (
             f"Merged fork {result.fork_id}: winner={_winner_str(result.winner_branch_id)}, "
@@ -325,9 +325,9 @@ def create_fork_toolset(  # noqa: C901
 
         Records the deletion in the branch overlay so it is propagated to
         the parent backend on merge. Equivalent to ``execute('rm <path>')``
-        against a :class:`~pydantic_ai_backends.LocalBackend` parent — the
+        against a :class:`~pydantic_ai_backends.LocalBackend` parent - the
         snapshot mutation tracker mirrors shell deletions back into the
-        overlay — but preferred because it works against any backend
+        overlay - but preferred because it works against any backend
         (``StateBackend`` has no shell) and makes the intent explicit.
 
         Args:
@@ -372,7 +372,7 @@ def create_fork_toolset(  # noqa: C901
         Args:
             fork_id: Must match the active fork's id; mismatches return a
                 structured error rather than a partial report.
-            paths: Optional path filter — when given, only these paths
+            paths: Optional path filter - when given, only these paths
                 appear in the report (untouched filtered paths surface as
                 ``agreement="unanimous_no_change"`` for transparency).
 
@@ -382,7 +382,7 @@ def create_fork_toolset(  # noqa: C901
         The mixed return type mirrors the forking tools'
         error-as-string convention so the LLM sees errors consistently.
         Programmatic Python consumers should call
-        :func:`build_diff_report` directly instead — the builder takes
+        :func:`build_diff_report` directly instead - the builder takes
         only what it needs (a ``fork_id`` and a list of branch runtimes)
         and leaves coordinator-state validation to the caller, which is
         cleaner than parsing a string return value.
@@ -420,7 +420,7 @@ def create_fork_toolset(  # noqa: C901
                 structured string error rather than a partial summary.
 
         Returns a :class:`ForkCostSummary` on success, or a string error
-        message (forking disabled, no active fork, mismatched fork id) —
+        message (forking disabled, no active fork, mismatched fork id) -
         the mixed return type mirrors :func:`diff_branches`' convention so
         the LLM sees errors consistently.
         """

@@ -1,9 +1,9 @@
-"""Per-branch isolation primitives — :class:`BranchOverlay` and :func:`clone_for_branch`.
+"""Per-branch isolation primitives - :class:`BranchOverlay` and :func:`clone_for_branch`.
 
 The overlay wraps a parent :class:`BackendProtocol` so a branch's writes
 land in an isolated layer while reads of untouched paths fall through to
 the parent. Every overlay write is recorded in
-:attr:`BranchOverlay._changes` — the temporally-ordered list returned by
+:attr:`BranchOverlay._changes` - the temporally-ordered list returned by
 :meth:`BranchOverlay.changes`, which is the data spine consumed by the diff
 builder, disk materializer, and judge.
 
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-#: Heavy/ephemeral dirs — skipped to keep snapshot creation fast.
+#: Heavy/ephemeral dirs - skipped to keep snapshot creation fast.
 _SNAP_SKIP_DIRS: frozenset[str] = frozenset(
     {
         ".venv",
@@ -79,7 +79,7 @@ def _rel_under(parent_root: Path, path: str) -> Path:
     """Return ``path`` relative to ``parent_root``, falling back to lstripped.
 
     ``Path.relative_to`` raises ``ValueError`` when ``path`` is not under
-    ``parent_root`` — for those (uncommon) paths we strip the leading
+    ``parent_root`` - for those (uncommon) paths we strip the leading
     ``/`` so the result still lives inside the snapshot directory.
     """
     try:
@@ -91,7 +91,7 @@ def _rel_under(parent_root: Path, path: str) -> Path:
 def _rewrite_parent_root(command: str, parent_root: str, snap: str) -> str:
     """Rewrite absolute ``parent_root`` references in ``command`` to ``snap``.
 
-    Only path-boundary matches are rewritten — ``parent_root`` must be followed
+    Only path-boundary matches are rewritten - ``parent_root`` must be followed
     by a path separator, the end of the string, or a shell token boundary
     (whitespace or a quote). A naive ``str.replace`` would mangle a sibling path
     that merely shares the prefix (``/home/u/proj`` rewriting inside
@@ -112,7 +112,7 @@ def _copy_tree(src: Path, dst: Path) -> None:
 
     Copying (rather than symlinking) is the core isolation guarantee: the
     branch runs ``sh -c <cmd>`` against this snapshot with no write
-    interception — only a post-hoc diff. An in-place write (``echo x >>
+    interception - only a post-hoc diff. An in-place write (``echo x >>
     file``, ``sed -i``, a truncating rewrite, a non-atomic editor) modifies
     the snapshot's own copy and can no longer follow a symlink straight onto
     the real parent file, so a losing branch's side effects never leak into
@@ -198,7 +198,7 @@ def _file_signature(path: str) -> str:
     """Return a content signature (``size:sha256``) for the file at ``path``.
 
     Follows symlinks so the signature reflects the bytes actually exposed.
-    A content hash — not mtime — is used so an in-place rewrite within the
+    A content hash - not mtime - is used so an in-place rewrite within the
     filesystem's coarse mtime tick, or a tool that preserves mtime
     (``cp -p``, ``touch -r``, some formatters), is still detected as a
     change. Returns ``""`` when the file can't be read.
@@ -256,7 +256,7 @@ def _capture_overlay_write(overlay: Any, abs_path: str, snap_file: Path) -> None
 
     Wraps the ``overlay.write`` call so all four call sites in
     :func:`_propagate_mutations` share the same existence guard and
-    failure surfacing. Failures are logged at WARNING — silently
+    failure surfacing. Failures are logged at WARNING - silently
     swallowing them would leave the overlay disagreeing with the
     snapshot the user just saw.
     """
@@ -302,7 +302,7 @@ def _propagate_mutations(
     - **Modified** (symlink replaced by real file, or content signature
       changed): ``overlay.write(abs_path, new_content)`` to capture the update.
 
-    Files whose content signature is unchanged are skipped — they need no
+    Files whose content signature is unchanged are skipped - they need no
     overlay entry. Detection is by content signature, not mtime, so a write
     that preserves mtime is still caught.
     """
@@ -376,7 +376,7 @@ class BranchOverlay:
         """Paths the branch has explicitly removed via :meth:`delete`.
 
         Returns a copy so callers can't mutate the overlay's internal
-        tombstone set. Mirrors :meth:`changes` — same convention.
+        tombstone set. Mirrors :meth:`changes` - same convention.
         """
         return set(self._deleted)
 
@@ -403,7 +403,7 @@ class BranchOverlay:
         symlink to it is added to the snapshot. ``.venv`` is normally in
         :data:`_SNAP_SKIP_DIRS` to keep snapshot creation lean, but a test
         runner (``pytest``, ``uv run``, etc.) typically needs the virtual
-        environment on ``PATH`` — opting in restores it without copying.
+        environment on ``PATH`` - opting in restores it without copying.
         Off by default so the existing ``execute`` consumer keeps the
         slim layout.
         """
@@ -416,7 +416,7 @@ class BranchOverlay:
             yield tmp
 
     def delete(self, path: str) -> None:
-        """Mark ``path`` deleted in this branch — propagated on merge.
+        """Mark ``path`` deleted in this branch - propagated on merge.
 
         After this returns, ``exists`` / ``read`` / ``read_bytes`` for
         ``path`` behave as if the file is gone, even when ``path`` lives
@@ -450,13 +450,13 @@ class BranchOverlay:
         return bool(self._overlay.exists(path))
 
     def exists(self, path: str) -> bool:
-        """Public ``BackendProtocol`` predicate — overlay first, fall through to parent.
+        """Public ``BackendProtocol`` predicate - overlay first, fall through to parent.
 
         A branch "sees" any file present in either layer, mirroring the
         copy-on-write read semantics: written-by-this-branch files take
         precedence, otherwise the parent backend answers. Paths the
-        branch has deleted via :meth:`delete` — or that live inside a
-        deleted directory — are hidden regardless of parent presence.
+        branch has deleted via :meth:`delete` - or that live inside a
+        deleted directory - are hidden regardless of parent presence.
         """
         if self._is_deleted(path):
             return False
@@ -509,7 +509,7 @@ class BranchOverlay:
             try:
                 parent_bytes = self._parent.read_bytes(path)
             except (FileNotFoundError, KeyError):  # pragma: no cover - defensive
-                # File doesn't exist in parent either — let overlay.edit surface
+                # File doesn't exist in parent either - let overlay.edit surface
                 # the not-found error to the caller via EditResult.error.
                 return self._overlay.edit(path, old_string, new_string, replace_all)
             self._overlay.write(path, parent_bytes)
@@ -524,7 +524,7 @@ class BranchOverlay:
     def _merge_entries(
         parent_entries: list[FileInfo], overlay_entries: list[FileInfo]
     ) -> list[FileInfo]:
-        """Merge two ``FileInfo`` lists keyed by ``path`` — overlay wins on conflicts."""
+        """Merge two ``FileInfo`` lists keyed by ``path`` - overlay wins on conflicts."""
         seen: dict[str, FileInfo] = {entry["path"]: entry for entry in parent_entries}
         for entry in overlay_entries:
             seen[entry["path"]] = entry
@@ -558,18 +558,18 @@ class BranchOverlay:
         When the parent is a :class:`~pydantic_ai_backends.LocalBackend`
         (i.e. it exposes ``root_dir``), a temporary directory is built with:
 
-        - File-level symlinks to every parent file — reading works normally;
+        - File-level symlinks to every parent file - reading works normally;
           deleting a symlink leaves the real file untouched.
-        - Overlay-written files as real files — branch in-progress content
+        - Overlay-written files as real files - branch in-progress content
           is visible to the command.
-        - Deleted paths removed — absent in the snapshot as in the overlay.
+        - Deleted paths removed - absent in the snapshot as in the overlay.
 
         Absolute references to the parent root in *command* are rewritten
         to the snapshot path so commands like ``rm /abs/path/file.py`` also
         stay inside the snapshot.
 
         If the parent has no ``root_dir`` (e.g. :class:`StateBackend` in
-        tests), the call is forwarded as-is — StateBackend doesn't support
+        tests), the call is forwarded as-is - StateBackend doesn't support
         real shell execution anyway.
         """
         parent_root: Path | None = getattr(self._parent, "root_dir", None)
@@ -619,7 +619,7 @@ class BranchOverlay:
         **kwargs: Any,
     ) -> list[GrepMatch] | str:
         # Forward to parent. Overlay grep (cross-branch grep in diff_branches)
-        # is not yet implemented — punt for now.
+        # is not yet implemented - punt for now.
         result: list[GrepMatch] | str = self._parent.grep_raw(pattern, path, **kwargs)
         return result
 
@@ -691,7 +691,7 @@ class BranchOverlay:
         Args:
             parent: Destination backend. Usually the parent run's backend;
                 for fork-of-fork it is the OUTER branch's overlay (which
-                is itself a :class:`BranchOverlay`) — propagation up one
+                is itself a :class:`BranchOverlay`) - propagation up one
                 level works without special casing.
             pre_flush_snapshot: Optional mapping of ``path → parent bytes
                 at fork time`` (or ``None`` for "did not exist"). When
@@ -703,9 +703,9 @@ class BranchOverlay:
         Returns:
             A :class:`FlushReport` with ``applied_paths`` (one entry per
             successfully-replayed path, last-write-wins), ``applied_changes``
-            (every replayed op — ≥ ``len(applied_paths)``), ``conflicts``
-            (divergent paths — these are NOT replayed so the newer parent
-            content is preserved), and ``errors`` (per-write failures —
+            (every replayed op - ≥ ``len(applied_paths)``), ``conflicts``
+            (divergent paths - these are NOT replayed so the newer parent
+            content is preserved), and ``errors`` (per-write failures -
             ``flush_to`` never aborts on the first failure).
 
         Order: writes are replayed in :attr:`_changes` order (temporal),
@@ -722,7 +722,7 @@ class BranchOverlay:
         applied_changes = 0
 
         for change in self._changes:
-            # Skip paths a third actor changed since the fork — replaying would clobber
+            # Skip paths a third actor changed since the fork - replaying would clobber
             # the newer parent content. They stay in `conflicts` for manual resolution.
             if change.path in conflict_set:
                 continue

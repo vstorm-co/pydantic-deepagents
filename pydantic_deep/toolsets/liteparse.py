@@ -20,7 +20,7 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets import FunctionToolset
 
-# Dynamic imports keep ``liteparse`` opaque to static type checkers — its API
+# Dynamic imports keep ``liteparse`` opaque to static type checkers - its API
 # shape differs between versions, so binding to ``Any`` here avoids both
 # missing-attribute errors when stubs are absent and unused-ignore noise when
 # stubs happen to be present.
@@ -116,7 +116,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             ocr_enabled: Enable OCR for scanned documents. Defaults to True.
             ocr_language: OCR language code (e.g. "en", "fr", "de"). Defaults to "en".
             ocr_server_url: URL of HTTP OCR server. Uses built-in Tesseract if not set.
-            dpi: Rendering DPI — higher gives better OCR quality but is slower. Defaults to 150.
+            dpi: Rendering DPI - higher gives better OCR quality but is slower. Defaults to 150.
             max_pages: Maximum pages to parse per document. Defaults to 10,000.
             install_if_not_available: Auto-install CLI via npm on first use. Defaults to True.
             descriptions: Optional dict to override tool descriptions.

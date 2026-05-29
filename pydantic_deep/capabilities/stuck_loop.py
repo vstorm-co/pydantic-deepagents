@@ -7,9 +7,9 @@ pattern is detected.
 
 Three detection patterns:
 
-1. **Repeated identical calls** — same tool + same args N times in a row.
-2. **Alternating A-B-A-B** — two tool calls alternating back and forth.
-3. **No-op calls** — same tool returning the same result repeatedly.
+1. **Repeated identical calls** - same tool + same args N times in a row.
+2. **Alternating A-B-A-B** - two tool calls alternating back and forth.
+3. **No-op calls** - same tool returning the same result repeatedly.
 
 Example:
     ```python
@@ -81,7 +81,7 @@ class StuckLoopDetection(AbstractCapability[Any]):
 
     Args:
         max_repeated: Number of repetitions before triggering (default 3).
-        action: What to do when stuck — ``"warn"`` raises ``ModelRetry``
+        action: What to do when stuck - ``"warn"`` raises ``ModelRetry``
             so the model can self-correct, ``"error"`` raises
             ``StuckLoopError`` to abort the run.
         detect_repeated: Enable repeated identical call detection.
@@ -89,7 +89,7 @@ class StuckLoopDetection(AbstractCapability[Any]):
         detect_noop: Enable no-op (same result) detection.
         ignore_tools: Tool names exempt from all stuck-loop checks.
             Use for polling primitives that are intentionally called
-            many times with identical arguments — e.g.
+            many times with identical arguments - e.g.
             ``{"inspect_branches"}`` when forking is enabled.
     """
 

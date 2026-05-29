@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# Constants
 
 DEFAULT_MAX_CONTENT_TOKENS: int = 4000
 """Default max page content tokens injected into the agent context."""
@@ -66,7 +66,7 @@ NUM_CHARS_PER_TOKEN: int = 4
 DEFAULT_TIMEOUT_MS: int = 30_000
 """Default Playwright navigation timeout in milliseconds."""
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 NAVIGATE_DESCRIPTION = """\
 Navigate the browser to a URL and return the page content as Markdown.
@@ -142,7 +142,7 @@ Args:
 Returns stringified result, or an error message if evaluation failed."""
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
+# Internal helpers
 
 
 def _require_browser() -> None:
@@ -223,7 +223,7 @@ def _check_allowed_domain(url: str, allowed_domains: list[str] | None) -> bool:
         return False
 
 
-# ── Shared browser state ──────────────────────────────────────────────────────
+# Shared browser state
 
 
 @dataclass
@@ -233,7 +233,7 @@ class _BrowserState:
     ``BrowserCapability.wrap_run`` sets ``_lazy_launcher`` at the start of
     each agent run.  ``BrowserToolset`` calls ``ensure_page()`` on the first
     tool invocation, which triggers the actual Chromium launch only when a
-    browser tool is actually needed — keeping runs that never use the browser
+    browser tool is actually needed - keeping runs that never use the browser
     free of any Playwright overhead.
     """
 
@@ -273,7 +273,7 @@ class _BrowserState:
         return self.page
 
 
-# ── Toolset ───────────────────────────────────────────────────────────────────
+# Toolset
 
 
 class BrowserToolset(FunctionToolset[Any]):
@@ -330,12 +330,12 @@ class BrowserToolset(FunctionToolset[Any]):
         descs = descriptions or {}
         self._register_tools(descs)
 
-    # ── Internal helpers ──────────────────────────────────────────────────
+    # Internal helpers
 
     def _get_page(self) -> Any:
         """Return the active page or raise RuntimeError if browser is not running.
 
-        Sync accessor — only valid after ``_ensure_page()`` has been awaited.
+        Sync accessor - only valid after ``_ensure_page()`` has been awaited.
         """
         if self._state.page is None:
             if self._state.launch_error:
@@ -368,7 +368,7 @@ class BrowserToolset(FunctionToolset[Any]):
         png: bytes = await page.screenshot(full_page=full_page)
         return base64.b64encode(png).decode("ascii")
 
-    # ── Tool registration ─────────────────────────────────────────────────
+    # Tool registration
 
     def _register_tools(self, descs: dict[str, str]) -> None:  # noqa: C901
         """Register all browser tools with the toolset."""

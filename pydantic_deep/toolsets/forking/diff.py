@@ -12,7 +12,7 @@ to keep the toolset's tool registry in one file.
 **Read consistency.** :func:`build_diff_report` does not acquire the
 coordinator's ``_lock``. While a branch is still writing, an in-flight
 ``FileChange`` may not yet be visible in ``overlay.changes()``. This is
-intentional — the diff is a read-only inspection and blocking on the
+intentional - the diff is a read-only inspection and blocking on the
 coordinator lock can starve concurrent writers. The report is therefore
 best-effort and may miss writes that complete during report construction.
 """
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 class _BytesReadable(Protocol):
     """Minimal read surface needed by the diff builder.
 
-    Both ``BackendProtocol`` and ``BranchOverlay`` satisfy this — using a
+    Both ``BackendProtocol`` and ``BranchOverlay`` satisfy this - using a
     narrow local protocol keeps strict typing happy without depending on
     backend-level method signature quirks (e.g. ``grep_raw`` arity).
     """
@@ -78,7 +78,7 @@ def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
     """Read ``path`` from ``backend`` as raw bytes, or ``None`` if absent.
 
     Uses ``exists()`` first because some backends (notably ``StateBackend``)
-    silently return ``b""`` for missing paths instead of raising — we need
+    silently return ``b""`` for missing paths instead of raising - we need
     to distinguish "empty file" from "no file" for the ``operation``
     classification (created vs modified).
     """
@@ -274,7 +274,7 @@ def build_diff_report(
     programmatic access.
 
     Args:
-        fork_id: Identifier of the fork being inspected — echoed in the
+        fork_id: Identifier of the fork being inspected - echoed in the
             report's ``fork_id`` field.
         runtimes: Branch runtimes to compare; usually ``list(coordinator.branches.values())``.
         paths_filter: Optional path list; when provided, only these paths
@@ -348,9 +348,9 @@ def build_diff_report(
             unanimous_paths += 1
         elif agreement == "split":
             split_paths += 1
-        else:  # agreement == "unique" — the four-value Literal is exhaustive
+        else:  # agreement == "unique" - the four-value Literal is exhaustive
             for branch_id, change in branches_for_path.items():  # pragma: no branch
-                # "unique" guarantees exactly one touched branch — the loop
+                # "unique" guarantees exactly one touched branch - the loop
                 # always finds it and breaks; no natural-end exit.
                 if change.operation != "untouched":
                     per_branch_unique[branch_id] += 1

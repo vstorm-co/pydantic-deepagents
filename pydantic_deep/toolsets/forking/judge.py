@@ -3,7 +3,7 @@
 This module wires a cheap model behind the :class:`MergeStrategy` ``"auto"`` /
 ``"auto_with_fallback"`` / ``"vote"`` paths. The judge sees the original goal,
 the structured :class:`BranchDiffReport`, and per-branch
-:class:`BranchOutcome` summaries — never the full per-branch message history,
+:class:`BranchOutcome` summaries - never the full per-branch message history,
 which keeps the prompt bounded and the cost predictable.
 
 The combined confidence is ``heuristic × judge.confidence``; the heuristic is
@@ -36,14 +36,14 @@ if TYPE_CHECKING:
     from pydantic_ai.models import Model
 
 
-#: Hard cap on the rendered judge prompt — truncated tail with marker.
+#: Hard cap on the rendered judge prompt - truncated tail with marker.
 _MAX_JUDGE_PROMPT_CHARS: int = 32_000
 
 #: Per-section caps composed into the prompt.
 _MAX_GOAL_CHARS: int = 2_000
 _MAX_OUTCOME_MESSAGE_CHARS: int = 400
 
-#: Three confidence-signal weights — must sum to 1.0 (asserted on next line).
+#: Three confidence-signal weights - must sum to 1.0 (asserted on next line).
 _QUALITY_SPREAD_WEIGHT: float = 0.4
 _TEST_RATIO_WEIGHT: float = 0.4
 _INTERNAL_CONSISTENCY_WEIGHT: float = 0.2
@@ -53,7 +53,7 @@ assert _QUALITY_SPREAD_WEIGHT + _TEST_RATIO_WEIGHT + _INTERNAL_CONSISTENCY_WEIGH
 #: falls back to manual until a test-runner hook lands.
 _NO_TEST_HEURISTIC_CAP: float = 0.65
 
-#: Best-effort — see ``pydantic_deep/capabilities/stuck_loop.py`` for the source strings.
+#: Best-effort - see ``pydantic_deep/capabilities/stuck_loop.py`` for the source strings.
 _STUCK_LOOP_MARKERS: tuple[str, ...] = (
     "identical arguments",
     "alternating between",
@@ -86,7 +86,7 @@ def _truncate(text: str, limit: int) -> str:
 
 
 def _format_outcomes(outcomes: list[BranchOutcome]) -> str:
-    """One bullet per branch — bounded final message + key counters."""
+    """One bullet per branch - bounded final message + key counters."""
     lines: list[str] = []
     for o in outcomes:
         msg = _truncate(o.final_assistant_message, _MAX_OUTCOME_MESSAGE_CHARS)
@@ -142,7 +142,7 @@ def _build_judge_prompt(
     Returns a ``str`` whose length is at most :data:`_MAX_JUDGE_PROMPT_CHARS`;
     the test plan's bound assertion (case #7) checks against that constant.
     The composition is intentional: full per-branch message history is never
-    included — the judge only sees the goal, the structured diff, and the
+    included - the judge only sees the goal, the structured diff, and the
     outcome bullets.
     """
     parts = [
@@ -168,7 +168,7 @@ def compute_confidence(
     Heuristic = ``0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 *
     internal_consistency``. If ``signals.test_pass_ratio is None`` the
     test slot is treated as ``0.0`` for the weighted sum AND the heuristic is
-    capped at ``0.65`` before multiplying by ``judge_confidence`` — the
+    capped at ``0.65`` before multiplying by ``judge_confidence`` - the
     safety rail that keeps ``auto_with_fallback`` defaulting to manual when
     the test signal is missing. The product is clamped to ``[0.0, 1.0]``.
     """
@@ -236,7 +236,7 @@ def _iter_retry_parts(messages: list[Any]) -> Iterator[RetryPromptPart]:
     """Yield every :class:`RetryPromptPart` in ``messages`` in order.
 
     Shared scaffold for :func:`count_stuck_loop_hits` and
-    :func:`count_retry_parts` so the message-walking loop has one home — if
+    :func:`count_retry_parts` so the message-walking loop has one home - if
     pydantic-ai's message shape ever changes, only this helper needs updating.
     """
     for msg in messages:
@@ -250,7 +250,7 @@ def _iter_retry_parts(messages: list[Any]) -> Iterator[RetryPromptPart]:
 def count_stuck_loop_hits(messages: list[Any]) -> int:
     """Count ``RetryPromptPart`` parts in ``messages`` that match a stuck-loop marker.
 
-    Best-effort heuristic — relies on the marker strings in
+    Best-effort heuristic - relies on the marker strings in
     :data:`_STUCK_LOOP_MARKERS` matching the ``ModelRetry`` messages raised by
     :class:`StuckLoopDetection`. If the stuck-loop module's message wording
     changes, update the markers list.
@@ -266,7 +266,7 @@ def count_stuck_loop_hits(messages: list[Any]) -> int:
 
 
 def count_retry_parts(messages: list[Any]) -> int:
-    """Count every ``RetryPromptPart`` in ``messages`` (any source — stuck-loop or other)."""
+    """Count every ``RetryPromptPart`` in ``messages`` (any source - stuck-loop or other)."""
     return sum(1 for _ in _iter_retry_parts(messages))
 
 
@@ -297,7 +297,7 @@ class JudgeAgent:
         """Run the judge and return ``(verdict, usage)``.
 
         ``usage`` is the ``result.usage`` property value (pydantic-ai exposes
-        it as a property, not a method) — the coordinator bubbles it up via
+        it as a property, not a method) - the coordinator bubbles it up via
         :attr:`ResolveOutcome.judge_usage` for cost attribution. The judge
         never receives full per-branch message history, only the goal + diff
         + outcome summaries.

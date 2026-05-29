@@ -90,7 +90,7 @@ class BranchSpec:
 
     Attributes:
         label: Human-readable branch label (e.g. ``"approach_a"``).
-        steer: First user message delivered to the branch agent — the
+        steer: First user message delivered to the branch agent - the
             instruction that differentiates this branch from siblings.
         model: Optional model override for the branch. ``None`` inherits
             the parent's model.
@@ -116,7 +116,7 @@ class BranchIsolation:
     Defaults match the project's per-branch isolation policy:
     ``history`` always copies; ``backend``, ``memory``, ``todos`` copy by
     default; ``message_queue`` is isolated; ``team_bus`` is shared
-    (peer-to-peer bus — branches can talk to each other by default).
+    (peer-to-peer bus - branches can talk to each other by default).
 
     Only ``backend="copy"`` and ``message_queue="isolated"`` are exercised
     by the current fork pipeline; the other ``share`` / ``share_readonly``
@@ -163,13 +163,13 @@ class BranchStatus:
 
 @_dataclass(frozen=True)
 class BranchCost:
-    """Per-branch cost snapshot — element of :class:`ForkCostSummary`.
+    """Per-branch cost snapshot - element of :class:`ForkCostSummary`.
 
     ``cumulative_usd`` is the externally-facing name for the upstream
     ``CostTracking.total_cost`` value; the rename happens at the
     :meth:`ForkCoordinator.fork_cost` boundary. ``None`` indicates pricing
     was unavailable for the branch's model (e.g. an unrecognised model in
-    the genai-prices catalogue) — the branch still runs, but its budget
+    the genai-prices catalogue) - the branch still runs, but its budget
     cap is effectively disabled.
     """
 
@@ -203,14 +203,14 @@ class MergeStrategy:
 
     :attr:`kind` selects the resolution mode:
 
-    - ``"manual"`` — caller picks via ``merge_or_select(action="pick:<id>")``.
-    - ``"auto"`` — :class:`JudgeAgent` picks; coordinator commits immediately.
-    - ``"auto_with_fallback"`` — judge picks; if effective confidence is at
+    - ``"manual"`` - caller picks via ``merge_or_select(action="pick:<id>")``.
+    - ``"auto"`` - :class:`JudgeAgent` picks; coordinator commits immediately.
+    - ``"auto_with_fallback"`` - judge picks; if effective confidence is at
       or above :attr:`confidence_threshold` the commit is deferred to the
       caller (so the acceptance widget can offer an override), otherwise
       the caller opens the manual picker with the judge's pick
       preselected. This is the default.
-    - ``"vote"`` — multiple judges (default: Haiku + GPT-mini + Gemini
+    - ``"vote"`` - multiple judges (default: Haiku + GPT-mini + Gemini
       Flash) evaluate independently; majority wins, tie broken by highest
       confidence; coordinator commits immediately.
     """
@@ -267,7 +267,7 @@ class PendingApprovalRequest:
 class FlushError:
     """One per-write failure observed by :meth:`BranchOverlay.flush_to`.
 
-    ``flush_to`` never aborts on the first failure — it accumulates errors
+    ``flush_to`` never aborts on the first failure - it accumulates errors
     for the caller to surface alongside the changes that did land. Surfaced
     on :attr:`MergeResult.errors` so the CLI / agent can report partial
     success without losing track of what didn't apply.
@@ -293,7 +293,7 @@ class FlushReport:
       to the same path collapse to one entry.
     - ``applied_changes`` counts every replayed op (≥ ``len(applied_paths)``).
     - ``conflicts`` lists paths where the parent's pre-flush content
-      diverged from the pre-fork snapshot — both modified-by-third-actor
+      diverged from the pre-fork snapshot - both modified-by-third-actor
       and deleted-by-third-actor cases land here. Conflicting paths are
       NOT replayed onto the parent (non-destructive): the newer parent
       content is preserved and the path is excluded from ``applied_paths``
@@ -340,11 +340,11 @@ class FileChange:
     returned by :meth:`BranchOverlay.changes` is the data spine consumed
     by every downstream consumer of the fork pipeline:
 
-    - :func:`build_diff_report` — uses ``path`` to know which files a
+    - :func:`build_diff_report` - uses ``path`` to know which files a
       branch touched.
-    - :class:`ForkMaterializer` — uses ``op`` to replay ``write`` /
+    - :class:`ForkMaterializer` - uses ``op`` to replay ``write`` /
       ``edit`` / ``delete`` semantics on the on-disk mirror.
-    - :class:`JudgeAgent` — uses ``timestamp`` for temporal heuristics
+    - :class:`JudgeAgent` - uses ``timestamp`` for temporal heuristics
       when scoring branch outcomes.
 
     Not to be confused with :class:`BranchChange`, which is a state-level
@@ -391,7 +391,7 @@ class BranchChange:
     branch relative to the parent backend, classified into one
     :data:`BranchDiffOperation` (``"created"`` / ``"modified"`` /
     ``"deleted"`` / ``"untouched"``). The classification is derived from
-    parent existence + overlay content, NOT from :class:`FileChange.op` —
+    parent existence + overlay content, NOT from :class:`FileChange.op` -
     a branch that issues an ``op="write"`` on a path absent from the
     parent yields ``operation="created"``; the same ``op="write"`` on a
     path present in the parent yields ``operation="modified"``.
@@ -467,12 +467,12 @@ class JudgeVerdict(BaseModel):
 class ConfidenceSignals:
     """Three weighted signals combined by ``compute_confidence``.
 
-    - ``quality_spread`` — ``1 - agreement_score`` from :class:`BranchDiffReport`.
+    - ``quality_spread`` - ``1 - agreement_score`` from :class:`BranchDiffReport`.
       High = branches diverged meaningfully; weight 0.4.
-    - ``test_pass_ratio`` — passed / total tests in the winner branch. ``None``
+    - ``test_pass_ratio`` - passed / total tests in the winner branch. ``None``
       when no per-branch test signal is available; the cap-at-0.65 safety rail
       kicks in. Weight 0.4.
-    - ``internal_consistency`` — ``1 - (retries + stuck_loop_hits) / turns`` for
+    - ``internal_consistency`` - ``1 - (retries + stuck_loop_hits) / turns`` for
       the winner; clamped to ``[0.0, 1.0]``. Weight 0.2.
 
     The pipeline currently ships without a per-branch test-runner hook,
@@ -491,7 +491,7 @@ class ConfidenceSignals:
 class BranchOutcome:
     """Per-branch summary the judge sees in its prompt.
 
-    Intentionally narrow — no full message history. The judge sees the
+    Intentionally narrow - no full message history. The judge sees the
     original goal, the structured diff report, and one ``BranchOutcome``
     per branch. Keeps the prompt bounded and the cost predictable.
 

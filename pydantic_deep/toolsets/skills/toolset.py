@@ -74,7 +74,7 @@ LOAD_SKILL_TEMPLATE = """<skill>
 </skill>
 """
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 LIST_SKILLS_DESCRIPTION = """\
 Get an overview of all available skills and what they do.
@@ -277,7 +277,7 @@ class SkillsToolset(FunctionToolset):
                 if skill_name in self._skills:
                     existing = self._skills[skill_name]
                     if existing.content == skill.content:
-                        # Identical skill loaded from a different directory — skip silently
+                        # Identical skill loaded from a different directory - skip silently
                         continue
                     warnings.warn(
                         f"Duplicate skill '{skill_name}' found. Overriding previous occurrence.",

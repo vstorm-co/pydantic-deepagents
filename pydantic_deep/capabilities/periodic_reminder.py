@@ -5,9 +5,9 @@ turns to keep the agent anchored to its original task.
 
 Three generator shapes are supported:
 
-- **Static string** — a fixed reminder message used verbatim.
-- **Async callable** — receives ``(ctx, turn, messages)`` and returns a str.
-- **LLMReminderGenerator** — uses a small model to summarize progress.
+- **Static string** - a fixed reminder message used verbatim.
+- **Async callable** - receives ``(ctx, turn, messages)`` and returns a str.
+- **LLMReminderGenerator** - uses a small model to summarize progress.
 
 Example:
     ```python
@@ -278,7 +278,7 @@ def make_config_for_mode(mode: str) -> PeriodicReminderConfig:
     :class:`PeriodicReminderConfig` with sensible per-mode defaults.
 
     Args:
-        mode: ``"llm"`` (default — uses :class:`LLMReminderGenerator`),
+        mode: ``"llm"`` (default - uses :class:`LLMReminderGenerator`),
               ``"first"`` (zero-cost, re-states first user message),
               ``"context"`` (zero-cost compact transcript), or any other
               string (falls back to LLM generation).

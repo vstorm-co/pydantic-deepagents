@@ -46,7 +46,7 @@ DEFAULT_SUMMARIZATION_MODEL = "anthropic:claude-haiku-4-5-20251001"
 
 DEFAULT_INSTRUCTIONS = BASE_PROMPT
 
-# Substrings that mark a permanent auth/permission failure — these must NOT trigger
+# Substrings that mark a permanent auth/permission failure - these must NOT trigger
 # fallback (the next model would fail with the same error).
 _AUTH_ERROR_MARKERS = ("401", "403", "unauthorized", "forbidden")
 
@@ -495,9 +495,9 @@ def create_deep_agent(  # noqa: C901
             ``checkpoint_store`` param or ``deps.checkpoint_store`` at
             runtime. Defaults to False.
         checkpoint_frequency: When to auto-save checkpoints:
-            ``"every_tool"`` (default) — after each tool call,
-            ``"every_turn"`` — before each model request,
-            ``"manual_only"`` — only via the save_checkpoint tool.
+            ``"every_tool"`` (default) - after each tool call,
+            ``"every_turn"`` - before each model request,
+            ``"manual_only"`` - only via the save_checkpoint tool.
         max_checkpoints: Maximum number of checkpoints to keep.
             Oldest checkpoints are pruned when this limit is exceeded.
             Defaults to 20.
@@ -553,7 +553,7 @@ def create_deep_agent(  # noqa: C901
             ``terminate_branch``, ``diff_branches``, ``fork_cost``). Pass a
             pre-configured :class:`LiveForkCapability` instance to customize
             limits or the fork state store. ``False`` (default) leaves
-            forking off — the feature is opt-in because spawning parallel
+            forking off - the feature is opt-in because spawning parallel
             branches has cost implications. When enabled without
             ``include_checkpoints=True``, ``fork()`` emits a runtime warning
             at call time since the ``fork:<id>`` / ``post-fork:<id>`` rewind
@@ -705,7 +705,7 @@ def create_deep_agent(  # noqa: C901
     if include_subagents:
         subagent_model = model
 
-        # Deep agent factory for subagents — subagents are full deep agents
+        # Deep agent factory for subagents - subagents are full deep agents
         # with filesystem, web, memory, eviction, and patch support
         _sub_model = subagent_model
         _sub_edit_fmt = edit_format
@@ -1052,7 +1052,7 @@ def create_deep_agent(  # noqa: C901
         agent_create_kwargs["history_processors"] = all_processors
 
     # Anthropic-specific keys are silently ignored by non-Anthropic models,
-    # so we set them unconditionally — no provider detection needed.
+    # so we set them unconditionally - no provider detection needed.
     effective_model_settings: dict[str, Any] = {
         "anthropic_cache_instructions": True,
         "anthropic_cache_tool_definitions": True,
@@ -1107,7 +1107,7 @@ def create_deep_agent(  # noqa: C901
         from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 
         # Polling tools are intentionally called many times with identical
-        # arguments — exempt them so the detector doesn't fire on normal usage.
+        # arguments - exempt them so the detector doesn't fire on normal usage.
         _sld_ignore: set[str] = {"inspect_branches"} if forking else set()
         all_capabilities.append(StuckLoopDetection(ignore_tools=_sld_ignore))
 

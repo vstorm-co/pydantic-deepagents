@@ -48,7 +48,7 @@ from pydantic_deep.deps import DeepAgentDeps
 
 
 class DeepAgentSpec(BaseModel):
-    """Declarative agent specification — mirrors ``create_deep_agent()`` params.
+    """Declarative agent specification - mirrors ``create_deep_agent()`` params.
 
     All fields have the same defaults as ``create_deep_agent()``.
     Only serializable parameters are included (callbacks and Python objects

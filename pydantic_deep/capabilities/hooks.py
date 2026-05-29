@@ -553,7 +553,7 @@ _WRITE_TOOLS: tuple[str, ...] = ("write_file", "edit_file")
 def _normalize_path(raw: str) -> str:
     """Resolve a path without requiring it to exist.
 
-    Does NOT expand ``~`` — callers must validate that paths are absolute before
+    Does NOT expand ``~`` - callers must validate that paths are absolute before
     calling this, because ``~`` expands against the *controller* HOME which may
     differ from the agent backend's filesystem namespace.
     """
@@ -678,7 +678,7 @@ def default_security_hook(
 
     The defaults are opt-out: pass `mode="warn"` to log instead of block,
     pass `blocked_commands=[]` to disable a category, or extend any list with
-    your own patterns. Lists you pass *replace* the defaults — concatenate
+    your own patterns. Lists you pass *replace* the defaults - concatenate
     with `DEFAULT_BLOCKED_COMMANDS` etc. if you want to keep them.
 
     Args:
@@ -686,7 +686,7 @@ def default_security_hook(
             the `execute` tool. Defaults to `DEFAULT_BLOCKED_COMMANDS`.
         allowed_write_roots: If set, `write_file`/`edit_file` paths must
             resolve under one of these roots. Paths must be absolute (no `~`
-            or relative segments) — `~` expands against the *controller*
+            or relative segments) - `~` expands against the *controller*
             HOME, which may differ from the agent backend's filesystem
             namespace (e.g. DockerSandbox). Path-traversal (`..`) segments
             are blocked unconditionally regardless of this setting.
@@ -702,7 +702,7 @@ def default_security_hook(
             `DEFAULT_SECRET_PATTERNS`.
         mode: `"deny"` (default) blocks matching calls via
             `HookResult(allow=False)`. `"warn"` allows them through but logs
-            a warning — useful for shadow-mode rollout before enforcing.
+            a warning - useful for shadow-mode rollout before enforcing.
 
     Returns:
         A list of `Hook` instances. Pass it straight to `create_deep_agent`:

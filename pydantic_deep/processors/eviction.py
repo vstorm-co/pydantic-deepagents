@@ -210,7 +210,7 @@ class EvictionProcessor:
         ```python
         from pydantic_deep import create_deep_agent
 
-        # Via create_deep_agent (recommended — uses runtime deps.backend):
+        # Via create_deep_agent (recommended - uses runtime deps.backend):
         agent = create_deep_agent(eviction_token_limit=20000)
 
         # Standalone with explicit backend:
@@ -411,9 +411,7 @@ def create_eviction_processor(
     )
 
 
-# ---------------------------------------------------------------------------
-# Capability-based eviction (preferred — intercepts before history)
-# ---------------------------------------------------------------------------
+# Capability-based eviction (preferred - intercepts before history)
 
 from pydantic_ai.capabilities import AbstractCapability  # noqa: E402
 from pydantic_ai.messages import ToolCallPart  # noqa: E402
@@ -426,7 +424,7 @@ class EvictionCapability(AbstractCapability[Any]):
 
     Unlike :class:`EvictionProcessor` (a history processor that runs after the
     result is already in message history), this capability intercepts the tool
-    result **before** it enters the conversation — so the large output never
+    result **before** it enters the conversation - so the large output never
     bloats the message list.
 
     The evicted content is saved to a file via the backend, and the tool result

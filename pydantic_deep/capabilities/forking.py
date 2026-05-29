@@ -1,4 +1,4 @@
-"""Live Run Forking capability — agent-level entry point.
+"""Live Run Forking capability - agent-level entry point.
 
 Adds :class:`LiveForkCapability` to an agent. The capability tracks the
 parent run's latest message snapshot (mirroring
@@ -30,21 +30,21 @@ class LiveForkCapability(AbstractCapability[Any]):
 
     Args:
         max_branches: Maximum branches per fork.
-        max_depth: Maximum fork nesting depth — ``2`` allows one level of
+        max_depth: Maximum fork nesting depth - ``2`` allows one level of
             fork-of-fork.
         store: Optional :class:`ForkStateStore`. Defaults to
             :class:`InMemoryForkStateStore`.
         test_command: Optional shell command run against each branch's
             materialised tree during :meth:`ForkCoordinator.resolve` to feed
             the ``test_pass_ratio`` confidence signal. ``None`` leaves the
-            ratio at ``None`` for every branch — :func:`compute_confidence`
+            ratio at ``None`` for every branch - :func:`compute_confidence`
             then keeps its cap-at-0.65 safety rail active, identical to
             "no test signal". Only honoured when the parent backend is a
             :class:`~pydantic_ai_backends.LocalBackend`.
         test_timeout_s: Wall-clock cap (seconds) per branch test run. On
             timeout the branch's ``test_pass_ratio`` is ``None`` (treated
             as "no signal"), not ``0.0``. Independent of
-            ``branch_budget_usd`` — runner time is not LLM cost.
+            ``branch_budget_usd`` - runner time is not LLM cost.
 
     The owning agent reference is set by ``create_deep_agent()`` after the
     Agent is constructed (mirrors how ``agent._task_manager`` is set today).
@@ -53,7 +53,7 @@ class LiveForkCapability(AbstractCapability[Any]):
     max_branches: int = 10
     max_depth: int = 2
     store: ForkStateStore | None = None
-    #: Independent of apply-to-parent semantics — disk artefacts stay even on abandon.
+    #: Independent of apply-to-parent semantics - disk artefacts stay even on abandon.
     keep_artifacts: bool = False
     test_command: str | None = None
     test_timeout_s: float = 60.0
@@ -121,7 +121,7 @@ class LiveForkCapability(AbstractCapability[Any]):
         return clone
 
     async def after_run(self, ctx: RunContext[Any], *, result: Any) -> Any:
-        """Anchor for the post-turn stash protocol — currently a no-op.
+        """Anchor for the post-turn stash protocol - currently a no-op.
 
         The coordinator survives a parent turn ending because
         :meth:`for_run` refuses to overwrite an unresolved one on the
@@ -145,7 +145,7 @@ class LiveForkCapability(AbstractCapability[Any]):
         each branch's history.
 
         For branch runs (identified by ``ctx.deps._branch_id`` being
-        non-``None`` — set by :meth:`ForkCoordinator.fork`) the snapshot
+        non-``None`` - set by :meth:`ForkCoordinator.fork`) the snapshot
         is forwarded to the parent coordinator via
         :meth:`ForkCoordinator.capture_partial_history`, so that if a
         budget watcher cancels the branch the merge resolver still has

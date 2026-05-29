@@ -11,7 +11,7 @@ and to the ``flush_to`` conflict detection (the
 to :meth:`BranchOverlay.flush_to`).
 
 Per project memory: the branch directory is named with ``branch.label``
-(e.g. ``approach_a``), not the UUID ``branch.id`` — keeps the layout
+(e.g. ``approach_a``), not the UUID ``branch.id`` - keeps the layout
 human-navigable.
 
 The materializer is intentionally synchronous on the write hot path
@@ -38,7 +38,7 @@ class ForkMaterializer:
     """Real-time disk mirror for one fork's overlays.
 
     Args:
-        root: Base directory — typically ``.pydantic-deep/forks/{fork_id}``.
+        root: Base directory - typically ``.pydantic-deep/forks/{fork_id}``.
         fork_id: The fork identifier; surfaced in the manifest.
         keep_artifacts: When ``True``, :meth:`cleanup` is a no-op so the
             disk layout survives the merge for post-hoc inspection.
@@ -80,7 +80,7 @@ class ForkMaterializer:
         eagerly walk the parent backend at fork time (we don't know which
         paths will be touched until the branch agent writes them).
         ``content`` is ``None`` when the path didn't exist in the parent
-        at fork time — recorded as a sentinel so the deletion-by-third-actor
+        at fork time - recorded as a sentinel so the deletion-by-third-actor
         conflict path is detectable later.
         """
         if path in self._pre_fork_snapshot:

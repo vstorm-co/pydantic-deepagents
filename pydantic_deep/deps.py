@@ -174,7 +174,7 @@ class DeepAgentDeps:
     ) -> list[str]:
         """Upload multiple files to the backend.
 
-        Each file is written independently — failures on one file don't
+        Each file is written independently - failures on one file don't
         affect others. Failed uploads are silently skipped.
 
         Args:
@@ -229,7 +229,7 @@ class DeepAgentDeps:
 
         Subagents get:
         - Same backend (shared)
-        - Empty todos (isolated) — or same todos if share_todos=True
+        - Empty todos (isolated) - or same todos if share_todos=True
         - Empty subagents (no nested delegation by default)
         - Same files (shared)
         - Same uploads (shared)
@@ -247,7 +247,7 @@ class DeepAgentDeps:
             ask_user=self.ask_user,  # Propagate to subagents
             share_todos=self.share_todos,  # Propagate to subagents
             checkpoint_store=self.checkpoint_store,  # Shared reference
-            message_queue=self.message_queue,  # Shared — subagents can steer parent
+            message_queue=self.message_queue,  # Shared - subagents can steer parent
         )
 
 

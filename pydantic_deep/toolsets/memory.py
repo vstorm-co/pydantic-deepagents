@@ -28,7 +28,7 @@ DEFAULT_MEMORY_FILENAME: str = "MEMORY.md"
 DEFAULT_MAX_MEMORY_LINES: int = 200
 """Default max lines to inject into system prompt."""
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 READ_MEMORY_DESCRIPTION = """\
 Read your persistent memory from previous sessions.

@@ -161,7 +161,7 @@ class SessionExtractor:
 
             # Next chunk starts with overlap for continuity
             next_start = max(chunk_end - self._overlap_messages, chunk_end)
-            if next_start <= start:  # pragma: no cover — defensive guard
+            if next_start <= start:  # pragma: no cover - defensive guard
                 next_start = chunk_end
             start = next_start
 
@@ -231,7 +231,7 @@ class SessionExtractor:
 
         This gives the extraction agent a structured view of what tools
         were called, in what order, how long they took, and whether they
-        failed — without the noise of full message formatting.
+        failed - without the noise of full message formatting.
 
         Returns empty string if no tool log exists.
         """
@@ -294,7 +294,7 @@ class SessionExtractor:
                     lines.append(f"[User{ts_str}]: {content}")
 
                 elif part_kind == "system-prompt":
-                    # Skip system prompts — not useful for insight extraction
+                    # Skip system prompts - not useful for insight extraction
                     continue
 
                 elif part_kind == "text":

@@ -166,8 +166,43 @@ async def test_judge_agent_returns_valid_verdict():
     assert "smaller" in verdict.reasoning
     assert verdict.rejected_with_reasons == {"b": "B is too verbose."}
     assert verdict.caveats == ["No tests were run."]
-    # usage is whatever TestModel provides; just confirm it's not None for valid runs
+    # Single-judge path returns a scalar RunUsage with real token accounting.
     assert usage is not None
+    assert usage.total_tokens > 0
+
+
+async def test_run_judges_vote_returns_list_of_per_judge_usages():
+    """The vote path returns a LIST of per-judge usages (one per model), whereas
+    the single-judge path returns a scalar — pin that type divergence."""
+    from unittest.mock import patch
+
+    from pydantic_deep.toolsets.forking.coordinator import JudgeVerdict as _JV
+
+    coord, _deps = await _coordinator_with_two_branches()
+    a_id = _resolve_winner_id(coord, "a")
+
+    class _StubJudge:
+        def __init__(self, model: Any) -> None:
+            self.model = model
+
+        async def evaluate(self, _goal: Any, _diff: Any, _outcomes: Any) -> Any:
+            return (
+                _JV(winner_branch_id=a_id, confidence=0.8, reasoning="ok"),
+                {"model": self.model, "total_tokens": 10},
+            )
+
+    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _StubJudge):
+        verdict, usages = await coord._run_judges(
+            MergeStrategy(kind="vote", judge_models=["m1", "m2", "m3"]),
+            "goal",
+            _make_report(),
+            _make_outcomes(),
+        )
+
+    assert verdict.winner_branch_id == a_id
+    # Vote path: a list of one usage per judge model.
+    assert isinstance(usages, list)
+    assert len(usages) == 3
 
 
 # ---------------------------------------------------------------------------

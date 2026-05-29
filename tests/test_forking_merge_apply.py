@@ -177,10 +177,12 @@ async def test_conflict_surfaced_when_parent_modified_between_fork_and_merge(
     parent.write("cat.md", "third_actor_v2")
 
     result = await coord.merge_or_select(f"pick:{handle.branches[0]}")
-    # Last-write-wins: overlay content still lands on parent.
-    assert parent.read_bytes("cat.md") == b"alpha wrote cat"
-    # But the conflict surfaces in the report.
+    # Non-destructive: the third actor's newer content is preserved, NOT clobbered
+    # by the winning branch's version.
+    assert parent.read_bytes("cat.md") == b"third_actor_v2"
+    # The conflict surfaces in the report and the path is not counted as applied.
     assert "cat.md" in result.conflicts
+    assert "cat.md" not in result.applied_paths
 
 
 # ---------------------------------------------------------------------------
@@ -203,8 +205,9 @@ async def test_conflict_surfaced_when_parent_path_deleted_between_fork_and_merge
     await asyncio.gather(*[rt.task for rt in coord.branches.values()])
 
     # Simulate a third-actor deletion: StateBackend doesn't expose delete,
-    # so monkey-patch read_bytes to raise for this one path. flush_to
-    # should still write the overlay content AND record the conflict.
+    # so monkey-patch read_bytes to raise for this one path. flush_to should
+    # detect the conflict (snapshot had bytes, parent now lacks the file) and
+    # NOT replay the branch's write over it.
     real_read_bytes = parent.read_bytes
 
     def _read_bytes_with_deletion(path: str) -> bytes:
@@ -217,8 +220,10 @@ async def test_conflict_surfaced_when_parent_path_deleted_between_fork_and_merge
         result = await coord.merge_or_select(f"pick:{handle.branches[0]}")
 
     assert "cat.md" in result.conflicts
-    # The overlay still wrote through (last-write-wins).
-    assert parent.read_bytes("cat.md") == b"alpha wrote cat"
+    assert "cat.md" not in result.applied_paths
+    # Non-destructive: the conflicting path was skipped, so the branch's write did
+    # not clobber it (the pre-existing parent content remains).
+    assert parent.read_bytes("cat.md") == b"v1"
 
 
 # ---------------------------------------------------------------------------

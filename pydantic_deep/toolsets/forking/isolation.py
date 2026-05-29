@@ -677,7 +677,8 @@ class BranchOverlay:
             A :class:`FlushReport` with ``applied_paths`` (one entry per
             successfully-replayed path, last-write-wins), ``applied_changes``
             (every replayed op — ≥ ``len(applied_paths)``), ``conflicts``
-            (divergent paths), and ``errors`` (per-write failures —
+            (divergent paths — these are NOT replayed so the newer parent
+            content is preserved), and ``errors`` (per-write failures —
             ``flush_to`` never aborts on the first failure).
 
         Order: writes are replayed in :attr:`_changes` order (temporal),
@@ -690,9 +691,17 @@ class BranchOverlay:
         deleted_set: set[str] = set()
         errors: list[FlushError] = []
         conflicts: list[str] = self._detect_conflicts(parent, pre_flush_snapshot)
+        conflict_set: set[str] = set(conflicts)
         applied_changes = 0
 
         for change in self._changes:
+            # Non-destructive conflict handling: a third actor (another agent, the
+            # user saving, another tool) changed this path on the parent since the
+            # fork. Skip replaying the branch's version so we never clobber the
+            # newer parent content with last-write-wins. The path is already in
+            # `conflicts` for the caller to surface and resolve manually.
+            if change.path in conflict_set:
+                continue
             if change.op == "delete":
                 if change.path in applied_set:
                     applied_set.discard(change.path)

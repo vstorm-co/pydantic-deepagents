@@ -294,8 +294,10 @@ class FlushReport:
     - ``applied_changes`` counts every replayed op (≥ ``len(applied_paths)``).
     - ``conflicts`` lists paths where the parent's pre-flush content
       diverged from the pre-fork snapshot — both modified-by-third-actor
-      and deleted-by-third-actor cases land here. Surfacing only; flush
-      still proceeds (last-write-wins).
+      and deleted-by-third-actor cases land here. Conflicting paths are
+      NOT replayed onto the parent (non-destructive): the newer parent
+      content is preserved and the path is excluded from ``applied_paths``
+      so the caller can resolve the conflict manually.
     - ``errors`` is one :class:`FlushError` per per-write failure (e.g.
       parent ``WriteResult.error`` non-empty or parent raised). The
       failing path is excluded from ``applied_paths``; remaining writes

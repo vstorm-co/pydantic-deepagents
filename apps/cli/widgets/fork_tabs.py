@@ -95,6 +95,11 @@ class ForkTabsWidget(Horizontal):
             if status.id == self.active_id:
                 chip.add_class("active")
             await self.mount(chip)
+        # Chips are mounted now; re-apply current costs as a guaranteed final
+        # step. `watch_branch_costs` may have run (synchronously) before these
+        # async mounts completed, so its `call_after_refresh` pass can miss a
+        # freshly mounted chip. Applying here closes that race deterministically.
+        self._apply_costs()
 
     def watch_branch_costs(
         self,

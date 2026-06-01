@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.models.test import TestModel
 
+from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.spec import DeepAgent, DeepAgentSpec, _load_yaml
 
 TEST_MODEL = TestModel()
@@ -41,6 +43,24 @@ class TestDeepAgentSpec:
         assert spec.eviction_token_limit == 20_000
         assert spec.max_nesting_depth == 1
 
+    def test_spec_defaults_match_factory(self) -> None:
+        """Every spec field default matches the create_deep_agent() default.
+
+        from_spec uses model_dump(exclude_none=True), so non-None spec defaults
+        are forwarded explicitly to create_deep_agent. If a spec default drifts
+        out of sync with the factory default, those forwarded values would
+        silently override the factory behavior. This guards bug 72.
+        """
+        params = inspect.signature(create_deep_agent).parameters
+        for field_name, field in DeepAgentSpec.model_fields.items():
+            if field_name not in params:
+                continue
+            factory_default = params[field_name].default
+            assert field.default == factory_default, (
+                f"DeepAgentSpec.{field_name} default {field.default!r} does not "
+                f"match create_deep_agent default {factory_default!r}"
+            )
+
     def test_custom_values(self) -> None:
         """Custom values are stored correctly."""
         spec = DeepAgentSpec(
@@ -62,6 +82,41 @@ class TestDeepAgentSpec:
         """Unknown fields raise ValidationError."""
         with pytest.raises(ValidationError, match="extra_forbidden"):
             DeepAgentSpec(unknown_field="value")  # type: ignore[call-arg]
+
+    def test_previously_unmodeled_params(self) -> None:
+        """Serializable create_deep_agent() params are accepted as spec fields."""
+        spec = DeepAgentSpec(
+            fallback_model="anthropic:claude-haiku-4-5",
+            base_prompt="custom",
+            max_binary_content=5,
+            include_improve=True,
+            include_liteparse=True,
+            stuck_loop_detection=False,
+            periodic_reminder=False,
+            forking=False,
+        )
+        assert spec.fallback_model == "anthropic:claude-haiku-4-5"
+        assert spec.base_prompt == "custom"
+        assert spec.max_binary_content == 5
+        assert spec.include_improve is True
+        assert spec.include_liteparse is True
+        assert spec.stuck_loop_detection is False
+        assert spec.periodic_reminder is False
+        assert spec.forking is False
+
+    def test_from_spec_with_previously_unmodeled_params(self) -> None:
+        """A spec dict setting these params loads instead of raising ValidationError."""
+        agent, _deps = DeepAgent.from_spec(
+            {
+                "base_prompt": "custom",
+                "max_binary_content": 5,
+                "include_improve": True,
+                "include_liteparse": True,
+                "stuck_loop_detection": False,
+            },
+            model=TEST_MODEL,
+        )
+        assert agent is not None
 
     def test_model_dump_excludes_defaults(self) -> None:
         """model_dump(exclude_defaults=True) only includes changed values."""
@@ -146,6 +201,25 @@ class TestDeepAgentFromSpec:
         )
         assert agent is not None
 
+    def test_from_spec_data_non_serializable_value(self) -> None:
+        """A non-serializable spec value in data is routed to passthrough."""
+        from pydantic_ai_backends import StateBackend
+
+        backend = StateBackend()
+        # backend is a non-spec key; model=TEST_MODEL is a non-serializable
+        # value for a spec field. Both supplied via data (not overrides).
+        agent, deps = DeepAgent.from_spec(
+            {
+                "model": TEST_MODEL,
+                "backend": backend,
+                "include_subagents": False,
+                "include_skills": False,
+                "cost_tracking": False,
+            },
+        )
+        assert agent is not None
+        assert deps.backend is backend
+
 
 class TestDeepAgentFromFile:
     """Tests for DeepAgent.from_file()."""
@@ -215,6 +289,27 @@ class TestDeepAgentFromFile:
         # so both succeed. Test YAML-first path instead.
         agent, deps = DeepAgent.from_file(spec_file, model=TEST_MODEL)
         assert agent is not None
+
+    def test_empty_yaml_file_raises(self, tmp_path: Path) -> None:
+        """An empty YAML file (safe_load returns None) raises a clear error."""
+        spec_file = tmp_path / "agent.yaml"
+        spec_file.write_text("")
+        with pytest.raises(ValueError, match="must contain a mapping"):
+            DeepAgent.from_file(spec_file, model=TEST_MODEL)
+
+    def test_non_mapping_yaml_file_raises(self, tmp_path: Path) -> None:
+        """A top-level list YAML file raises a clear error mentioning the type."""
+        spec_file = tmp_path / "agent.yaml"
+        spec_file.write_text("- one\n- two\n")
+        with pytest.raises(ValueError, match="got list"):
+            DeepAgent.from_file(spec_file, model=TEST_MODEL)
+
+    def test_non_mapping_json_file_raises(self, tmp_path: Path) -> None:
+        """A top-level scalar JSON file raises a clear error mentioning the type."""
+        spec_file = tmp_path / "agent.json"
+        spec_file.write_text("42")
+        with pytest.raises(ValueError, match="got int"):
+            DeepAgent.from_file(spec_file, model=TEST_MODEL)
 
 
 class TestDeepAgentToFile:

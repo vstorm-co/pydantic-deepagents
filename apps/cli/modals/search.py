@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
+
+from apps.cli.modals._filter_input import FilterInput
+from apps.cli.widgets.assistant_message import AssistantMessage
+from apps.cli.widgets.message_list import MessageList
+from apps.cli.widgets.user_message import UserMessage
 
 
 class SearchModal(ModalScreen[str | None]):
@@ -70,8 +76,6 @@ class SearchModal(ModalScreen[str | None]):
             )
 
     def on_mount(self) -> None:
-        from apps.cli.modals._filter_input import FilterInput
-
         self.query_one("#search-input", FilterInput).focus()
 
     def _collect_messages(self) -> list[tuple[int, str, str]]:
@@ -79,9 +83,6 @@ class SearchModal(ModalScreen[str | None]):
 
         Returns list of (child_index, role, text).
         """
-        from apps.cli.widgets.assistant_message import AssistantMessage
-        from apps.cli.widgets.message_list import MessageList
-        from apps.cli.widgets.user_message import UserMessage
 
         results: list[tuple[int, str, str]] = []
         try:
@@ -138,7 +139,7 @@ class SearchModal(ModalScreen[str | None]):
             if end < len(text):
                 snippet = snippet + "..."
 
-            label = f"[bold]{role}[/bold]: {snippet}"
+            label = f"[bold]{role}[/bold]: {escape(snippet)}"
             self._matches.append((child_idx, snippet))
             option_list.add_option(Option(label, id=str(child_idx)))
 

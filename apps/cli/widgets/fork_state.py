@@ -65,18 +65,18 @@ STATE_PALETTE: dict[str, _StatePalette] = {
 
 
 def state_icon(state: str) -> str:
-    """Return the bare icon for ``state`` (falls back to the raw state name)."""
+    """Return the bare icon for `state` (falls back to the raw state name)."""
     palette = STATE_PALETTE.get(state)
     return palette["icon"] if palette is not None else state
 
 
 def state_label(state: str) -> str:
-    """Return icon + word for ``state`` (falls back to the raw state name)."""
+    """Return icon + word for `state` (falls back to the raw state name)."""
     palette = STATE_PALETTE.get(state)
     return palette["label"] if palette is not None else state
 
 
 def state_word(state: str) -> str:
-    """Return the colored word for ``state`` (falls back to the raw state name)."""
+    """Return the colored word for `state` (falls back to the raw state name)."""
     palette = STATE_PALETTE.get(state)
     return palette["word"] if palette is not None else state

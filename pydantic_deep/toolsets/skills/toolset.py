@@ -19,6 +19,8 @@ from collections.abc import Callable
 from inspect import signature as get_signature
 from pathlib import Path
 from typing import Any
+from xml.sax.saxutils import escape as xml_escape
+from xml.sax.saxutils import quoteattr
 
 from pydantic_ai._griffe import doc_descriptions
 from pydantic_ai._run_context import RunContext
@@ -74,7 +76,7 @@ LOAD_SKILL_TEMPLATE = """<skill>
 </skill>
 """
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 LIST_SKILLS_DESCRIPTION = """\
 Get an overview of all available skills and what they do.
@@ -163,20 +165,20 @@ class SkillsToolset(FunctionToolset):
         """Initialize the skills toolset.
 
         Args:
-            skills: List of pre-loaded Skill objects. Can be combined with ``directories``.
+            skills: List of pre-loaded Skill objects. Can be combined with `directories`.
             directories: List of directories or SkillsDirectory instances to discover
-                skills from. Can be combined with ``skills``. If both are None,
-                defaults to ``["./skills"]``.
+                skills from. Can be combined with `skills`. If both are None,
+                defaults to `["./skills"]`.
             validate: Validate skill structure during discovery.
             max_depth: Maximum depth for skill discovery (None for unlimited).
             id: Unique identifier for this toolset.
             instruction_template: Custom instruction template for skills system prompt.
-                Must include ``{skills_list}`` placeholder.
+                Must include `{skills_list}` placeholder.
             exclude_tools: Set or list of tool names to exclude from registration
-                (e.g., ``['run_skill_script']``).
+                (e.g., `['run_skill_script']`).
             descriptions: Optional mapping of tool name to custom description. Keys are
-                tool names (``list_skills``, ``load_skill``, ``read_skill_resource``,
-                ``run_skill_script``). Values override the built-in description constants.
+                tool names (`list_skills`, `load_skill`, `read_skill_resource`,
+                `run_skill_script`). Values override the built-in description constants.
         """
         super().__init__(id=id)
 
@@ -218,8 +220,9 @@ class SkillsToolset(FunctionToolset):
         # Load directory-based skills
         if directories is not None:
             self._load_directory_skills(directories)
-        elif skills is None:
-            # Default: ./skills directory (only if no skills provided)
+        elif not skills:
+            # Default: ./skills directory (only when no skills were provided,
+            # including an explicit empty list with no directories).
             default_dir = Path("./skills")
             if not default_dir.exists():
                 warnings.warn(
@@ -277,7 +280,7 @@ class SkillsToolset(FunctionToolset):
                 if skill_name in self._skills:
                     existing = self._skills[skill_name]
                     if existing.content == skill.content:
-                        # Identical skill loaded from a different directory — skip silently
+                        # Identical skill loaded from a different directory - skip silently
                         continue
                     warnings.warn(
                         f"Duplicate skill '{skill_name}' found. Overriding previous occurrence.",
@@ -288,23 +291,23 @@ class SkillsToolset(FunctionToolset):
 
     def _build_resource_xml(self, resource: SkillResource) -> str:
         """Build XML representation of a resource."""
-        res_xml = f'<resource name="{resource.name}"'
+        res_xml = f"<resource name={quoteattr(resource.name)}"
         if resource.description:
-            res_xml += f' description="{resource.description}"'
+            res_xml += f" description={quoteattr(resource.description)}"
         if resource.function and resource.function_schema:
             params_json = json.dumps(resource.function_schema.json_schema)
-            res_xml += f" parameters={json.dumps(params_json)}"
+            res_xml += f" parameters={quoteattr(params_json)}"
         res_xml += " />"
         return res_xml
 
     def _build_script_xml(self, script: SkillScript) -> str:
         """Build XML representation of a script."""
-        scr_xml = f'<script name="{script.name}"'
+        scr_xml = f"<script name={quoteattr(script.name)}"
         if script.description:
-            scr_xml += f' description="{script.description}"'
+            scr_xml += f" description={quoteattr(script.description)}"
         if script.function and script.function_schema:
             params_json = json.dumps(script.function_schema.json_schema)
-            scr_xml += f" parameters={json.dumps(params_json)}"
+            scr_xml += f" parameters={quoteattr(params_json)}"
         scr_xml += " />"
         return scr_xml
 
@@ -384,8 +387,8 @@ class SkillsToolset(FunctionToolset):
             scripts_list = "\n".join(scripts_parts) if scripts_parts else "<!-- No scripts -->"
 
             return LOAD_SKILL_TEMPLATE.format(
-                skill_name=skill.name,
-                description=skill.description,
+                skill_name=xml_escape(skill.name),
+                description=xml_escape(skill.description),
                 resources_list=resources_list,
                 scripts_list=scripts_list,
                 content=skill.content,
@@ -411,7 +414,8 @@ class SkillsToolset(FunctionToolset):
                 args: Arguments for callable resources (optional for static files).
             """
             if skill_name not in self._skills:
-                return f"Error: Skill '{skill_name}' not found."
+                available_skills = ", ".join(sorted(self._skills.keys())) or "none"
+                return f"Error: Skill '{skill_name}' not found. Available: {available_skills}"
 
             skill = self._skills[skill_name]
             resource = self._find_skill_resource(skill, resource_name)
@@ -443,7 +447,8 @@ class SkillsToolset(FunctionToolset):
                 args: Arguments required by the script.
             """
             if skill_name not in self._skills:
-                return f"Error: Skill '{skill_name}' not found."
+                available_skills = ", ".join(sorted(self._skills.keys())) or "none"
+                return f"Error: Skill '{skill_name}' not found. Available: {available_skills}"
 
             skill = self._skills[skill_name]
             script = self._find_skill_script(skill, script_name)
@@ -473,8 +478,8 @@ class SkillsToolset(FunctionToolset):
         skills_list_lines: list[str] = []
         for skill in sorted(self._skills.values(), key=lambda s: s.name):
             skills_list_lines.append("<skill>")
-            skills_list_lines.append(f"<name>{skill.name}</name>")
-            skills_list_lines.append(f"<description>{skill.description}</description>")
+            skills_list_lines.append(f"<name>{xml_escape(skill.name)}</name>")
+            skills_list_lines.append(f"<description>{xml_escape(skill.description)}</description>")
             skills_list_lines.append("</skill>")
         skills_list = "\n".join(skills_list_lines)
 

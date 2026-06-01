@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from apps.cli.app import DeepApp
+from apps.cli.config import load_config
+from apps.cli.keystore import load_keys
+
 
 def run_tui(
     model: str | None = None,
@@ -25,9 +29,6 @@ def run_tui(
     If agent creation fails (e.g. missing API key), the TUI launches
     anyway without an agent so the user can configure via /provider or /settings.
     """
-    from apps.cli.app import DeepApp
-    from apps.cli.config import load_config
-    from apps.cli.keystore import load_keys
 
     # Load saved API keys from keys.toml → os.environ
     load_keys()
@@ -72,7 +73,7 @@ def run_tui(
 
             _app.current_cost = run_cost
             _app.total_cost = total_cost
-            # Post to current screen (not app) — Textual messages bubble up, not down
+            # Post to current screen (not app) - Textual messages bubble up, not down
             if _app.screen is not None:
                 _app.screen.post_message(
                     CostUpdated(run_cost, total_cost, total_input, total_output)
@@ -104,7 +105,7 @@ def run_tui(
         except Exception:
             pass
 
-    # Try to create the agent — if it fails (missing API key etc.)
+    # Try to create the agent - if it fails (missing API key etc.)
     # we still launch the TUI so the user can fix it from /provider
     try:
         from apps.cli.agent import create_cli_agent
@@ -133,6 +134,9 @@ def run_tui(
         model=effective_model,
         version=version,
         startup_error=startup_error,
+        on_cost_update=_on_cost_update,
+        on_context_update=_on_context_update,
+        on_reminder=_on_reminder,
     )
     app_ref[0] = app
     try:
@@ -145,7 +149,6 @@ def run_tui(
 
 def run_preview() -> None:
     """Launch TUI without an agent (UI preview only)."""
-    from apps.cli.app import DeepApp
 
     try:
         from importlib.metadata import version as pkg_version

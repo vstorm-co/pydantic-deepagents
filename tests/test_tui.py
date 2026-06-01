@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from apps.cli.app import DeepApp
@@ -80,6 +82,85 @@ class TestTUIWidgets:
             await dispatch_command(app, "/tokens")
             await pilot.pause()
 
+    async def test_cost_uses_authoritative_total_cost(self, app):
+        """/cost reports the tracked CostTracking total (any model) when available,
+        not the hardcoded Sonnet-rate heuristic."""
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.commands import dispatch_command
+
+            messages: list[str] = []
+            app.notify = lambda msg, **kw: messages.append(msg)
+            app.total_cost = 0.1234
+
+            await dispatch_command(app, "/cost")
+            await pilot.pause()
+
+        assert messages
+        # Exact tracked value, no "~" estimate prefix.
+        assert "$0.1234" in messages[-1]
+        assert "~$" not in messages[-1]
+
+    async def test_cost_falls_back_to_heuristic_without_tracked_cost(self, app):
+        """When no tracked cost is available, /cost shows the rough estimate marked
+        with a "~" prefix."""
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.commands import dispatch_command
+
+            messages: list[str] = []
+            app.notify = lambda msg, **kw: messages.append(msg)
+            app.total_cost = 0.0
+
+            await dispatch_command(app, "/cost")
+            await pilot.pause()
+
+        assert messages
+        assert "~$" in messages[-1]
+
+
+class TestReconfigureAgent:
+    async def test_reconfigure_preserves_callbacks(self, monkeypatch):
+        """After /model, reconfigure_agent must re-pass the status-bar/reminder
+        callbacks so cost/token/context updates and reminders keep working."""
+        sentinel_cost = object()
+        sentinel_ctx = object()
+        sentinel_rem = object()
+
+        app = DeepApp(
+            model="test",
+            version="0.0.0",
+            on_cost_update=sentinel_cost,
+            on_context_update=sentinel_ctx,
+            on_reminder=sentinel_rem,
+        )
+
+        captured: dict[str, object] = {}
+
+        def fake_create(**kwargs):
+            captured.update(kwargs)
+            return ("AGENT", "DEPS")
+
+        import apps.cli.agent as agent_mod
+        import apps.cli.config as config_mod
+
+        monkeypatch.setattr(agent_mod, "create_cli_agent", fake_create)
+        monkeypatch.setattr(config_mod, "set_config_value", lambda *a, **k: None)
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            # Explicit model skips key-based model picking; deterministic.
+            app.reconfigure_agent(model="anthropic:claude-sonnet-4-6")
+            await pilot.pause()
+
+        assert captured["on_cost_update"] is sentinel_cost
+        assert captured["on_context_update"] is sentinel_ctx
+        assert captured["on_reminder"] is sentinel_rem
+        assert cast(object, app.agent) == "AGENT"
+        assert cast(object, app.deps) == "DEPS"
+
 
 class TestSearchModal:
     async def test_search_modal_opens(self, app):
@@ -105,6 +186,37 @@ class TestSearchModal:
 
             # Check that search modal is showing
             assert any(isinstance(s, SearchModal) for s in app.screen_stack)
+
+    async def test_search_modal_escapes_markup_in_snippet(self, app):
+        """Messages with literal Rich markup must not corrupt the option label."""
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.message_list import MessageList
+
+            msg_list = app.screen.query_one(MessageList)
+            # Message containing literal Rich markup that would otherwise be parsed
+            msg_list.append_user_message("the [red]danger[/] keyword is special")
+            await pilot.pause()
+
+            await pilot.press("ctrl+r")
+            await pilot.pause()
+
+            from textual.widgets import Input, OptionList
+
+            from apps.cli.modals.search import SearchModal
+
+            modal = next(s for s in app.screen_stack if isinstance(s, SearchModal))
+            search_input = modal.query_one("#search-input", Input)
+            search_input.value = "danger"
+            modal.on_input_changed(Input.Changed(search_input, "danger"))
+            await pilot.pause()
+
+            option_list = modal.query_one("#search-results", OptionList)
+            # The matching snippet should have produced exactly one option without
+            # raising a Rich MarkupError; the raw markup is preserved escaped.
+            assert option_list.option_count == 1
+            assert modal._matches[0][1] == "the [red]danger[/] keyword is special"
 
 
 class TestToolCallWidget:

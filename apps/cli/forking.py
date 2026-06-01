@@ -1,10 +1,10 @@
 """CLI bridge for Live Run Forking.
 
 The TUI talks to the :class:`ForkCoordinator` through this thin
-wrapper rather than going through the agent-facing ``fork_run`` tool: the
-user types ``/fork`` directly, so we construct a coordinator ourselves
+wrapper rather than going through the agent-facing `fork_run` tool: the
+user types `/fork` directly, so we construct a coordinator ourselves
 (mirroring what :meth:`LiveForkCapability.for_run` does inside an
-``agent.run()``) and call :meth:`ForkCoordinator.fork` with the parent's
+`agent.run()`) and call :meth:`ForkCoordinator.fork` with the parent's
 message history.
 
 The coordinator handles the pre-fork / post-fork checkpoint anchors
@@ -42,9 +42,9 @@ class ForkPickerResult:
     :meth:`ForkCoordinator.fork` in a single call.
 
     Attributes:
-        specs: Branch definitions; ``len(specs)`` matches
-            ``app.fork_branch_count`` at modal-mount time.
-        aggregate_budget_usd: Optional sum-cap across all branches; ``None``
+        specs: Branch definitions; `len(specs)` matches
+            `app.fork_branch_count` at modal-mount time.
+        aggregate_budget_usd: Optional sum-cap across all branches; `None`
             disables aggregate enforcement.
     """
 
@@ -53,15 +53,15 @@ class ForkPickerResult:
 
 
 class ForkingNotEnabledError(RuntimeError):
-    """Raised when ``/fork`` is invoked on an agent without forking enabled."""
+    """Raised when `/fork` is invoked on an agent without forking enabled."""
 
 
 def resolve_capability(agent: Any) -> LiveForkCapability | None:
-    """Locate the :class:`LiveForkCapability` registered on ``agent``.
+    """Locate the :class:`LiveForkCapability` registered on `agent`.
 
-    Returns ``None`` if forking is not enabled on this agent. Walks
-    ``agent.root_capability.capabilities`` (pydantic-ai's ``CombinedCapability``
-    surface) and falls back to ``getattr(agent, "_capabilities", [])`` for
+    Returns `None` if forking is not enabled on this agent. Walks
+    `agent.root_capability.capabilities` (pydantic-ai's `CombinedCapability`
+    surface) and falls back to `getattr(agent, "_capabilities", [])` for
     test stubs / older agents that expose capabilities directly.
     """
     root = getattr(agent, "root_capability", None)
@@ -83,12 +83,12 @@ class CLIForkSession:
     Attributes:
         coordinator: The :class:`ForkCoordinator` owning per-branch tasks.
         handle: The :class:`ForkHandle` returned by :meth:`ForkCoordinator.fork`.
-        label_to_id: Resolves user-supplied branch labels (e.g. ``"a"``,
-            ``"approach_a"``) to the coordinator's internal UUID branch ids.
-            Populated once after ``fork()`` returns.
-        adopted: ``True`` when the session wraps a coordinator the agent
-            allocated mid-run (via the ``fork_run`` tool); ``False`` for
-            user-initiated forks via the ``/fork`` command. The ``/fork``
+        label_to_id: Resolves user-supplied branch labels (e.g. `"a"`,
+            `"approach_a"`) to the coordinator's internal UUID branch ids.
+            Populated once after `fork()` returns.
+        adopted: `True` when the session wraps a coordinator the agent
+            allocated mid-run (via the `fork_run` tool); `False` for
+            user-initiated forks via the `/fork` command. The `/fork`
             command guard branches on this so the user gets a different
             notification when the active fork was started by the agent.
     """
@@ -99,15 +99,15 @@ class CLIForkSession:
     adopted: bool = False
 
     def _resolve_id(self, label_or_id: str) -> str | None:
-        """Return the canonical branch id for ``label_or_id``, or ``None`` if unknown."""
+        """Return the canonical branch id for `label_or_id`, or `None` if unknown."""
         if label_or_id in self.coordinator.branches:
             return label_or_id
         return self.label_to_id.get(label_or_id)
 
     def branch_state(self, label_or_id: str) -> str | None:
-        """Return the lifecycle state of a branch (``running``/``done``/...) or ``None``.
+        """Return the lifecycle state of a branch (`running`/`done`/...) or `None`.
 
-        Used by the CLI input router to decide whether ``>>{label} <msg>`` should
+        Used by the CLI input router to decide whether `>>{label} <msg>` should
         actually be delivered: steering a branch whose task already finished
         would silently drop the message into a queue nobody consumes.
         """
@@ -120,11 +120,11 @@ class CLIForkSession:
         return runtime.status.state
 
     async def steer_branch(self, label_or_id: str, msg: str) -> bool:
-        """Route ``msg`` into one branch's :class:`MessageQueue`.
+        """Route `msg` into one branch's :class:`MessageQueue`.
 
-        Returns ``True`` if the message landed on a live branch's queue,
-        ``False`` if ``label_or_id`` doesn't match an active branch. The CLI
-        routes ``>>{label} <msg>`` here — same prefix as #100's queue-steer,
+        Returns `True` if the message landed on a live branch's queue,
+        `False` if `label_or_id` doesn't match an active branch. The CLI
+        routes `>>{label} <msg>` here — same prefix as #100's queue-steer,
         scoped to a branch when the label matches a live one.
         """
         branch_id = self._resolve_id(label_or_id)
@@ -141,19 +141,19 @@ class CLIForkSession:
         """Start a new interactive turn on a finished branch.
 
         Delegates to :meth:`ForkCoordinator.run_on_branch` and returns
-        the spawned ``asyncio.Task``.
+        the spawned `asyncio.Task`.
         """
         return await self.coordinator.run_on_branch(branch_id, user_message)
 
     async def terminate_branch(self, branch_id: str) -> None:
-        """Cancel one branch's task; the branch's status becomes ``terminated``."""
+        """Cancel one branch's task; the branch's status becomes `terminated`."""
         await self.coordinator.terminate_branch(branch_id)
 
     async def abort(self) -> None:
         """Cancel every running branch task and release overlays.
 
-        Uses :meth:`ForkCoordinator.abort_fork` (not ``aclose``) so that
-        overlays are released and :attr:`is_resolved` becomes ``True``.
+        Uses :meth:`ForkCoordinator.abort_fork` (not `aclose`) so that
+        overlays are released and :attr:`is_resolved` becomes `True`.
         Also detaches the coordinator from parent deps so
         :func:`reconcile_active_fork` does not re-adopt it on the next turn.
         """
@@ -161,7 +161,7 @@ class CLIForkSession:
         self.coordinator.parent_deps.fork_coordinator = None
 
     async def merge(self, branch_id: str) -> MergeResult:
-        """Resolve the fork by picking ``branch_id`` as the winner.
+        """Resolve the fork by picking `branch_id` as the winner.
 
         Flushes the winner's overlay onto the parent backend.
         """
@@ -172,7 +172,7 @@ class CLIForkSession:
         return self.coordinator.inspect_branches()
 
     def build_diff(self) -> BranchDiffReport | None:
-        """Build a :class:`BranchDiffReport` over the active fork, or ``None`` if not yet forked."""
+        """Build a :class:`BranchDiffReport` over the active fork, or `None` if not yet forked."""
         fork_id = self.coordinator.fork_id
         if fork_id is None:  # pragma: no cover - defensive: a CLIForkSession only exists post-fork
             return None
@@ -185,13 +185,13 @@ async def start_fork_from_cli(
     *,
     isolation: BranchIsolation | None = None,
 ) -> CLIForkSession:
-    """Construct a :class:`ForkCoordinator` for ``app`` and fork it.
+    """Construct a :class:`ForkCoordinator` for `app` and fork it.
 
     :meth:`LiveForkCapability.for_run` only allocates a coordinator at the
-    start of an ``agent.run()``; since the CLI fires ``/fork`` outside of
+    start of an `agent.run()`; since the CLI fires `/fork` outside of
     any run, we mirror that allocation here. The
-    fresh coordinator is assigned to ``app.deps.fork_coordinator`` so the
-    agent-facing ``fork_run`` / ``inspect_branches`` / ``merge_or_select``
+    fresh coordinator is assigned to `app.deps.fork_coordinator` so the
+    agent-facing `fork_run` / `inspect_branches` / `merge_or_select`
     tools also resolve to the same coordinator if the agent driving any
     follow-up run wants to inspect or interact with it.
 
@@ -253,27 +253,27 @@ async def start_fork_from_cli(
 
 
 def reconcile_active_fork(app: DeepApp) -> bool:
-    """Reconcile ``app.active_fork`` with ``deps.fork_coordinator`` after a turn.
+    """Reconcile `app.active_fork` with `deps.fork_coordinator` after a turn.
 
-    Called at the end of every parent ``agent.run()`` to handle the two
-    agent-initiated fork transitions the user-driven ``/fork`` path cannot
+    Called at the end of every parent `agent.run()` to handle the two
+    agent-initiated fork transitions the user-driven `/fork` path cannot
     observe:
 
-    - **Agent merged its own fork** — ``app.active_fork`` wraps a
-      coordinator that is now resolved (e.g. ``MergeStrategy.kind="auto"``
-      drove ``merge_or_select`` itself). Clear ``app.active_fork`` so the
+    - **Agent merged its own fork** — `app.active_fork` wraps a
+      coordinator that is now resolved (e.g. `MergeStrategy.kind="auto"`
+      drove `merge_or_select` itself). Clear `app.active_fork` so the
       panels go away, mirroring :meth:`ChatScreen.action_merge_focused_branch`.
-    - **Agent forked but did not merge** — no ``app.active_fork`` yet, but
-      ``deps.fork_coordinator`` has live branches. Adopt via
+    - **Agent forked but did not merge** — no `app.active_fork` yet, but
+      `deps.fork_coordinator` has live branches. Adopt via
       :func:`adopt_agent_coordinator` so the panels light up.
 
     The combination of both transitions in one call lets the timing edge
     case (agent forks AND merges within a single turn) cleanly land on
-    ``app.active_fork is None`` without a brief UI flash.
+    `app.active_fork is None` without a brief UI flash.
 
-    Returns ``True`` when the function mutated ``app.active_fork`` —
+    Returns `True` when the function mutated `app.active_fork` —
     useful for tests that need to assert the transition happened (the
-    final value is also readable from ``app.active_fork`` directly).
+    final value is also readable from `app.active_fork` directly).
     """
     active = app.active_fork
     if active is not None and active.coordinator.is_resolved:
@@ -290,28 +290,28 @@ def reconcile_active_fork(app: DeepApp) -> bool:
 def adopt_agent_coordinator(app: DeepApp) -> CLIForkSession | None:
     """Wrap a coordinator the agent allocated mid-run in a :class:`CLIForkSession`.
 
-    ``LiveForkCapability.for_run`` allocates a :class:`ForkCoordinator` at
-    the start of every ``agent.run()`` and stores it on
-    ``deps.fork_coordinator``. When the agent itself calls ``fork_run``
+    `LiveForkCapability.for_run` allocates a :class:`ForkCoordinator` at
+    the start of every `agent.run()` and stores it on
+    `deps.fork_coordinator`. When the agent itself calls `fork_run`
     during that run, the coordinator gains a :class:`ForkHandle` and live
-    branches — but ``app.active_fork`` (the TUI's reactive entry point)
-    stays ``None`` because the CLI ``/fork`` path never executed.
+    branches — but `app.active_fork` (the TUI's reactive entry point)
+    stays `None` because the CLI `/fork` path never executed.
 
     This helper closes the gap: it inspects the running deps, builds the
     same wrapper :func:`start_fork_from_cli` produces, and tags it as
-    ``adopted=True`` so the ``/fork`` command guard can distinguish
+    `adopted=True` so the `/fork` command guard can distinguish
     user-initiated vs agent-initiated forks.
 
-    Returns ``None`` when there is nothing to adopt:
+    Returns `None` when there is nothing to adopt:
 
-    - ``app.deps`` is unset (app not fully booted);
+    - `app.deps` is unset (app not fully booted);
     - no coordinator on deps;
-    - coordinator has no branches (agent did not call ``fork_run``);
-    - coordinator is already resolved (``is_resolved`` is True) — covers
+    - coordinator has no branches (agent did not call `fork_run`);
+    - coordinator is already resolved (`is_resolved` is True) — covers
       the timing case where the agent forks and merges in a single turn,
       so the UI does not flash a panel for a fork that's already done.
 
-    Idempotent: if ``app.active_fork`` already wraps the same coordinator,
+    Idempotent: if `app.active_fork` already wraps the same coordinator,
     the existing session is returned unchanged.
     """
     deps = app.deps

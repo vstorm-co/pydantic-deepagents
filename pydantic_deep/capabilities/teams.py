@@ -16,7 +16,7 @@ from pydantic_deep.toolsets.teams import create_team_toolset
 class TeamCapability(AbstractCapability[Any]):
     """Capability for multi-agent team coordination.
 
-    When ``registry`` and ``task_fn`` are provided, team members
+    When `registry` and `task_fn` are provided, team members
     are registered as subagents and tasks execute via the subagent engine.
 
     Example:

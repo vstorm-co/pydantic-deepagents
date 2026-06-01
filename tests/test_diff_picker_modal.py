@@ -1,6 +1,6 @@
 """Tests for :class:`apps.cli.modals.diff_picker.DiffPickerModal`.
 
-Covers navigation (path + branch), branch toggling, ``initial_branch_id``
+Covers navigation (path + branch), branch toggling, `initial_branch_id`
 behaviour, the "Pick at least one branch" guard, and result shape on
 confirm vs cancel.
 """
@@ -316,7 +316,7 @@ async def test_empty_branch_set_navigation_is_noop() -> None:
 
 @pytest.mark.asyncio
 async def test_status_supplies_missing_label() -> None:
-    """If ``label_to_id`` is missing a branch, ``branches`` fills the label."""
+    """If `label_to_id` is missing a branch, `branches` fills the label."""
     app = _make_app()
     async with app.run_test(size=(140, 40)) as pilot:
         await pilot.pause()
@@ -332,7 +332,7 @@ async def test_status_supplies_missing_label() -> None:
 
 @pytest.mark.asyncio
 async def test_toggle_parent_changes_include_parent() -> None:
-    """``p`` toggles parent inclusion; default is True."""
+    """`p` toggles parent inclusion; default is True."""
     app = _make_app()
     async with app.run_test(size=(140, 40)) as pilot:
         await pilot.pause()
@@ -389,7 +389,7 @@ async def test_browse_merge_view_pushes_merge_picker_modal() -> None:
 
         # MergePickerModal should now be on top of the screen stack —
         # assert via the observable title ("Browse diff" vs "Resolve fork")
-        # rather than the modal's private ``_view_only`` attribute.
+        # rather than the modal's private `_view_only` attribute.
         assert isinstance(app.screen, MergePickerModal)
         title = app.screen.query_one("#merge-title", Static)
         assert "Browse diff" in str(title.render())

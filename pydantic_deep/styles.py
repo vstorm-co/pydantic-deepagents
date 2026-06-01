@@ -5,13 +5,13 @@ system prompt at agent creation time. They control how the agent formats
 and presents its responses.
 
 Built-in styles:
-    - ``concise``: Minimal output, code-only, no explanations
-    - ``explanatory``: Step-by-step reasoning, examples, definitions
-    - ``formal``: Professional, structured, numbered sections
-    - ``conversational``: Friendly, casual, uses analogies
-    - ``markdown``: Well-formed markdown with headings and fenced code
-    - ``json-only``: Strict JSON output, no preamble or commentary
-    - ``bullet``: Bulleted lists only, no paragraphs
+    - `concise`: Minimal output, code-only, no explanations
+    - `explanatory`: Step-by-step reasoning, examples, definitions
+    - `formal`: Professional, structured, numbered sections
+    - `conversational`: Friendly, casual, uses analogies
+    - `markdown`: Well-formed markdown with headings and fenced code
+    - `json-only`: Strict JSON output, no preamble or commentary
+    - `bullet`: Bulleted lists only, no paragraphs
 
 Example:
     ```python
@@ -200,7 +200,7 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
 def load_style_from_file(path: str | Path) -> OutputStyle:
     """Load an OutputStyle from a markdown file with frontmatter.
 
-    The file should have YAML-style frontmatter with at least a ``name``
+    The file should have YAML-style frontmatter with at least a `name`
     field, followed by the style content:
 
     ```markdown
@@ -220,7 +220,8 @@ def load_style_from_file(path: str | Path) -> OutputStyle:
 
     Raises:
         FileNotFoundError: If the file doesn't exist.
-        ValueError: If the file has no ``name`` in frontmatter.
+        ValueError: If the file has no `name` in frontmatter or an empty
+            content body.
     """
     file_path = Path(path)
     content = file_path.read_text(encoding="utf-8")
@@ -229,6 +230,9 @@ def load_style_from_file(path: str | Path) -> OutputStyle:
     name = frontmatter.get("name")
     if not name:
         raise ValueError(f"Style file {path} must have a 'name' in frontmatter")
+
+    if not body.strip():
+        raise ValueError(f"Style file {path} has no content body")
 
     return OutputStyle(
         name=str(name),
@@ -240,9 +244,9 @@ def load_style_from_file(path: str | Path) -> OutputStyle:
 def discover_styles(directory: str | Path) -> dict[str, OutputStyle]:
     """Discover output styles from markdown files in a directory.
 
-    Scans the directory for ``*.md`` files, parses each as a style file
+    Scans the directory for `*.md` files, parses each as a style file
     (frontmatter + body), and returns a dict keyed by style name.
-    Files without a ``name`` in frontmatter are skipped.
+    Files without a `name` in frontmatter are skipped.
 
     Args:
         directory: Path to the styles directory.
@@ -275,9 +279,9 @@ def resolve_style(
     """Resolve a style by name or pass through an OutputStyle instance.
 
     Resolution order:
-    1. If ``style`` is an OutputStyle, return it directly.
-    2. If ``style`` is a string, look up in built-in styles.
-    3. If not found, search in ``styles_dir`` directories.
+    1. If `style` is an OutputStyle, return it directly.
+    2. If `style` is a string, look up in built-in styles.
+    3. If not found, search in `styles_dir` directories.
     4. If still not found, raise ValueError.
 
     Args:

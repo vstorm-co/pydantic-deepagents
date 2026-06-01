@@ -28,7 +28,7 @@ def _version_gt(a: str, b: str) -> bool:
     """Return True if version string *a* is greater than *b*.
 
     Only numeric dot-separated components are compared, so pre-release
-    suffixes (e.g. ``0.4.0a1``) are stripped automatically.
+    suffixes (e.g. `0.4.0a1`) are stripped automatically.
     """
 
     def _parts(v: str) -> tuple[int, ...]:
@@ -38,7 +38,7 @@ def _version_gt(a: str, b: str) -> bool:
 
 
 def _load_cache(cache_path: Path) -> dict[str, Any] | None:
-    """Return cached version data if still fresh (< 24 h), else ``None``."""
+    """Return cached version data if still fresh (< 24 h), else `None`."""
     try:
         data: dict[str, Any] = json.loads(cache_path.read_text())
         checked_at = datetime.fromisoformat(data["checked_at"])
@@ -77,7 +77,7 @@ def _fetch_latest_version() -> str | None:
 
 
 def _find_uv() -> str | None:
-    """Return path to the ``uv`` executable if available, else ``None``."""
+    """Return path to the `uv` executable if available, else `None`."""
     return shutil.which("uv")
 
 
@@ -85,7 +85,7 @@ def check_for_update(cache_path: Path | None = None) -> UpdateInfo | None:
     """Check if a newer version of pydantic-deep is available on PyPI.
 
     Uses a 24-hour file-based cache so the network is only hit once per day.
-    Returns ``None`` when already up-to-date or when the check cannot be
+    Returns `None` when already up-to-date or when the check cannot be
     completed (e.g. no internet access).
     """
     from pydantic_deep import __version__
@@ -108,7 +108,7 @@ def check_for_update(cache_path: Path | None = None) -> UpdateInfo | None:
 def run_update() -> int:
     """Upgrade pydantic-deep to the latest version.
 
-    Tries ``uv tool upgrade`` first. Falls back to ``pip install --upgrade``
+    Tries `uv tool upgrade` first. Falls back to `pip install --upgrade`
     only when uv reports that pydantic-deep is not a uv-managed tool (the
     original install was done with pip). Transient uv failures — network
     outages, lock conflicts, registry errors — are surfaced directly instead

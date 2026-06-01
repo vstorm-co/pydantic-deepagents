@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -34,7 +35,6 @@ from .prompts import RESEARCH_PROMPT
 
 async def audit_logger_handler(hook_input: HookInput) -> HookResult:
     """Background POST_TOOL_USE hook: logs all tool calls."""
-    import logging
 
     logger = logging.getLogger(__name__)
     args_preview = str(hook_input.tool_input)[:200]
@@ -253,8 +253,10 @@ def _create_remember_toolset() -> FunctionToolset[Any]:
         """
         backend = ctx.deps.backend
         try:
-            data = backend.read("/workspace/MEMORY.md")
-            content = data.decode("utf-8") if data else ""
+            if backend.exists("/workspace/MEMORY.md"):
+                content = backend.read_bytes("/workspace/MEMORY.md").decode("utf-8")
+            else:
+                content = ""
         except Exception:
             content = ""
 

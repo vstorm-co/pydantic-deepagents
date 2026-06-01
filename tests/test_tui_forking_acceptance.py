@@ -3,11 +3,11 @@
 Covers test cases 9–11 from the issue's Test plan:
 
 9.  :class:`MergeAcceptanceWidget` renders verdict reasoning + caveats correctly.
-10. ``[d]`` opens the diff explorer; returning preserves the verdict context.
-11. ``[o]`` opens the manual picker with the judge's choice preselected.
+10. `[d]` opens the diff explorer; returning preserves the verdict context.
+11. `[o]` opens the manual picker with the judge's choice preselected.
 
 The :class:`MergeAcceptanceWidget` is exercised directly via Textual's
-``run_test`` ``Pilot``; the dispatcher round-trip for tests 10/11 is verified
+`run_test` `Pilot`; the dispatcher round-trip for tests 10/11 is verified
 against the public action contract (the widget dismisses with a sentinel
 string the dispatcher routes on).
 """
@@ -113,7 +113,7 @@ def _make_label_to_id() -> dict[str, str]:
 class _ProbeApp(App[None]):
     """Minimal Textual app that mounts a single static element.
 
-    Used so we can push the modal screens via ``pilot.app.push_screen`` and
+    Used so we can push the modal screens via `pilot.app.push_screen` and
     inspect the rendered tree.
     """
 
@@ -330,7 +330,7 @@ async def test_enter_key_dismisses_with_accept_action():
 async def test_escape_key_dismisses_with_none():
     """Escape on the acceptance widget cancels without committing (dismisses None).
 
-    The dispatcher treats ``None`` as "do nothing" — the cached judge outcome
+    The dispatcher treats `None` as "do nothing" — the cached judge outcome
     means the next /merge re-shows this widget without re-invoking the judge.
     """
     app = _ProbeApp()

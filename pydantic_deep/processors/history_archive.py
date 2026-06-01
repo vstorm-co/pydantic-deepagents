@@ -1,15 +1,15 @@
 """Conversation history search tool with BM25 ranking.
 
-Provides a ``search_conversation_history`` tool that searches through
-the persistent ``messages.json`` file maintained by
+Provides a `search_conversation_history` tool that searches through
+the persistent `messages.json` file maintained by
 :class:`~pydantic_ai_summarization.ContextManagerMiddleware`.
 
 The middleware saves every message continuously. This module only *reads*
-the file — it never writes. The search tool is useful after context
+the file - it never writes. The search tool is useful after context
 compression, when older messages have been replaced by a summary.
 
 Search uses BM25 ranking (the same algorithm behind Elasticsearch/Lucene)
-for relevance-scored results. Multi-word queries are tokenized — each word
+for relevance-scored results. Multi-word queries are tokenized - each word
 is scored independently, and rare words (high IDF) contribute more than
 common ones.
 
@@ -81,9 +81,7 @@ _TOKENIZE_RE = re.compile(r"[a-zA-Z0-9]+")
 """Regex for tokenizing text into words (splits on non-alphanumeric including underscores)."""
 
 
-# ---------------------------------------------------------------------------
 # BM25 implementation
-# ---------------------------------------------------------------------------
 
 
 def _tokenize(text: str) -> list[str]:
@@ -168,9 +166,7 @@ def _bm25_rank(
     return results
 
 
-# ---------------------------------------------------------------------------
 # Message formatting (for search results)
-# ---------------------------------------------------------------------------
 
 
 def _format_message(msg: ModelMessage) -> str:
@@ -234,7 +230,7 @@ def create_history_search_toolset(
     *,
     id: str = "deep-history-search",
 ) -> FunctionToolset[Any]:
-    """Create a toolset with the ``search_conversation_history`` tool.
+    """Create a toolset with the `search_conversation_history` tool.
 
     Args:
         messages_path: Absolute path to the messages.json file
@@ -252,7 +248,7 @@ def create_history_search_toolset(
 
         Args:
             query: Text to search for. Multi-word queries search each word
-                independently — rare terms score higher than common ones.
+                independently - rare terms score higher than common ones.
         """
         messages = _load_messages(messages_path)
 
@@ -276,13 +272,15 @@ def create_history_search_toolset(
         shown_indices: set[int] = set()
 
         for doc_idx, score in ranked[:_MAX_MATCHES]:
-            if doc_idx in shown_indices:  # pragma: no cover
-                continue  # pragma: no cover
+            if doc_idx in shown_indices:
+                continue
 
             start = max(0, doc_idx - _CONTEXT_LINES)
             end = min(len(formatted_lines), doc_idx + _CONTEXT_LINES + 1)
 
-            shown_indices.add(doc_idx)
+            # Record the full emitted window so neighboring matches whose
+            # context overlaps this one are skipped instead of repeating lines.
+            shown_indices.update(range(start, end))
             excerpt = "\n".join(formatted_lines[start:end])
             results.append(f"[score: {score:.1f}]\n{excerpt}")
 

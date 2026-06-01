@@ -7,14 +7,17 @@ from datetime import datetime
 
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
+from apps.cli.config import get_sessions_dir
+from apps.cli.modals._filter_input import FilterInput
+
 
 def _load_sessions() -> list[dict[str, str]]:
     """Discover saved sessions from the sessions directory."""
-    from apps.cli.config import get_sessions_dir
 
     sessions_dir = get_sessions_dir()
     if not sessions_dir.is_dir():
@@ -99,8 +102,6 @@ class SessionPickerModal(ModalScreen[str | None]):
         self._sessions: list[dict[str, str]] = []
 
     def compose(self) -> ComposeResult:
-        from textual.containers import Vertical
-
         self._sessions = _load_sessions()
 
         with Vertical(id="session-container"):
@@ -127,8 +128,6 @@ class SessionPickerModal(ModalScreen[str | None]):
         return options
 
     def on_mount(self) -> None:
-        from apps.cli.modals._filter_input import FilterInput
-
         self.query_one("#session-filter", FilterInput).focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:

@@ -1,4 +1,4 @@
-"""Live Run Forking — judge tests (issue #107)."""
+"""Live Run Forking - judge tests (issue #107)."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ from pydantic_deep.types import (
 
 
 def test_judge_verdict_confidence_must_be_in_unit_interval() -> None:
-    """JudgeVerdict.confidence is bounded to [0, 1] — out-of-range is rejected."""
+    """JudgeVerdict.confidence is bounded to [0, 1] - out-of-range is rejected."""
     import pydantic
 
     from pydantic_deep.types import JudgeVerdict
@@ -143,7 +143,7 @@ def _make_outcomes() -> list[BranchOutcome]:
 
 
 # ---------------------------------------------------------------------------
-# Test 1 — JudgeAgent.evaluate returns a valid JudgeVerdict via TestModel.
+# Test 1 - JudgeAgent.evaluate returns a valid JudgeVerdict via TestModel.
 # ---------------------------------------------------------------------------
 
 
@@ -171,10 +171,12 @@ async def test_judge_agent_returns_valid_verdict():
     assert usage.total_tokens > 0
 
 
-async def test_run_judges_vote_returns_list_of_per_judge_usages():
-    """The vote path returns a LIST of per-judge usages (one per model), whereas
-    the single-judge path returns a scalar — pin that type divergence."""
+async def test_run_judges_vote_sums_per_judge_usages():
+    """The vote path SUMS per-judge usages into a single RunUsage, matching the
+    single-judge path and the `judge_usage` "summed across judges" contract."""
     from unittest.mock import patch
+
+    from pydantic_ai.usage import RunUsage
 
     from pydantic_deep.types import JudgeVerdict as _JV
 
@@ -188,11 +190,11 @@ async def test_run_judges_vote_returns_list_of_per_judge_usages():
         async def evaluate(self, _goal: Any, _diff: Any, _outcomes: Any) -> Any:
             return (
                 _JV(winner_branch_id=a_id, confidence=0.8, reasoning="ok"),
-                {"model": self.model, "total_tokens": 10},
+                RunUsage(input_tokens=10, output_tokens=5, requests=1),
             )
 
     with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _StubJudge):
-        verdict, usages = await coord._run_judges(
+        verdict, usage = await coord._run_judges(
             MergeStrategy(kind="vote", judge_models=["m1", "m2", "m3"]),
             "goal",
             _make_report(),
@@ -200,13 +202,42 @@ async def test_run_judges_vote_returns_list_of_per_judge_usages():
         )
 
     assert verdict.winner_branch_id == a_id
-    # Vote path: a list of one usage per judge model.
-    assert isinstance(usages, list)
-    assert len(usages) == 3
+    # Vote path: a single summed RunUsage across the 3 judges, not a list.
+    assert isinstance(usage, RunUsage)
+    assert usage.input_tokens == 30
+    assert usage.output_tokens == 15
+    assert usage.requests == 3
+
+
+async def test_run_judges_vote_all_none_usage_is_none():
+    """A panel where every judge reports no usage yields None (not [None, ...])."""
+    from unittest.mock import patch
+
+    from pydantic_deep.types import JudgeVerdict as _JV
+
+    coord, _deps = await _coordinator_with_two_branches()
+    a_id = _resolve_winner_id(coord, "a")
+
+    class _StubJudge:
+        def __init__(self, model: Any) -> None:
+            self.model = model
+
+        async def evaluate(self, _goal: Any, _diff: Any, _outcomes: Any) -> Any:
+            return (_JV(winner_branch_id=a_id, confidence=0.8, reasoning="ok"), None)
+
+    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _StubJudge):
+        _verdict, usage = await coord._run_judges(
+            MergeStrategy(kind="vote", judge_models=["m1", "m2"]),
+            "goal",
+            _make_report(),
+            _make_outcomes(),
+        )
+
+    assert usage is None
 
 
 # ---------------------------------------------------------------------------
-# Test 2 — compute_confidence arithmetic, including the 0.65 cap.
+# Test 2 - compute_confidence arithmetic, including the 0.65 cap.
 # ---------------------------------------------------------------------------
 
 
@@ -231,14 +262,14 @@ async def test_compute_confidence_no_test_signal_caps_at_065():
     s_high = ConfidenceSignals(
         quality_spread=1.0,
         test_pass_ratio=None,
-        internal_consistency=1.5,  # contrived but legal — dataclass doesn't validate
+        internal_consistency=1.5,  # contrived but legal - dataclass doesn't validate
     )
     # raw heuristic = 0.4 + 0 + 0.3 = 0.7, capped at 0.65 ; × 1.0 = 0.65
     assert compute_confidence(s_high, 1.0) == pytest.approx(0.65)
 
 
 async def test_compute_confidence_clamps_to_zero_one():
-    # Absurdly high positive inputs — product exceeds 1.0 → clamps to 1.0.
+    # Absurdly high positive inputs - product exceeds 1.0 → clamps to 1.0.
     s_high = ConfidenceSignals(quality_spread=10.0, test_pass_ratio=10.0, internal_consistency=10.0)
     assert compute_confidence(s_high, 10.0) == 1.0
     # Negative heuristic × positive judge → negative product → clamps to 0.0.
@@ -267,11 +298,11 @@ def _verdict(
 
 
 def _make_fake_judge_class(verdict_or_factory: Any) -> type:
-    """Build a ``FakeJudgeAgent`` class that bypasses real model instantiation.
+    """Build a `FakeJudgeAgent` class that bypasses real model instantiation.
 
-    ``verdict_or_factory`` is either a single :class:`JudgeVerdict` (returned
-    every call) or a callable taking ``(model_name)`` and returning a verdict
-    — used by the vote-mode test to give each judge a distinct opinion.
+    `verdict_or_factory` is either a single :class:`JudgeVerdict` (returned
+    every call) or a callable taking `(model_name)` and returning a verdict
+    - used by the vote-mode test to give each judge a distinct opinion.
     """
 
     class FakeJudgeAgent:
@@ -325,7 +356,7 @@ def _resolve_winner_id(coord: ForkCoordinator, label: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — auto mode commits without user input.
+# Test 3 - auto mode commits without user input.
 # ---------------------------------------------------------------------------
 
 
@@ -346,8 +377,8 @@ async def test_auto_mode_commits_without_user_input():
 
 
 # ---------------------------------------------------------------------------
-# Test 4 — auto_with_fallback above threshold returns auto_eligible=True
-# (deferred commit — caller drives the widget).
+# Test 4 - auto_with_fallback above threshold returns auto_eligible=True
+# (deferred commit - caller drives the widget).
 # ---------------------------------------------------------------------------
 
 
@@ -371,7 +402,7 @@ async def test_auto_with_fallback_above_threshold_defers_commit():
 
 
 # ---------------------------------------------------------------------------
-# Test 5 — auto_with_fallback below threshold returns auto_eligible=False
+# Test 5 - auto_with_fallback below threshold returns auto_eligible=False
 # (manual picker preselected by the caller).
 # ---------------------------------------------------------------------------
 
@@ -395,7 +426,7 @@ async def test_auto_with_fallback_below_threshold_returns_fallthrough():
 
 
 # ---------------------------------------------------------------------------
-# Test 6 — vote mode: majority wins; tie → highest-confidence wins.
+# Test 6 - vote mode: majority wins; tie → highest-confidence wins.
 # ---------------------------------------------------------------------------
 
 
@@ -451,7 +482,7 @@ async def test_majority_pick_requires_at_least_one_verdict():
 
 
 # ---------------------------------------------------------------------------
-# Test 7 — Judge prompt is bounded (no full per-branch history).
+# Test 7 - Judge prompt is bounded (no full per-branch history).
 # ---------------------------------------------------------------------------
 
 
@@ -462,7 +493,7 @@ async def test_judge_prompt_is_bounded():
     outcomes = _make_outcomes()
     prompt = _build_judge_prompt(huge_goal, report, outcomes)
     assert len(prompt) <= _MAX_JUDGE_PROMPT_CHARS
-    # No "ModelRequest" / "ModelResponse" object dumps — the prompt only
+    # No "ModelRequest" / "ModelResponse" object dumps - the prompt only
     # contains the goal, the structured diff, and outcome bullets.
     assert "ModelResponse" not in prompt
     assert "ModelRequest" not in prompt
@@ -488,7 +519,7 @@ async def test_judge_prompt_truncates_long_outcome_messages():
 
 
 # ---------------------------------------------------------------------------
-# Test 8 — Override path: user rejects judge's pick → picker reopens.
+# Test 8 - Override path: user rejects judge's pick → picker reopens.
 # (Tested at the coordinator surface: resolve() returns a verdict, and
 # merge_or_select can still be called with a different branch id.)
 # ---------------------------------------------------------------------------
@@ -508,13 +539,13 @@ async def test_override_path_picker_can_select_different_branch():
     assert outcome.committed is False
     assert outcome.auto_eligible is True
     assert outcome.verdict is not None
-    # Override: user picks b instead — coordinator commits cleanly.
+    # Override: user picks b instead - coordinator commits cleanly.
     merge_result = await coord.merge_or_select(f"pick:{b_id}")
     assert merge_result.winner_branch_id == b_id
 
 
 # ---------------------------------------------------------------------------
-# Extra coverage — manual short-circuit, resolve before fork, defaults.
+# Extra coverage - manual short-circuit, resolve before fork, defaults.
 # ---------------------------------------------------------------------------
 
 
@@ -560,7 +591,7 @@ async def test_resolve_uses_handle_strategy_when_none_passed():
 
 
 async def test_merge_strategy_default_is_auto_with_fallback():
-    """Regression guard: default :class:`MergeStrategy` must be ``auto_with_fallback``."""
+    """Regression guard: default :class:`MergeStrategy` must be `auto_with_fallback`."""
     assert MergeStrategy().kind == "auto_with_fallback"
     assert MergeStrategy().confidence_threshold == 0.80
 
@@ -568,7 +599,7 @@ async def test_merge_strategy_default_is_auto_with_fallback():
 async def test_detect_vote_models_falls_back_to_fallback_when_no_keys(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """With no provider env vars set, ``_detect_vote_models`` fills 3 slots with the fallback."""
+    """With no provider env vars set, `_detect_vote_models` fills 3 slots with the fallback."""
     for env in (
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
@@ -635,7 +666,7 @@ async def test_detect_vote_models_includes_openrouter_when_key_present(
 
 
 # ---------------------------------------------------------------------------
-# Extra coverage — stuck-loop / retry counters.
+# Extra coverage - stuck-loop / retry counters.
 # ---------------------------------------------------------------------------
 
 
@@ -662,7 +693,7 @@ async def test_count_stuck_loop_hits_matches_markers():
 
 
 async def test_count_stuck_loop_hits_handles_non_string_content():
-    # RetryPromptPart with structured content (list[ErrorDetails]) — heuristic skips it.
+    # RetryPromptPart with structured content (list[ErrorDetails]) - heuristic skips it.
     from pydantic_core import ErrorDetails
 
     structured: list[ErrorDetails] = [{"type": "x", "loc": ("a",), "msg": "boom", "input": None}]
@@ -678,7 +709,7 @@ async def test_count_stuck_loop_hits_ignores_non_request_messages():
 
 
 # ---------------------------------------------------------------------------
-# Extra coverage — _last_assistant_text + _build_branch_outcomes.
+# Extra coverage - _last_assistant_text + _build_branch_outcomes.
 # ---------------------------------------------------------------------------
 
 
@@ -727,7 +758,7 @@ async def test_build_branch_outcomes_uses_terminal_states_for_error_count():
 
 
 # ---------------------------------------------------------------------------
-# Extra coverage — vote mode uses default models when None.
+# Extra coverage - vote mode uses default models when None.
 # ---------------------------------------------------------------------------
 
 
@@ -749,13 +780,13 @@ async def test_vote_mode_uses_default_model_triple_when_none():
     # Three judges, one per detected vote-panel slot.
     assert len(call_models) == 3
     # The exact triple depends on env-var detection (`_detect_vote_models`),
-    # so we don't pin specific model strings here — just that all three got
+    # so we don't pin specific model strings here - just that all three got
     # invoked.
     assert all(isinstance(m, str) and m for m in call_models)
 
 
 # ---------------------------------------------------------------------------
-# Extra coverage — compute_signals on a branch with retries.
+# Extra coverage - compute_signals on a branch with retries.
 # ---------------------------------------------------------------------------
 
 
@@ -791,7 +822,7 @@ async def test_compute_signals_winner_missing_falls_back_to_zero():
 
 
 # ---------------------------------------------------------------------------
-# Coverage fillers — minor branches the main tests don't hit.
+# Coverage fillers - minor branches the main tests don't hit.
 # ---------------------------------------------------------------------------
 
 
@@ -830,7 +861,7 @@ async def test_resolve_returns_cached_outcome_without_reinvoking_judge():
 
 async def test_resolve_cache_misses_on_different_threshold():
     """A re-resolve with a different confidence_threshold must NOT return the stale
-    cached outcome — the cache key includes the threshold and judge model(s)."""
+    cached outcome - the cache key includes the threshold and judge model(s)."""
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
 
@@ -862,7 +893,7 @@ async def test_resolve_cache_misses_on_different_threshold():
 
 
 async def test_majority_pick_dedupes_caveats_across_same_winner_verdicts():
-    """Two judges for the same winner with overlapping caveats — caveats dedupe."""
+    """Two judges for the same winner with overlapping caveats - caveats dedupe."""
     a1 = JudgeVerdict(
         winner_branch_id="a",
         confidence=0.7,
@@ -885,7 +916,7 @@ async def test_majority_pick_dedupes_caveats_across_same_winner_verdicts():
 
 
 async def test_build_judge_prompt_skips_untouched_changes_in_report():
-    """The diff-report renderer skips ``operation="untouched"`` rows."""
+    """The diff-report renderer skips `operation="untouched"` rows."""
     change_a = BranchChange(
         branch_id="a",
         branch_label="alpha",
@@ -922,13 +953,13 @@ async def test_build_judge_prompt_skips_untouched_changes_in_report():
         ),
     )
     prompt = _build_judge_prompt("goal", report, _make_outcomes())
-    # "untouched" rows aren't enumerated as bullets — only the touching branch shows.
+    # "untouched" rows aren't enumerated as bullets - only the touching branch shows.
     assert "alpha) modified" in prompt
     assert "beta) untouched" not in prompt
 
 
 async def test_build_branch_outcomes_skips_non_request_messages_for_goal():
-    """Messages list with a ``ModelResponse`` before the first request — goal still resolves."""
+    """Messages list with a `ModelResponse` before the first request - goal still resolves."""
     coord, _deps = await _coordinator_with_two_branches()
     # Inject a ModelResponse at the head of partial_history for one branch so
     # the goal-extraction loop has to skip past it before finding the UserPrompt.
@@ -945,11 +976,11 @@ async def test_build_branch_outcomes_skips_non_request_messages_for_goal():
 
 
 async def test_messages_for_falls_back_to_partial_when_task_cancelled():
-    """A cancelled branch task → ``_messages_for`` returns the partial-history snapshot.
+    """A cancelled branch task → `_messages_for` returns the partial-history snapshot.
 
     Builds a synthetic runtime with a task that's been cancelled-before-completion;
     the fork coordinator's test path can't easily produce this state because
-    ``TestModel`` finishes synchronously.
+    `TestModel` finishes synchronously.
     """
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
     from pydantic_deep.types import BranchStatus
@@ -990,7 +1021,7 @@ async def test_messages_for_falls_back_to_partial_when_task_cancelled():
 
 
 async def test_messages_for_falls_back_when_result_lacks_all_messages():
-    """Task completed but result object has no ``all_messages`` callable."""
+    """Task completed but result object has no `all_messages` callable."""
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
     from pydantic_deep.types import BranchStatus
 
@@ -1021,7 +1052,7 @@ async def test_messages_for_falls_back_when_result_lacks_all_messages():
 
 
 async def test_last_assistant_text_skips_non_string_parts():
-    """Parts whose ``content`` isn't a string (e.g. tool-call) are skipped."""
+    """Parts whose `content` isn't a string (e.g. tool-call) are skipped."""
     from pydantic_ai.messages import ToolCallPart
 
     # ToolCallPart's `content` doesn't exist; `getattr(part, "content", None)` returns
@@ -1032,10 +1063,10 @@ async def test_last_assistant_text_skips_non_string_parts():
 
 
 async def test_build_branch_outcomes_skips_non_request_messages_in_goal_scan():
-    """The goal-extraction loop's ``continue`` past non-``ModelRequest`` messages is exercised.
+    """The goal-extraction loop's `continue` past non-`ModelRequest` messages is exercised.
 
-    Builds runtimes whose ``_messages_for`` snapshot starts with a
-    :class:`ModelResponse` — the goal extractor must walk past it to find the
+    Builds runtimes whose `_messages_for` snapshot starts with a
+    :class:`ModelResponse` - the goal extractor must walk past it to find the
     later :class:`ModelRequest` carrying the user prompt.
     """
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
@@ -1147,7 +1178,7 @@ async def test_build_branch_outcomes_with_synthetic_runtimes():
 async def test_messages_for_logs_and_falls_back_when_task_result_raises(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A task that completed with an exception → ``_messages_for`` logs + falls back."""
+    """A task that completed with an exception → `_messages_for` logs + falls back."""
     import logging
 
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
@@ -1184,7 +1215,7 @@ async def test_messages_for_logs_and_falls_back_when_task_result_raises(
 
 
 async def test_vote_mode_empty_judge_models_list_raises():
-    """Explicit ``judge_models=[]`` must raise, not silently fall back to defaults."""
+    """Explicit `judge_models=[]` must raise, not silently fall back to defaults."""
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
     fake_verdict = _verdict(winner=a_id, confidence=0.9)
@@ -1197,7 +1228,7 @@ async def test_vote_mode_empty_judge_models_list_raises():
 
 
 async def test_vote_mode_uses_user_supplied_judge_models():
-    """Explicit non-empty ``judge_models`` is honored (no fallback to defaults)."""
+    """Explicit non-empty `judge_models` is honored (no fallback to defaults)."""
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
     call_models: list[str] = []
@@ -1216,7 +1247,7 @@ async def test_vote_mode_uses_user_supplied_judge_models():
 
 
 async def test_format_diff_report_handles_empty_diff_text():
-    """A touched branch whose ``unified_diff_vs_parent`` is empty — diff bullet still emitted."""
+    """A touched branch whose `unified_diff_vs_parent` is empty - diff bullet still emitted."""
     change = BranchChange(
         branch_id="a",
         branch_label="alpha",
@@ -1288,14 +1319,14 @@ async def test_format_diff_report_deleted_operation_renders_deleted_label():
 
 
 async def test_outcomes_carry_test_pass_ratio_none_when_disabled():
-    """No ``test_command`` configured → every outcome's ratio is ``None``."""
+    """No `test_command` configured → every outcome's ratio is `None`."""
     coord, _deps = await _coordinator_with_two_branches()
     outcomes, _ = await coord._build_branch_outcomes()
     assert all(o.test_pass_ratio is None for o in outcomes)
 
 
 async def test_outcomes_skip_runner_for_non_local_backend():
-    """``StateBackend`` parent → runner is no-op even if ``test_command`` is set."""
+    """`StateBackend` parent → runner is no-op even if `test_command` is set."""
     deps = DeepAgentDeps(backend=StateBackend())
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
     coord = ForkCoordinator(
@@ -1323,10 +1354,10 @@ async def _coordinator_with_local_backend_branch(
     test_command: str,
     test_timeout_s: float = 30.0,
 ) -> tuple[ForkCoordinator, str]:
-    """Spin up a coordinator backed by a real ``LocalBackend`` and one running branch.
+    """Spin up a coordinator backed by a real `LocalBackend` and one running branch.
 
     Returns the coordinator and the spawned branch's id. Drains the branch
-    task before returning so ``_run_tests_for_branch`` finds the overlay
+    task before returning so `_run_tests_for_branch` finds the overlay
     still attached (overlays only release on merge / abort).
     """
     from pydantic_ai_backends import LocalBackend
@@ -1405,7 +1436,7 @@ async def test_run_tests_for_branch_reaps_subprocess_on_cancellation(tmp_path: A
 
 
 async def test_run_tests_for_branch_returns_none_on_timeout(tmp_path: Any) -> None:
-    """Distinguished from ``0.0`` — a timeout is "no signal", not "tests failed"."""
+    """Distinguished from `0.0` - a timeout is "no signal", not "tests failed"."""
     coord, bid = await _coordinator_with_local_backend_branch(
         tmp_path, test_command="sleep 5", test_timeout_s=0.1
     )
@@ -1438,7 +1469,7 @@ async def test_compute_signals_uses_winner_test_pass_ratio():
 
 
 async def test_compute_signals_falls_back_to_none_when_winner_has_no_ratio():
-    """Winner outcome with ``None`` → cap-at-0.65 stays active, identical to today."""
+    """Winner outcome with `None` → cap-at-0.65 stays active, identical to today."""
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
     outcomes = [
@@ -1459,7 +1490,7 @@ async def test_compute_signals_falls_back_to_none_when_winner_has_no_ratio():
     assert signals.test_pass_ratio is None
     # ratio=None ⇒ cap-at-0.65 is *enabled*; raw heuristic here is
     # 1.0*0.4 + 0 + 1.0*0.2 = 0.6 which is below the cap, so the value passes
-    # through unmodified — the cap protects against false-positive auto-merge
+    # through unmodified - the cap protects against false-positive auto-merge
     # even when the heuristic happens to land low.
     assert compute_confidence(signals, 1.0) == pytest.approx(0.6)
 
@@ -1498,7 +1529,7 @@ async def test_run_tests_materializes_overlay_writes(tmp_path: Any) -> None:
 
 
 async def test_runner_failure_does_not_block_sibling_branches(tmp_path: Any) -> None:
-    """One branch's runner raising returns ``None``; the other still produces a ratio."""
+    """One branch's runner raising returns `None`; the other still produces a ratio."""
     from pydantic_ai_backends import LocalBackend
 
     backend = LocalBackend(root_dir=str(tmp_path))
@@ -1521,7 +1552,7 @@ async def test_runner_failure_does_not_block_sibling_branches(tmp_path: Any) -> 
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()), return_exceptions=True)
 
-    # Force one branch's overlay snapshot to fail by detaching its overlay —
+    # Force one branch's overlay snapshot to fail by detaching its overlay -
     # _run_tests_for_branch returns None for that branch.
     bids = list(coord.branches.keys())
     coord.branches[bids[1]].overlay = None
@@ -1535,7 +1566,7 @@ async def test_runner_failure_does_not_block_sibling_branches(tmp_path: Any) -> 
 async def test_run_tests_for_branch_returns_none_on_spawn_failure(
     tmp_path: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """``create_subprocess_exec`` raising ``OSError`` → log + return ``None``."""
+    """`create_subprocess_exec` raising `OSError` → log + return `None`."""
     import logging
 
     coord, bid = await _coordinator_with_local_backend_branch(tmp_path, test_command="true")
@@ -1555,10 +1586,10 @@ async def test_run_tests_for_branch_returns_none_on_spawn_failure(
 async def test_run_tests_for_branch_swallows_snapshot_errors(
     tmp_path: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Any exception inside the snapshot/subprocess block → log + return ``None``.
+    """Any exception inside the snapshot/subprocess block → log + return `None`.
 
-    A broken test runner must never abort :meth:`resolve` — the safety
-    rail returns ``None`` so :meth:`compute_confidence` keeps its
+    A broken test runner must never abort :meth:`resolve` - the safety
+    rail returns `None` so :meth:`compute_confidence` keeps its
     cap-at-0.65 fallback active.
     """
     import logging
@@ -1582,11 +1613,11 @@ async def test_run_tests_for_branch_swallows_snapshot_errors(
 async def test_run_tests_for_branch_escalates_to_kill_when_terminate_ignored(
     tmp_path: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Process that ignores SIGTERM → kill escalation runs, ratio is ``None``.
+    """Process that ignores SIGTERM → kill escalation runs, ratio is `None`.
 
-    Covers the orphan-process safety net: if ``proc.terminate()`` plus a
-    grace ``wait_for`` does not collect the child, the runner escalates
-    to ``proc.kill()`` and waits again before reporting ``None``.
+    Covers the orphan-process safety net: if `proc.terminate()` plus a
+    grace `wait_for` does not collect the child, the runner escalates
+    to `proc.kill()` and waits again before reporting `None`.
     """
     import logging
 
@@ -1641,7 +1672,7 @@ async def test_run_tests_for_branch_escalates_to_kill_when_terminate_ignored(
 
 
 async def test_live_fork_capability_threads_test_command_to_coordinator():
-    """``LiveForkCapability(test_command=..., test_timeout_s=...)`` lands on the coordinator."""
+    """`LiveForkCapability(test_command=..., test_timeout_s=...)` lands on the coordinator."""
     from pydantic_deep.capabilities.forking import LiveForkCapability
 
     cap = LiveForkCapability(test_command="pytest -q", test_timeout_s=42.0)
@@ -1666,12 +1697,12 @@ async def test_live_fork_capability_threads_test_command_to_coordinator():
 
 
 async def test_live_fork_capability_end_to_end_produces_test_pass_ratio(tmp_path: Any) -> None:
-    """End-to-end check: a real ``LiveForkCapability`` config produces a ratio in outcomes.
+    """End-to-end check: a real `LiveForkCapability` config produces a ratio in outcomes.
 
-    Complements ``test_live_fork_capability_threads_test_command_to_coordinator``
-    — that test only verifies the kwargs land on the coordinator. This one
-    drives the runner through the full path: capability ``for_run`` →
-    coordinator → ``_build_branch_outcomes`` → ``BranchOutcome.test_pass_ratio``.
+    Complements `test_live_fork_capability_threads_test_command_to_coordinator`
+    - that test only verifies the kwargs land on the coordinator. This one
+    drives the runner through the full path: capability `for_run` →
+    coordinator → `_build_branch_outcomes` → `BranchOutcome.test_pass_ratio`.
     """
     from pydantic_ai_backends import LocalBackend
 
@@ -1704,7 +1735,7 @@ async def test_live_fork_capability_end_to_end_produces_test_pass_ratio(tmp_path
 async def test_run_tests_materializes_overlay_writes_as_real_file(tmp_path: Any) -> None:
     """Overlay writes appear as real files in the snapshot, not symlinks to the parent.
 
-    Complements ``test_run_tests_materializes_overlay_writes`` — that test
+    Complements `test_run_tests_materializes_overlay_writes` - that test
     asserts the content; this one asserts the file shape (a symlink would
     incorrectly point back at the parent's bytes).
     """
@@ -1729,7 +1760,7 @@ async def test_run_tests_materializes_overlay_writes_as_real_file(tmp_path: Any)
 async def test_branch_overlay_snapshot_include_venv_symlinks_when_present(
     tmp_path: Any,
 ) -> None:
-    """``include_venv=True`` adds a ``.venv`` symlink when the parent has one."""
+    """`include_venv=True` adds a `.venv` symlink when the parent has one."""
     from pathlib import Path as _Path
 
     from pydantic_ai_backends import LocalBackend
@@ -1747,7 +1778,7 @@ async def test_branch_overlay_snapshot_include_venv_symlinks_when_present(
 
 
 async def test_branch_overlay_snapshot_default_skips_venv(tmp_path: Any) -> None:
-    """``include_venv`` defaults to False — the existing ``execute`` consumer stays slim."""
+    """`include_venv` defaults to False - the existing `execute` consumer stays slim."""
     from pathlib import Path as _Path
 
     from pydantic_ai_backends import LocalBackend
@@ -1763,18 +1794,18 @@ async def test_branch_overlay_snapshot_default_skips_venv(tmp_path: Any) -> None
 async def test_run_tests_for_branch_returns_none_for_invalid_root_dir_type(
     tmp_path: Any,
 ) -> None:
-    """Backend whose ``root_dir`` is not a ``str``/``Path`` → ``None``, no crash.
+    """Backend whose `root_dir` is not a `str`/`Path` → `None`, no crash.
 
-    Guards the ``isinstance(parent_root_obj, (str, Path))`` check — a
-    backend that exposes ``root_dir`` as a callable or some other shape
-    must not crash the runner; it must return ``None`` (no signal).
+    Guards the `isinstance(parent_root_obj, (str, Path))` check - a
+    backend that exposes `root_dir` as a callable or some other shape
+    must not crash the runner; it must return `None` (no signal).
     """
     from pydantic_ai_backends import LocalBackend
 
     class _OddRootBackend(LocalBackend):  # type: ignore[misc]
         @property
         def root_dir(self) -> Any:
-            # Callable shape — the runner's isinstance check should reject this.
+            # Callable shape - the runner's isinstance check should reject this.
             return lambda: "not-a-path"
 
     backend = _OddRootBackend(root_dir=str(tmp_path))

@@ -3,11 +3,11 @@
 Provides async Playwright-backed browser tools: navigate, click, type, screenshot,
 get_text, scroll, go_back, go_forward, execute_js.
 
-The toolset requires the ``browser`` optional extra::
+The toolset requires the `browser` optional extra::
 
     pip install 'pydantic-deep[browser]'
 
-which pulls in ``playwright`` and ``html2text``. After installation, run::
+which pulls in `playwright` and `html2text`. After installation, run::
 
     playwright install chromium
 
@@ -27,6 +27,8 @@ Usage::
 from __future__ import annotations
 
 import base64
+import contextlib
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -55,7 +57,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# Constants
 
 DEFAULT_MAX_CONTENT_TOKENS: int = 4000
 """Default max page content tokens injected into the agent context."""
@@ -66,7 +68,7 @@ NUM_CHARS_PER_TOKEN: int = 4
 DEFAULT_TIMEOUT_MS: int = 30_000
 """Default Playwright navigation timeout in milliseconds."""
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 NAVIGATE_DESCRIPTION = """\
 Navigate the browser to a URL and return the page content as Markdown.
@@ -135,14 +137,15 @@ EXECUTE_JS_DESCRIPTION = """\
 Execute a JavaScript expression in the browser and return the result.
 
 Args:
-    script: JavaScript expression to evaluate. The return value is serialised
-            to a string. For example: 'document.title' or
+    script: JavaScript expression to evaluate. For example: 'document.title' or
             'Array.from(document.querySelectorAll("h1")).map(e => e.innerText)'.
 
-Returns stringified result, or an error message if evaluation failed."""
+Strings are returned as-is, objects and arrays are returned as JSON, and a
+null/undefined result is returned as the literal 'undefined'. Returns an error
+message if evaluation failed."""
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
+# Internal helpers
 
 
 def _require_browser() -> None:
@@ -175,13 +178,15 @@ def _truncate_content(content: str, max_tokens: int) -> str:
     tail_chars = max_chars - head_chars
     omitted = len(content) - max_chars
     marker = f"\n\n... [{omitted} chars truncated] ...\n\n"
-    return content[:head_chars] + marker + content[-tail_chars:]
+    head = content[:head_chars] if head_chars > 0 else ""
+    tail = content[-tail_chars:] if tail_chars > 0 else ""
+    return head + marker + tail
 
 
 def _html_to_markdown(html: str) -> str:
     """Convert HTML to Markdown.
 
-    Uses ``html2text`` when available, otherwise strips tags with a regex
+    Uses `html2text` when available, otherwise strips tags with a regex
     fallback.
 
     Args:
@@ -205,8 +210,8 @@ def _check_allowed_domain(url: str, allowed_domains: list[str] | None) -> bool:
 
     Args:
         url: URL to check.
-        allowed_domains: Allowlist of domain strings (e.g. ``["example.com"]``).
-            ``None`` means all domains are allowed.
+        allowed_domains: Allowlist of domain strings (e.g. `["example.com"]`).
+            `None` means all domains are allowed.
 
     Returns:
         True when allowed, False otherwise.
@@ -223,17 +228,17 @@ def _check_allowed_domain(url: str, allowed_domains: list[str] | None) -> bool:
         return False
 
 
-# ── Shared browser state ──────────────────────────────────────────────────────
+# Shared browser state
 
 
 @dataclass
 class _BrowserState:
     """Mutable browser state shared between BrowserCapability and BrowserToolset.
 
-    ``BrowserCapability.wrap_run`` sets ``_lazy_launcher`` at the start of
-    each agent run.  ``BrowserToolset`` calls ``ensure_page()`` on the first
+    `BrowserCapability.wrap_run` sets `_lazy_launcher` at the start of
+    each agent run.  `BrowserToolset` calls `ensure_page()` on the first
     tool invocation, which triggers the actual Chromium launch only when a
-    browser tool is actually needed — keeping runs that never use the browser
+    browser tool is actually needed - keeping runs that never use the browser
     free of any Playwright overhead.
     """
 
@@ -251,6 +256,10 @@ class _BrowserState:
 
     _lazy_launcher: Any | None = field(default=None, init=False, repr=False)
     """Async callable installed by BrowserCapability.wrap_run; triggers the actual launch."""
+
+    _popup_tasks: set[Any] = field(default_factory=set, init=False, repr=False)
+    """Strong references to fire-and-forget popup-handling tasks, so they are not
+    garbage-collected mid-flight and their exceptions are retrieved."""
 
     async def ensure_page(self) -> Any:
         """Return the active page, launching Chromium lazily on the first call.
@@ -273,18 +282,18 @@ class _BrowserState:
         return self.page
 
 
-# ── Toolset ───────────────────────────────────────────────────────────────────
+# Toolset
 
 
 class BrowserToolset(FunctionToolset[Any]):
     """Async Playwright-backed browser toolset.
 
-    Tools are registered at construction via ``@self.tool()`` closures that
-    capture ``self._state``. The actual Playwright page is injected into
-    ``self._state.page`` by ``BrowserCapability.wrap_run`` before any tool is
+    Tools are registered at construction via `@self.tool()` closures that
+    capture `self._state`. The actual Playwright page is injected into
+    `self._state.page` by `BrowserCapability.wrap_run` before any tool is
     invoked.
 
-    Typical usage is through ``BrowserCapability`` rather than directly::
+    Typical usage is through `BrowserCapability` rather than directly::
 
         from pydantic_deep.capabilities.browser import BrowserCapability
 
@@ -310,16 +319,16 @@ class BrowserToolset(FunctionToolset[Any]):
         """Initialise the toolset and register all browser tools.
 
         Args:
-            state: Shared mutable state; ``state.page`` must be set before
-                any tool is called (done by ``BrowserCapability.wrap_run``).
-            allowed_domains: Domain allowlist. ``None`` allows all domains.
-            screenshot_on_navigate: Append a screenshot to ``navigate`` results.
+            state: Shared mutable state; `state.page` must be set before
+                any tool is called (done by `BrowserCapability.wrap_run`).
+            allowed_domains: Domain allowlist. `None` allows all domains.
+            screenshot_on_navigate: Append a screenshot to `navigate` results.
             max_content_tokens: Token budget for page content truncation.
             timeout_ms: Default Playwright timeout in milliseconds.
             descriptions: Optional override map for tool descriptions.
-                Keys: ``navigate``, ``click``, ``type_text``, ``screenshot``,
-                ``get_text``, ``scroll``, ``go_back``, ``go_forward``,
-                ``execute_js``.
+                Keys: `navigate`, `click`, `type_text`, `screenshot`,
+                `get_text`, `scroll`, `go_back`, `go_forward`,
+                `execute_js`.
         """
         super().__init__(id="deep-browser")
         self._state = state
@@ -330,12 +339,12 @@ class BrowserToolset(FunctionToolset[Any]):
         descs = descriptions or {}
         self._register_tools(descs)
 
-    # ── Internal helpers ──────────────────────────────────────────────────
+    # Internal helpers
 
     def _get_page(self) -> Any:
         """Return the active page or raise RuntimeError if browser is not running.
 
-        Sync accessor — only valid after ``_ensure_page()`` has been awaited.
+        Sync accessor - only valid after `_ensure_page()` has been awaited.
         """
         if self._state.page is None:
             if self._state.launch_error:
@@ -350,7 +359,7 @@ class BrowserToolset(FunctionToolset[Any]):
         """Trigger lazy browser launch and return the active page.
 
         Call this at the start of every tool function instead of
-        ``_get_page()`` so that Chromium is only launched when a tool is
+        `_get_page()` so that Chromium is only launched when a tool is
         actually invoked.
         """
         return await self._state.ensure_page()
@@ -362,13 +371,38 @@ class BrowserToolset(FunctionToolset[Any]):
         md = _html_to_markdown(html)
         return _truncate_content(md, self._max_content_tokens)
 
+    async def _enforce_allowed_domain(self, action: str) -> str | None:
+        """Re-check the current page URL against the allowlist after an action.
+
+        Navigation can happen through paths other than `navigate` - clicking
+        a cross-domain link, `execute_js` setting `location.href`, or
+        history navigation. This guard runs after such actions: if the page
+        left the allowlist it is moved to `about:blank` and an error string
+        is returned so the disallowed page content is never surfaced to the
+        model.
+
+        Args:
+            action: Human-readable name of the action for the error message.
+
+        Returns:
+            An error string when the current URL is not allowed, else `None`.
+        """
+        page = self._get_page()
+        if _check_allowed_domain(page.url, self._allowed_domains):
+            return None
+        blocked = page.url
+        # Best-effort navigation away from the blocked domain.
+        with contextlib.suppress(Exception):  # pragma: no cover
+            await page.goto("about:blank")
+        return f"Error: {action} reached a domain not in allowed_domains list: {blocked}"
+
     async def _screenshot_b64(self, full_page: bool = False) -> str:
         """Take a screenshot and return it as a base64 string."""
         page = self._get_page()
         png: bytes = await page.screenshot(full_page=full_page)
         return base64.b64encode(png).decode("ascii")
 
-    # ── Tool registration ─────────────────────────────────────────────────
+    # Tool registration
 
     def _register_tools(self, descs: dict[str, str]) -> None:  # noqa: C901
         """Register all browser tools with the toolset."""
@@ -408,6 +442,9 @@ class BrowserToolset(FunctionToolset[Any]):
             else:
                 await page.click(selector, timeout=self._timeout_ms)
             await page.wait_for_load_state("domcontentloaded")
+            blocked = await self._enforce_allowed_domain("click")
+            if blocked is not None:
+                return blocked
             content = await self._page_content_as_markdown()
             return f"Clicked '{selector}'. URL: {page.url}\n\n{content}"
 
@@ -471,7 +508,9 @@ class BrowserToolset(FunctionToolset[Any]):
                 "left": (-300, 0),
                 "right": (300, 0),
             }
-            dx, dy = delta_map.get(direction.lower(), (0, 300))
+            if direction.lower() not in delta_map:
+                return f"Error: invalid direction {direction!r}; use up/down/left/right"
+            dx, dy = delta_map[direction.lower()]
             if x is not None and y is not None:
                 await page.mouse.move(x, y)
                 await page.mouse.wheel(dx, dy)
@@ -486,6 +525,9 @@ class BrowserToolset(FunctionToolset[Any]):
             page = await self._ensure_page()
             await page.go_back(timeout=self._timeout_ms)
             await page.wait_for_load_state("domcontentloaded")
+            blocked = await self._enforce_allowed_domain("go_back")
+            if blocked is not None:
+                return blocked
             content = await self._page_content_as_markdown()
             return f"Went back. URL: {page.url}\n\n{content}"
 
@@ -495,6 +537,9 @@ class BrowserToolset(FunctionToolset[Any]):
             page = await self._ensure_page()
             await page.go_forward(timeout=self._timeout_ms)
             await page.wait_for_load_state("domcontentloaded")
+            blocked = await self._enforce_allowed_domain("go_forward")
+            if blocked is not None:
+                return blocked
             content = await self._page_content_as_markdown()
             return f"Went forward. URL: {page.url}\n\n{content}"
 
@@ -508,6 +553,16 @@ class BrowserToolset(FunctionToolset[Any]):
             page = await self._ensure_page()
             try:
                 result = await page.evaluate(script)
-                return str(result)
             except Exception as exc:
                 return f"JS error: {exc}"
+            blocked = await self._enforce_allowed_domain("execute_js")
+            if blocked is not None:
+                return blocked
+            if result is None:
+                return "undefined"
+            if isinstance(result, str):
+                return result
+            try:
+                return json.dumps(result, default=str)
+            except TypeError:
+                return str(result)

@@ -6,7 +6,7 @@ Three widgets need a spinner while something is "in flight":
 - :class:`~apps.cli.widgets.tool_call.ToolCallWidget` — per-tool-call pending state
 - :class:`~apps.cli.widgets.fork_overview.ForkOverviewWidget` — per-fork running state
 
-Each owns its own ``set_interval`` timer (because gating and start/stop
+Each owns its own `set_interval` timer (because gating and start/stop
 semantics differ), but the *frame set*, *tick rate*, and *advance logic*
 are identical — and were previously duplicated three times. This module
 hosts all three.
@@ -24,7 +24,7 @@ _SPINNER_TICK_S: float = 1 / 12
 
 
 class _SupportsSetInterval(Protocol):
-    """Anything Textual-shaped enough to schedule a tick — ``Widget``, etc."""
+    """Anything Textual-shaped enough to schedule a tick — `Widget`, etc."""
 
     def set_interval(self, interval: float, callback: Callable[[], None]) -> Timer: ...
 
@@ -87,7 +87,7 @@ class Spinner:
 
         Approximate; assumes the timer fires reliably. For exact wall-clock
         duration (e.g. on tool-call completion), callers should record their
-        own ``time.monotonic()`` and reuse that — the spinner's elapsed is
+        own `time.monotonic()` and reuse that — the spinner's elapsed is
         intended for the visible "X.Xs running" indicator only.
         """
         return self._elapsed_ticks * _SPINNER_TICK_S
@@ -110,16 +110,16 @@ class Spinner:
         gate: Callable[[], bool],
         on_advance: Callable[[], None] | None = None,
     ) -> Timer:
-        """Schedule a tick on ``widget``'s Textual loop.
+        """Schedule a tick on `widget`'s Textual loop.
 
-        Each fired tick checks ``gate()``; if True, advances the spinner and
-        calls ``on_advance`` (typically a re-render). The timer keeps firing
+        Each fired tick checks `gate()`; if True, advances the spinner and
+        calls `on_advance` (typically a re-render). The timer keeps firing
         unconditionally — gating happens inside the callback, so the widget
         doesn't have to stop/restart on busy-state transitions.
 
         Returns the Textual :class:`Timer` so callers that *do* want to
         stop the timer (e.g. when the widget is hidden, like
-        ``ForkOverviewWidget``) can call ``.stop()`` on the handle.
+        `ForkOverviewWidget`) can call `.stop()` on the handle.
         """
 
         def _tick() -> None:

@@ -524,6 +524,16 @@ class TestLocalSkillScriptExecutor:
         executor = LocalSkillScriptExecutor(python_executable="/usr/bin/python3")
         assert executor._python_executable == "/usr/bin/python3"
 
+    def test_file_based_script_default_executor_not_shared(self):
+        # Each FileBasedSkillScript built without an explicit executor must get
+        # its own LocalSkillScriptExecutor instance (default_factory, not a
+        # shared mutable default).
+        a = FileBasedSkillScript(name="a.py", uri="file:///a.py")
+        b = FileBasedSkillScript(name="b.py", uri="file:///b.py")
+        assert isinstance(a.executor, LocalSkillScriptExecutor)
+        assert isinstance(b.executor, LocalSkillScriptExecutor)
+        assert a.executor is not b.executor
+
 
 # Local — CallableSkillScriptExecutor
 

@@ -121,8 +121,8 @@ def _update_latest_symlink(logs_dir: Path, log_file: Path) -> None:
 def setup_logger(session_id: str, level: int = logging.DEBUG) -> _StructuredLogger:
     """Initialize per-session logger.
 
-    Creates a log file at ``.pydantic-deep/logs/session-<id>.log``
-    and a ``latest.log`` symlink pointing to it.
+    Creates a log file at `.pydantic-deep/logs/session-<id>.log`
+    and a `latest.log` symlink pointing to it.
 
     Args:
         session_id: Unique session identifier (used in filename).
@@ -177,7 +177,7 @@ def setup_logger(session_id: str, level: int = logging.DEBUG) -> _StructuredLogg
 def get_logger() -> _StructuredLogger:
     """Get the current session logger.
 
-    Returns a no-op logger if ``setup_logger()`` hasn't been called yet.
+    Returns a no-op logger if `setup_logger()` hasn't been called yet.
     """
     global _logger
     if _logger is None:

@@ -11,6 +11,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
+from apps.cli.keystore import save_key
+
 _PROVIDERS = [
     ("openrouter", "OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/keys"),
     ("anthropic", "Anthropic (Claude)", "ANTHROPIC_API_KEY", "https://console.anthropic.com/"),
@@ -147,8 +149,6 @@ class ApiKeyModal(ModalScreen[str | None]):
         if not key:
             self.app.notify("Please enter a key", severity="warning")
             return
-
-        from apps.cli.keystore import save_key
 
         save_key(self._env_var, key)
         self.dismiss(key)

@@ -10,7 +10,7 @@ from textual.widgets import Static
 
 
 class ConfirmModal(ModalScreen[bool]):
-    """Tiny single-question modal that resolves to ``True`` (yes) or ``False`` (no/cancel)."""
+    """Tiny single-question modal that resolves to `True` (yes) or `False` (no/cancel)."""
 
     DEFAULT_CSS = """
     ConfirmModal {

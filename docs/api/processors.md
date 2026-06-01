@@ -254,6 +254,18 @@ processor = create_eviction_processor(
 )
 ```
 
+::: pydantic_deep.processors.eviction.EvictionProcessor
+    options:
+      show_source: false
+
+::: pydantic_deep.processors.eviction.create_eviction_processor
+    options:
+      show_source: false
+
+::: pydantic_deep.processors.eviction.create_content_preview
+    options:
+      show_source: false
+
 ---
 
 ## patch_tool_calls_processor
@@ -272,23 +284,31 @@ agent = create_deep_agent(patch_tool_calls=True)
 
 ---
 
-## ContextManagerMiddleware
+## ContextManagerCapability
 
-Dual-protocol component from summarization-pydantic-ai. Acts as both history processor and AgentMiddleware.
+Capability from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai)
+that tracks token usage and auto-compresses the conversation when approaching the
+token budget. It is enabled by default through `create_deep_agent(context_manager=True)`.
 
-### Factory
+### Constructor
 
 ```python
-from pydantic_ai_summarization import create_context_manager_middleware
+from pydantic_ai_summarization import ContextManagerCapability
 
-middleware = create_context_manager_middleware(
+capability = ContextManagerCapability(
     max_tokens=200_000,
     compress_threshold=0.9,
     on_usage_update=lambda pct, cur, mx: print(f"{pct:.0%}"),
 )
+
+agent = create_deep_agent(capabilities=[capability], context_manager=False)
 ```
 
-See [History Processors](../advanced/processors.md#context-manager-middleware) for details.
+Most users do not construct it directly — set `context_manager=True` (default)
+and configure it via the `context_manager_max_tokens`, `on_context_update`,
+`on_before_compress`, and `on_after_compress` parameters of `create_deep_agent`.
+
+See [History Processors](../advanced/processors.md) for details.
 
 ---
 

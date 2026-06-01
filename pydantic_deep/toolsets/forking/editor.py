@@ -6,16 +6,20 @@ against the materialised parent + branch snapshots produced by
 
 Detection priority (per project memory):
 
-1. ``PYDANTIC_DEEP_DIFFTOOL`` environment variable — explicit override.
+1. `PYDANTIC_DEEP_DIFFTOOL` environment variable - explicit override.
    The value is passed verbatim to the shell and the kind becomes
-   ``"custom"``; downstream callers (:mod:`apps.cli.commands`) format the
+   `"custom"`; downstream callers (:mod:`apps.cli.commands`) format the
    command themselves so we don't try to second-guess the user's tool.
-2. ``pycharm`` on ``PATH`` → native 3-way diff via a single
-   ``subprocess.Popen(["pycharm", "diff", parent, a, b, c, ...])``.
-3. ``code`` on ``PATH`` → VS Code pairwise — one ``Popen`` per branch,
-   each ``["code", "--diff", parent, branch]``.
-4. Otherwise the kind becomes ``"tui"`` and :meth:`EditorDetector.invoke`
-   returns an empty list — the CLI dispatcher falls back to the
+2. `pycharm` on `PATH` → native 3-way diff via a single
+   `subprocess.Popen(["pycharm", "diff", ...])`. The argument order
+   depends on the branch count: with exactly two branches the parent goes
+   in the CENTER (`[a, parent, b]`) so PyCharm's 3-pane view treats the
+   parent as the merge base between the two branches; with any other count
+   the parent goes FIRST (`[parent, a, b, c, ...]`).
+3. `code` on `PATH` → VS Code pairwise - one `Popen` per branch,
+   each `["code", "--diff", parent, branch]`.
+4. Otherwise the kind becomes `"tui"` and :meth:`EditorDetector.invoke`
+   returns an empty list - the CLI dispatcher falls back to the
    :class:`MergePickerModal` in diff-explore mode.
 """
 
@@ -32,17 +36,17 @@ EditorKind = Literal["pycharm", "vscode", "tui", "custom"]
 
 
 class EditorDetector:
-    """Static utility — detection and invocation are stateless."""
+    """Static utility - detection and invocation are stateless."""
 
     ENV_OVERRIDE = "PYDANTIC_DEEP_DIFFTOOL"
 
     @staticmethod
     def detect(env: Mapping[str, str] | None = None) -> EditorKind:
-        """Return the kind of editor to use based on env + ``PATH``.
+        """Return the kind of editor to use based on env + `PATH`.
 
         Args:
             env: Optional mapping to read the override variable from; when
-                ``None`` reads ``os.environ`` directly. Tests pass an
+                `None` reads `os.environ` directly. Tests pass an
                 explicit mapping so they don't have to manipulate the
                 process env.
         """
@@ -63,30 +67,30 @@ class EditorDetector:
         *,
         custom_cmd: str | None = None,
     ) -> list[subprocess.Popen[bytes]]:
-        """Launch the detected editor against ``parent`` and ``branch_paths``.
+        """Launch the detected editor against `parent` and `branch_paths`.
 
         Returns:
-            The list of spawned :class:`subprocess.Popen` handles — empty
+            The list of spawned :class:`subprocess.Popen` handles - empty
             for the TUI fallback (caller opens the in-TUI explorer
             instead). For PyCharm the list always has length 1; for VS
-            Code it has length ``len(branch_paths)`` (one ``Popen`` per
-            branch, each diffing parent vs that one branch — VS Code only
+            Code it has length `len(branch_paths)` (one `Popen` per
+            branch, each diffing parent vs that one branch - VS Code only
             does 2-way diff).
 
         Args:
             kind: Editor kind from :meth:`detect`.
-            parent: Path to the materialised parent snapshot, or ``None``
+            parent: Path to the materialised parent snapshot, or `None`
                 to open a branch-only diff (branches compared directly,
                 no parent file passed to the editor).
             branch_paths: One path per branch (materialised under
-                ``branches/{label}/{path}``).
-            custom_cmd: Command template used when ``kind == "custom"``.
-                Tokens ``{parent}`` and ``{branches}`` are substituted
-                with the parent path (empty string when ``parent`` is
-                ``None``) and a space-separated list of branch paths
-                respectively. When ``None`` and the kind is
-                ``"custom"``, the environment variable
-                ``PYDANTIC_DEEP_DIFFTOOL`` is read at invoke time.
+                `branches/{label}/{path}`).
+            custom_cmd: Command template used when `kind == "custom"`.
+                Tokens `{parent}` and `{branches}` are substituted
+                with the parent path (empty string when `parent` is
+                `None`) and a space-separated list of branch paths
+                respectively. When `None` and the kind is
+                `"custom"`, the environment variable
+                `PYDANTIC_DEEP_DIFFTOOL` is read at invoke time.
         """
         if kind == "tui":
             return []
@@ -119,7 +123,7 @@ class EditorDetector:
             for branch in branch_paths[1:]:
                 handles.append(subprocess.Popen(["code", "--diff", str(first), str(branch)]))
             return handles
-        # User-controlled template via PYDANTIC_DEEP_DIFFTOOL — shell=True is intentional.
+        # User-controlled template via PYDANTIC_DEEP_DIFFTOOL - shell=True is intentional.
         cmd_template = (
             custom_cmd
             if custom_cmd is not None

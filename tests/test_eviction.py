@@ -140,6 +140,33 @@ class TestCreateContentPreview:
         result = create_content_preview("")
         assert result == ""
 
+    def test_single_line_huge_content_capped_by_chars(self):
+        """A single line with no newlines (minified JSON / base64) must still be
+        shrunk by the character cap - the line logic alone would return it whole."""
+        content = '{"k":"' + "x" * 100_000 + '"}'  # one logical line, no '\n'
+        result = create_content_preview(content, max_chars=2_000)
+        assert len(result) < len(content)
+        assert len(result) <= 2_000 + 100  # cap + marker overhead
+        assert "chars truncated" in result
+        # Head and tail of the payload are preserved.
+        assert result.startswith('{"k":"')
+        assert result.endswith('"}')
+
+    def test_multiline_preview_also_char_capped(self):
+        """Few long lines whose head/tail join still exceeds the cap get clipped."""
+        lines = [("a" * 1_000) for _ in range(20)]
+        content = "\n".join(lines)
+        result = create_content_preview(content, head_lines=3, tail_lines=3, max_chars=500)
+        assert len(result) <= 500 + 100
+        assert "chars truncated" in result
+
+    def test_char_cap_not_applied_to_small_content(self):
+        """Content already under the cap is returned without a char marker."""
+        content = "line 1\nline 2\nline 3"
+        result = create_content_preview(content, max_chars=2_000)
+        assert result == content
+        assert "chars truncated" not in result
+
 
 class TestContentToStr:
     """Tests for the _content_to_str helper."""
@@ -254,6 +281,42 @@ class TestEvictionProcessor:
         # File should be written to backend
         evicted_content = backend.read_bytes("/large_tool_results/call_123")
         assert evicted_content == large_content.encode()
+
+    @pytest.mark.anyio
+    async def test_binary_content_part_not_evicted(self):
+        """A ToolReturnPart whose content is BinaryContent must be left intact -
+        text eviction would discard the bytes for a repr."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        processor = EvictionProcessor(backend=backend, token_limit=10)  # 40-char threshold
+        ctx = _make_ctx(backend)
+
+        image = BinaryContent(data=b"\x89PNG" + b"\x00" * 100_000, media_type="image/png")
+        part = _make_tool_return(image, tool_call_id="call_bin")
+        messages: list[ModelMessage] = [
+            ModelRequest(parts=[part], timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        ]
+
+        result = await processor(ctx, messages)
+        out_part = result[0].parts[0]
+        assert isinstance(out_part, ToolReturnPart)
+        # Content is the original BinaryContent, untouched.
+        assert out_part.content is image
+        assert backend.read_bytes("/large_tool_results/call_bin") in (None, b"")
+
+    async def test_evicted_ids_bounded_fifo(self):
+        """The evicted-id tracking set is bounded: oldest IDs drop past the cap."""
+        backend = StateBackend()
+        processor = EvictionProcessor(backend=backend, max_evicted_ids=2)
+
+        processor._mark_evicted("a")
+        processor._mark_evicted("b")
+        processor._mark_evicted("c")
+
+        # "a" (oldest) evicted from the tracking structure; cap respected.
+        assert list(processor._evicted_ids) == ["b", "c"]
+        assert "a" not in processor._evicted_ids
 
     @pytest.mark.anyio
     async def test_eviction_preserves_metadata(self):
@@ -1023,7 +1086,7 @@ class TestEvictionCapability:
 
     @pytest.mark.anyio
     async def test_no_backend_passes_through(self):
-        """No backend available — returns result unchanged."""
+        """No backend available - returns result unchanged."""
         cap = EvictionCapability(backend=None, token_limit=10)
         ctx = _make_ctx_no_backend()
 
@@ -1136,7 +1199,7 @@ class TestEvictionCapability:
 
 
 class TestEvictionCapabilityToolReturn:
-    """Tests for ``EvictionCapability`` handling of ``ToolReturn`` results."""
+    """Tests for `EvictionCapability` handling of `ToolReturn` results."""
 
     @pytest.mark.anyio
     async def test_toolreturn_preserves_binary_content(self):
@@ -1227,6 +1290,54 @@ class TestEvictionCapabilityToolReturn:
 
         assert result is original
 
+    @pytest.mark.anyio
+    async def test_bare_binary_content_returned_unchanged(self):
+        """A bare BinaryContent result (not wrapped in ToolReturn) must be
+        returned as-is - never coerced into its ~100KB text repr."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, token_limit=10)  # 40-char threshold
+        ctx = _make_ctx(backend)
+
+        image = BinaryContent(data=b"\x89PNG" + b"\x00" * 100_000, media_type="image/png")
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_bare_img"),
+            tool_def=_cap_td(),
+            args={},
+            result=image,
+        )
+
+        # Same object back: bytes preserved, no text eviction.
+        assert result is image
+        assert isinstance(result, BinaryContent)
+        # Nothing was written to the eviction path.
+        assert backend.read_bytes("/large_tool_results/call_bare_img") in (None, b"")
+
+    @pytest.mark.anyio
+    async def test_list_with_binary_content_returned_unchanged(self):
+        """A list mixing text and BinaryContent must be returned as-is so the
+        binary is not lost to text eviction."""
+        from pydantic_ai.messages import BinaryContent
+
+        backend = StateBackend()
+        cap = EvictionCapability(backend=backend, token_limit=10)
+        ctx = _make_ctx(backend)
+
+        image = BinaryContent(data=b"\xff\xd8" + b"x" * 100_000, media_type="image/jpeg")
+        original = ["here is the screenshot", image]
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_list_img"),
+            tool_def=_cap_td(),
+            args={},
+            result=original,
+        )
+
+        assert result is original
+        assert backend.read_bytes("/large_tool_results/call_list_img") in (None, b"")
+
 
 # ---------------------------------------------------------------------------
 # Binary content retention (before_model_request)
@@ -1234,7 +1345,7 @@ class TestEvictionCapabilityToolReturn:
 
 
 class _FakeRequestContext:
-    """Minimal stand-in for ``ModelRequestContext`` used in tests."""
+    """Minimal stand-in for `ModelRequestContext` used in tests."""
 
     def __init__(self, messages: list[ModelMessage]) -> None:
         self.messages = messages
@@ -1282,7 +1393,7 @@ def _toolreturn_with_image(
 
 
 class TestBinaryContentRetention:
-    """Tests for ``EvictionCapability.before_model_request`` binary pruning."""
+    """Tests for `EvictionCapability.before_model_request` binary pruning."""
 
     @pytest.mark.anyio
     async def test_keeps_most_recent_binaries(self):
@@ -1293,7 +1404,7 @@ class TestBinaryContentRetention:
         cap = EvictionCapability(backend=backend, max_binary_content=2)
         ctx = _make_ctx(backend)
 
-        # 4 messages, each with one image — newest last
+        # 4 messages, each with one image - newest last
         messages: list[ModelMessage] = [
             _user_with_image(b"image-0-bytes" * 8, text="img0"),
             _user_with_image(b"image-1-bytes" * 8, text="img1"),
@@ -1356,7 +1467,7 @@ class TestBinaryContentRetention:
 
     @pytest.mark.anyio
     async def test_none_disables_pruning(self):
-        """``max_binary_content=None`` keeps every binary in history."""
+        """`max_binary_content=None` keeps every binary in history."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
@@ -1378,7 +1489,7 @@ class TestBinaryContentRetention:
 
     @pytest.mark.anyio
     async def test_prunes_binary_in_toolreturn_part(self):
-        """Binary parts inside ``ToolReturnPart.content`` are also pruned and stored."""
+        """Binary parts inside `ToolReturnPart.content` are also pruned and stored."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
@@ -1474,7 +1585,7 @@ class TestBinaryContentRetention:
 
 
 class TestMaxBinaryContentAgentIntegration:
-    """``max_binary_content`` plumbing through ``create_deep_agent``."""
+    """`max_binary_content` plumbing through `create_deep_agent`."""
 
     def _eviction_capabilities(self, agent: object) -> list[EvictionCapability]:
         root = getattr(agent, "_root_capability", None)
@@ -1483,7 +1594,7 @@ class TestMaxBinaryContentAgentIntegration:
         return [c for c in getattr(root, "capabilities", []) if isinstance(c, EvictionCapability)]
 
     def test_agent_accepts_max_binary_content(self):
-        """``create_deep_agent`` accepts ``max_binary_content`` and forwards it."""
+        """`create_deep_agent` accepts `max_binary_content` and forwards it."""
         agent = create_deep_agent(
             model=TEST_MODEL,
             eviction_token_limit=20000,
@@ -1497,7 +1608,7 @@ class TestMaxBinaryContentAgentIntegration:
         assert caps[0].max_binary_content == 2
 
     def test_agent_default_max_binary_content(self):
-        """Default ``max_binary_content`` is 3 when not specified."""
+        """Default `max_binary_content` is 3 when not specified."""
         agent = create_deep_agent(
             model=TEST_MODEL,
             eviction_token_limit=20000,
@@ -1510,7 +1621,7 @@ class TestMaxBinaryContentAgentIntegration:
         assert caps[0].max_binary_content == 3
 
     def test_agent_max_binary_content_none(self):
-        """``max_binary_content=None`` disables pruning."""
+        """`max_binary_content=None` disables pruning."""
         agent = create_deep_agent(
             model=TEST_MODEL,
             eviction_token_limit=20000,
@@ -1525,7 +1636,7 @@ class TestMaxBinaryContentAgentIntegration:
 
 
 class TestExtensionForMediaType:
-    """Tests for the ``_extension_for_media_type`` helper."""
+    """Tests for the `_extension_for_media_type` helper."""
 
     def test_known_media_type_uses_mapping(self):
         from pydantic_deep.processors.eviction import _extension_for_media_type
@@ -1556,11 +1667,11 @@ class TestExtensionForMediaType:
 
 
 class TestBinaryRetentionEdgeCases:
-    """Edge cases for ``before_model_request`` binary pruning."""
+    """Edge cases for `before_model_request` binary pruning."""
 
     @pytest.mark.anyio
     async def test_bare_binary_in_toolreturn_content_pruned(self):
-        """Bare ``BinaryContent`` (not in a list) on ``ToolReturnPart.content`` is pruned."""
+        """Bare `BinaryContent` (not in a list) on `ToolReturnPart.content` is pruned."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
@@ -1614,7 +1725,7 @@ class TestBinaryRetentionEdgeCases:
 
     @pytest.mark.anyio
     async def test_bare_binary_under_limit_unchanged(self):
-        """Bare ``BinaryContent`` under the limit is left untouched."""
+        """Bare `BinaryContent` under the limit is left untouched."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
@@ -1640,7 +1751,7 @@ class TestBinaryRetentionEdgeCases:
 
     @pytest.mark.anyio
     async def test_bare_binary_write_failure_keeps_binary(self):
-        """A failed backend write leaves a bare ``BinaryContent`` untouched."""
+        """A failed backend write leaves a bare `BinaryContent` untouched."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
@@ -1743,7 +1854,7 @@ class TestBinaryRetentionEdgeCases:
 
     @pytest.mark.anyio
     async def test_other_request_parts_skipped(self):
-        """Non user/tool-return parts (e.g. ``RetryPromptPart``) are passed over."""
+        """Non user/tool-return parts (e.g. `RetryPromptPart`) are passed over."""
         from pydantic_ai.messages import RetryPromptPart
 
         backend = StateBackend()
@@ -1758,12 +1869,12 @@ class TestBinaryRetentionEdgeCases:
         rc = _FakeRequestContext([retry_msg])
         result_rc = await cap.before_model_request(ctx, rc)
 
-        # Same instance — nothing to prune
+        # Same instance - nothing to prune
         assert result_rc.messages[0] is retry_msg
 
     @pytest.mark.anyio
     async def test_non_list_non_binary_toolreturn_content_unchanged(self):
-        """Scalar non-binary ``ToolReturnPart.content`` (e.g. a dict) is left as-is."""
+        """Scalar non-binary `ToolReturnPart.content` (e.g. a dict) is left as-is."""
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()

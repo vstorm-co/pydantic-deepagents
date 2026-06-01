@@ -1,9 +1,9 @@
 """Tests for the CLI fork integration (issue #104).
 
-Follows the ``TestMessageQueueIntegration`` pattern from ``test_tui.py``:
+Follows the `TestMessageQueueIntegration` pattern from `test_tui.py`:
 build a :class:`DeepApp` with a real forking-enabled agent, drive
-``/fork`` and ``>>{branch_id}`` through ``pilot``, and assert against
-``app.active_fork`` and the rendered widget tree.
+`/fork` and `>>{branch_id}` through `pilot`, and assert against
+`app.active_fork` and the rendered widget tree.
 """
 
 from __future__ import annotations
@@ -84,12 +84,12 @@ async def _start_fork(
     strategy: Any = None,
     specs: list[BranchSpec] | None = None,
 ) -> CLIForkSession:
-    """Helper — start a fork; if ``slow`` is True, branch tasks block on a barrier.
+    """Helper - start a fork; if `slow` is True, branch tasks block on a barrier.
 
-    ``strategy`` lets a test pin a specific :class:`MergeStrategy` for ``/merge``
-    flow tests. ``None`` keeps the dataclass default (``auto_with_fallback``).
+    `strategy` lets a test pin a specific :class:`MergeStrategy` for `/merge`
+    flow tests. `None` keeps the dataclass default (`auto_with_fallback`).
     The strategy is patched onto
-    ``session.handle.merge_strategy`` after fork to avoid threading a kwarg
+    `session.handle.merge_strategy` after fork to avoid threading a kwarg
     through :func:`start_fork_from_cli` (production never overrides per-call).
     """
     if slow:
@@ -121,7 +121,7 @@ async def _drain_tasks(session: CLIForkSession) -> None:
 
 
 def _capture_notifications(app: DeepApp) -> list[str]:
-    """Monkey-patch ``app.notify`` to capture messages into a returned list."""
+    """Monkey-patch `app.notify` to capture messages into a returned list."""
     captured: list[str] = []
     original = app.notify
 
@@ -140,7 +140,7 @@ def _capture_notifications(app: DeepApp) -> list[str]:
 
 
 class TestForkPickerAndPanels:
-    """Test 1 — /fork modal collects two branches, app.active_fork set, 2 BranchPanelWidgets."""
+    """Test 1 - /fork modal collects two branches, app.active_fork set, 2 BranchPanelWidgets."""
 
     async def test_fork_populates_active_fork_and_mounts_panels(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -160,7 +160,7 @@ class TestForkPickerAndPanels:
 
 
 class TestBranchSteering:
-    """Test 2 — >>a focus on X routes to branch A's queue, branch B's queue empty."""
+    """Test 2 - >>a focus on X routes to branch A's queue, branch B's queue empty."""
 
     async def test_steer_routes_to_correct_branch(self, fork_app: DeepApp) -> None:
         from apps.cli.messages import UserSubmitted
@@ -228,7 +228,7 @@ class TestBranchSteering:
 
 
 class TestUnknownBranchSteer:
-    """Test 3 — `>>{unknown_label} msg` is rejected with a notify (no fall-through)."""
+    """Test 3 - `>>{unknown_label} msg` is rejected with a notify (no fall-through)."""
 
     async def test_unknown_label_notifies_and_does_not_touch_shell(self, fork_app: DeepApp) -> None:
         from apps.cli.messages import UserSubmitted
@@ -263,7 +263,7 @@ class TestUnknownBranchSteer:
 
 
 class TestEscTerminatesOneBranch:
-    """Test 4 — Esc on a branch tab terminates that branch only; others continue."""
+    """Test 4 - Esc on a branch tab terminates that branch only; others continue."""
 
     async def test_esc_on_branch_tab_terminates_branch(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -303,7 +303,7 @@ class TestEscTerminatesOneBranch:
 
 
 class TestEscAbortsAll:
-    """Test 5 — Esc on overview during a fork → abort all branches after confirm."""
+    """Test 5 - Esc on overview during a fork → abort all branches after confirm."""
 
     async def test_esc_on_overview_aborts(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -338,7 +338,7 @@ class TestEscAbortsAll:
 
 
 class TestMergeFlow:
-    """Test 6 — /merge modal renders overview; picking a branch invokes merge_or_select."""
+    """Test 6 - /merge modal renders overview; picking a branch invokes merge_or_select."""
 
     async def test_merge_picker_invokes_coordinator(self, fork_app: DeepApp) -> None:
         from apps.cli.commands import dispatch_command
@@ -373,7 +373,7 @@ class TestMergeFlow:
 
 
 class TestForkBadgeVisibility:
-    """Test 7 — ForkBadgeWidget visible during fork, hides on resolution."""
+    """Test 7 - ForkBadgeWidget visible during fork, hides on resolution."""
 
     async def test_badge_toggles_visibility(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -396,7 +396,7 @@ class TestForkBadgeVisibility:
 
 
 class TestTabCyclesFocus:
-    """Test 8 — Tab cycles focus through branch panels in order."""
+    """Test 8 - Tab cycles focus through branch panels in order."""
 
     async def test_tab_cycles_branches(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -558,7 +558,7 @@ class TestMergeWithoutFork:
 
 class TestPlainPromptDuringFork:
     async def test_plain_prompt_blocked_while_fork_active(self, fork_app: DeepApp) -> None:
-        """Plain prompts during a fork would race with the coordinator — must be blocked."""
+        """Plain prompts during a fork would race with the coordinator - must be blocked."""
         from apps.cli.messages import UserSubmitted
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -619,7 +619,7 @@ class TestSlashCommandDuringFork:
             session = await _start_fork(fork_app, slow=True)
             await pilot.pause()
 
-            # /improve is NOT on the allow-list — should be blocked
+            # /improve is NOT on the allow-list - should be blocked
             dispatched: list[str] = []
             real_handle = fork_app.handle_command
 
@@ -797,7 +797,7 @@ class TestSteerWithNoQueue:
 
 
 class TestBranchStateResolution:
-    """Coverage for ``CLIForkSession.branch_state`` — label vs id vs unknown."""
+    """Coverage for `CLIForkSession.branch_state` - label vs id vs unknown."""
 
     async def test_branch_state_by_label(self, fork_app: DeepApp) -> None:
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -826,7 +826,7 @@ class TestBranchStateResolution:
             await session.abort()
 
     async def test_branch_state_reflects_terminated(self, fork_app: DeepApp) -> None:
-        """After terminate_branch, state flips to ``terminated``."""
+        """After terminate_branch, state flips to `terminated`."""
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             session = await _start_fork(fork_app, slow=True)
@@ -859,7 +859,7 @@ class TestSteerToNonRunningBranch:
             await pilot.pause()
             await pilot.pause()
 
-            # The queue should NOT have received the message — branch is not running.
+            # The queue should NOT have received the message - branch is not running.
             a_queue = session.coordinator.branches[a_id].deps.message_queue
             assert a_queue is not None
             assert a_queue.pending_count() == (0, 0)
@@ -953,7 +953,7 @@ class TestOrphanToolCallScrub:
     async def test_scrub_invokes_patcher(
         self, fork_app: DeepApp, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Direct verification: ``patch_tool_calls_processor`` is called with the parent history."""
+        """Direct verification: `patch_tool_calls_processor` is called with the parent history."""
         from pydantic_ai.messages import ModelMessage
 
         from pydantic_deep.processors import patch as patch_module
@@ -986,7 +986,7 @@ class TestOrphanToolCallScrub:
 
 
 class TestForkOpenDiffCommand:
-    """Tests H, I, L — `/fork diff` dispatch + allow-list."""
+    """Tests H, I, L - `/fork diff` dispatch + allow-list."""
 
     async def test_open_diff_with_path_still_opens_picker(self, fork_app: DeepApp) -> None:
         from unittest.mock import patch
@@ -1038,7 +1038,7 @@ class TestForkOpenDiffCommand:
                 await dispatch_command(fork_app, "/fork diff")
                 await pilot.pause()
 
-            # Dispatcher pushes the picker modal — editor invocation happens on user confirm.
+            # Dispatcher pushes the picker modal - editor invocation happens on user confirm.
             assert isinstance(fork_app.screen, DiffPickerModal)
             await fork_app.pop_screen()
 
@@ -1095,7 +1095,7 @@ class TestForkOpenDiffCommand:
 
 
 class TestForkOpenDiffAllowList:
-    """Test L — `/fork diff` is allowed mid-fork; plain `/fork` is not."""
+    """Test L - `/fork diff` is allowed mid-fork; plain `/fork` is not."""
 
     def test_is_fork_inspection_matches_open_diff(self) -> None:
         assert ChatScreen._is_fork_inspection("/fork diff") is True
@@ -1114,7 +1114,7 @@ class TestForkOpenDiffAllowList:
 
 
 class TestMergePickerOpenInEditor:
-    """Test M — `MergePickerModal` exposes an Open-in-editor delegation point."""
+    """Test M - `MergePickerModal` exposes an Open-in-editor delegation point."""
 
     def test_open_in_editor_delegates_to_callback(self, fork_app: DeepApp) -> None:
         from datetime import datetime, timezone
@@ -1212,7 +1212,7 @@ class TestMergeNotification:
         assert "errors: 1" in text
 
     def test_notification_includes_deleted_paths(self) -> None:
-        """The deleted-paths count surfaces as ``N deleted`` in the merge notification."""
+        """The deleted-paths count surfaces as `N deleted` in the merge notification."""
         from apps.cli.commands import _format_merge_notification
         from pydantic_deep.types import MergeResult
 
@@ -1230,7 +1230,7 @@ class TestMergeNotification:
         assert "2 deleted" in text
 
     def test_notification_includes_blocked_commands(self) -> None:
-        """User-denied tool calls surface as ``denied: N`` in the merge notification."""
+        """User-denied tool calls surface as `denied: N` in the merge notification."""
         from apps.cli.commands import _format_merge_notification
         from pydantic_deep.types import MergeResult
 
@@ -1246,15 +1246,15 @@ class TestMergeNotification:
 
 
 class TestBranchPanelBlockedBadge:
-    """Branch panel header renders ``⚠ N denied`` / ``⏸ awaiting approval`` badges.
+    """Branch panel header renders `⚠ N denied` / `⏸ awaiting approval` badges.
 
     The header reflects two pieces of runtime state on the branch:
 
-    - :attr:`BranchPanelWidget.blocked_count` — historical tally of denied
-      tool calls; rendered as ``⚠ N denied`` (orange).
-    - :attr:`BranchPanelWidget.awaiting_approval` — set while the branch
+    - :attr:`BranchPanelWidget.blocked_count` - historical tally of denied
+      tool calls; rendered as `⚠ N denied` (orange).
+    - :attr:`BranchPanelWidget.awaiting_approval` - set while the branch
       is suspended on an approval request; rendered as
-      ``⏸ awaiting approval`` (yellow) and takes precedence over the
+      `⏸ awaiting approval` (yellow) and takes precedence over the
       blocked-count badge because it reflects the branch's current state.
     """
 
@@ -1267,12 +1267,12 @@ class TestBranchPanelBlockedBadge:
 
     def test_header_omits_denied_badge_when_count_zero(self) -> None:
         panel = BranchPanelWidget("id-a", "alpha")
-        # Default value — no badge.
+        # Default value - no badge.
         assert "denied" not in panel._render_header()
         assert "awaiting" not in panel._render_header()
 
     def test_header_renders_awaiting_badge_when_pending(self) -> None:
-        """``awaiting_approval=True`` shows the ⏸ badge, taking priority over denied."""
+        """`awaiting_approval=True` shows the ⏸ badge, taking priority over denied."""
         panel = BranchPanelWidget("id-a", "alpha")
         panel.awaiting_approval = True
         panel.blocked_count = 2  # also has past denials
@@ -1282,7 +1282,7 @@ class TestBranchPanelBlockedBadge:
         assert "denied" not in rendered
 
     async def test_blocked_badge_updates_when_count_changes(self) -> None:
-        """Reactive write triggers ``watch_blocked_count`` and refreshes the header."""
+        """Reactive write triggers `watch_blocked_count` and refreshes the header."""
         from textual.app import App
         from textual.widgets import Static
 
@@ -1298,7 +1298,7 @@ class TestBranchPanelBlockedBadge:
             assert "⚠ 2 denied" in str(header_widget.render())
 
     async def test_awaiting_badge_updates_when_flag_set(self) -> None:
-        """Reactive write to ``awaiting_approval`` triggers header refresh."""
+        """Reactive write to `awaiting_approval` triggers header refresh."""
         from textual.app import App
         from textual.widgets import Static
 
@@ -1315,15 +1315,15 @@ class TestBranchPanelBlockedBadge:
 
 
 class TestAdoptAgentCoordinator:
-    """B2 — adopt_agent_coordinator + reconcile_active_fork.
+    """B2 - adopt_agent_coordinator + reconcile_active_fork.
 
-    Covers the autonomous fork path: the agent calls ``fork_run`` inside an
-    ``agent.run()``, leaving a coordinator on ``deps.fork_coordinator`` that
+    Covers the autonomous fork path: the agent calls `fork_run` inside an
+    `agent.run()`, leaving a coordinator on `deps.fork_coordinator` that
     the CLI side must wrap in a :class:`CLIForkSession`.
     """
 
     async def test_returns_none_when_deps_unset(self) -> None:
-        """No deps on the app → adopter returns ``None`` (defensive)."""
+        """No deps on the app → adopter returns `None` (defensive)."""
         from apps.cli.forking import adopt_agent_coordinator
 
         app = _make_app()
@@ -1331,7 +1331,7 @@ class TestAdoptAgentCoordinator:
         assert adopt_agent_coordinator(app) is None
 
     async def test_returns_none_when_coordinator_missing(self) -> None:
-        """No coordinator on deps → adopter returns ``None``."""
+        """No coordinator on deps → adopter returns `None`."""
         from apps.cli.forking import adopt_agent_coordinator
 
         app = _make_app()
@@ -1340,7 +1340,7 @@ class TestAdoptAgentCoordinator:
         assert adopt_agent_coordinator(app) is None
 
     async def test_returns_none_when_no_branches(self) -> None:
-        """Coordinator with no branches (fork() never called) → ``None``."""
+        """Coordinator with no branches (fork() never called) → `None`."""
         from apps.cli.forking import adopt_agent_coordinator
 
         app = _make_app()
@@ -1379,7 +1379,7 @@ class TestAdoptAgentCoordinator:
             await _drain_tasks(session)
 
     async def test_returns_none_when_already_resolved(self, fork_app: DeepApp) -> None:
-        """Resolved coordinator (post-merge) is NOT adopted — UI does not flash."""
+        """Resolved coordinator (post-merge) is NOT adopted - UI does not flash."""
         from apps.cli.forking import adopt_agent_coordinator
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1404,7 +1404,7 @@ class TestAdoptAgentCoordinator:
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             session = await _start_fork(fork_app)
-            # active_fork is already set by _start_fork — but mark adopted=True
+            # active_fork is already set by _start_fork - but mark adopted=True
             # to simulate the auto-adopted path.
             fork_app.active_fork.adopted = True  # type: ignore[union-attr]
             assert fork_app.deps is not None
@@ -1416,15 +1416,15 @@ class TestAdoptAgentCoordinator:
 
 
 class TestReconcileActiveFork:
-    """B2 — reconcile_active_fork: post-turn cleanup + adoption combined.
+    """B2 - reconcile_active_fork: post-turn cleanup + adoption combined.
 
-    Tests the two transitions that the user-driven ``/fork`` cannot trigger:
+    Tests the two transitions that the user-driven `/fork` cannot trigger:
     agent merged its own fork (cleanup), and agent forked without merging
     (adopt).
     """
 
     async def test_clears_active_fork_when_resolved(self, fork_app: DeepApp) -> None:
-        """If the agent merged itself, the helper clears ``app.active_fork``."""
+        """If the agent merged itself, the helper clears `app.active_fork`."""
         from apps.cli.forking import reconcile_active_fork
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1474,10 +1474,10 @@ class TestReconcileActiveFork:
 
 
 class TestOrphanStashMultiTurn:
-    """B3.d — stashed coordinator survives subsequent non-fork parent turns in the TUI."""
+    """B3.d - stashed coordinator survives subsequent non-fork parent turns in the TUI."""
 
     async def test_active_fork_survives_second_non_fork_turn(self, fork_app: DeepApp) -> None:
-        """Second parent turn keeps ``app.active_fork`` at the same session."""
+        """Second parent turn keeps `app.active_fork` at the same session."""
         from apps.cli.forking import reconcile_active_fork
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1504,10 +1504,10 @@ class TestOrphanStashMultiTurn:
 
 
 class TestForkCommandBlockedWhenAdopted:
-    """B2 — ``/fork`` shows the adopted-specific notification when active_fork.adopted."""
+    """B2 - `/fork` shows the adopted-specific notification when active_fork.adopted."""
 
     async def test_notification_says_agent_already_forked(self, fork_app: DeepApp) -> None:
-        """User typing ``/fork`` during an auto-adopted fork gets the adopted message."""
+        """User typing `/fork` during an auto-adopted fork gets the adopted message."""
         from apps.cli.commands import dispatch_command
 
         notifications: list[tuple[str, str]] = []
@@ -1577,10 +1577,10 @@ class TestForkCommandBlockedWhenAdopted:
 
 
 class TestIncrementalReplay:
-    """E1B — replay_messages_append renders only the delta between poll ticks."""
+    """E1B - replay_messages_append renders only the delta between poll ticks."""
 
     async def test_e1b_a_append_renders_only_delta(self, fork_app: DeepApp) -> None:
-        """E1B.a — new TextPart between ticks → panel renders only the delta."""
+        """E1B.a - new TextPart between ticks → panel renders only the delta."""
         from pydantic_ai.messages import ModelResponse, TextPart
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1600,8 +1600,40 @@ class TestIncrementalReplay:
             assert panel._last_replayed_len == 2
             await _drain_tasks(session)
 
+    async def test_note_streamed_messages_prevents_double_replay(self, fork_app: DeepApp) -> None:
+        """note_streamed_messages advances the watermark so a poll-tick append of
+        the already-streamed transcript is a no-op (no doubling)."""
+        from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
+
+        from apps.cli.widgets.message_list import MessageList
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await pilot.pause()
+
+            panel = list(fork_app.screen.query(BranchPanelWidget))[0]
+            panel._last_replayed_len = 0
+
+            streamed = [
+                ModelResponse(parts=[TextPart(content="streamed live")]),
+                ModelResponse(parts=[ToolCallPart(tool_name="read", args={}, tool_call_id="c1")]),
+            ]
+            # Simulate _stream_branch_via_iter having rendered these live.
+            panel.note_streamed_messages(streamed)
+            assert panel._last_replayed_len == 2
+            assert "c1" in panel._rendered_call_ids
+
+            msg_list = panel.query_one(MessageList)
+            before = len(msg_list.children)
+
+            # A poll tick replaying the same transcript must NOT re-render it.
+            panel.replay_messages_append(streamed)
+            assert len(msg_list.children) == before
+            await _drain_tasks(session)
+
     async def test_e1b_b_tool_call_then_return_updates_in_place(self, fork_app: DeepApp) -> None:
-        """E1B.b — ToolCallPart in tick N, ToolReturnPart in tick N+1."""
+        """E1B.b - ToolCallPart in tick N, ToolReturnPart in tick N+1."""
         from pydantic_ai.messages import (
             ModelRequest,
             ModelResponse,
@@ -1659,7 +1691,7 @@ class TestIncrementalReplay:
             panel._last_replayed_len = 0
             panel._rendered_call_ids = set()
 
-            # Tick N: a tool call followed by a text part — the trailing text ends
+            # Tick N: a tool call followed by a text part - the trailing text ends
             # the assistant message, setting current_assistant to None.
             tick1 = [
                 ModelResponse(
@@ -1738,7 +1770,7 @@ class TestIncrementalReplay:
             await _drain_tasks(session)
 
     async def test_e1b_c_full_replay_on_done_is_consistent(self, fork_app: DeepApp) -> None:
-        """E1B.c — on task done, full replay_messages runs and panel is consistent."""
+        """E1B.c - on task done, full replay_messages runs and panel is consistent."""
         from pydantic_ai.messages import ModelResponse, TextPart
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1760,8 +1792,59 @@ class TestIncrementalReplay:
             assert panel._last_replayed_len == 2
             await _drain_tasks(session)
 
+    async def test_full_replay_completes_tool_return_across_text_part_boundary(
+        self, fork_app: DeepApp
+    ) -> None:
+        """A full replay of a transcript where a ToolCallPart is followed by a
+        TextPart (which ends the assistant message) must still complete the
+        call's ToolReturnPart in place, not leave the tool row spinning."""
+        from pydantic_ai.messages import (
+            ModelRequest,
+            ModelResponse,
+            TextPart,
+            ToolCallPart,
+            ToolReturnPart,
+        )
+
+        from apps.cli.widgets.assistant_message import AssistantMessage
+        from apps.cli.widgets.message_list import MessageList
+
+        async with fork_app.run_test(size=(140, 40)) as pilot:
+            await pilot.pause()
+            session = await _start_fork(fork_app)
+            await pilot.pause()
+
+            panel = list(fork_app.screen.query(BranchPanelWidget))[0]
+
+            messages = [
+                ModelResponse(
+                    parts=[
+                        ToolCallPart(tool_name="ls", args="{}", tool_call_id="c1"),
+                        TextPart(content="done"),
+                    ]
+                ),
+                ModelRequest(
+                    parts=[ToolReturnPart(tool_name="ls", content="file.txt", tool_call_id="c1")]
+                ),
+            ]
+            panel.replay_messages(messages)
+            await pilot.pause()
+
+            msg_list = panel.query_one(MessageList)
+            widget = None
+            for child in msg_list.children:
+                if isinstance(child, AssistantMessage) and child.has_tool_call("c1"):
+                    widget = child._tool_widgets["c1"]
+            assert widget is not None, "tool-call widget for c1 not found"
+            # Completed in place despite the trailing TextPart boundary.
+            assert widget.status == "success"
+            # The held reference is recorded so a later append tick could also
+            # complete a call first rendered by the full replay.
+            assert "c1" in panel._rendered_call_msgs
+            await _drain_tasks(session)
+
     async def test_e1b_d_multiple_new_messages_in_one_tick(self, fork_app: DeepApp) -> None:
-        """E1B.d — history grew by >1 message between polls → all rendered."""
+        """E1B.d - history grew by >1 message between polls → all rendered."""
         from pydantic_ai.messages import ModelResponse, TextPart
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
@@ -1783,10 +1866,10 @@ class TestIncrementalReplay:
 
 
 class TestBranchStreamRunner:
-    """E1A — branch_runner wired via enter_fork_view routes agent.iter() into panels."""
+    """E1A - branch_runner wired via enter_fork_view routes agent.iter() into panels."""
 
     async def test_e1a_a_branch_runner_set_on_coordinator(self, fork_app: DeepApp) -> None:
-        """E1A.a — after enter_fork_view, coordinator.branch_runner is set."""
+        """E1A.a - after enter_fork_view, coordinator.branch_runner is set."""
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             session = await _start_fork(fork_app)
@@ -1795,7 +1878,7 @@ class TestBranchStreamRunner:
             await _drain_tasks(session)
 
     async def test_e1a_b_panels_have_runtime_panel_ref(self, fork_app: DeepApp) -> None:
-        """E1A.b — each runtime has a _panel reference pointing to the mounted BranchPanelWidget."""
+        """E1A.b - each runtime has a _panel reference pointing to the mounted BranchPanelWidget."""
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             session = await _start_fork(fork_app)
@@ -1809,7 +1892,7 @@ class TestBranchStreamRunner:
             await _drain_tasks(session)
 
     async def test_e1a_c_branch_runner_streams_into_panel(self, fork_app: DeepApp) -> None:
-        """E1A.c — branch tasks use branch_runner via iter and produce output in panels."""
+        """E1A.c - branch tasks use branch_runner via iter and produce output in panels."""
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
             session = await _start_fork(fork_app)
@@ -1822,7 +1905,7 @@ class TestBranchStreamRunner:
                 assert runtime.status.state == "done"
 
     async def test_e1a_d_coordinator_without_runner_uses_agent_run(self) -> None:
-        """E1A.d — coordinator without branch_runner uses agent.run() (default path)."""
+        """E1A.d - coordinator without branch_runner uses agent.run() (default path)."""
         from pydantic_ai_backends import StateBackend
 
         from pydantic_deep import DeepAgentDeps
@@ -1854,12 +1937,12 @@ class TestBranchStreamRunner:
 
 
 class TestInteractiveBranchChat:
-    """E2 — interactive multi-branch chat input routing."""
+    """E2 - interactive multi-branch chat input routing."""
 
     async def test_e2_c_plain_text_on_overview_during_fork_is_blocked(
         self, fork_app: DeepApp
     ) -> None:
-        """E2.c — plain text on the overview tab during an active fork → notification."""
+        """E2.c - plain text on the overview tab during an active fork → notification."""
         from apps.cli.messages import UserSubmitted
 
         notifications = _capture_notifications(fork_app)
@@ -1877,7 +1960,7 @@ class TestInteractiveBranchChat:
             await _drain_tasks(session)
 
     async def test_e2_d_plain_text_on_running_branch_is_blocked(self, fork_app: DeepApp) -> None:
-        """E2.d — plain text on a still-running branch → notification (cannot interact)."""
+        """E2.d - plain text on a still-running branch → notification (cannot interact)."""
         from apps.cli.messages import UserSubmitted
 
         notifications = _capture_notifications(fork_app)
@@ -1905,7 +1988,7 @@ class TestInteractiveBranchChat:
             await _drain_tasks(session)
 
     async def test_e2_e_slash_fork_blocked_during_interactive_chat(self, fork_app: DeepApp) -> None:
-        """E2.e — /fork typed during an interactive branch chat → blocked."""
+        """E2.e - /fork typed during an interactive branch chat → blocked."""
         from apps.cli.messages import UserSubmitted
 
         notifications = _capture_notifications(fork_app)

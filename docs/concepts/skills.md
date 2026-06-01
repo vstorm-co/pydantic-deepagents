@@ -201,16 +201,17 @@ EOF
 
 ### From Directories
 
+Use [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory]
+to discover skills from a filesystem directory. `get_skills()` returns a
+`dict[str, Skill]` keyed by skill name:
+
 ```python
-from pydantic_deep.toolsets.skills import discover_skills
+from pydantic_deep.toolsets.skills import SkillsDirectory
 
-skills = discover_skills([
-    {"path": "~/.pydantic-deep/skills", "recursive": True},
-    {"path": "./project-skills", "recursive": False},
-])
+source = SkillsDirectory(path="~/.pydantic-deep/skills")
 
-for skill in skills:
-    print(f"{skill['name']}: {skill['description']}")
+for name, skill in source.get_skills().items():
+    print(f"{skill.name}: {skill.description}")
 ```
 
 ### Pre-loaded Skills
@@ -369,7 +370,7 @@ The cache persists for the lifetime of the agent instance. Each agent has its ow
 
 ### Discovery Performance
 
-Skill discovery (`discover_skills()`) scans directories on agent creation:
+Skill discovery (via [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory]) scans directories on agent creation:
 
 | Factor | Impact |
 |--------|--------|

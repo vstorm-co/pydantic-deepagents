@@ -406,7 +406,7 @@ def format_local_context(
 class LocalContextToolset(FunctionToolset[DeepAgentDeps]):
     """Toolset that injects local git/directory context into the system prompt.
 
-    Uses the ``get_instructions()`` hook to inject context at each model
+    Uses the `get_instructions()` hook to inject context at each model
     request, following the same pattern as ContextToolset.
     """
 

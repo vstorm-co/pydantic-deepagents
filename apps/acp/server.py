@@ -20,7 +20,7 @@ Usage:
     )
     ```
 
-    Run via: ``python -m apps.acp``
+    Run via: `python -m apps.acp`
 """
 
 import logging
@@ -30,6 +30,7 @@ from typing import Any
 from uuid import uuid4
 
 from pydantic_ai import Agent
+from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
 from pydantic_ai.messages import (
     ModelMessage,
     ToolCallPart,
@@ -284,7 +285,6 @@ class DeepAgentACP(ACPAgent):
             )
 
         # Run agent with streaming
-        from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
 
         try:
             active_tool_calls: set[str] = set()

@@ -8,11 +8,24 @@ from __future__ import annotations
 
 import json
 import sys
+import time as _time
+from pathlib import Path
 from typing import Any
 
+from pydantic_ai import Agent
+from pydantic_ai._agent_graph import End, UserPromptNode
+from pydantic_ai.messages import (
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    TextPartDelta,
+    ThinkingPartDelta,
+)
 from pydantic_ai.usage import Usage
 
 from apps.cli.agent import create_cli_agent
+from apps.cli.init import ensure_initialized
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
 
 
@@ -45,7 +58,7 @@ async def execute_headless(  # noqa: C901
 ) -> int:
     """Execute a task in headless mode and print the result.
 
-    All feature flags default to ``None`` which means "use config.toml
+    All feature flags default to `None` which means "use config.toml
     defaults" — the same defaults as the interactive TUI. Pass explicit
     values to override.
 
@@ -69,9 +82,6 @@ async def execute_headless(  # noqa: C901
     Returns:
         Exit code (0 for success, 1 for error).
     """
-    from pathlib import Path
-
-    from apps.cli.init import ensure_initialized
 
     ensure_initialized(Path(working_dir))
 
@@ -159,18 +169,6 @@ async def _run_verbose(  # noqa: C901
     agent: Any, task: str, deps: Any, run_kwargs: dict[str, Any]
 ) -> Any:
     """Run agent with verbose progress on stderr."""
-    import time as _time
-
-    from pydantic_ai import Agent
-    from pydantic_ai._agent_graph import End, UserPromptNode
-    from pydantic_ai.messages import (
-        FinalResultEvent,
-        FunctionToolCallEvent,
-        FunctionToolResultEvent,
-        PartDeltaEvent,
-        TextPartDelta,
-        ThinkingPartDelta,
-    )
 
     _log = lambda msg: print(msg, file=sys.stderr, flush=True)  # noqa: E731
     start = _time.monotonic()

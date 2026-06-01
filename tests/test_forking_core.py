@@ -255,7 +255,7 @@ def test_branch_overlay_parent_property():
 
 
 def test_branch_overlay_exists_falls_through_to_parent():
-    """``exists()`` returns True for files in either layer, False otherwise."""
+    """`exists()` returns True for files in either layer, False otherwise."""
     parent = StateBackend()
     parent.write("/parent_only.py", "v0")
     overlay = BranchOverlay(parent)
@@ -457,7 +457,7 @@ def test_flush_to_dedupes_repeat_delete_for_same_path():
     parent.write("/x.py", "v0")
     overlay = BranchOverlay(parent)
     # Two consecutive deletes — the second exercises the dedup branch
-    # in ``_flush_delete`` (path already in ``deleted_set``).
+    # in `_flush_delete` (path already in `deleted_set`).
     overlay.delete("/x.py")
     overlay.delete("/x.py")
 
@@ -939,7 +939,48 @@ async def test_coordinator_aclose_awaits_tasks_before_cleanup(tmp_path: Path) ->
 # ---------------------------------------------------------------------------
 
 
-async def test_merge_or_select_raises_if_winner_cancelled():
+async def test_merge_or_select_falls_back_to_pre_fork_history_when_winner_terminated_empty():
+    """A winner terminated before recording any partial history falls back.
+
+    Bug 82: a branch cancelled before its first `before_model_request` hook
+    fired has an empty `partial_history` even though its state is a valid
+    exhausted state (`"terminated"`). Rather than spuriously raising, the
+    merge falls back to the pre-fork parent history so the resolution still
+    completes.
+    """
+    deps = DeepAgentDeps(backend=StateBackend())
+    sleep_event = asyncio.Event()
+
+    class _SlowAgent:
+        async def run(self, *args: Any, **kwargs: Any) -> Any:
+            await sleep_event.wait()
+            return None  # pragma: no cover
+
+    coord = _make_coordinator(_SlowAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
+    parent_history = _seed_history("p")
+    await coord.fork(
+        [BranchSpec(label="a", steer="A")],
+        parent_history=parent_history,
+    )
+    branch_id = next(iter(coord.branches))
+    await coord.terminate_branch(branch_id)
+    await asyncio.sleep(0)
+    assert coord.branches[branch_id].status.state == "terminated"
+    assert not coord.branches[branch_id].partial_history
+
+    result = await coord.merge_or_select(f"pick:{branch_id}")
+    assert result.winner_branch_id == branch_id
+    # Fallback uses the pre-fork parent history, not an empty list.
+    assert result.history_after_merge == parent_history
+
+
+async def test_merge_or_select_raises_if_winner_cancelled_in_non_exhausted_state():
+    """A winner cancelled while NOT in an exhausted state still raises.
+
+    The pre-fork fallback only applies to valid exhausted states; an
+    out-of-band cancellation that leaves the status non-terminal must surface
+    the original RuntimeError so callers can handle the unexpected case.
+    """
     deps = DeepAgentDeps(backend=StateBackend())
     sleep_event = asyncio.Event()
 
@@ -954,17 +995,25 @@ async def test_merge_or_select_raises_if_winner_cancelled():
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
-    await coord.terminate_branch(branch_id)
-    await asyncio.sleep(0)
-    with pytest.raises(RuntimeError):
+    rt = coord.branches[branch_id]
+    # Force a non-exhausted terminal state ("failed") BEFORE cancelling so the
+    # done-callback (which only rewrites "running" -> "terminated") leaves it
+    # alone. The winner await still raises CancelledError, but the guard's
+    # exhausted-state check is False, so the original RuntimeError surfaces.
+    rt.status.state = "failed"
+    rt.task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await rt.task
+    assert rt.status.state == "failed"
+    with pytest.raises(RuntimeError, match="was cancelled before merge"):
         await coord.merge_or_select(f"pick:{branch_id}")
 
 
 async def test_merge_or_select_wraps_failed_winner_exception():
     """A *failed* winner (branch raised) yields a typed RuntimeError, not the raw exc.
 
-    This is the path the merge_or_select tool catches via ``except (ValueError,
-    RuntimeError)`` — proving picking a failed branch resolves gracefully instead
+    This is the path the merge_or_select tool catches via `except (ValueError,
+    RuntimeError)` — proving picking a failed branch resolves gracefully instead
     of aborting agent.run().
     """
     deps = DeepAgentDeps(backend=StateBackend())
@@ -1135,7 +1184,7 @@ async def test_fork_tool_happy_path():
 async def test_fork_tool_strips_trailing_model_request_from_parent_history():
     """fork_run strips a trailing ModelRequest from latest_messages.
 
-    ``before_model_request`` captures the in-progress request, so the snapshot
+    `before_model_request` captures the in-progress request, so the snapshot
     always ends with a ModelRequest.  Passing that verbatim to branches would
     create two consecutive ModelRequests, which pydantic-ai rejects.  The tool
     must strip it so branches receive a history ending with a ModelResponse.
@@ -1658,7 +1707,7 @@ def test_factory_rejects_invalid_forking_value():
 
 
 def test_branch_overlay_execute_rm_isolated(tmp_path: Path) -> None:
-    """``rm`` inside a branch snapshot removes the file only from the snapshot."""
+    """`rm` inside a branch snapshot removes the file only from the snapshot."""
     from pydantic_ai_backends import LocalBackend
 
     # Create a real file in a temp parent root.
@@ -1677,7 +1726,7 @@ def test_branch_overlay_execute_rm_isolated(tmp_path: Path) -> None:
 
 
 def test_branch_overlay_execute_mkdir_isolated(tmp_path: Path) -> None:
-    """``mkdir`` inside a branch snapshot does not create the dir on the real FS."""
+    """`mkdir` inside a branch snapshot does not create the dir on the real FS."""
     from pydantic_ai_backends import LocalBackend
 
     parent = LocalBackend(root_dir=tmp_path)
@@ -1722,7 +1771,7 @@ def test_branch_overlay_execute_sees_deleted_as_absent(tmp_path: Path) -> None:
 
 
 def test_branch_overlay_execute_mv_isolated(tmp_path: Path) -> None:
-    """``mv`` inside a branch snapshot does not rename on the real FS."""
+    """`mv` inside a branch snapshot does not rename on the real FS."""
     from pydantic_ai_backends import LocalBackend
 
     src = tmp_path / "old.py"
@@ -1814,7 +1863,7 @@ def test_execute_modify_existing_propagates_write_to_overlay(tmp_path: Path) -> 
     WITHOUT touching the real parent file (copy-on-write isolation).
 
     Regression for the symlink-escape bug: the snapshot copies parent files, so an
-    in-place ``>`` redirection lands on the copy, never the real parent. The
+    in-place `>` redirection lands on the copy, never the real parent. The
     overlay still records the update for a later merge/flush.
     """
     from pydantic_ai_backends import LocalBackend
@@ -1857,6 +1906,69 @@ def test_execute_mv_propagates_delete_and_create_to_overlay(tmp_path: Path) -> N
     assert str(src) in overlay.deleted()
     # dst created in overlay.
     assert overlay.exists(str(dst))
+
+
+def test_execute_timeout_still_propagates_partial_mutations(tmp_path: Path) -> None:
+    """A command that writes a file then hangs until timeout still records the write.
+
+    Regression: mutations made before a TimeoutExpired must be mirrored into the
+    overlay, not silently discarded from changes()/merge.
+    """
+    from pydantic_ai_backends import LocalBackend
+
+    from pydantic_deep.toolsets.forking.isolation import _EXIT_TIMEOUT
+
+    parent = LocalBackend(root_dir=str(tmp_path))
+    overlay = BranchOverlay(parent)
+    partial = tmp_path / "partial.py"
+
+    # Create the file, then sleep past the timeout so the command is killed.
+    result = overlay.execute(f'echo "# partial work" > {partial}; sleep 30', timeout=1)
+
+    assert result.exit_code == _EXIT_TIMEOUT
+    # Real FS untouched (copy-on-write isolation).
+    assert not partial.exists()
+    # The partial mutation must survive into the overlay despite the timeout.
+    assert overlay.exists(str(partial))
+    assert "partial work" in overlay.read(str(partial))
+
+
+def test_execute_crash_still_propagates_partial_mutations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A non-timeout subprocess failure after a mutation still records the write.
+
+    Simulates `subprocess.run` raising a generic exception after the file was
+    created in the snapshot; the finally-block propagation must still run.
+    """
+    import subprocess
+
+    from pydantic_ai_backends import LocalBackend
+
+    from pydantic_deep.toolsets.forking import isolation
+
+    parent = LocalBackend(root_dir=str(tmp_path))
+    overlay = BranchOverlay(parent)
+    created = tmp_path / "crashed.py"
+
+    real_run = subprocess.run
+
+    def fake_run(args: Any, **kwargs: Any) -> Any:
+        # Let the command create the file, then crash before returning.
+        real_run(args, **kwargs)
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(f"{isolation.__name__}.subprocess.run", fake_run)
+
+    result = overlay.execute(f'echo "# crash work" > {created}')
+
+    assert result.exit_code == 1
+    assert "boom" in result.output
+    # Real FS untouched.
+    assert not created.exists()
+    # The mutation made before the crash must survive into the overlay.
+    assert overlay.exists(str(created))
+    assert "crash work" in overlay.read(str(created))
 
 
 # ---------------------------------------------------------------------------
@@ -2549,7 +2661,7 @@ def test_propagate_mutations_real_file_modified_snap_file_missing(tmp_path: Path
 def test_propagate_mutations_overlay_write_oserror_is_logged(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """An ``OSError`` from ``overlay.write`` is logged, not silently swallowed."""
+    """An `OSError` from `overlay.write` is logged, not silently swallowed."""
     import logging
 
     from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
@@ -2575,7 +2687,7 @@ def test_propagate_mutations_overlay_write_oserror_is_logged(
 def test_propagate_mutations_overlay_delete_oserror_is_logged(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """An ``OSError`` from ``overlay.delete`` is logged, not silently swallowed."""
+    """An `OSError` from `overlay.delete` is logged, not silently swallowed."""
     import logging
 
     from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
@@ -2698,14 +2810,14 @@ async def test_delete_file_tool_success() -> None:
 
 
 def test_coordinator_handle_returns_none_before_fork():
-    """``coord.handle`` is ``None`` until ``fork()`` runs."""
+    """`coord.handle` is `None` until `fork()` runs."""
     deps = DeepAgentDeps(backend=StateBackend())
     coord = _make_coordinator(_make_test_agent(), deps)
     assert coord.handle is None
 
 
 async def test_coordinator_handle_returns_fork_handle_after_fork():
-    """``coord.handle`` returns the same :class:`ForkHandle` ``fork()`` returned."""
+    """`coord.handle` returns the same :class:`ForkHandle` `fork()` returned."""
     deps = DeepAgentDeps(backend=StateBackend())
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     returned = await coord.fork(
@@ -2723,7 +2835,7 @@ def test_is_resolved_true_when_no_handle():
 
 
 async def test_is_resolved_false_when_branches_have_overlays():
-    """After ``fork()`` but before merge, ``is_resolved`` is False."""
+    """After `fork()` but before merge, `is_resolved` is False."""
     deps = DeepAgentDeps(backend=StateBackend())
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
@@ -2735,7 +2847,7 @@ async def test_is_resolved_false_when_branches_have_overlays():
 
 
 async def test_is_resolved_true_after_merge():
-    """``merge_or_select`` releases every overlay → ``is_resolved`` becomes True."""
+    """`merge_or_select` releases every overlay → `is_resolved` becomes True."""
     deps = DeepAgentDeps(backend=StateBackend())
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     handle = await coord.fork(
@@ -2754,7 +2866,7 @@ async def test_is_resolved_true_after_merge():
 
 
 def test_fork_run_docstring_warns_against_wait_tasks():
-    """``fork_run`` docstring must steer the agent away from ``wait_tasks``."""
+    """`fork_run` docstring must steer the agent away from `wait_tasks`."""
     toolset = create_fork_toolset()
     doc = toolset.tools["fork_run"].function.__doc__ or ""
     assert "wait_tasks" in doc
@@ -2762,21 +2874,21 @@ def test_fork_run_docstring_warns_against_wait_tasks():
 
 
 def test_inspect_branches_docstring_is_polling_primitive():
-    """``inspect_branches`` docstring must frame it as the polling primitive."""
+    """`inspect_branches` docstring must frame it as the polling primitive."""
     toolset = create_fork_toolset()
     doc = toolset.tools["inspect_branches"].function.__doc__ or ""
     assert "poll" in doc.lower()
 
 
 def test_merge_or_select_docstring_marks_required():
-    """``merge_or_select`` docstring must flag it as required."""
+    """`merge_or_select` docstring must flag it as required."""
     toolset = create_fork_toolset()
     doc = toolset.tools["merge_or_select"].function.__doc__ or ""
     assert "required" in doc.lower() or "REQUIRED" in doc
 
 
 def test_base_prompt_has_forking_section():
-    """``BASE_PROMPT`` must include a ``## Forking`` section."""
+    """`BASE_PROMPT` must include a `## Forking` section."""
     from pydantic_deep.prompts import BASE_PROMPT
 
     assert "## Forking" in BASE_PROMPT
@@ -2788,7 +2900,7 @@ def test_base_prompt_has_forking_section():
 
 
 async def test_for_run_preserves_unresolved_coordinator():
-    """An unresolved coordinator survives across ``for_run`` calls."""
+    """An unresolved coordinator survives across `for_run` calls."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
 
@@ -2826,7 +2938,7 @@ async def test_for_run_preserves_unresolved_coordinator():
 
 
 async def test_for_run_allocates_new_coordinator_when_previous_resolved():
-    """When the previous coordinator is resolved, ``for_run`` allocates a fresh one."""
+    """When the previous coordinator is resolved, `for_run` allocates a fresh one."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
     deps = DeepAgentDeps(backend=StateBackend())
@@ -2861,7 +2973,7 @@ async def test_for_run_allocates_when_no_existing_coordinator():
 
 
 async def test_after_run_is_passthrough():
-    """``after_run`` is a documented no-op anchor — returns ``result`` unchanged."""
+    """`after_run` is a documented no-op anchor — returns `result` unchanged."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
     deps = DeepAgentDeps(backend=StateBackend())
@@ -2883,7 +2995,7 @@ async def test_after_run_is_passthrough():
 
 
 async def test_b3a_stash_preserves_coordinator_identity_and_handle():
-    """B3.a — unresolved coordinator survives ``for_run``; same id, handle non-None."""
+    """B3.a — unresolved coordinator survives `for_run`; same id, handle non-None."""
     cap = LiveForkCapability()
     agent = _make_test_agent()
     cap._agent_ref = agent
@@ -3040,7 +3152,7 @@ async def test_e2_run_on_branch_unknown_id_raises():
 
 
 def _count_user_prompts(messages: list[Any], text: str) -> int:
-    """Count ModelRequest UserPromptParts whose content equals ``text``."""
+    """Count ModelRequest UserPromptParts whose content equals `text`."""
     count = 0
     for msg in messages:
         for part in getattr(msg, "parts", []):

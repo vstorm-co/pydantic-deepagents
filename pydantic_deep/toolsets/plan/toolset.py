@@ -20,6 +20,23 @@ from pydantic_ai.toolsets.function import FunctionToolset
 DEFAULT_PLANS_DIR = "/plans"
 
 
+def _slugify_title(title: str) -> str:
+    """Generate a filesystem-safe slug from a plan title.
+
+    Uses Unicode word characters so non-Latin titles are preserved instead of
+    being stripped to an empty string. Falls back to "plan" when the result is
+    empty (e.g. a title made up entirely of punctuation).
+
+    Args:
+        title: The plan title.
+
+    Returns:
+        A non-empty slug of at most 50 characters.
+    """
+    slug = re.sub(r"[^\w]+", "-", title.lower(), flags=re.UNICODE).strip("-")[:50]
+    return slug or "plan"
+
+
 PLANNER_DESCRIPTION = (
     "Plans implementation of complex tasks. Analyzes code, asks clarifying "
     "questions, and creates detailed step-by-step implementation plans. "
@@ -141,22 +158,22 @@ def create_plan_toolset(
 ) -> FunctionToolset[Any]:
     """Create a plan toolset with ask_user and save_plan tools.
 
-    The ``ask_user`` tool pauses execution and asks the human user a question
+    The `ask_user` tool pauses execution and asks the human user a question
     with predefined options (like Claude Code's AskUserQuestion). It relies
-    on a callback at ``ctx.deps.ask_user``. When no callback is set (headless
+    on a callback at `ctx.deps.ask_user`. When no callback is set (headless
     mode), it auto-selects the recommended option.
 
-    The ``save_plan`` tool writes the plan to a markdown file in the backend.
+    The `save_plan` tool writes the plan to a markdown file in the backend.
 
     Args:
-        plans_dir: Directory to save plan files (default: ``/plans``).
-        id: Toolset ID (default: ``deep-plan``).
+        plans_dir: Directory to save plan files (default: `/plans`).
+        id: Toolset ID (default: `deep-plan`).
         descriptions: Optional mapping of tool name to custom description.
-            Supported keys: ``ask_user``, ``save_plan``.
+            Supported keys: `ask_user`, `save_plan`.
             When a key is absent the built-in default is used.
 
     Returns:
-        FunctionToolset with ``ask_user`` and ``save_plan`` tools.
+        FunctionToolset with `ask_user` and `save_plan` tools.
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-plan")
     _descs = descriptions or {}
@@ -201,7 +218,7 @@ def create_plan_toolset(
             content: Full markdown content of the plan.
         """
         # Generate filename from title
-        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:50]
+        slug = _slugify_title(title)
         short_id = uuid.uuid4().hex[:6]
         filename = f"{slug}-{short_id}.md"
         path = f"{plans_dir}/{filename}"

@@ -453,18 +453,52 @@ class TestCreateHistorySearchToolset:
 
     @pytest.mark.anyio
     async def test_search_multiple_matches(self, tmp_path: Path) -> None:
-        """Search returns multiple matching excerpts."""
+        """Search returns multiple matching excerpts when windows don't overlap."""
         messages: list[ModelMessage] = [
             ModelRequest(
                 parts=[UserPromptPart(content="First mention of keyword alpha")],
                 timestamp=_TS,
             ),
-            ModelResponse(
-                parts=[TextPart(content="Unrelated response")],
+        ]
+        # Pad with enough filler so the two matches sit further apart than
+        # _CONTEXT_LINES, keeping their context windows disjoint.
+        for i in range(20):
+            messages.append(
+                ModelRequest(
+                    parts=[UserPromptPart(content=f"filler line {i}")],
+                    timestamp=_TS,
+                )
+            )
+        messages.append(
+            ModelRequest(
+                parts=[UserPromptPart(content="Second mention of keyword alpha")],
+                timestamp=_TS,
+            )
+        )
+        path = tmp_path / "messages.json"
+        _write_messages(path, messages)
+
+        ts = create_history_search_toolset(str(path))
+        fn = ts.tools["search_conversation_history"].function
+        ctx = _mock_ctx()
+
+        result = await fn(ctx, "alpha")
+        assert "Found 2 match(es)" in result
+        assert "---" in result  # Separator between excerpts
+
+    @pytest.mark.anyio
+    async def test_search_overlapping_windows_deduped(self, tmp_path: Path) -> None:
+        """Adjacent matches sharing a context window are not double-shown."""
+        # Two matches one line apart: with _CONTEXT_LINES context their
+        # windows fully overlap, so the second match must be skipped rather
+        # than repeating neighboring lines.
+        messages: list[ModelMessage] = [
+            ModelRequest(
+                parts=[UserPromptPart(content="First keyword alpha mention")],
                 timestamp=_TS,
             ),
             ModelRequest(
-                parts=[UserPromptPart(content="Second mention of keyword alpha")],
+                parts=[UserPromptPart(content="Second keyword alpha mention")],
                 timestamp=_TS,
             ),
         ]
@@ -476,8 +510,8 @@ class TestCreateHistorySearchToolset:
         ctx = _mock_ctx()
 
         result = await fn(ctx, "alpha")
-        assert "Found 2 match(es)" in result
-        assert "---" in result  # Separator between excerpts
+        assert "Found 1 match(es)" in result
+        assert "---" not in result
 
     @pytest.mark.anyio
     async def test_search_context_lines(self, tmp_path: Path) -> None:

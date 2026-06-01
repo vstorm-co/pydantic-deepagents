@@ -5,8 +5,8 @@ Memory is auto-loaded into the system prompt (first N lines) and agents
 can read, append, and update memory via tools.
 
 Uses FunctionToolset for native pydantic-ai integration:
-- ``get_instructions()`` injects existing memory into the system prompt
-- ``@toolset.tool`` provides read_memory, write_memory, update_memory tools
+- `get_instructions()` injects existing memory into the system prompt
+- `@toolset.tool` provides read_memory, write_memory, update_memory tools
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ DEFAULT_MEMORY_FILENAME: str = "MEMORY.md"
 DEFAULT_MAX_MEMORY_LINES: int = 200
 """Default max lines to inject into system prompt."""
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 READ_MEMORY_DESCRIPTION = """\
 Read your persistent memory from previous sessions.
@@ -52,7 +52,9 @@ UPDATE_MEMORY_DESCRIPTION = """\
 Find and replace text in your persistent memory.
 
 Use this to correct outdated information or update specific entries. \
-The old_text must match exactly."""
+The old_text must match exactly and must appear exactly once. If it is \
+not found, or if it appears more than once, no change is made and an \
+error is returned; add surrounding context to old_text to make it unique."""
 
 
 @dataclass
@@ -107,7 +109,7 @@ def load_memory(
 def format_memory_prompt(memory: MemoryFile, max_lines: int) -> str:
     """Format memory content for system prompt injection.
 
-    Only the first ``max_lines`` lines are included to stay within
+    Only the first `max_lines` lines are included to stay within
     token budget. If truncated, a marker is added.
 
     Args:
@@ -131,16 +133,16 @@ def format_memory_prompt(memory: MemoryFile, max_lines: int) -> str:
 class AgentMemoryToolset(FunctionToolset[Any]):
     """Toolset for persistent agent memory.
 
-    Provides system prompt injection (via ``get_instructions()``) and
+    Provides system prompt injection (via `get_instructions()`) and
     tools for reading, appending, and updating memory.
 
     Memory is stored as a MEMORY.md file in the backend at
-    ``{memory_dir}/{agent_name}/MEMORY.md``.
+    `{memory_dir}/{agent_name}/MEMORY.md`.
 
     Tools:
-        - ``read_memory``: Read full memory content
-        - ``write_memory``: Append new content to memory
-        - ``update_memory``: Find and replace text in memory
+        - `read_memory`: Read full memory content
+        - `write_memory`: Append new content to memory
+        - `update_memory`: Find and replace text in memory
     """
 
     def __init__(
@@ -158,7 +160,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             memory_dir: Base directory for memory files in the backend.
             max_lines: Max lines to inject into system prompt.
             descriptions: Optional mapping of tool name to custom description.
-                Supported keys: ``read_memory``, ``write_memory``, ``update_memory``.
+                Supported keys: `read_memory`, `write_memory`, `update_memory`.
                 Any key not present falls back to the built-in description constant.
         """
         super().__init__(id="deep-memory")
@@ -200,16 +202,27 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         ) -> str:
             """Find and replace text in your persistent memory.
 
+            `old_text` must match exactly once. If it is not found, or if
+            it appears more than once, no change is made and an error string
+            is returned.
+
             Args:
-                old_text: The exact text to find in memory.
+                old_text: The exact text to find in memory (must be unique).
                 new_text: The text to replace it with.
             """
             backend: BackendProtocol = ctx.deps.backend
             mem = load_memory(backend, self._path, self._agent_name)
             if mem is None:
                 return "No memory exists yet. Use write_memory to create it."
-            if old_text not in mem.content:
+            count = mem.content.count(old_text)
+            if count == 0:
                 return f"Text not found in memory: '{old_text[:100]}'"
+            if count > 1:
+                return (
+                    f"Text appears {count} times in memory; old_text must be "
+                    f"unique. Add more surrounding context to '{old_text[:100]}' "
+                    "so it matches exactly once."
+                )
             updated = mem.content.replace(old_text, new_text, 1)
             backend.write(self._path, updated.encode("utf-8"))
             line_count = len(updated.splitlines())

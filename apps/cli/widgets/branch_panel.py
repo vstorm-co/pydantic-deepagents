@@ -1,18 +1,19 @@
-"""Per-branch message panel — one mounted per active branch during a fork.
+"""Per-branch message panel - one mounted per active branch during a fork.
 
 A :class:`BranchPanelWidget` wraps a :class:`MessageList` (the same widget
 the parent chat uses) so tool-call rendering and assistant-message layout
 are visually identical. The panel does not stream branch output live;
-it shows status and replays the final ``all_messages()`` list once the
-branch task completes — the chat screen attaches an
-``asyncio.Task.add_done_callback`` per branch to populate it.
+it shows status and replays the final `all_messages()` list once the
+branch task completes - the chat screen attaches an
+`asyncio.Task.add_done_callback` per branch to populate it.
 """
 
 from __future__ import annotations
 
 import contextlib
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.css.query import NoMatches
@@ -22,6 +23,9 @@ from textual.widgets import Static
 from apps.cli.text_heuristics import looks_like_error
 from apps.cli.widgets.fork_state import BranchState, state_label
 from apps.cli.widgets.message_list import MessageList
+
+if TYPE_CHECKING:
+    from apps.cli.widgets.assistant_message import AssistantMessage
 
 
 class BranchPanelWidget(Vertical):
@@ -60,7 +64,7 @@ class BranchPanelWidget(Vertical):
 
     _STATUS_FOOTER: dict[str, str] = {
         "running": (
-            "[dim]Branch is running — output appears here when finished.  "
+            "[dim]Branch is running - output appears here when finished.  "
             "[cyan]>>{label} msg[/cyan] to steer  ·  [cyan]Esc[/cyan] to terminate[/dim]"
         ),
         "done": (
@@ -78,14 +82,14 @@ class BranchPanelWidget(Vertical):
             "[cyan]Tab[/cyan] to view the other branch  ·  [cyan]/merge[/cyan] to pick the survivor"
         ),
         "budget_exhausted": (
-            "[orange1]Branch budget exhausted — total cost crossed its "
+            "[orange1]Branch budget exhausted - total cost crossed its "
             "per-branch cap and the branch was cancelled.[/orange1]  "
             "Partial output is available; this branch can still be picked "
             "as winner in [cyan]/merge[/cyan].  Raise the cap via "
             "[cyan]/fork-config[/cyan]."
         ),
         "aggregate_budget_exhausted": (
-            "[red]Aggregate fork budget exceeded — every running branch terminated.[/red]  "
+            "[red]Aggregate fork budget exceeded - every running branch terminated.[/red]  "
             "[cyan]/fork-config[/cyan] to raise the aggregate cap  ·  "
             "[cyan]/merge[/cyan] to pick a survivor"
         ),
@@ -105,6 +109,11 @@ class BranchPanelWidget(Vertical):
         self.can_focus = True
         self._last_replayed_len: int = 0
         self._rendered_call_ids: set[str] = set()
+        # call_id -> the AssistantMessage that holds its tool-call widget. Lets a
+        # ToolReturnPart arriving in a later tick complete the row via a direct
+        # reference instead of scanning `msg_list.children` - which may not have
+        # flushed the freshly-mounted message yet, leaving the spinner stuck.
+        self._rendered_call_msgs: dict[str, AssistantMessage] = {}
         self.streaming: bool = False
 
     def compose(self) -> ComposeResult:
@@ -116,7 +125,7 @@ class BranchPanelWidget(Vertical):
         badge = state_label(self.status)
         model_part = f"  ·  [dim]{self.model}[/dim]" if self.model else ""
         cost_part = f"  ·  [dim]${self.cost_usd:.2f}[/dim]" if self.cost_usd is not None else ""
-        # ⏸ awaiting takes priority — it means the branch is actively waiting
+        # ⏸ awaiting takes priority - it means the branch is actively waiting
         # right now. The ⚠ blocked count is a historical tally of past denials.
         if self.awaiting_approval:
             approval_part = "  ·  [yellow]⏸ awaiting approval[/yellow]"
@@ -165,25 +174,20 @@ class BranchPanelWidget(Vertical):
             # the full history afresh, so a clean list is correct.
             self._last_replayed_len = 0
             self._rendered_call_ids = set()
+            self._rendered_call_msgs = {}
             with contextlib.suppress(NoMatches):
                 self.query_one(MessageList).clear_messages()
         self.reason = reason
         self.status = state
 
     def replay_messages(self, messages: list[Any]) -> None:
-        """Replay a completed branch's ``all_messages()`` into the panel.
+        """Replay a completed branch's `all_messages()` into the panel.
 
-        Mirrors the replay loop in the ``/load`` command in commands.py:
+        Mirrors the replay loop in the `/load` command in commands.py:
         user prompts → :meth:`MessageList.append_user_message`; assistant
         text → :meth:`AssistantMessage.append_text`; tool calls / returns
         rendered with the standard tool-call widget.
         """
-        from pydantic_ai.messages import (
-            TextPart,
-            ToolCallPart,
-            ToolReturnPart,
-            UserPromptPart,
-        )
 
         try:
             msg_list = self.query_one(MessageList)
@@ -191,6 +195,10 @@ class BranchPanelWidget(Vertical):
             return
 
         msg_list.clear_messages()
+        # A fresh full replay rebuilds the panel from scratch - reset the
+        # per-call reference map so stale entries from a prior replay can't
+        # complete rows in the newly cleared list.
+        self._rendered_call_msgs = {}
         completed_call_ids: set[str] = {
             part.tool_call_id
             for msg in messages
@@ -217,17 +225,27 @@ class BranchPanelWidget(Vertical):
                     if assistant_msg is None:
                         assistant_msg = msg_list.begin_assistant_message()
                     assistant_msg.add_tool_call(part.tool_name, args, call_id)
+                    # Hold a reference to the message that rendered this call so
+                    # its ToolReturnPart completes the right row even after a
+                    # trailing TextPart ends the assistant message (nulling
+                    # current_assistant), and so a later incremental append tick
+                    # can complete a call first rendered here.
+                    self._rendered_call_msgs[call_id] = assistant_msg
                     if call_id not in completed_call_ids:
                         if self.status == "terminated":
                             label = "Interrupted by user"
                         else:
-                            label = "No return — model ended run without executing this call"
+                            label = "No return - model ended run without executing this call"
                         assistant_msg.complete_tool_call(call_id, label, 0.0, True)
                 elif isinstance(part, ToolReturnPart):
-                    content_str = str(part.content)
-                    assistant_msg = msg_list.current_assistant
-                    if assistant_msg is not None:
-                        assistant_msg.complete_tool_call(
+                    # Complete via the held reference rather than
+                    # current_assistant, which is None once a TextPart in the
+                    # same response ended the assistant message - that would
+                    # leave the tool row spinning forever.
+                    held = self._rendered_call_msgs.get(part.tool_call_id)
+                    if held is not None:
+                        content_str = str(part.content)
+                        held.complete_tool_call(
                             part.tool_call_id, content_str, 0.0, looks_like_error(content_str)
                         )
 
@@ -236,26 +254,15 @@ class BranchPanelWidget(Vertical):
             msg_list.end_assistant_message()
 
         self._last_replayed_len = len(messages)
-        self._rendered_call_ids = {
-            part.tool_call_id
-            for msg in messages
-            for part in getattr(msg, "parts", [])
-            if isinstance(part, ToolCallPart)
-        }
+        self._rendered_call_ids = set(self._rendered_call_msgs)
 
     def replay_messages_append(self, messages: list[Any]) -> None:
-        """Append only new messages since the last replay — incremental update.
+        """Append only new messages since the last replay - incremental update.
 
         Called by the poll loop on each tick with the branch's current
-        ``partial_history``. Only processes messages from index
-        ``_last_replayed_len`` onward, avoiding a full clear + re-render.
+        `partial_history`. Only processes messages from index
+        `_last_replayed_len` onward, avoiding a full clear + re-render.
         """
-        from pydantic_ai.messages import (
-            TextPart,
-            ToolCallPart,
-            ToolReturnPart,
-            UserPromptPart,
-        )
 
         if len(messages) <= self._last_replayed_len:
             return
@@ -288,23 +295,44 @@ class BranchPanelWidget(Vertical):
                         assistant_msg = msg_list.begin_assistant_message()
                     assistant_msg.add_tool_call(part.tool_name, args, call_id)
                     self._rendered_call_ids.add(call_id)
+                    self._rendered_call_msgs[call_id] = assistant_msg
                 elif isinstance(part, ToolReturnPart):
-                    content_str = str(part.content)
-                    # Look the call up by id across rendered messages — not via
-                    # current_assistant, which may be None (a prior tick's slice
-                    # ended with a text part) or a different message than the one
-                    # holding the matching ToolCallPart across the tick boundary.
-                    msg_list.complete_tool_call_by_id(
-                        part.tool_call_id,
-                        content_str,
-                        0.0,
-                        looks_like_error(content_str),
-                    )
+                    # Complete the row via the message that rendered the call,
+                    # held by reference. current_assistant may be None (a prior
+                    # tick ended with a text part) and scanning msg_list.children
+                    # can miss a freshly-mounted message whose mount hasn't flushed
+                    # yet - leaving the spinner stuck across the tick boundary.
+                    held = self._rendered_call_msgs.get(part.tool_call_id)
+                    if held is not None:
+                        content_str = str(part.content)
+                        held.complete_tool_call(
+                            part.tool_call_id, content_str, 0.0, looks_like_error(content_str)
+                        )
 
         self._last_replayed_len = len(messages)
 
+    def note_streamed_messages(self, messages: list[Any]) -> None:
+        """Advance the replay watermark to cover already live-streamed messages.
+
+        `_stream_branch_via_iter` renders a branch's output live via streaming
+        deltas without touching `_last_replayed_len`. Once it stops (and
+        `streaming` flips False) a poll tick would call
+        :meth:`replay_messages_append` from index 0 and re-render - double - the
+        whole transcript before the branch is marked `done`. Calling this with
+        the streamed transcript moves the watermark past it so that append is a
+        no-op.
+        """
+
+        self._last_replayed_len = len(messages)
+        self._rendered_call_ids.update(
+            part.tool_call_id
+            for msg in messages
+            for part in getattr(msg, "parts", [])
+            if isinstance(part, ToolCallPart)
+        )
+
     def set_active(self, active: bool) -> None:
-        """Show or hide this panel — only one branch panel is visible at a time."""
+        """Show or hide this panel - only one branch panel is visible at a time."""
         if active:
             self.add_class("active")
         else:

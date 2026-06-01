@@ -1,7 +1,7 @@
 """Custom theme definitions for the pydantic-deep TUI.
 
 Themes are registered as Textual Theme objects and can be switched
-via config.toml ``theme`` key or the ``/theme`` command.
+via config.toml `theme` key or the `/theme` command.
 """
 
 from __future__ import annotations

@@ -22,7 +22,7 @@ from pydantic_deep.toolsets.skills import (
 class SkillsCapability(AbstractCapability[Any]):
     """Capability providing skill discovery, loading, and execution.
 
-    Wraps ``SkillsToolset`` as a pydantic-ai capability with automatic
+    Wraps `SkillsToolset` as a pydantic-ai capability with automatic
     instruction injection listing available skills.
 
     Example:

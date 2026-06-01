@@ -1,19 +1,19 @@
-"""Acceptance modal for above-threshold ``auto_with_fallback`` resolution.
+"""Acceptance modal for above-threshold `auto_with_fallback` resolution.
 
 Shown by the CLI when :meth:`ForkCoordinator.resolve` returns
-``auto_eligible=True`` (the judge's
+`auto_eligible=True` (the judge's
 confidence is at or above the threshold but the commit was deferred so the
 user can override). The widget renders the judge's verdict, then dispatches
 on three actions:
 
-- ``[enter]`` or ``[escape]`` → ``"accept"``: caller commits via
+- `[enter]` or `[escape]` → `"accept"`: caller commits via
   :meth:`ForkCoordinator.merge_or_select`.
-- ``[d]`` → ``"diff"``: caller opens the diff explorer and re-pushes this
+- `[d]` → `"diff"`: caller opens the diff explorer and re-pushes this
   widget on return (Test 10: returning preserves the verdict context).
-- ``[o]`` → ``"override"``: caller opens the manual picker with the judge's
+- `[o]` → `"override"`: caller opens the manual picker with the judge's
   choice preselected (Test 11).
 
-File placement (``widgets/`` instead of ``modals/``) matches the path the
+File placement (`widgets/` instead of `modals/`) matches the path the
 issue specifies; the implementation is a :class:`ModalScreen` regardless.
 """
 

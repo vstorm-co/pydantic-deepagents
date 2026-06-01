@@ -1,11 +1,11 @@
 """Per-parent-run fork coordinator owning branch tasks and merge resolution.
 
 The coordinator is the workhorse of Live Run Forking. It owns the
-``asyncio.Task`` for each branch, snapshots parent history at fork-call time,
+`asyncio.Task` for each branch, snapshots parent history at fork-call time,
 serialises mutating operations via a per-coordinator lock, and resolves
 merges by awaiting the picked winner's task.
 
-Supports up to ``max_branches=10`` parallel branches and ``max_depth=2``
+Supports up to `max_branches=10` parallel branches and `max_depth=2`
 nested forks. Per-branch :class:`CostTracking`-driven budget caps are
 managed by :class:`_BudgetWatcher`; a fork-wide aggregate cap by
 :class:`_AggregateBudgetWatcher`. Partial-history capture ensures
@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
+from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai_shields import CostInfo, CostTracking
 
 from pydantic_deep.deps import DeepAgentDeps
@@ -72,9 +73,9 @@ _CANCEL_CLEANUP_TIMEOUT_S: float = 1.0
 
 
 async def _reap_process(proc: asyncio.subprocess.Process) -> None:
-    """Terminate (then kill) ``proc`` if it is still running, reaping it.
+    """Terminate (then kill) `proc` if it is still running, reaping it.
 
-    Shielded against cancellation so a parent abort mid-``proc.wait()`` cannot
+    Shielded against cancellation so a parent abort mid-`proc.wait()` cannot
     leave an orphaned/zombie test subprocess behind.
     """
     if proc.returncode is not None:
@@ -84,7 +85,7 @@ async def _reap_process(proc: asyncio.subprocess.Process) -> None:
     try:
         await asyncio.shield(asyncio.wait_for(proc.wait(), timeout=_CANCEL_CLEANUP_TIMEOUT_S))
     except (asyncio.TimeoutError, asyncio.CancelledError):
-        # SIGTERM ignored or we were cancelled mid-wait — escalate to SIGKILL.
+        # SIGTERM ignored or we were cancelled mid-wait - escalate to SIGKILL.
         with contextlib.suppress(ProcessLookupError):
             proc.kill()
         with contextlib.suppress(Exception):
@@ -121,17 +122,17 @@ def _detect_vote_models(fallback: str) -> list[str]:
 
     Detection order:
 
-    1. Native providers (Anthropic, OpenAI, Mistral, Groq, Cohere) — each
+    1. Native providers (Anthropic, OpenAI, Mistral, Groq, Cohere) - each
        contributes one cheap model when its env var is set.
-    2. Google — checked via several possible env var names.
-    3. OpenRouter — contributes three different model-family representatives
+    2. Google - checked via several possible env var names.
+    3. OpenRouter - contributes three different model-family representatives
        (haiku, gpt-mini, gemini-flash) through a single key, maximising
        diversity when only one API key is configured.
 
     The collected models are deduplicated (OpenRouter + Anthropic key would
     otherwise produce two haiku variants), then cycled to fill exactly 3
-    slots. If no keys are detected the ``fallback`` model is used three
-    times — same behaviour as before, but at least won't crash on a missing
+    slots. If no keys are detected the `fallback` model is used three
+    times - same behaviour as before, but at least won't crash on a missing
     key.
     """
     pool: list[str] = []
@@ -160,13 +161,13 @@ def _detect_vote_models(fallback: str) -> list[str]:
 
 
 def _ensure_unique_labels(specs: list[BranchSpec]) -> list[BranchSpec]:
-    """Return ``specs`` with guaranteed non-empty, unique branch labels.
+    """Return `specs` with guaranteed non-empty, unique branch labels.
 
-    Empty/blank labels become ``branch-{n}``; duplicates are auto-suffixed
-    (``-2``, ``-3``, …). Without this, a blank or duplicate label collapses
-    the CLI ``label_to_id`` map (and the inverse in diff_picker), making one
-    branch unreachable and ``>>label`` steering ambiguous — ``BranchSpec`` and
-    the agent-facing ``fork_run`` tool otherwise pass labels through verbatim.
+    Empty/blank labels become `branch-{n}`; duplicates are auto-suffixed
+    (`-2`, `-3`, …). Without this, a blank or duplicate label collapses
+    the CLI `label_to_id` map (and the inverse in diff_picker), making one
+    branch unreachable and `>>label` steering ambiguous - `BranchSpec` and
+    the agent-facing `fork_run` tool otherwise pass labels through verbatim.
     """
     used: set[str] = set()
     out: list[BranchSpec] = []
@@ -185,8 +186,8 @@ def _ensure_unique_labels(specs: list[BranchSpec]) -> list[BranchSpec]:
 def _strategy_cache_key(strategy: MergeStrategy) -> tuple[Any, ...]:
     """Hashable identity of a :class:`MergeStrategy` for the resolve cache.
 
-    Includes every field that affects the resolved outcome — kind,
-    confidence_threshold, and the judge model(s) — so a re-resolve with any
+    Includes every field that affects the resolved outcome - kind,
+    confidence_threshold, and the judge model(s) - so a re-resolve with any
     differing field misses the cache and re-runs the judge.
     """
     judge_models = tuple(strategy.judge_models) if strategy.judge_models is not None else None
@@ -194,10 +195,10 @@ def _strategy_cache_key(strategy: MergeStrategy) -> tuple[Any, ...]:
 
 
 def _describe_blocked_call(call: Any) -> str:
-    """Render an auto-denied tool call as ``"tool: arg"`` for surfacing.
+    """Render an auto-denied tool call as `"tool: arg"` for surfacing.
 
     Handles the common :class:`pydantic_ai.messages.ToolCallPart` shape
-    (``tool_name`` + ``args``) where ``args`` is typically a dict but may
+    (`tool_name` + `args`) where `args` is typically a dict but may
     occasionally be a plain string or absent. The renderer falls back to
     the tool name only when no meaningful argument is available.
     """
@@ -225,12 +226,12 @@ def _describe_blocked_call(call: Any) -> str:
 
 
 def _last_assistant_text(messages: list[Any]) -> str:
-    """Join the text parts of the final :class:`ModelResponse` in ``messages``.
+    """Join the text parts of the final :class:`ModelResponse` in `messages`.
 
-    Returns ``""`` when no model response is present (e.g. a branch that was
+    Returns `""` when no model response is present (e.g. a branch that was
     cancelled before any assistant turn fired). Used by
     :meth:`ForkCoordinator._build_branch_outcomes` to seed the per-branch
-    ``final_assistant_message`` shown to the judge.
+    `final_assistant_message` shown to the judge.
     """
     for msg in reversed(messages):
         if not isinstance(msg, ModelResponse):
@@ -245,20 +246,20 @@ def _last_assistant_text(messages: list[Any]) -> str:
 
 
 class ForkBranchLimitError(Exception):
-    """Raised when a ``fork_run`` call exceeds ``max_branches``."""
+    """Raised when a `fork_run` call exceeds `max_branches`."""
 
 
 class ForkDepthLimitError(Exception):
-    """Raised when a ``fork_run`` call from within a branch exceeds ``max_depth``."""
+    """Raised when a `fork_run` call from within a branch exceeds `max_depth`."""
 
 
 class _PerBranchCostTracking(CostTracking):  # type: ignore[misc]
     """:class:`CostTracking` subclass that isolates per-run state.
 
     Stock :class:`CostTracking` inherits :meth:`AbstractCapability.for_run`,
-    which returns ``self`` — so every concurrent branch run would mutate
-    the same accumulator and a single ``budget_usd`` would apply across
-    all branches. This subclass overrides ``for_run`` to return the
+    which returns `self` - so every concurrent branch run would mutate
+    the same accumulator and a single `budget_usd` would apply across
+    all branches. This subclass overrides `for_run` to return the
     instance stored on :attr:`DeepAgentDeps._branch_cost_tracking` when
     set, giving each branch its own zero-initialised accumulators.
     """
@@ -272,10 +273,10 @@ class _PerBranchCostTracking(CostTracking):  # type: ignore[misc]
 
 @dataclass
 class _BudgetWatcher:
-    """Per-branch ``on_cost_update`` callback that enforces ``budget_usd``.
+    """Per-branch `on_cost_update` callback that enforces `budget_usd`.
 
-    The cost callback is awaited by ``CostTracking.after_run`` when it
-    returns a coroutine, so this watcher uses direct ``await`` rather than
+    The cost callback is awaited by `CostTracking.after_run` when it
+    returns a coroutine, so this watcher uses direct `await` rather than
     spawning a background task.
     """
 
@@ -297,13 +298,13 @@ class _BudgetWatcher:
 class _AggregateBudgetWatcher:
     """Coordinator-level aggregate cap.
 
-    Tracks the latest ``total_cost_usd`` per branch. When the sum exceeds
+    Tracks the latest `total_cost_usd` per branch. When the sum exceeds
     :attr:`aggregate_budget_usd`, terminates every still-running branch
-    with reason ``"aggregate_budget_exhausted"``.
+    with reason `"aggregate_budget_exhausted"`.
 
-    Best-effort — concurrent callbacks may briefly overrun before
+    Best-effort - concurrent callbacks may briefly overrun before
     terminations propagate. See the "Aggregate budget enforcement is
-    best-effort" callout in ``docs/capabilities/live-fork.md``.
+    best-effort" callout in `docs/capabilities/live-fork.md`.
     """
 
     coordinator: ForkCoordinator
@@ -352,24 +353,31 @@ class ForkCoordinator:
     so concurrent parent runs of the same agent never share state.
 
     Args:
-        agent: The owning agent — used to spawn branch ``agent.run()`` tasks.
+        agent: The owning agent - used to spawn branch `agent.run()` tasks.
         parent_deps: The parent run's deps; cloned per branch via
             :func:`clone_for_branch`.
         max_branches: Maximum number of branches per fork.
         max_depth: Maximum fork nesting depth.
         store: The :class:`ForkStateStore` used to persist :class:`ForkHandle`.
-        checkpoint_store: Optional explicit checkpoint store. When ``None``,
-            the coordinator falls back to ``parent_deps.checkpoint_store``.
+        checkpoint_store: Optional explicit checkpoint store. When `None`,
+            the coordinator falls back to `parent_deps.checkpoint_store`.
         test_command: Optional shell command run against each branch's
             materialised tree during :meth:`resolve` to feed the
-            ``test_pass_ratio`` confidence signal. ``None`` disables the
-            runner — the cap-at-0.65 safety rail then keeps
-            ``auto_with_fallback`` falling through to the manual picker.
+            `test_pass_ratio` confidence signal. `None` disables the
+            runner - the cap-at-0.65 safety rail then keeps
+            `auto_with_fallback` falling through to the manual picker.
             Restricted to :class:`~pydantic_ai_backends.LocalBackend`
-            parents; non-local parents always produce ``None``.
+            parents; non-local parents always produce `None`.
+            SECURITY: this is operator-configured and runs with the parent
+            process's full `os.environ` inherited (only `UV_NO_SYNC=1` is
+            added). The environment is deliberately NOT filtered, since most
+            test commands need `PATH` / `HOME` / language runtime vars to
+            function. Operators must therefore avoid configuring a
+            `test_command` that could exfiltrate secrets held in the
+            environment (e.g. API keys), as those vars are visible to it.
         test_timeout_s: Wall-clock cap (seconds) per branch test run. On
-            timeout the branch's ``test_pass_ratio`` is ``None`` (treated as
-            "no signal"), not ``0.0``.
+            timeout the branch's `test_pass_ratio` is `None` (treated as
+            "no signal"), not `0.0`.
     """
 
     def __init__(
@@ -401,6 +409,10 @@ class ForkCoordinator:
         self.test_command = test_command
         self.test_timeout_s = test_timeout_s
         self.branches: dict[str, BranchRuntime] = {}
+        #: Parent message snapshot captured at fork() time. Used as the
+        #: merge fallback when a winner is cancelled before recording any
+        #: partial history (see merge_or_select).
+        self._pre_fork_history: list[Any] = []
         self._handle: ForkHandle | None = None
         self._lock = asyncio.Lock()
         self.capability: LiveForkCapability | None = None
@@ -412,21 +424,21 @@ class ForkCoordinator:
 
     @property
     def fork_id(self) -> str | None:
-        """The active fork's id, or ``None`` if ``fork()`` has not been called yet.
+        """The active fork's id, or `None` if `fork()` has not been called yet.
 
-        Exposed so consumers (e.g. the ``diff_branches`` tool) can
-        validate caller-supplied ``fork_id`` without reaching into the
-        coordinator's private ``_handle`` attribute.
+        Exposed so consumers (e.g. the `diff_branches` tool) can
+        validate caller-supplied `fork_id` without reaching into the
+        coordinator's private `_handle` attribute.
         """
         return self._handle.fork_id if self._handle is not None else None
 
     @property
     def handle(self) -> ForkHandle | None:
-        """The :class:`ForkHandle` returned by :meth:`fork`, or ``None`` before fork.
+        """The :class:`ForkHandle` returned by :meth:`fork`, or `None` before fork.
 
         Read-only public accessor for the same value :meth:`fork` returns.
         Cross-package consumers (the CLI adopter, debug inspectors) read this
-        instead of reaching into ``_handle``.
+        instead of reaching into `_handle`.
         """
         return self._handle
 
@@ -435,8 +447,8 @@ class ForkCoordinator:
         """True when the coordinator no longer owns live branch state.
 
         Resolved iff either the coordinator has not yet forked
-        (``_handle is None``) or every branch's overlay has been released
-        (``rt.overlay is None``) — which only happens inside
+        (`_handle is None`) or every branch's overlay has been released
+        (`rt.overlay is None`) - which only happens inside
         :meth:`merge_or_select` (winner flushed, losers cancelled) and
         :meth:`aclose` (abort). This is the canonical "safe to discard"
         signal used by the CLI adopter and :meth:`LiveForkCapability.for_run`
@@ -459,15 +471,15 @@ class ForkCoordinator:
         fork_id: str,
         messages: list[Any],
     ) -> str | None:
-        """Save a fork anchor checkpoint; return its id, or ``None`` if no store.
+        """Save a fork anchor checkpoint; return its id, or `None` if no store.
 
-        Writes directly to ``CheckpointStore`` rather than calling
-        ``CheckpointMiddleware._save_now``: the coordinator owns its own
+        Writes directly to `CheckpointStore` rather than calling
+        `CheckpointMiddleware._save_now`: the coordinator owns its own
         anchor lifecycle and must remain functional even when checkpoint
-        middleware is not registered on the agent. Consequence — anchor
+        middleware is not registered on the agent. Consequence - anchor
         checkpoints are subject to the store's pruning policy
-        (``max_checkpoints``) just like any other checkpoint; see the
-        "Pre-fork anchor pruning" callout in ``docs/capabilities/live-fork.md``.
+        (`max_checkpoints`) just like any other checkpoint; see the
+        "Pre-fork anchor pruning" callout in `docs/capabilities/live-fork.md`.
         """
         cp_store = self._resolve_checkpoint_store()
         if cp_store is None:
@@ -494,26 +506,26 @@ class ForkCoordinator:
         strategy: MergeStrategy | None = None,
         aggregate_budget_usd: float | None = None,
     ) -> ForkHandle:
-        """Spawn ``len(specs)`` branch tasks and return a handle.
+        """Spawn `len(specs)` branch tasks and return a handle.
 
         Args:
-            specs: Branch definitions; ``len(specs)`` must not exceed
+            specs: Branch definitions; `len(specs)` must not exceed
                 :attr:`max_branches`.
             parent_history: Parent run's message snapshot at fork time.
             isolation: Per-branch isolation overrides (defaults to
                 :class:`BranchIsolation`).
-            strategy: Merge strategy (currently ``kind="manual"`` only).
+            strategy: Merge strategy (currently `kind="manual"` only).
             aggregate_budget_usd: Optional fork-wide budget cap; when set,
                 hitting it terminates every still-running branch with
-                ``state="aggregate_budget_exhausted"``. Overrides the
+                `state="aggregate_budget_exhausted"`. Overrides the
                 value passed to :meth:`__init__`. Enforcement is
-                best-effort under concurrent callbacks — see the
+                best-effort under concurrent callbacks - see the
                 "Aggregate budget enforcement" note in the live-fork doc.
 
         Raises:
-            ValueError: If ``specs`` is empty.
-            ForkBranchLimitError: If ``len(specs) > max_branches``.
-            ForkDepthLimitError: If parent's ``_fork_depth >= max_depth``.
+            ValueError: If `specs` is empty.
+            ForkBranchLimitError: If `len(specs) > max_branches`.
+            ForkDepthLimitError: If parent's `_fork_depth >= max_depth`.
         """
         if not specs:
             raise ValueError("fork() requires at least one BranchSpec.")
@@ -532,6 +544,7 @@ class ForkCoordinator:
 
         async with self._lock:
             fork_id = str(uuid.uuid4())
+            self._pre_fork_history = list(parent_history)
 
             self.materializer = ForkMaterializer(
                 root=self.materializer_root / fork_id,
@@ -544,7 +557,7 @@ class ForkCoordinator:
             )
             if parent_checkpoint_id is None:
                 warnings.warn(
-                    "Forking enabled without a checkpoint store — rewind safety net unavailable.",
+                    "Forking enabled without a checkpoint store - rewind safety net unavailable.",
                     stacklevel=2,
                 )
 
@@ -650,20 +663,20 @@ class ForkCoordinator:
         parent_history: list[Any],
         cloned_deps: DeepAgentDeps,
     ) -> Any:
-        """Run a branch's ``agent.run()`` and route each deferred approval to the user.
+        """Run a branch's `agent.run()` and route each deferred approval to the user.
 
         Branch tasks are plain :class:`asyncio.Task` coroutines that share
         the same asyncio event loop as the TUI.  When a branch agent
-        triggers a deferred-approval call (e.g. ``execute``), this method:
+        triggers a deferred-approval call (e.g. `execute`), this method:
 
         1. Sets :attr:`BranchRuntime.pending_approval` to a
            :class:`~pydantic_deep.types.PendingApprovalRequest` that holds
            an :class:`asyncio.Queue`.
-        2. ``await``s :meth:`asyncio.Queue.get` — the branch suspends.
+        2. `await`s :meth:`asyncio.Queue.get` - the branch suspends.
         3. The TUI poll loop (:meth:`~apps.cli.screens.chat.ChatScreen._poll_fork_state`)
-           detects ``pending_approval``, surfaces a
+           detects `pending_approval`, surfaces a
            :class:`~apps.cli.modals.branch_approval.BranchApprovalModal`, and
-           puts ``True`` (approve) or ``False`` (deny) into the queue.
+           puts `True` (approve) or `False` (deny) into the queue.
         4. The branch resumes, forwards the answer to pydantic-ai's
            :class:`~pydantic_ai.tools.DeferredToolResults`, and continues.
 
@@ -671,7 +684,6 @@ class ForkCoordinator:
         for post-merge reporting.  The loop repeats until the agent stops
         producing :class:`~pydantic_ai.output.DeferredToolRequests` output.
         """
-        from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 
         runtime = self.branches.get(branch_id)
         runner = self.branch_runner
@@ -729,18 +741,18 @@ class ForkCoordinator:
         return result
 
     async def run_on_branch(self, branch_id: str, user_message: str) -> asyncio.Task[Any]:
-        """Start a new turn on a finished branch with ``user_message``.
+        """Start a new turn on a finished branch with `user_message`.
 
-        The branch must be in ``done`` state. Seeds the new turn's message
-        history from the previous run's ``all_messages()`` (which already holds
-        the full conversation), spawns a new ``asyncio.Task``, replaces
-        ``runtime.task``, and re-attaches the done-callback so the status
-        transitions back through ``running`` → ``done``.
+        The branch must be in `done` state. Seeds the new turn's message
+        history from the previous run's `all_messages()` (which already holds
+        the full conversation), spawns a new `asyncio.Task`, replaces
+        `runtime.task`, and re-attaches the done-callback so the status
+        transitions back through `running` → `done`.
 
-        Returns the spawned task so the caller can ``await`` it if needed.
+        Returns the spawned task so the caller can `await` it if needed.
 
         Raises:
-            ValueError: If ``branch_id`` is unknown.
+            ValueError: If `branch_id` is unknown.
             RuntimeError: If the branch is still running.
         """
         if branch_id not in self.branches:
@@ -750,11 +762,11 @@ class ForkCoordinator:
             runtime = self.branches[branch_id]
             if not runtime.task.done():
                 raise RuntimeError(
-                    f"Branch {branch_id!r} is still running — cannot start a new turn."
+                    f"Branch {branch_id!r} is still running - cannot start a new turn."
                 )
             if runtime.status.state != "done":
                 raise RuntimeError(
-                    f"Branch {branch_id!r} is in state {runtime.status.state!r} — "
+                    f"Branch {branch_id!r} is in state {runtime.status.state!r} - "
                     "only 'done' branches accept new turns."
                 )
             prev_result = runtime.task.result()
@@ -805,17 +817,17 @@ class ForkCoordinator:
 
         Args:
             branch_id: Branch to cancel.
-            reason: When ``"budget_exhausted"`` or
-                ``"aggregate_budget_exhausted"``, the branch's status is
-                set to the matching state and its ``error`` field is
+            reason: When `"budget_exhausted"` or
+                `"aggregate_budget_exhausted"`, the branch's status is
+                set to the matching state and its `error` field is
                 populated with a debug-friendly message. Otherwise the
-                terminal state is ``"terminated"``.
+                terminal state is `"terminated"`.
 
         Only sets a new terminal state when the task is still running; if
         it already completed (success / failure / earlier cancellation),
-        ``_on_done`` has already written the correct terminal state and we
+        `_on_done` has already written the correct terminal state and we
         must not overwrite it. Idempotent: a second call for the same
-        ``branch_id`` (e.g. when the aggregate watcher races with the
+        `branch_id` (e.g. when the aggregate watcher races with the
         per-branch watcher) is a no-op.
         """
         if branch_id not in self.branches:
@@ -844,7 +856,7 @@ class ForkCoordinator:
         self._refresh_manifest()
 
     def _refresh_manifest(self) -> None:
-        """Write a fresh ``manifest.json`` reflecting current branch statuses."""
+        """Write a fresh `manifest.json` reflecting current branch statuses."""
         materializer = self.materializer
         if materializer is None:  # pragma: no cover - only callers run after fork()
             return
@@ -865,7 +877,7 @@ class ForkCoordinator:
         await self._aggregate_watcher.update(branch_id, info)
 
     def iter_pending_approvals(self) -> list[tuple[str, PendingApprovalRequest]]:
-        """Return ``(branch_id, request)`` for every branch currently suspended on approval.
+        """Return `(branch_id, request)` for every branch currently suspended on approval.
 
         The TUI poll loop uses this instead of reading
         :attr:`BranchRuntime.pending_approval` directly, so the coordinator
@@ -880,10 +892,10 @@ class ForkCoordinator:
     async def merge_or_select(self, action: str) -> MergeResult:
         """Resolve the fork by picking a winner.
 
-        ``action="pick:<branch_id>"`` awaits the winning branch's task,
+        `action="pick:<branch_id>"` awaits the winning branch's task,
         cancels and discards the others, replays the winner's overlay
         onto the parent backend, releases every overlay, and saves a
-        ``post-fork:<fork_id>`` checkpoint when checkpointing is available.
+        `post-fork:<fork_id>` checkpoint when checkpointing is available.
         """
         if not action.startswith("pick:"):
             raise ValueError(f"Unsupported merge action: {action!r}. Expected 'pick:<branch_id>'.")
@@ -896,7 +908,7 @@ class ForkCoordinator:
             raise RuntimeError("merge_or_select called before fork()")
 
         winner = self.branches[target_id]
-        # Await the winner outside the lock — it may park on human approval indefinitely,
+        # Await the winner outside the lock - it may park on human approval indefinitely,
         # which would freeze every other lock user. Take the lock only for the merge below.
         try:
             result = await winner.task
@@ -907,8 +919,16 @@ class ForkCoordinator:
                 "budget_exhausted",
                 "aggregate_budget_exhausted",
             }
-            if winner.status.state in _exhausted_states and winner.partial_history:
-                history_after_merge = list(winner.partial_history)
+            if winner.status.state in _exhausted_states:
+                # A winner cancelled in a valid exhausted state may have no
+                # partial history yet (e.g. cancelled before its first
+                # before_model_request hook fired). Fall back to the pre-fork
+                # parent history so the merge still completes rather than
+                # spuriously raising. partial_history wins when present.
+                if winner.partial_history:
+                    history_after_merge = list(winner.partial_history)
+                else:
+                    history_after_merge = list(self._pre_fork_history)
             else:
                 raise RuntimeError(
                     f"Winning branch {target_id!r} was cancelled before merge."
@@ -983,7 +1003,7 @@ class ForkCoordinator:
             return merge_result
 
     async def abort_fork(self) -> list[str]:
-        """Discard the entire fork without merging — releases overlays, cancels tasks.
+        """Discard the entire fork without merging - releases overlays, cancels tasks.
 
         Use when every branch has failed (or otherwise become unmergeable)
         so the fork can be resolved without picking a winner.  Mirrors the
@@ -991,7 +1011,7 @@ class ForkCoordinator:
         overlay onto the parent backend.
 
         Returns the list of branch ids that were aborted.  After this
-        call, :attr:`is_resolved` becomes ``True`` and a new fork can be
+        call, :attr:`is_resolved` becomes `True` and a new fork can be
         started on the same coordinator.
         """
         if self._handle is None:
@@ -1020,30 +1040,38 @@ class ForkCoordinator:
     async def _run_tests_for_branch(self, rt: BranchRuntime) -> float | None:
         """Run :attr:`test_command` against a snapshot of the branch and return a ratio.
 
-        Materialises the branch (parent ``LocalBackend.root_dir`` + overlay
+        Materialises the branch (parent `LocalBackend.root_dir` + overlay
         writes / deletions) into a fresh tempdir via
         :meth:`BranchOverlay.snapshot`, runs the command via
-        :func:`asyncio.create_subprocess_exec` (no shell — argv via
-        :func:`shlex.split`) with a ``test_timeout_s`` cap,
+        :func:`asyncio.create_subprocess_exec` (no shell - argv via
+        :func:`shlex.split`) with a `test_timeout_s` cap,
         and returns:
 
-        - ``1.0`` on exit code ``0``
-        - ``0.0`` on any non-zero exit
-        - ``None`` when the runner is disabled, the parent backend has no
-          ``root_dir`` (e.g. :class:`StateBackend` in tests), the branch
+        - `1.0` on exit code `0`
+        - `0.0` on any non-zero exit
+        - `None` when the runner is disabled, the parent backend has no
+          `root_dir` (e.g. :class:`StateBackend` in tests), the branch
           overlay is gone, the command failed to spawn, or the run timed out
 
-        ``None`` is the "no signal" return — :func:`compute_confidence`
+        `None` is the "no signal" return - :func:`compute_confidence`
         keeps the cap-at-0.65 safety rail active in that case, identical to
-        the no-test behaviour. ``0.0`` only fires for an explicit non-zero
+        the no-test behaviour. `0.0` only fires for an explicit non-zero
         exit, distinguishing "tests ran and some failed" from "we never
         learned anything".
 
         All exceptions raised by the materialiser or the subprocess setup
-        are caught and logged at ``WARNING`` — a broken test runner must
-        never cause :meth:`resolve` to fail. The accompanying ``asyncio.gather``
+        are caught and logged at `WARNING` - a broken test runner must
+        never cause :meth:`resolve` to fail. The accompanying `asyncio.gather`
         in :meth:`_build_branch_outcomes` therefore runs WITHOUT
-        ``return_exceptions=True``: a leaked exception is a real bug.
+        `return_exceptions=True`: a leaked exception is a real bug.
+
+        SECURITY: the snapshot is built with `include_venv=True` (so the
+        runner sees the parent's virtualenv) and the command inherits the
+        full parent `os.environ` (only `UV_NO_SYNC=1` is added). The
+        environment is intentionally not scrubbed - filtering it would break
+        commands needing `PATH` / `HOME` / runtime vars - so a
+        `test_command` runs with whatever secrets the parent process holds.
+        See the `test_command` constructor arg for the operator caveat.
         """
         if self.test_command is None:
             return None
@@ -1057,7 +1085,7 @@ class ForkCoordinator:
         parent_root = Path(parent_root_obj)
         # UV_NO_SYNC=1: editable deps with relative paths break in the temp snapshot.
         env = {**os.environ, "UV_NO_SYNC": "1"}
-        # Off the event loop: the snapshot symlink walk is synchronous and would freeze the TUI.
+        # Off the event loop: the snapshot file-copy walk is synchronous and would freeze the TUI.
         loop = asyncio.get_running_loop()
 
         def _enter() -> tuple[Any, Any]:
@@ -1107,14 +1135,14 @@ class ForkCoordinator:
     async def _build_branch_outcomes(self) -> tuple[list[BranchOutcome], str]:
         """Materialise per-branch summaries + the parent's first user message.
 
-        ``goal`` is the first :class:`UserPromptPart` content found in any
-        branch's history — every branch shares the parent's pre-fork history,
-        so the first one we encounter is canonical. Returns ``""`` if no
-        ``UserPromptPart`` is present (defensive; the prompt builder handles
+        `goal` is the first :class:`UserPromptPart` content found in any
+        branch's history - every branch shares the parent's pre-fork history,
+        so the first one we encounter is canonical. Returns `""` if no
+        `UserPromptPart` is present (defensive; the prompt builder handles
         an empty goal gracefully).
 
         Test runs are dispatched concurrently across branches via
-        :func:`asyncio.gather`; the per-branch ratio (or ``None``) is
+        :func:`asyncio.gather`; the per-branch ratio (or `None`) is
         threaded into each :class:`BranchOutcome` so the judge sees it AND
         :meth:`_compute_signals` can lift the cap-at-0.65 safety rail for
         the winner.
@@ -1167,11 +1195,11 @@ class ForkCoordinator:
     def _messages_for(rt: BranchRuntime) -> list[Any]:
         """Return the best-available message list for one branch runtime.
 
-        Prefers the completed task's ``result.all_messages()`` when the task
+        Prefers the completed task's `result.all_messages()` when the task
         finished cleanly; otherwise falls back to the live
-        ``partial_history`` snapshot captured by
+        `partial_history` snapshot captured by
         :class:`LiveForkCapability.before_model_request`. Always returns a
-        ``list`` so downstream consumers can iterate without a None-check.
+        `list` so downstream consumers can iterate without a None-check.
         """
         if rt.task.done() and not rt.task.cancelled():
             try:
@@ -1198,10 +1226,10 @@ class ForkCoordinator:
     ) -> ConfidenceSignals:
         """Build :class:`ConfidenceSignals` for the winning branch.
 
-        ``test_pass_ratio`` is read off the winner's :class:`BranchOutcome`
+        `test_pass_ratio` is read off the winner's :class:`BranchOutcome`
         (populated by :meth:`_run_tests_for_branch`). When the runner is
         disabled, the parent backend is not a :class:`LocalBackend`, or the
-        run timed out, the value is ``None`` — :func:`compute_confidence`
+        run timed out, the value is `None` - :func:`compute_confidence`
         then applies its cap-at-0.65 safety rail, identical to the
         no-test-signal behaviour.
         """
@@ -1225,29 +1253,29 @@ class ForkCoordinator:
         self,
         strategy: MergeStrategy | None = None,
     ) -> ResolveOutcome:
-        """Dispatch on :attr:`MergeStrategy.kind` — judge runs for non-manual modes.
+        """Dispatch on :attr:`MergeStrategy.kind` - judge runs for non-manual modes.
 
-        - ``"manual"`` → early-return ``ResolveOutcome(committed=False,
-          auto_eligible=False, verdict=None, ...)``; the caller picks via
+        - `"manual"` → early-return `ResolveOutcome(committed=False,
+          auto_eligible=False, verdict=None, ...)`; the caller picks via
           :meth:`merge_or_select`.
-        - ``"auto"`` → judge picks, ``merge_or_select`` fires immediately.
-        - ``"auto_with_fallback"`` → judge picks. If the combined confidence is
+        - `"auto"` → judge picks, `merge_or_select` fires immediately.
+        - `"auto_with_fallback"` → judge picks. If the combined confidence is
           at or above :attr:`MergeStrategy.confidence_threshold` the commit is
-          **deferred** to the caller (``committed=False,
-          auto_eligible=True``) so the CLI's acceptance widget can offer an
-          override; otherwise ``auto_eligible=False`` and the caller opens
+          **deferred** to the caller (`committed=False,
+          auto_eligible=True`) so the CLI's acceptance widget can offer an
+          override; otherwise `auto_eligible=False` and the caller opens
           the manual picker preselected.
-        - ``"vote"`` → multiple judges evaluate concurrently; majority wins,
-          ties broken by highest individual confidence; ``merge_or_select``
+        - `"vote"` → multiple judges evaluate concurrently; majority wins,
+          ties broken by highest individual confidence; `merge_or_select`
           fires immediately on the synthetic majority verdict.
 
-        The judge's ``result.usage()`` rides on
+        The judge's `result.usage()` rides on
         :attr:`ResolveOutcome.judge_usage` (summed across judges for
-        ``"vote"``) so the caller can attribute cost without faking a
-        ``cost_category`` field on pydantic-ai-shields' ``CostTracking``.
+        `"vote"`) so the caller can attribute cost without faking a
+        `cost_category` field on pydantic-ai-shields' `CostTracking`.
         """
         if self._handle is None:
-            raise RuntimeError("resolve() called before fork() — no active fork.")
+            raise RuntimeError("resolve() called before fork() - no active fork.")
         effective_strategy = strategy if strategy is not None else self._handle.merge_strategy
 
         if effective_strategy.kind == "manual":
@@ -1261,7 +1289,7 @@ class ForkCoordinator:
                 judge_usage=None,
             )
 
-        # Reuse the cached outcome only for an identical strategy — the key spans
+        # Reuse the cached outcome only for an identical strategy - the key spans
         # threshold + judge model(s), not just kind, so a changed threshold/panel re-runs.
         strategy_key = _strategy_cache_key(effective_strategy)
         if self._cached_outcome is not None and self._cached_outcome_key == strategy_key:
@@ -1279,14 +1307,14 @@ class ForkCoordinator:
         effective_confidence = compute_confidence(signals, verdict.confidence)
 
         if effective_strategy.kind in ("auto", "vote"):
-            # auto/vote commit immediately — no point caching a committed outcome.
+            # auto/vote commit immediately - no point caching a committed outcome.
             return await self._commit_and_wrap(
                 verdict=verdict,
                 signals=signals,
                 effective_confidence=effective_confidence,
                 judge_usage=judge_usage,
             )
-        # kind == "auto_with_fallback" — commit is deferred; cache so the user
+        # kind == "auto_with_fallback" - commit is deferred; cache so the user
         # can re-open /merge without re-paying for the judge call.
         above_threshold = effective_confidence >= effective_strategy.confidence_threshold
         outcome = ResolveOutcome(
@@ -1310,9 +1338,9 @@ class ForkCoordinator:
         effective_confidence: float,
         judge_usage: Any,
     ) -> ResolveOutcome:
-        """Commit the merge for ``auto`` / ``vote`` modes and wrap the result.
+        """Commit the merge for `auto` / `vote` modes and wrap the result.
 
-        Extracted from :meth:`resolve` so both modes share one code path —
+        Extracted from :meth:`resolve` so both modes share one code path -
         keeps the two paths from drifting if the commit semantics ever grow
         (e.g. an additional checkpoint, a notification hook).
         """
@@ -1334,15 +1362,17 @@ class ForkCoordinator:
         diff_report: Any,
         outcomes: list[BranchOutcome],
     ) -> tuple[JudgeVerdict, Any]:
-        """Run one or multiple judges depending on ``strategy.kind``.
+        """Run one or multiple judges depending on `strategy.kind`.
 
-        For ``"vote"`` mode the judges are evaluated concurrently via
+        For `"vote"` mode the judges are evaluated concurrently via
         :func:`asyncio.gather`; the synthetic majority verdict is built by
-        :func:`_majority_pick` and the ``usage`` field aggregates the list of
-        per-judge usage objects so the caller has full visibility.
+        :func:`_majority_pick` and the per-judge usages are **summed** into a
+        single `RunUsage` - matching the single-judge path and the
+        `ResolveOutcome.judge_usage` contract ("summed across judges"), so
+        cost attribution sees one consistent usage object regardless of mode.
 
-        ``strategy.judge_models`` distinguishes ``None`` (use the project
-        default triple) from ``[]`` (an explicit empty list — raised as a
+        `strategy.judge_models` distinguishes `None` (use the project
+        default triple) from `[]` (an explicit empty list - raised as a
         :class:`ValueError`, never silently replaced with defaults).
         """
         if strategy.kind == "vote":
@@ -1361,8 +1391,15 @@ class ForkCoordinator:
                 *(j.evaluate(goal, diff_report, outcomes) for j in judges)
             )
             verdicts = [v for v, _ in results]
-            usages = [u for _, u in results]
-            return _majority_pick(verdicts), usages
+            # Sum per-judge usages into one RunUsage (RunUsage.__add__ returns a
+            # new object, leaving the judges' own usage untouched). None entries
+            # are skipped; an all-None panel yields None.
+            summed_usage: Any = None
+            for _, u in results:
+                if u is None:
+                    continue
+                summed_usage = u if summed_usage is None else summed_usage + u
+            return _majority_pick(verdicts), summed_usage
         judge = JudgeAgent(strategy.judge_model)
         return await judge.evaluate(goal, diff_report, outcomes)
 
@@ -1375,16 +1412,16 @@ class ForkCoordinator:
 
         Returns:
             :class:`ForkCostSummary` with one :class:`BranchCost` entry per
-            branch. ``aggregate_usd`` sums the ``cumulative_usd`` values of
+            branch. `aggregate_usd` sums the `cumulative_usd` values of
             branches whose cost is known (skips branches whose model has no
             pricing or has not produced a tracked run yet); when no branch
-            has a known cost, ``aggregate_usd`` is ``None``.
+            has a known cost, `aggregate_usd` is `None`.
 
         Raises:
             RuntimeError: If called before :meth:`fork` has been invoked.
         """
         if self._handle is None:
-            raise RuntimeError("fork_cost() called before fork() — no active fork.")
+            raise RuntimeError("fork_cost() called before fork() - no active fork.")
         per_branch: dict[str, BranchCost] = {}
         agg_total: float = 0.0
         agg_has_value = False
@@ -1432,8 +1469,8 @@ class ForkCoordinator:
         branch run so that, if the branch is later cancelled by a budget
         watcher, :meth:`merge_or_select` has a snapshot to return when the
         user picks the exhausted branch as winner. Silently ignored when
-        the branch is unknown — defensive against late callbacks after
-        ``aclose()``.
+        the branch is unknown - defensive against late callbacks after
+        `aclose()`.
         """
         runtime = self.branches.get(branch_id)
         if runtime is None:  # pragma: no cover - defensive
@@ -1441,10 +1478,10 @@ class ForkCoordinator:
         runtime.partial_history = list(messages)
 
     async def aclose(self) -> None:
-        """Cancel every outstanding branch task — used on parent cancellation.
+        """Cancel every outstanding branch task - used on parent cancellation.
 
-        Also runs ``materializer.cleanup()`` so the on-disk fork directory
-        is removed on abort (unless ``keep_artifacts`` is set), mirroring
+        Also runs `materializer.cleanup()` so the on-disk fork directory
+        is removed on abort (unless `keep_artifacts` is set), mirroring
         the merge-resolution cleanup. Safe to call multiple times.
         """
         for rt in self.branches.values():
@@ -1466,13 +1503,13 @@ def _find_parent_cost_tracking(deps: DeepAgentDeps) -> CostTracking | None:
     """Locate the parent agent's :class:`CostTracking` capability.
 
     Resolution order:
-    1. ``deps._branch_cost_tracking`` — set when the parent is itself a
+    1. `deps._branch_cost_tracking` - set when the parent is itself a
        nested branch (fork-of-fork).
-    2. Walk ``agent._root_capability.capabilities`` via the fork
+    2. Walk `agent._root_capability.capabilities` via the fork
        coordinator's agent reference and return the first
        :class:`CostTracking` instance found.
 
-    Returns ``None`` when no capability is registered — callers should
+    Returns `None` when no capability is registered - callers should
     fall back to constructing a fresh :class:`_PerBranchCostTracking`
     from the agent's model name.
     """
@@ -1501,10 +1538,10 @@ def _build_branch_cost_tracking(
 ) -> _PerBranchCostTracking | None:
     """Build the per-branch :class:`_PerBranchCostTracking` clone.
 
-    Returns ``None`` when neither the parent's registered capability nor
-    the agent's model can supply a pricing-capable instance — the branch
+    Returns `None` when neither the parent's registered capability nor
+    the agent's model can supply a pricing-capable instance - the branch
     still runs, but budget enforcement is silently disabled and
-    ``BranchCost.cumulative_usd`` will be ``None``.
+    `BranchCost.cumulative_usd` will be `None`.
     """
     if parent_cost_cap is not None:
         return _PerBranchCostTracking(
@@ -1517,7 +1554,7 @@ def _build_branch_cost_tracking(
     if model_name is None:
         warnings.warn(
             f"Branch {branch_label!r}: no CostTracking on parent and no resolvable "
-            "model name on the agent — per-branch budget enforcement is disabled.",
+            "model name on the agent - per-branch budget enforcement is disabled.",
             stacklevel=2,
         )
         return None
@@ -1531,9 +1568,9 @@ def _build_branch_cost_tracking(
 def _agent_model_name(agent: Any) -> str | None:
     """Best-effort extraction of the agent's model name string.
 
-    Pydantic-AI's ``Agent.model`` can be either a string ("anthropic:...")
-    or a model object with a ``model_id`` attribute; we accept both. Returns
-    ``None`` when neither shape applies (e.g. a ``TestModel`` instance).
+    Pydantic-AI's `Agent.model` can be either a string ("anthropic:...")
+    or a model object with a `model_id` attribute; we accept both. Returns
+    `None` when neither shape applies (e.g. a `TestModel` instance).
     """
     model = getattr(agent, "model", None)
     if isinstance(model, str):
@@ -1544,7 +1581,7 @@ def _agent_model_name(agent: Any) -> str | None:
     return None
 
 
-# Aliases the toolset module re-exports — keeps the public surface stable.
+# Aliases the toolset module re-exports - keeps the public surface stable.
 __all__ = [
     "BranchRuntime",
     "ForkBranchLimitError",

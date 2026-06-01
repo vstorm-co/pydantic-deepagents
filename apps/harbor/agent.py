@@ -1,6 +1,6 @@
 """Harbor installed agent adapter for pydantic-deep.
 
-Implements ``BaseInstalledAgent`` so that pydantic-deep can be evaluated
+Implements `BaseInstalledAgent` so that pydantic-deep can be evaluated
 on Terminal Bench via Harbor.
 
 Usage::
@@ -167,7 +167,7 @@ class PydanticDeepAgent(BaseInstalledAgent):
 
 
 def convert_model_name(harbor_name: str) -> str:
-    """Convert Harbor ``provider/model`` to pydantic-ai ``provider:model``.
+    """Convert Harbor `provider/model` to pydantic-ai `provider:model`.
 
     Examples:
         >>> convert_model_name("anthropic/claude-opus-4-6")
@@ -205,7 +205,7 @@ def build_run_command(
     timeout: int | None = None,
     feature_flags: dict[str, str | bool | float | None] | None = None,
 ) -> str:
-    """Build the ``pydantic-deep run`` shell command."""
+    """Build the `pydantic-deep run` shell command."""
     parts = [
         f'export PATH="{_VENV_PATH}/bin:$HOME/.local/bin:$PATH";',
         "pydantic-deep run",
@@ -263,7 +263,7 @@ def _format_flag(key: str, value: str | bool | float) -> str:
 def parse_json_output(text: str) -> dict[str, Any] | None:
     """Try to extract JSON output from agent stdout.
 
-    The agent prints JSON when run with ``--json``. The JSON block
+    The agent prints JSON when run with `--json`. The JSON block
     may be preceded or followed by other output (logs, warnings).
     """
     # Try the whole text first

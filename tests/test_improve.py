@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from pydantic_deep.improve.analyzer import DEFAULT_CONTEXT_FILES, ImprovementAnalyzer
 from pydantic_deep.improve.extractor import (
     SessionExtractor,
@@ -171,6 +173,17 @@ class TestParseJsonResponse:
         text = '```json\n{"session_id": "abc"}\n```'
         result = _parse_json_response(text, "fallback", "ts")
         assert result["session_id"] == "abc"
+
+    def test_fence_without_newline(self) -> None:
+        # A bare fence with no newline must not raise ValueError.
+        text = '```{"session_id": "abc"}```'
+        result = _parse_json_response(text, "fallback", "ts")
+        assert result["session_id"] == "abc"
+
+    def test_bare_fence_only(self) -> None:
+        # A lone fence with no newline falls back to empty insights.
+        result = _parse_json_response("```", "fb_id", "fb_ts")
+        assert result["session_id"] == "fb_id"
 
     def test_invalid_json_uses_fallbacks(self) -> None:
         result = _parse_json_response("not json", "fb_id", "fb_ts")
@@ -393,11 +406,28 @@ class TestSessionExtractor:
         assert len(chunks) == 1
         assert len(chunks[0]) == 5
 
+    def test_chunk_messages_empty(self) -> None:
+        ext = SessionExtractor(model="test")
+        assert ext._chunk_messages([]) == []
+
     def test_chunk_messages_multiple_chunks(self) -> None:
         ext = SessionExtractor(model="test", max_tokens_per_chunk=10, overlap_messages=1)
         messages = [{"parts": [{"part_kind": "text", "content": "a" * 40}]} for _ in range(5)]
         chunks = ext._chunk_messages(messages)
         assert len(chunks) == 5  # Each message ~10 tokens, max 10 per chunk
+
+    def test_chunk_messages_overlap_shares_messages(self) -> None:
+        # With 2 messages per chunk and overlap=1, consecutive chunks must
+        # actually share their boundary message (the overlap feature).
+        ext = SessionExtractor(model="test", max_tokens_per_chunk=10, overlap_messages=1)
+        messages = [
+            {"parts": [{"part_kind": "text", "content": str(i) * 20}]} for i in range(4)
+        ]  # 4 messages, ~5 tokens each -> 2 per chunk
+        chunks = ext._chunk_messages(messages)
+        assert chunks == [messages[0:2], messages[1:3], messages[2:4]]
+        # The last message of each chunk reappears as the first of the next.
+        assert chunks[0][-1] is chunks[1][0]
+        assert chunks[1][-1] is chunks[2][0]
 
     def test_chunk_messages_overlap_edge_case(self) -> None:
         """When overlap >= chunk size, next_start must advance."""
@@ -450,6 +480,32 @@ class TestSessionExtractor:
         assert "execute(" in result
         assert "ERROR" in result
         assert "error: FAIL" in result
+
+    def test_load_tool_log_non_string_args(self, tmp_path: Path) -> None:
+        """Non-string arg values must not crash and discard the entire log."""
+        ext = SessionExtractor(model="test")
+        record = {
+            "tool": "write",
+            "args": {
+                "path": "f.py",
+                "line": 42,
+                "force": True,
+                "items": [1, 2, 3],
+                "meta": {"k": "v"},
+                "value": None,
+            },
+            "result_preview": "ok",
+            "result_length": 10,
+            "elapsed": 0.1,
+            "error": False,
+        }
+        (tmp_path / "tool_log.jsonl").write_text(json.dumps(record))
+        result = ext._load_tool_log(tmp_path)
+        # The log must be preserved, not silently dropped to ""
+        assert "write(" in result
+        assert "line=42" in result
+        assert "force=True" in result
+        assert "value=None" in result
 
     def test_load_tool_log_error_no_preview(self, tmp_path: Path) -> None:
         ext = SessionExtractor(model="test")
@@ -546,6 +602,38 @@ class TestSessionExtractor:
             insights, chunks = await ext.extract(session)
             assert chunks == 1
             assert insights.session_id == "session2"
+
+    async def test_extract_counts_computed_not_from_model(self, tmp_path: Path) -> None:
+        """message_count/tool_calls_count come from the messages, not the model."""
+        ext = SessionExtractor(model="test:test")
+        session = tmp_path / "session_counts"
+        session.mkdir()
+        messages = [
+            {"parts": [{"part_kind": "user-prompt", "content": "hi"}]},
+            {
+                "parts": [
+                    {"part_kind": "text", "content": "ok"},
+                    {"part_kind": "tool-call", "tool_name": "read", "args": "{}"},
+                    {"part_kind": "tool-call", "tool_name": "ls", "args": "{}"},
+                ]
+            },
+            {"parts": [{"part_kind": "tool-return", "content": "done"}]},
+        ]
+        (session / "messages.json").write_text(json.dumps(messages))
+
+        # Model reports bogus counts - they must be ignored in favour of exact ones.
+        mock_output = json.dumps(
+            {"session_id": "session_counts", "message_count": 99, "tool_calls_count": 99}
+        )
+        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+            mock_agent = MockAgent.return_value
+            mock_result = AsyncMock()
+            mock_result.output = mock_output
+            mock_agent.run = AsyncMock(return_value=mock_result)
+
+            insights, _ = await ext.extract(session)
+            assert insights.message_count == 3
+            assert insights.tool_calls_count == 2
 
     async def test_extract_multi_chunk(self, tmp_path: Path) -> None:
         ext = SessionExtractor(model="test:test", max_tokens_per_chunk=5, overlap_messages=0)
@@ -684,7 +772,9 @@ class TestImprovementAnalyzer:
     def test_default_context_files(self) -> None:
         assert "SOUL.md" in DEFAULT_CONTEXT_FILES
         assert "MEMORY.md" in DEFAULT_CONTEXT_FILES
-        assert DEFAULT_CONTEXT_FILES["MEMORY.md"] == ".pydantic-deep/main/MEMORY.md"
+        # Aligned with the memory toolset default (get_memory_path stripped of
+        # its leading slash so it composes under working_dir).
+        assert DEFAULT_CONTEXT_FILES["MEMORY.md"] == ".deep/memory/main/MEMORY.md"
 
     def test_init_defaults(self) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=Path("/tmp"))
@@ -698,7 +788,7 @@ class TestImprovementAnalyzer:
     def test_resolve_path_known(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
         resolved = a._resolve_path("MEMORY.md")
-        assert resolved == tmp_path / ".pydantic-deep" / "main" / "MEMORY.md"
+        assert resolved == tmp_path / ".deep" / "memory" / "main" / "MEMORY.md"
 
     def test_resolve_path_unknown_falls_through(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
@@ -764,7 +854,7 @@ class TestImprovementAnalyzer:
 
     def test_load_current_context(self, tmp_path: Path) -> None:
         (tmp_path / "SOUL.md").write_text("be concise")
-        mem_dir = tmp_path / ".pydantic-deep" / "main"
+        mem_dir = tmp_path / ".deep" / "memory" / "main"
         mem_dir.mkdir(parents=True)
         (mem_dir / "MEMORY.md").write_text("- fact 1")
 
@@ -827,7 +917,7 @@ class TestImprovementAnalyzer:
         assert (tmp_path / "skills" / "new-skill").read_text() == "# New Skill"
 
     async def test_apply_changes_append(self, tmp_path: Path) -> None:
-        mem_dir = tmp_path / ".pydantic-deep" / "main"
+        mem_dir = tmp_path / ".deep" / "memory" / "main"
         mem_dir.mkdir(parents=True)
         (mem_dir / "MEMORY.md").write_text("# Memory\n\n- old fact")
 
@@ -902,6 +992,71 @@ class TestImprovementAnalyzer:
         assert "appended" in content
         assert "content" in content  # Original preserved
 
+    async def test_apply_changes_update_trailing_section(self, tmp_path: Path) -> None:
+        # Section is the LAST heading in the file (no following heading). Its body
+        # must be replaced without losing the heading or anything else.
+        (tmp_path / "SOUL.md").write_text(
+            "# Intro\n\nkeep me\n\n# Preferences\n\nold body line 1\nold body line 2\n"
+        )
+        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
+        changes = [
+            ProposedChange(
+                target_file="SOUL.md",
+                change_type="update",
+                section="# Preferences",
+                content="new body",
+                reason="test",
+                confidence=0.9,
+            )
+        ]
+        await a.apply_changes(changes)
+        content = (tmp_path / "SOUL.md").read_text()
+        assert "# Intro" in content
+        assert "keep me" in content  # Earlier content preserved
+        assert "# Preferences" in content  # Heading retained
+        assert "new body" in content
+        assert "old body line 1" not in content
+        assert "old body line 2" not in content
+
+    async def test_apply_changes_update_section_name_in_prose(self, tmp_path: Path) -> None:
+        # The section name appears in body prose but is NOT a heading. It must not
+        # be mistaken for the section header, so no real heading matches -> append.
+        (tmp_path / "SOUL.md").write_text("# Intro\n\nWe discuss Preferences here in prose.\n")
+        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
+        changes = [
+            ProposedChange(
+                target_file="SOUL.md",
+                change_type="update",
+                section="Preferences",
+                content="appended body",
+                reason="test",
+                confidence=0.9,
+            )
+        ]
+        await a.apply_changes(changes)
+        content = (tmp_path / "SOUL.md").read_text()
+        assert "We discuss Preferences here in prose." in content  # prose untouched
+        assert "appended body" in content  # appended, not used to overwrite prose
+
+    async def test_apply_changes_update_no_section_existing_file(self, tmp_path: Path) -> None:
+        # change_type=update with section=None on an EXISTING file -> append.
+        (tmp_path / "SOUL.md").write_text("# Existing\n\nkeep this\n")
+        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
+        changes = [
+            ProposedChange(
+                target_file="SOUL.md",
+                change_type="update",
+                section=None,
+                content="added line",
+                reason="test",
+                confidence=0.9,
+            )
+        ]
+        await a.apply_changes(changes)
+        content = (tmp_path / "SOUL.md").read_text()
+        assert "keep this" in content
+        assert "added line" in content
+
     async def test_apply_changes_update_missing_file(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
         changes = [
@@ -929,8 +1084,10 @@ class TestImprovementAnalyzer:
                 confidence=0.9,
             )
         ]
-        modified = await a.apply_changes(changes)
-        assert modified == []
+        with pytest.raises(ValueError, match="Unknown change_type 'unknown'"):
+            await a.apply_changes(changes)
+        # The unrecognized change must not be silently written.
+        assert not (tmp_path / "SOUL.md").exists()
 
     def test_get_last_improve_time_no_file(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
@@ -1057,6 +1214,34 @@ class TestImprovementAnalyzer:
         assert report.analyzed_sessions == 0
         assert report.failed_sessions == 1
         assert isinstance(report.last_error, RuntimeError)
+        assert len(report.extraction_errors) == 1
+        assert report.extraction_errors[0][0] == "s1"
+        assert isinstance(report.extraction_errors[0][1], RuntimeError)
+
+    async def test_analyze_accumulates_distinct_errors(self, tmp_path: Path) -> None:
+        """Each failing session is recorded with its own error, not collapsed."""
+        sessions_dir = tmp_path / "sessions"
+        sessions_dir.mkdir()
+        for name in ("s1", "s2"):
+            s = sessions_dir / name
+            s.mkdir()
+            (s / "messages.json").write_text(
+                '[{"parts": [{"part_kind": "text", "content": "hi"}]}]'
+            )
+
+        errors = {"s1": ValueError("bad args"), "s2": RuntimeError("model error")}
+
+        async def fake_extract(path: Path) -> object:
+            raise errors[path.name]
+
+        a = ImprovementAnalyzer(model="test", sessions_dir=sessions_dir, working_dir=tmp_path)
+        with patch.object(a._extractor, "extract", side_effect=fake_extract):
+            report = await a.analyze(days=7)
+        assert report.failed_sessions == 2
+        recorded = {sid: type(exc) for sid, exc in report.extraction_errors}
+        assert recorded == {"s1": ValueError, "s2": RuntimeError}
+        # last_error stays consistent with the final recorded failure.
+        assert report.last_error is report.extraction_errors[-1][1]
 
 
 # ── ImproveToolset ───────────────────────────────────────────────

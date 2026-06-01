@@ -3,7 +3,7 @@
 Mirrors :class:`apps.cli.widgets.queued_panel.QueuedWidget` — a small
 status chip that takes the issue's `[FORK: 2 branches · $0.34]` example
 literally. When no fork is active the widget hides itself via
-``display: none`` (toggled from ``ChatScreen.watch_active_fork``).
+`display: none` (toggled from `ChatScreen.watch_active_fork`).
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from textual.widgets import Static
 class ForkBadgeWidget(Widget):
     """Fork-wide status chip — branch count, status summary, cost estimate.
 
-    Cost is rendered as ``$—`` when :class:`~pydantic_ai_shields.CostTracking`
-    is not registered on the agent, to avoid the misleading ``$0.00`` reading
+    Cost is rendered as `$—` when :class:`~pydantic_ai_shields.CostTracking`
+    is not registered on the agent, to avoid the misleading `$0.00` reading
     that would imply branches are free.
     """
 
@@ -74,12 +74,12 @@ class ForkBadgeWidget(Widget):
         self._refresh()
 
     def show(self) -> None:
-        """Make the badge visible (called when ``app.active_fork`` becomes non-None)."""
+        """Make the badge visible (called when `app.active_fork` becomes non-None)."""
         self.add_class("visible")
         self._refresh()
 
     def hide(self) -> None:
-        """Hide the badge (called when ``app.active_fork`` is cleared)."""
+        """Hide the badge (called when `app.active_fork` is cleared)."""
         self.remove_class("visible")
 
     def update_from_statuses(
@@ -89,7 +89,7 @@ class ForkBadgeWidget(Widget):
         aggregate_usd: float | None,
         aggregate_budget_usd: float | None = None,
     ) -> None:
-        """Recompute the chip's text from a fresh ``inspect_branches()`` snapshot."""
+        """Recompute the chip's text from a fresh `inspect_branches()` snapshot."""
         if not statuses:
             self.branch_count = 0
             self.status_summary = ""

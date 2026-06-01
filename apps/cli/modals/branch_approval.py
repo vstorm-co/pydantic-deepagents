@@ -17,12 +17,12 @@ class BranchApprovalModal(ModalScreen[bool]):
     to the TUI event loop.  Instead the branch suspends on an
     :class:`asyncio.Queue` and the TUI poll loop surfaces *this* modal.
 
-    Returns ``True`` if the user approves, ``False`` if they deny.
+    Returns `True` if the user approves, `False` if they deny.
     Single-key bindings — no Enter required.
 
     Args:
         branch_label: Human-readable branch name shown in the title.
-        description: ``"tool_name: arg"`` string describing the blocked call.
+        description: `"tool_name: arg"` string describing the blocked call.
     """
 
     DEFAULT_CSS = """

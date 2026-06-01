@@ -1,8 +1,8 @@
 """Browser capability for pydantic-deep agents.
 
-Provides a real async Playwright browser to the agent via ``BrowserCapability``.
+Provides a real async Playwright browser to the agent via `BrowserCapability`.
 The browser lifecycle (launch on run start, close on run end) is managed through
-``wrap_run`` — guaranteeing cleanup even when the agent raises an exception.
+`wrap_run` - guaranteeing cleanup even when the agent raises an exception.
 
 Example::
 
@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pydantic_ai import AgentRunResult, RunContext
@@ -34,6 +34,7 @@ from pydantic_deep.toolsets.browser import (
     DEFAULT_TIMEOUT_MS,
     BrowserToolset,
     _BrowserState,
+    _check_allowed_domain,
     _require_browser,
 )
 
@@ -46,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _auto_install_chromium() -> bool:
-    """Run ``playwright install chromium`` and return ``True`` on success.
+    """Run `playwright install chromium` and return `True` on success.
 
     Uses the same Python interpreter so that the correct Playwright installation
     is targeted even inside a virtualenv.
@@ -113,27 +114,27 @@ class BrowserCapability(AbstractCapability[Any]):
     """Provides a real async Playwright browser to the agent.
 
     Manages the full browser lifecycle: Playwright and Chromium are started
-    lazily on the first browser-tool call and closed in a ``finally`` block,
+    lazily on the first browser-tool call and closed in a `finally` block,
     guaranteeing cleanup on both success and failure paths.  Runs that never
     invoke a browser tool incur zero Playwright overhead.
 
-    Requires the ``browser`` optional extra::
+    Requires the `browser` optional extra::
 
         pip install 'pydantic-deep[browser]'
         playwright install chromium
 
     Args:
-        headless: Run the browser without a visible window (default ``True``).
-        allowed_domains: Domain allowlist. ``None`` (default) allows all domains.
-            Example: ``["docs.python.org", "github.com"]``.
-        screenshot_on_navigate: Append a base64 screenshot to every ``navigate``
-            response (default ``False``).
+        headless: Run the browser without a visible window (default `True`).
+        allowed_domains: Domain allowlist. `None` (default) allows all domains.
+            Example: `["docs.python.org", "github.com"]`.
+        screenshot_on_navigate: Append a base64 screenshot to every `navigate`
+            response (default `False`).
         max_content_tokens: Maximum estimated tokens for page content
-            (default ``4000``).
+            (default `4000`).
         timeout_ms: Default Playwright navigation timeout in milliseconds
-            (default ``30000``).
-        auto_install: Automatically run ``playwright install chromium`` when
-            the Chromium binary is missing (default ``True``).  Uses the
+            (default `30000`).
+        auto_install: Automatically run `playwright install chromium` when
+            the Chromium binary is missing (default `True`).  Uses the
             current Python interpreter so virtualenv installs are respected.
 
     Example::
@@ -208,14 +209,13 @@ class BrowserCapability(AbstractCapability[Any]):
     ) -> list[ToolDefinition]:
         """Filter browser tools based on availability and approval state.
 
-        - When Chromium is not installed (``launch_error`` is set), browser
-          tools are hidden from the model entirely — no point offering tools
+        - When Chromium is not installed (`launch_error` is set), browser
+          tools are hidden from the model entirely - no point offering tools
           that always return an error.
         - When the browser is available, any browser tool marked as
-          ``unapproved`` is reset to ``function`` so it never triggers
+          `unapproved` is reset to `function` so it never triggers
           approval dialogs.
         """
-        from dataclasses import replace
 
         # If browser failed to launch, hide browser tools completely
         if self._state.launch_error:
@@ -229,7 +229,7 @@ class BrowserCapability(AbstractCapability[Any]):
                 result.append(td)
         return result
 
-    async def wrap_run(
+    async def wrap_run(  # noqa: C901
         self,
         ctx: RunContext[Any],
         *,
@@ -239,21 +239,21 @@ class BrowserCapability(AbstractCapability[Any]):
 
         Both Playwright and Chromium are started only when the first browser
         tool is actually called.  Runs that never use the browser incur zero
-        Playwright overhead — no subprocess is spawned, no browser window
+        Playwright overhead - no subprocess is spawned, no browser window
         appears.
 
-        A ``finally`` block guarantees cleanup of the browser and the
+        A `finally` block guarantees cleanup of the browser and the
         Playwright driver whether the run succeeds, raises, or is cancelled.
 
-        If Chromium is not installed and ``auto_install`` is ``True`` (the
-        default), ``playwright install chromium`` is run automatically on the
+        If Chromium is not installed and `auto_install` is `True` (the
+        default), `playwright install chromium` is run automatically on the
         first tool call, and the launch is retried once.
         """
         _require_browser()
         assert async_playwright is not None  # guaranteed by _require_browser()
         _start_playwright = async_playwright  # local non-None reference for the closure
 
-        _pw_ctx: Any = None  # Playwright context manager — entered lazily
+        _pw_ctx: Any = None  # Playwright context manager - entered lazily
 
         async def _launch() -> None:
             nonlocal _pw_ctx
@@ -296,11 +296,54 @@ class BrowserCapability(AbstractCapability[Any]):
 
             page = await browser.new_page()
 
-            # Single-tab design: redirect popup windows back to the current tab.
-            def _on_popup(popup: Any) -> None:
+            # Network-level allowlist enforcement: abort top-level navigation
+            # requests to disallowed domains. This is the real boundary - it
+            # covers every navigation path (navigate, click, execute_js,
+            # go_back, go_forward) rather than just the navigate tool, so the
+            # allowlist cannot be bypassed by clicking a cross-domain link or
+            # setting location.href from JavaScript.
+            if self.allowed_domains is not None:
+
+                async def _route_guard(route: Any, request: Any) -> None:
+                    if (
+                        request.is_navigation_request()
+                        and request.frame == page.main_frame
+                        and not _check_allowed_domain(request.url, self.allowed_domains)
+                    ):
+                        await route.abort()
+                        return
+                    await route.continue_()
+
+                await page.route("**/*", _route_guard)
+
+            # Single-tab design: redirect popup windows back to the current tab,
+            # but only when the popup URL passes the domain allowlist - otherwise
+            # a popup could be used to bypass allowed_domains.
+            async def _handle_popup(popup: Any) -> None:
+                # Close the popup first, then navigate the main tab. Sequencing
+                # both steps inside one coroutine gives deterministic ordering
+                # instead of racing two independent tasks.
                 new_url = popup.url
-                asyncio.ensure_future(popup.close())
-                asyncio.ensure_future(page.goto(new_url))
+                await popup.close()
+                if _check_allowed_domain(new_url, self.allowed_domains):
+                    await page.goto(new_url)
+
+            def _on_popup(popup: Any) -> None:
+                # Keep a strong reference to the task so it is not garbage
+                # collected before completion, and attach a done callback that
+                # retrieves/logs any exception and discards the reference.
+                task = asyncio.ensure_future(_handle_popup(popup))
+                self._state._popup_tasks.add(task)
+
+                def _on_done(finished: Any) -> None:
+                    self._state._popup_tasks.discard(finished)
+                    if finished.cancelled():
+                        return
+                    exc = finished.exception()
+                    if exc is not None:
+                        logger.warning("Popup handling task failed: %s", exc)
+
+                task.add_done_callback(_on_done)
 
             page.on("popup", _on_popup)
 
@@ -313,7 +356,13 @@ class BrowserCapability(AbstractCapability[Any]):
         finally:
             self._state._lazy_launcher = None
             self._state.playwright_instance = None
-            self._state.launch_error = None
+            # NOTE: `launch_error` is intentionally NOT cleared here. `_state`
+            # is created once in `__post_init__` and is shared across every run,
+            # so a launch failure must persist to keep browser tools hidden (via
+            # `prepare_tools`) until the process is restarted - matching the
+            # "restart the agent to enable browser tools" message. Clearing it
+            # would re-expose the tools and re-attempt the still-failing launch
+            # (paying the auto-install cost) on every subsequent run.
             if self._state.browser is not None:
                 browser = self._state.browser
                 self._state.page = None

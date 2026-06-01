@@ -1,6 +1,6 @@
-"""Improve toolset — agent-callable tools for self-improvement.
+"""Improve toolset - agent-callable tools for self-improvement.
 
-Provides ``improve`` and ``get_improvement_status`` tools so the agent
+Provides `improve` and `get_improvement_status` tools so the agent
 can trigger the improve pipeline and check its status.
 """
 
@@ -18,7 +18,7 @@ from pydantic_ai.toolsets import FunctionToolset
 from pydantic_deep.improve.analyzer import ImprovementAnalyzer
 from pydantic_deep.improve.types import ImprovementReport
 
-# ── Tool description constants ────────────────────────────────────────────
+# Tool description constants
 
 IMPROVE_DESCRIPTION = """\
 Analyze recent conversation sessions and propose improvements to context files.
@@ -167,7 +167,7 @@ class ImproveToolset(FunctionToolset[Any]):
         self._instructions = [IMPROVE_SYSTEM_PROMPT]
 
         @self.tool(description=IMPROVE_DESCRIPTION)
-        async def improve(  # pragma: no cover — thin wrapper, tested via analyzer
+        async def improve(  # pragma: no cover - thin wrapper, tested via analyzer
             ctx: RunContext[Any],
             days: int = 7,
             focus: str | None = None,
@@ -194,7 +194,7 @@ class ImproveToolset(FunctionToolset[Any]):
             return _format_report(report)
 
         @self.tool(description=GET_STATUS_DESCRIPTION)
-        async def get_improvement_status(  # pragma: no cover — thin wrapper, tested via analyzer
+        async def get_improvement_status(  # pragma: no cover - thin wrapper, tested via analyzer
             ctx: RunContext[Any],
         ) -> str:
             """Check when improve was last run and what changed."""

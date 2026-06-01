@@ -6,20 +6,20 @@ to try a different approach in a new session.
 
 Building blocks from pydantic-ai:
 
-- ``message_history`` param on ``agent.run()`` / ``agent.iter()`` for restore
-- ``result.all_messages()`` → ``list[ModelMessage]`` for snapshot
-- ``ModelMessagesTypeAdapter`` for JSON serialization
+- `message_history` param on `agent.run()` / `agent.iter()` for restore
+- `result.all_messages()` → `list[ModelMessage]` for snapshot
+- `ModelMessagesTypeAdapter` for JSON serialization
 
 Components:
 
-- :class:`Checkpoint` — immutable snapshot of conversation state
-- :class:`CheckpointStore` — protocol for checkpoint storage backends
-- :class:`InMemoryCheckpointStore` — default in-memory store
-- :class:`FileCheckpointStore` — persistent store using JSON files
-- :class:`CheckpointMiddleware` — auto-checkpoint via middleware hooks
-- :class:`CheckpointToolset` — agent tools for manual save/list/rewind
-- :class:`RewindRequested` — exception to signal app-level rewind
-- :func:`fork_from_checkpoint` — utility for session forking
+- :class:`Checkpoint` - immutable snapshot of conversation state
+- :class:`CheckpointStore` - protocol for checkpoint storage backends
+- :class:`InMemoryCheckpointStore` - default in-memory store
+- :class:`FileCheckpointStore` - persistent store using JSON files
+- :class:`CheckpointMiddleware` - auto-checkpoint via middleware hooks
+- :class:`CheckpointToolset` - agent tools for manual save/list/rewind
+- :class:`RewindRequested` - exception to signal app-level rewind
+- :func:`fork_from_checkpoint` - utility for session forking
 
 Example:
     ```python
@@ -57,12 +57,12 @@ class Checkpoint:
 
     Attributes:
         id: Unique identifier (uuid4).
-        label: Human-readable label (e.g. ``"auto-3"``, ``"before-refactor"``).
+        label: Human-readable label (e.g. `"auto-3"`, `"before-refactor"`).
         turn: Model-request counter when the checkpoint was saved.
         messages: Shallow copy of the message history (ModelMessage is immutable).
         message_count: Number of messages in the snapshot.
         created_at: When the checkpoint was created.
-        metadata: Optional metadata (e.g. ``{"last_tool": "write_file"}``).
+        metadata: Optional metadata (e.g. `{"last_tool": "write_file"}`).
     """
 
     id: str
@@ -75,14 +75,14 @@ class Checkpoint:
 
 
 class RewindRequested(Exception):
-    """Raised by the ``rewind_to`` tool to signal app-level rewind.
+    """Raised by the `rewind_to` tool to signal app-level rewind.
 
-    This exception propagates out of ``agent.run()`` / ``agent.iter()``
-    because pydantic-ai only catches ``ModelRetry`` and
-    ``UnexpectedModelBehavior`` — arbitrary exceptions propagate to the caller.
+    This exception propagates out of `agent.run()` / `agent.iter()`
+    because pydantic-ai only catches `ModelRetry` and
+    `UnexpectedModelBehavior` - arbitrary exceptions propagate to the caller.
 
     The caller (e.g. the app's run loop) catches this, restores
-    ``session.message_history`` from :attr:`messages`, and restarts.
+    `session.message_history` from :attr:`messages`, and restarts.
 
     Attributes:
         checkpoint_id: ID of the checkpoint to rewind to.
@@ -141,7 +141,7 @@ class InMemoryCheckpointStore:
     """In-memory checkpoint store (default).
 
     Checkpoints are stored in a dict keyed by ID. Iteration order
-    matches insertion order (Python 3.7+), so ``remove_oldest()``
+    matches insertion order (Python 3.7+), so `remove_oldest()`
     pops the first key.
     """
 
@@ -175,12 +175,16 @@ class InMemoryCheckpointStore:
         return False
 
     async def remove_oldest(self) -> bool:
-        """Remove the oldest checkpoint (first inserted)."""
-        if not self._checkpoints:
+        """Remove the oldest checkpoint by `created_at`.
+
+        Ordered by `created_at` (not insertion order) so this store and
+        :class:`FileCheckpointStore` evict the same checkpoint - keeping the
+        two interchangeable when clock skew or relabeling reorders entries.
+        """
+        all_cps = await self.list_all()
+        if not all_cps:
             return False
-        oldest_key = next(iter(self._checkpoints))
-        del self._checkpoints[oldest_key]
-        return True
+        return await self.remove(all_cps[0].id)
 
     async def count(self) -> int:
         """Return the number of stored checkpoints."""
@@ -194,8 +198,8 @@ class InMemoryCheckpointStore:
 class FileCheckpointStore:
     """Persistent checkpoint store using JSON files.
 
-    Each checkpoint is stored as ``{directory}/{id}.json``. Messages
-    are serialized using pydantic-ai's ``ModelMessagesTypeAdapter``.
+    Each checkpoint is stored as `{directory}/{id}.json`. Messages
+    are serialized using pydantic-ai's `ModelMessagesTypeAdapter`.
 
     Args:
         directory: Directory to store checkpoint files.
@@ -319,7 +323,11 @@ from dataclasses import field as dataclass_field  # noqa: E402
 from dataclasses import replace as dataclass_replace  # noqa: E402
 
 from pydantic_ai.capabilities import AbstractCapability  # noqa: E402
-from pydantic_ai.messages import ToolCallPart  # noqa: E402
+from pydantic_ai.messages import (  # noqa: E402
+    ModelRequest,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.tools import ToolDefinition  # noqa: E402
 
 
@@ -327,19 +335,19 @@ from pydantic_ai.tools import ToolDefinition  # noqa: E402
 class CheckpointMiddleware(AbstractCapability[Any]):
     """Capability that auto-saves conversation checkpoints.
 
-    Uses ``before_model_request`` (for ``every_turn`` frequency) and
-    ``after_tool_execute`` (for ``every_tool`` frequency) hooks to
+    Uses `before_model_request` (for `every_turn` frequency) and
+    `after_tool_execute` (for `every_tool` frequency) hooks to
     automatically snapshot the conversation.
 
-    Per-run state isolation via ``for_run()`` ensures concurrent
-    agent runs don't share turn counters or message snapshots.
+    Per-run state isolation via `for_run()` ensures concurrent
+    agent runs don't share turn counters.
 
     Args:
         store: Fallback checkpoint store (used if deps has no store).
         frequency: When to auto-checkpoint:
-            ``"every_turn"`` — before each model request,
-            ``"every_tool"`` — after each tool call,
-            ``"manual_only"`` — no auto-checkpoints.
+            `"every_turn"` - before each model request,
+            `"every_tool"` - after each tool call,
+            `"manual_only"` - no auto-checkpoints.
         max_checkpoints: Maximum number of checkpoints to keep.
     """
 
@@ -347,9 +355,6 @@ class CheckpointMiddleware(AbstractCapability[Any]):
     frequency: str = "every_tool"
     max_checkpoints: int = 20
     _turn_counter: int = dataclass_field(default=0, init=False, repr=False)
-    _latest_messages: list[ModelMessage] = dataclass_field(
-        default_factory=list, init=False, repr=False
-    )
 
     async def for_run(self, ctx: RunContext[Any]) -> CheckpointMiddleware:
         """Return a fresh instance with isolated per-run state."""
@@ -368,7 +373,6 @@ class CheckpointMiddleware(AbstractCapability[Any]):
         """Track messages and optionally auto-checkpoint before model calls."""
         messages: list[ModelMessage] = request_context.messages
         self._turn_counter += 1
-        self._latest_messages = list(messages)
 
         if self.frequency == "every_turn":
             store = self._resolve_store(ctx.deps)
@@ -391,14 +395,33 @@ class CheckpointMiddleware(AbstractCapability[Any]):
         args: dict[str, Any],
         result: Any,
     ) -> Any:
-        """Auto-checkpoint after tool calls (when frequency is every_tool)."""
+        """Auto-checkpoint after tool calls (when frequency is every_tool).
+
+        Snapshots `ctx.messages` (the live history, which already contains
+        the `ModelResponse` with this tool's `ToolCallPart`) plus a
+        `ToolReturnPart` carrying the result, so rewinding to a `tool-*`
+        checkpoint restores a state that actually includes the tool call and
+        its result.
+        """
         if self.frequency == "every_tool":
             store = self._resolve_store(ctx.deps)
             if store is not None:
+                messages: list[ModelMessage] = list(ctx.messages)
+                messages.append(
+                    ModelRequest(
+                        parts=[
+                            ToolReturnPart(
+                                tool_name=call.tool_name,
+                                content=result,
+                                tool_call_id=call.tool_call_id,
+                            )
+                        ]
+                    )
+                )
                 cp = _make_checkpoint(
                     label=f"tool-{self._turn_counter}-{call.tool_name}",
                     turn=self._turn_counter,
-                    messages=self._latest_messages,
+                    messages=messages,
                     metadata={"last_tool": call.tool_name},
                 )
                 await _save_and_prune(store, cp, self.max_checkpoints)
@@ -430,9 +453,9 @@ class CheckpointToolset(FunctionToolset[Any]):
     """Toolset giving the agent manual checkpoint controls.
 
     Tools:
-        - ``save_checkpoint``: Label the most recent auto-checkpoint
-        - ``list_checkpoints``: Show all saved checkpoints
-        - ``rewind_to``: Rewind conversation to a checkpoint (raises RewindRequested)
+        - `save_checkpoint`: Label the most recent auto-checkpoint
+        - `list_checkpoints`: Show all saved checkpoints
+        - `rewind_to`: Rewind conversation to a checkpoint (raises RewindRequested)
     """
 
     def __init__(
@@ -448,8 +471,8 @@ class CheckpointToolset(FunctionToolset[Any]):
             store: Fallback checkpoint store (used if deps has no store).
             id: Toolset identifier.
             descriptions: Optional mapping of tool name to custom description.
-                Supported keys: ``save_checkpoint``, ``list_checkpoints``,
-                ``rewind_to``. Any key not present falls back to the built-in
+                Supported keys: `save_checkpoint`, `list_checkpoints`,
+                `rewind_to`. Any key not present falls back to the built-in
                 description constant.
         """
         super().__init__(id=id)
@@ -552,7 +575,7 @@ async def fork_from_checkpoint(
     """Get messages from a checkpoint for forking into a new session.
 
     This is a utility function for app-level session forking. The caller
-    creates a new session and sets its ``message_history`` to the returned
+    creates a new session and sets its `message_history` to the returned
     messages.
 
     Args:

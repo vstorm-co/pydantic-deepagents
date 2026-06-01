@@ -1,4 +1,4 @@
-"""Overview pseudo-tab — summary view of all branches before ``/merge``."""
+"""Overview pseudo-tab — summary view of all branches before `/merge`."""
 
 from __future__ import annotations
 
@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 
 
 class ForkOverviewWidget(Vertical):
-    """Renders one row per branch and a ``/merge`` hint.
+    """Renders one row per branch and a `/merge` hint.
 
-    The CLI screen mounts this as the ``+`` pseudo-tab and shows it
+    The CLI screen mounts this as the `+` pseudo-tab and shows it
     instead of a :class:`BranchPanelWidget` when the user focuses the
-    overview chip. ``/merge`` is dispatched from here.
+    overview chip. `/merge` is dispatched from here.
     """
 
     DEFAULT_CSS = """

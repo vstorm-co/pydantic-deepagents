@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.22"
+version = "0.3.23"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -41,18 +41,18 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai-slim[web-fetch]>=1.97.0",
-    "pydantic-ai-todo>=0.2.3",
-    "pydantic-ai-backend[console]>=0.2.9",
-    "summarization-pydantic-ai>=0.1.5",
-    "subagents-pydantic-ai>=0.2.5",
-    "pydantic-ai-shields>=0.3.3",
+    "pydantic-ai-todo>=0.2.4",
+    "pydantic-ai-backend[console]>=0.2.10",
+    "summarization-pydantic-ai>=0.1.6",
+    "subagents-pydantic-ai>=0.2.6",
+    "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
 ]
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.9"]
+sandbox = ["pydantic-ai-backend[docker]>=0.2.10"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)
@@ -85,6 +85,9 @@ browser = [
     "playwright>=1.40.0",
     "html2text>=2020.1",
 ]
+# MCP (Model Context Protocol) client support — connect to MCP servers.
+# py-key-value-aio[disk] persists OAuth tokens (e.g. hosted Figma) across runs.
+mcp = ["pydantic-ai-slim[mcp]>=1.97.0", "py-key-value-aio[disk]>=0.4.5"]
 # Document parsing via LiteParse (requires Node.js >= 18)
 liteparse = ["liteparse>=0.1.0"]
 # ACP (Agent Client Protocol) support for editor integration
@@ -93,7 +96,7 @@ acp = ["agent-client-protocol>=0.8.0"]
 logfire = ["logfire>=4.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse]",
+    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse,mcp]",
 ]
 
 [project.urls]

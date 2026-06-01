@@ -99,16 +99,34 @@ class TestMessageQueue:
         assert await queue.drain_steering() == []
 
     @pytest.mark.anyio
-    async def test_drain_steering_all(self) -> None:
+    async def test_drain_steering_all_respects_later_one_at_a_time(self) -> None:
         queue = MessageQueue()
         await queue.steer("a", delivery_mode="all")
         await queue.steer("b", delivery_mode="one_at_a_time")
         await queue.steer("c", delivery_mode="one_at_a_time")
 
-        # delivery_mode is taken from the head message
-        drained = await queue.drain_steering()
-        assert len(drained) == 3
-        assert [m.content for m in drained] == ["a", "b", "c"]
+        # An "all" head batches only the contiguous run of "all" messages; it
+        # must NOT override the later "one_at_a_time" entries.
+        first = await queue.drain_steering()
+        assert [m.content for m in first] == ["a"]
+        second = await queue.drain_steering()
+        assert [m.content for m in second] == ["b"]
+        third = await queue.drain_steering()
+        assert [m.content for m in third] == ["c"]
+        assert await queue.drain_steering() == []
+
+    @pytest.mark.anyio
+    async def test_drain_steering_contiguous_all_batched(self) -> None:
+        queue = MessageQueue()
+        await queue.steer("a", delivery_mode="all")
+        await queue.steer("b", delivery_mode="all")
+        await queue.steer("c", delivery_mode="one_at_a_time")
+
+        # The leading contiguous run of "all" messages is batched together.
+        first = await queue.drain_steering()
+        assert [m.content for m in first] == ["a", "b"]
+        second = await queue.drain_steering()
+        assert [m.content for m in second] == ["c"]
         assert await queue.drain_steering() == []
 
     @pytest.mark.anyio
@@ -131,11 +149,24 @@ class TestMessageQueue:
     async def test_drain_follow_up_all(self) -> None:
         queue = MessageQueue()
         await queue.follow_up("a", delivery_mode="all")
-        await queue.follow_up("b")
+        await queue.follow_up("b", delivery_mode="all")
 
+        # Contiguous "all" run is batched.
         drained = await queue.drain_follow_up()
-        assert len(drained) == 2
         assert [m.content for m in drained] == ["a", "b"]
+        assert await queue.drain_follow_up() == []
+
+    @pytest.mark.anyio
+    async def test_drain_follow_up_all_then_one_at_a_time(self) -> None:
+        queue = MessageQueue()
+        await queue.follow_up("a", delivery_mode="all")
+        await queue.follow_up("b")  # default one_at_a_time
+
+        # "b" keeps its own mode; not swept up by the "all" head.
+        first = await queue.drain_follow_up()
+        assert [m.content for m in first] == ["a"]
+        second = await queue.drain_follow_up()
+        assert [m.content for m in second] == ["b"]
         assert await queue.drain_follow_up() == []
 
     @pytest.mark.anyio
@@ -247,7 +278,7 @@ class TestFormatHelpers:
             QueuedMessage("second", "steering"),
         ]
         result = format_steering(msgs)
-        assert "[steering — multiple messages]" in result
+        assert "[steering - multiple messages]" in result
         assert "- first" in result
         assert "- second" in result
 
@@ -299,8 +330,10 @@ class TestMessageQueueCapability:
 
         await cap.before_model_request(ctx, rc)
 
-        assert len(messages) == 1
-        injected = messages[0]
+        # The original list is left untouched; the fresh list is reassigned.
+        assert messages == []
+        assert len(rc.messages) == 1
+        injected = rc.messages[0]
         assert isinstance(injected, ModelRequest)
         assert len(injected.parts) == 1
         part = injected.parts[0]
@@ -328,9 +361,12 @@ class TestMessageQueueCapability:
 
         await cap.before_model_request(_fake_ctx(), rc)
 
-        # Must NOT create a second ModelRequest — steering merges into the existing one
-        assert len(messages) == 1
-        merged = messages[0]
+        # Must NOT create a second ModelRequest - steering merges into the existing one
+        assert len(rc.messages) == 1
+        # The original list and its ModelRequest are not mutated in place.
+        assert messages == [existing]
+        assert len(existing.parts) == 1
+        merged = rc.messages[0]
         assert isinstance(merged, ModelRequest)
         assert len(merged.parts) == 2  # ToolReturnPart + steering UserPromptPart
         assert isinstance(merged.parts[0], ToolReturnPart)
@@ -354,9 +390,9 @@ class TestMessageQueueCapability:
 
         await cap.before_model_request(_fake_ctx(), rc)
 
-        # Still two messages — steering merged into model_req, not a new entry
-        assert len(messages) == 2
-        merged = messages[0]
+        # Still two messages - steering merged into model_req, not a new entry
+        assert len(rc.messages) == 2
+        merged = rc.messages[0]
         assert isinstance(merged, ModelRequest)
         assert isinstance(merged.parts[-1], UserPromptPart)
         assert "[steering]" in merged.parts[-1].content
@@ -377,17 +413,18 @@ class TestMessageQueueCapability:
     async def test_multiple_steers_formatted_together(self) -> None:
         queue = MessageQueue()
         await queue.steer("first", delivery_mode="all")
-        await queue.steer("second")
+        await queue.steer("second", delivery_mode="all")
 
         cap = MessageQueueCapability(queue=queue)
         # Start with a ModelRequest so we exercise the merge path
         existing = ModelRequest(parts=[UserPromptPart(content="original")])
         messages: list[Any] = [existing]
-        await cap.before_model_request(_fake_ctx(), _fake_rc(messages))
+        rc = _fake_rc(messages)
+        await cap.before_model_request(_fake_ctx(), rc)
 
         # Steering is merged into the existing request, not a new one
-        assert len(messages) == 1
-        content = messages[0].parts[-1].content  # last part is the steering
+        assert len(rc.messages) == 1
+        content = rc.messages[0].parts[-1].content  # last part is the steering
         assert "multiple messages" in content
         assert "first" in content
         assert "second" in content
@@ -429,20 +466,20 @@ class TestMessageQueueCapability:
         agent = Agent(_MODEL, capabilities=[cap])
 
         result = await agent.run("hello")
-        # After run the steering queue should be drained — capability consumed it
+        # After run the steering queue should be drained - capability consumed it
         assert await queue.drain_steering() == []
         assert result.all_messages()  # run produced at least one message
 
     @pytest.mark.anyio
     async def test_drain_between_runs_prevents_stale_steering_bleed(self) -> None:
-        """Draining the queue between runs — as chat.py does in the finally block —
+        """Draining the queue between runs - as chat.py does in the finally block -
         prevents stale steering from leaking into unrelated subsequent messages.
         """
         queue = MessageQueue()
         cap = MessageQueueCapability(queue=queue)
         agent = Agent(_MODEL, capabilities=[cap])
 
-        # Run 1 — steering queue is empty
+        # Run 1 - steering queue is empty
         result1 = await agent.run("task one")
 
         # Stale steering arrives after run 1 ends
@@ -452,7 +489,7 @@ class TestMessageQueueCapability:
         await queue.drain_steering()  # discard unconsumed steering
         # ─────────────────────────────────────────────────────────────────────
 
-        # Run 2 — starts with a clean queue, no stale steering injected
+        # Run 2 - starts with a clean queue, no stale steering injected
         result2 = await agent.run("task two", message_history=result1.all_messages())
 
         stale_found = any(
@@ -547,6 +584,67 @@ class TestRunWithQueue:
         assert not queue.has_follow_up()
         # Steering should also be drained
         assert await queue.drain_steering() == []
+
+    @pytest.mark.anyio
+    async def test_late_steering_delivered_not_dropped(self) -> None:
+        """Steering enqueued after the final model request is delivered on a fresh
+        turn instead of being silently lost when there are no follow-ups.
+
+        Uses a fake agent that enqueues steering *during* its first run (i.e.
+        after MessageQueueCapability would have injected anything), reproducing
+        the race where a caller steers just after the run's last model request.
+        """
+
+        class _FakeResult:
+            def __init__(self, messages: list[Any]) -> None:
+                self._messages = messages
+
+            def all_messages(self) -> list[Any]:
+                return self._messages
+
+        class _FakeAgent:
+            def __init__(self, q: MessageQueue) -> None:
+                self.queue = q
+                self.calls = 0
+
+            async def run(
+                self,
+                prompt: str,
+                *,
+                deps: Any,
+                message_history: list[Any],
+                **kwargs: Any,
+            ) -> _FakeResult:
+                self.calls += 1
+                messages = [
+                    *message_history,
+                    ModelRequest(parts=[UserPromptPart(content=prompt)]),
+                ]
+                if self.calls == 1:
+                    # Arrives after this run's final model request - too late for
+                    # the capability to inject, no follow-up to re-enter on.
+                    await self.queue.steer("late steering directive")
+                return _FakeResult(messages)
+
+        queue = MessageQueue()
+        agent = _FakeAgent(queue)
+        deps = DeepAgentDeps()
+
+        result = await run_with_queue(agent, "initial", deps=deps, queue=queue)
+
+        # The late steering was drained and delivered as a new turn, not left behind.
+        assert await queue.drain_steering() == []
+        assert not queue.has_follow_up()
+        assert agent.calls == 2
+        delivered = any(
+            isinstance(part, UserPromptPart)
+            and isinstance(part.content, str)
+            and "late steering directive" in part.content
+            for msg in result.all_messages()
+            if isinstance(msg, ModelRequest)
+            for part in msg.parts
+        )
+        assert delivered, "late steering should be delivered as a fresh turn"
 
     @pytest.mark.anyio
     async def test_message_history_passed_through(self) -> None:

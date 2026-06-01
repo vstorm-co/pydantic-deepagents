@@ -1,23 +1,24 @@
 """Autonomous judge for Live Run Forking.
 
-This module wires a cheap model behind the :class:`MergeStrategy` ``"auto"`` /
-``"auto_with_fallback"`` / ``"vote"`` paths. The judge sees the original goal,
+This module wires a cheap model behind the :class:`MergeStrategy` `"auto"` /
+`"auto_with_fallback"` / `"vote"` paths. The judge sees the original goal,
 the structured :class:`BranchDiffReport`, and per-branch
-:class:`BranchOutcome` summaries — never the full per-branch message history,
+:class:`BranchOutcome` summaries - never the full per-branch message history,
 which keeps the prompt bounded and the cost predictable.
 
-The combined confidence is ``heuristic × judge.confidence``; the heuristic is
-``0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 * internal_consistency``,
-capped at ``0.65`` when no test signal is available (no per-branch test
+The combined confidence is `heuristic × judge.confidence`; the heuristic is
+`0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 * internal_consistency`,
+capped at `0.65` when no test signal is available (no per-branch test
 integration yet; the cap forces fallback-to-manual in practice).
 
 The agent-facing :meth:`ForkCoordinator.resolve` calls into this module; the
-toolset's ``__init__`` re-exports :class:`JudgeAgent` and helpers for
+toolset's `__init__` re-exports :class:`JudgeAgent` and helpers for
 external consumers.
 """
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
@@ -36,24 +37,32 @@ if TYPE_CHECKING:
     from pydantic_ai.models import Model
 
 
-#: Hard cap on the rendered judge prompt — truncated tail with marker.
+#: Hard cap on the rendered judge prompt - truncated tail with marker.
 _MAX_JUDGE_PROMPT_CHARS: int = 32_000
 
 #: Per-section caps composed into the prompt.
 _MAX_GOAL_CHARS: int = 2_000
 _MAX_OUTCOME_MESSAGE_CHARS: int = 400
 
-#: Three confidence-signal weights — must sum to 1.0 (asserted on next line).
+#: Three confidence-signal weights - must sum to 1.0 (guarded below).
 _QUALITY_SPREAD_WEIGHT: float = 0.4
 _TEST_RATIO_WEIGHT: float = 0.4
 _INTERNAL_CONSISTENCY_WEIGHT: float = 0.2
-assert _QUALITY_SPREAD_WEIGHT + _TEST_RATIO_WEIGHT + _INTERNAL_CONSISTENCY_WEIGHT == 1.0
+# raise > assert so the invariant guard survives python -O (see diff.py:225 for
+# the same convention). math.isclose absorbs float-summation rounding.
+if not math.isclose(
+    _QUALITY_SPREAD_WEIGHT + _TEST_RATIO_WEIGHT + _INTERNAL_CONSISTENCY_WEIGHT, 1.0
+):  # pragma: no cover - module-load invariant guard
+    raise RuntimeError(
+        "confidence-signal weights must sum to 1.0: "
+        f"{_QUALITY_SPREAD_WEIGHT} + {_TEST_RATIO_WEIGHT} + {_INTERNAL_CONSISTENCY_WEIGHT}"
+    )
 
-#: Safety rail when no test signal: caps heuristic so ``auto_with_fallback``
+#: Safety rail when no test signal: caps heuristic so `auto_with_fallback`
 #: falls back to manual until a test-runner hook lands.
 _NO_TEST_HEURISTIC_CAP: float = 0.65
 
-#: Best-effort — see ``pydantic_deep/capabilities/stuck_loop.py`` for the source strings.
+#: Best-effort - see `pydantic_deep/capabilities/stuck_loop.py` for the source strings.
 _STUCK_LOOP_MARKERS: tuple[str, ...] = (
     "identical arguments",
     "alternating between",
@@ -79,14 +88,14 @@ JUDGE_SYSTEM_PROMPT = (
 
 
 def _truncate(text: str, limit: int) -> str:
-    """Trim ``text`` to ``limit`` chars, appending a marker when truncated."""
+    """Trim `text` to `limit` chars, appending a marker when truncated."""
     if len(text) <= limit:
         return text
     return text[:limit] + "…[truncated]"
 
 
 def _format_outcomes(outcomes: list[BranchOutcome]) -> str:
-    """One bullet per branch — bounded final message + key counters."""
+    """One bullet per branch - bounded final message + key counters."""
     lines: list[str] = []
     for o in outcomes:
         msg = _truncate(o.final_assistant_message, _MAX_OUTCOME_MESSAGE_CHARS)
@@ -105,7 +114,7 @@ def _format_diff_report(report: BranchDiffReport) -> str:
     """Compact textual rendering of a :class:`BranchDiffReport`.
 
     :func:`build_diff_report` already truncates each path's unified diff
-    at 500 lines via ``create_content_preview``; we don't re-truncate here.
+    at 500 lines via `create_content_preview`; we don't re-truncate here.
     """
     summary = report.summary
     lines = [
@@ -139,10 +148,10 @@ def _build_judge_prompt(
 ) -> str:
     """Render the judge's prompt with per-section + overall caps.
 
-    Returns a ``str`` whose length is at most :data:`_MAX_JUDGE_PROMPT_CHARS`;
+    Returns a `str` whose length is at most :data:`_MAX_JUDGE_PROMPT_CHARS`;
     the test plan's bound assertion (case #7) checks against that constant.
     The composition is intentional: full per-branch message history is never
-    included — the judge only sees the goal, the structured diff, and the
+    included - the judge only sees the goal, the structured diff, and the
     outcome bullets.
     """
     parts = [
@@ -165,12 +174,12 @@ def compute_confidence(
 ) -> float:
     """Combine the three signals with the judge's self-reported confidence.
 
-    Heuristic = ``0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 *
-    internal_consistency``. If ``signals.test_pass_ratio is None`` the
-    test slot is treated as ``0.0`` for the weighted sum AND the heuristic is
-    capped at ``0.65`` before multiplying by ``judge_confidence`` — the
-    safety rail that keeps ``auto_with_fallback`` defaulting to manual when
-    the test signal is missing. The product is clamped to ``[0.0, 1.0]``.
+    Heuristic = `0.4 * quality_spread + 0.4 * test_pass_ratio + 0.2 *
+    internal_consistency`. If `signals.test_pass_ratio is None` the
+    test slot is treated as `0.0` for the weighted sum AND the heuristic is
+    capped at `0.65` before multiplying by `judge_confidence` - the
+    safety rail that keeps `auto_with_fallback` defaulting to manual when
+    the test signal is missing. The product is clamped to `[0.0, 1.0]`.
     """
     test_component = signals.test_pass_ratio if signals.test_pass_ratio is not None else 0.0
     heuristic = (
@@ -185,15 +194,16 @@ def compute_confidence(
 
 
 def _majority_pick(verdicts: list[JudgeVerdict]) -> JudgeVerdict:
-    """Pick the winning :class:`JudgeVerdict` for ``"vote"`` mode.
+    """Pick the winning :class:`JudgeVerdict` for `"vote"` mode.
 
-    Majority rule: highest count of ``winner_branch_id`` wins. Ties are broken
+    Majority rule: highest count of `winner_branch_id` wins. Ties are broken
     by the highest-confidence verdict among the tied candidates (per the
     issue's "Tie → highest-confidence judge breaks the tie" spec). The
-    returned verdict is **synthetic**: ``reasoning`` summarises the vote,
-    ``confidence`` is the mean confidence among the tied verdicts, and the
-    other fields merge from the contributing verdicts (caveats union'd,
-    ``rejected_with_reasons`` taking the highest-confidence entry per branch).
+    returned verdict is **synthetic**: `reasoning` summarises the vote,
+    `confidence` is the mean confidence over every verdict that selected
+    the winning branch (not only the tie-break candidate set), and the
+    other fields merge from those same verdicts (caveats union'd,
+    `rejected_with_reasons` taking the highest-confidence entry per branch).
     """
     if not verdicts:
         raise ValueError("_majority_pick requires at least one verdict.")
@@ -233,10 +243,10 @@ def _majority_pick(verdicts: list[JudgeVerdict]) -> JudgeVerdict:
 
 
 def _iter_retry_parts(messages: list[Any]) -> Iterator[RetryPromptPart]:
-    """Yield every :class:`RetryPromptPart` in ``messages`` in order.
+    """Yield every :class:`RetryPromptPart` in `messages` in order.
 
     Shared scaffold for :func:`count_stuck_loop_hits` and
-    :func:`count_retry_parts` so the message-walking loop has one home — if
+    :func:`count_retry_parts` so the message-walking loop has one home - if
     pydantic-ai's message shape ever changes, only this helper needs updating.
     """
     for msg in messages:
@@ -248,10 +258,10 @@ def _iter_retry_parts(messages: list[Any]) -> Iterator[RetryPromptPart]:
 
 
 def count_stuck_loop_hits(messages: list[Any]) -> int:
-    """Count ``RetryPromptPart`` parts in ``messages`` that match a stuck-loop marker.
+    """Count `RetryPromptPart` parts in `messages` that match a stuck-loop marker.
 
-    Best-effort heuristic — relies on the marker strings in
-    :data:`_STUCK_LOOP_MARKERS` matching the ``ModelRetry`` messages raised by
+    Best-effort heuristic - relies on the marker strings in
+    :data:`_STUCK_LOOP_MARKERS` matching the `ModelRetry` messages raised by
     :class:`StuckLoopDetection`. If the stuck-loop module's message wording
     changes, update the markers list.
     """
@@ -266,7 +276,7 @@ def count_stuck_loop_hits(messages: list[Any]) -> int:
 
 
 def count_retry_parts(messages: list[Any]) -> int:
-    """Count every ``RetryPromptPart`` in ``messages`` (any source — stuck-loop or other)."""
+    """Count every `RetryPromptPart` in `messages` (any source - stuck-loop or other)."""
     return sum(1 for _ in _iter_retry_parts(messages))
 
 
@@ -274,8 +284,8 @@ class JudgeAgent:
     """Thin :class:`Agent` wrapper that picks the winning branch via structured output.
 
     Holds an internal pydantic-ai :class:`Agent` with
-    :class:`JudgeVerdict` as ``output_type``. The agent is built once at
-    construction; concurrent ``evaluate`` calls reuse the same underlying
+    :class:`JudgeVerdict` as `output_type`. The agent is built once at
+    construction; concurrent `evaluate` calls reuse the same underlying
     agent. The system prompt is the module-level
     :data:`JUDGE_SYSTEM_PROMPT`; per-call context is composed by
     :func:`_build_judge_prompt`.
@@ -294,10 +304,10 @@ class JudgeAgent:
         diff_report: BranchDiffReport,
         outcomes: list[BranchOutcome],
     ) -> tuple[JudgeVerdict, Any]:
-        """Run the judge and return ``(verdict, usage)``.
+        """Run the judge and return `(verdict, usage)`.
 
-        ``usage`` is the ``result.usage`` property value (pydantic-ai exposes
-        it as a property, not a method) — the coordinator bubbles it up via
+        `usage` is the `result.usage` property value (pydantic-ai exposes
+        it as a property, not a method) - the coordinator bubbles it up via
         :attr:`ResolveOutcome.judge_usage` for cost attribution. The judge
         never receives full per-branch message history, only the goal + diff
         + outcome summaries.

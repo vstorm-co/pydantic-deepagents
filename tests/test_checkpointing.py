@@ -13,6 +13,7 @@ from pydantic_ai.messages import (
     ModelResponse,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
     UserPromptPart,
 )
 from pydantic_ai.models.test import TestModel
@@ -419,9 +420,14 @@ class TestRewindRequested:
         assert issubclass(RewindRequested, Exception)
 
 
-def _cp_ctx(deps: Any = None) -> RunContext[Any]:
+def _cp_ctx(deps: Any = None, messages: list[ModelMessage] | None = None) -> RunContext[Any]:
     """Create a RunContext for checkpoint tests."""
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage())
+    return RunContext(
+        deps=deps,
+        model=TestModel(),
+        usage=RunUsage(),
+        messages=messages or [],
+    )
 
 
 class _FakeRequestContext:
@@ -458,12 +464,16 @@ class TestCheckpointMiddleware:
         """every_tool frequency saves checkpoint in after_tool_execute."""
         store = InMemoryCheckpointStore()
         mw = CheckpointMiddleware(store=store, frequency="every_tool")
-        msgs = _make_messages(2)
-        rc = _FakeRequestContext(msgs)
-        await mw.before_model_request(_cp_ctx(), rc)
+        # Live history already contains the ModelResponse with the ToolCallPart
+        # by the time the tool executes.
+        history = _make_messages(2)
+        history.append(
+            ModelResponse(parts=[ToolCallPart(tool_name="write_file", args={}, tool_call_id="cp")])
+        )
+        await mw.before_model_request(_cp_ctx(), _FakeRequestContext(history))
         assert await store.count() == 0
         result = await mw.after_tool_execute(
-            _cp_ctx(),
+            _cp_ctx(messages=history),
             call=_cp_call("write_file"),
             tool_def=_cp_td("write_file"),
             args={"path": "/test"},
@@ -474,6 +484,23 @@ class TestCheckpointMiddleware:
         cps = await store.list_all()
         assert "write_file" in cps[0].label
         assert cps[0].metadata.get("last_tool") == "write_file"
+        # The checkpoint must include the tool call and its result, not the
+        # stale pre-request history.
+        saved = cps[0].messages
+        assert any(
+            isinstance(p, ToolCallPart) and p.tool_name == "write_file"
+            for m in saved
+            if isinstance(m, ModelResponse)
+            for p in m.parts
+        )
+        tool_returns = [
+            p
+            for m in saved
+            if isinstance(m, ModelRequest)
+            for p in m.parts
+            if isinstance(p, ToolReturnPart)
+        ]
+        assert tool_returns and tool_returns[-1].content == "ok"
 
     async def test_manual_only_no_auto_save(self):
         """manual_only frequency doesn't auto-save."""
@@ -532,7 +559,6 @@ class TestCheckpointMiddleware:
     async def test_no_store_skips_after_tool_call(self):
         """No store available in after_tool_execute — skips silently."""
         mw = CheckpointMiddleware(frequency="every_tool")
-        mw._latest_messages = _make_messages(1)
         result = await mw.after_tool_execute(
             _cp_ctx(),
             call=_cp_call("test"),
@@ -554,7 +580,6 @@ class TestCheckpointMiddleware:
         fresh = await mw.for_run(_cp_ctx())
         assert fresh is not mw
         assert fresh._turn_counter == 0
-        assert fresh._latest_messages == []
         # Config should be preserved
         assert fresh.store is store
         assert fresh.frequency == "every_turn"
@@ -579,7 +604,6 @@ class TestCheckpointMiddleware:
         """after_tool_execute returns the result unmodified."""
         store = InMemoryCheckpointStore()
         mw = CheckpointMiddleware(store=store, frequency="every_tool")
-        mw._latest_messages = []
         result = await mw.after_tool_execute(
             _cp_ctx(),
             call=_cp_call("test"),

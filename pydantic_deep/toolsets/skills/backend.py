@@ -1,10 +1,10 @@
 """Backend-aware skill resources, scripts, and discovery.
 
 This module provides backend-integrated implementations that parallel
-the local filesystem implementations in ``local.py``:
+the local filesystem implementations in `local.py`:
 
-- `BackendSkillResource`: Load resources via ``BackendProtocol.read_bytes()``
-- `BackendSkillScriptExecutor`: Execute scripts via ``SandboxProtocol.execute()``
+- `BackendSkillResource`: Load resources via `BackendProtocol.read_bytes()`
+- `BackendSkillScriptExecutor`: Execute scripts via `SandboxProtocol.execute()`
 - `BackendSkillScript`: File-based script delegating to backend executor
 - `BackendSkillsDirectory`: Discover skills from a backend filesystem
 - Factory functions for creating backend-based resources and scripts
@@ -301,8 +301,11 @@ def _get_relative_path(file_path: str, base_dir: str) -> str:
     Returns:
         Relative path string.
     """
-    if file_path.startswith(base_dir):
-        rel = file_path[len(base_dir) :].lstrip("/")
+    if file_path == base_dir:
+        return file_path.rsplit("/", 1)[-1]
+    prefix = base_dir.rstrip("/") + "/"
+    if file_path.startswith(prefix):
+        rel = file_path[len(prefix) :].lstrip("/")
         return rel if rel else file_path.rsplit("/", 1)[-1]
     return file_path.rsplit("/", 1)[-1]
 
@@ -397,9 +400,9 @@ def _discover_backend_scripts(
 class BackendSkillsDirectory:
     """Discover and load skills from a backend filesystem.
 
-    Uses ``BackendProtocol`` methods (``glob_info``, ``read_bytes``) for
+    Uses `BackendProtocol` methods (`glob_info`, `read_bytes`) for
     skill discovery and resource loading. Script execution requires
-    ``SandboxProtocol`` (with ``execute()``).
+    `SandboxProtocol` (with `execute()`).
 
     Example:
         ```python

@@ -341,7 +341,7 @@ class Skill:
 class SkillWrapper(Generic[DepsT]):
     """Generic wrapper for decorator-based skill creation with type-safe dependencies.
 
-    Typically created via ``@skills.skill`` decorator on a SkillsToolset instance.
+    Typically created via `@skills.skill` decorator on a SkillsToolset instance.
 
     Example:
         ```python

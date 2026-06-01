@@ -57,28 +57,6 @@ class MessageList(VerticalScroll):
             with contextlib.suppress(Exception):
                 msg.remove()
 
-    def complete_tool_call_by_id(
-        self,
-        call_id: str,
-        result: str,
-        elapsed: float,
-        error: bool = False,
-    ) -> bool:
-        """Complete the tool call ``call_id`` on whichever message holds it.
-
-        Looks the call up by id across all rendered assistant messages rather
-        than relying on the current streaming message — so a tool return that
-        straddles a poll tick (after the call's message was ended by a trailing
-        text part, or rendered under an earlier assistant message) still
-        completes the correct tool-call row instead of spinning forever or
-        attaching to the wrong message. Returns ``True`` when a match was found.
-        """
-        for child in self.children:
-            if isinstance(child, AssistantMessage) and child.has_tool_call(call_id):
-                child.complete_tool_call(call_id, result, elapsed, error)
-                return True
-        return False
-
     def clear_messages(self) -> None:
         """Remove all messages."""
         self._current_assistant = None

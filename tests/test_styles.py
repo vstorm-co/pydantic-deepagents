@@ -241,6 +241,13 @@ class TestLoadStyleFromFile:
         with pytest.raises(ValueError, match="must have a 'name'"):
             load_style_from_file(f)
 
+    def test_empty_body_raises(self, tmp_path: Path) -> None:
+        """Raises ValueError when frontmatter is present but body is blank."""
+        f = tmp_path / "no-body.md"
+        f.write_text("---\nname: empty-body\ndescription: Has name\n---\n\n   \n", encoding="utf-8")
+        with pytest.raises(ValueError, match="has no content body"):
+            load_style_from_file(f)
+
     def test_missing_file_raises(self, tmp_path: Path) -> None:
         """Raises FileNotFoundError for non-existent file."""
         with pytest.raises(FileNotFoundError):

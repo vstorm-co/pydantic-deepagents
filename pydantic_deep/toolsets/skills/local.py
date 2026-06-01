@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import sys
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
@@ -263,7 +263,9 @@ class FileBasedSkillScript(SkillScript):
         executor: Executor for running the script.
     """
 
-    executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor = LocalSkillScriptExecutor()
+    executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor = field(
+        default_factory=LocalSkillScriptExecutor
+    )
 
     async def run(self, ctx: Any, args: dict[str, Any] | None = None) -> Any:
         """Execute script file via subprocess.

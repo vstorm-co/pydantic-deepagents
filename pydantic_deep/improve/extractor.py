@@ -60,7 +60,7 @@ class SessionExtractor:
 
         Args:
             model: Model identifier for the extraction agent
-                (e.g., ``"openrouter:anthropic/claude-sonnet-4"``).
+                (e.g., `"openrouter:anthropic/claude-sonnet-4"`).
             max_tokens_per_chunk: Max estimated tokens per chunk.
             overlap_messages: Number of messages to overlap between chunks.
         """
@@ -71,21 +71,21 @@ class SessionExtractor:
     async def extract(self, session_path: Path) -> tuple[SessionInsights, int]:
         """Extract insights from a session.
 
-        1. Load ``messages.json`` from the session directory.
+        1. Load `messages.json` from the session directory.
         2. Estimate total tokens.
         3. If it fits in one chunk, extract directly.
         4. If too large, chunk with overlap, extract per chunk, merge.
 
         Args:
             session_path: Path to the session directory containing
-                ``messages.json``.
+                `messages.json`.
 
         Returns:
             A tuple of (extracted insights, number of chunks processed).
 
         Raises:
-            FileNotFoundError: If ``messages.json`` does not exist.
-            json.JSONDecodeError: If ``messages.json`` is invalid JSON.
+            FileNotFoundError: If `messages.json` does not exist.
+            json.JSONDecodeError: If `messages.json` is invalid JSON.
         """
         messages_file = session_path / "messages.json"
         raw = messages_file.read_text(encoding="utf-8")
@@ -103,6 +103,11 @@ class SessionExtractor:
         # Estimate total tokens
         total_tokens = sum(self._estimate_message_tokens(m) for m in messages)
 
+        # Compute exact counts from the loaded messages. LLMs are unreliable at
+        # counting, so we never trust the model's reported values for these.
+        message_count = len(messages)
+        tool_calls_count = self._count_tool_calls(messages)
+
         session_id = session_path.name
         timestamp = _extract_timestamp(messages)
 
@@ -115,7 +120,8 @@ class SessionExtractor:
             if tool_sequence:
                 chunk_text += "\n\n--- TOOL CALL SEQUENCE ---\n\n" + tool_sequence
             raw_insights = await self._extract_chunk(chunk_text, session_id, timestamp)
-            return _dict_to_session_insights(raw_insights), 1
+            insights = _dict_to_session_insights(raw_insights)
+            chunk_count = 1
         else:
             # Multi-chunk extraction with merge
             chunks = self._chunk_messages(messages)
@@ -124,15 +130,20 @@ class SessionExtractor:
                 chunk_text = self._prepare_chunk_text(chunk)
                 result = await self._extract_chunk(chunk_text, session_id, timestamp)
                 chunk_results.append(result)
-            merged = await self._merge_chunk_insights(chunk_results)
-            return merged, len(chunks)
+            insights = await self._merge_chunk_insights(chunk_results)
+            chunk_count = len(chunks)
+
+        # Override the model-reported counts with the exact values.
+        insights.message_count = message_count
+        insights.tool_calls_count = tool_calls_count
+        return insights, chunk_count
 
     def _chunk_messages(self, messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         """Split messages into chunks with overlap.
 
         Uses a greedy approach: accumulate messages until the token
         estimate exceeds the limit, then start a new chunk with
-        ``overlap_messages`` messages carried over.
+        `overlap_messages` messages carried over.
 
         Args:
             messages: Full list of session messages.
@@ -159,13 +170,37 @@ class SessionExtractor:
 
             chunks.append(messages[start:chunk_end])
 
-            # Next chunk starts with overlap for continuity
-            next_start = max(chunk_end - self._overlap_messages, chunk_end)
-            if next_start <= start:  # pragma: no cover — defensive guard
-                next_start = chunk_end
-            start = next_start
+            # Stop once this chunk consumed the remaining messages, otherwise the
+            # overlap carry-back would re-chunk the tail forever.
+            if chunk_end >= len(messages):
+                break
+
+            # Next chunk starts with overlap for continuity. Carry back
+            # `overlap_messages` messages while guaranteeing forward progress
+            # (`next_start > start`) so the loop always terminates.
+            start = max(start + 1, chunk_end - self._overlap_messages)
 
         return chunks
+
+    def _count_tool_calls(self, messages: list[dict[str, Any]]) -> int:
+        """Count tool calls across all messages.
+
+        Counts parts with `part_kind == 'tool-call'` across the full
+        message list. Computed directly from the loaded messages rather
+        than trusting the model, which is unreliable at counting.
+
+        Args:
+            messages: Full list of session messages.
+
+        Returns:
+            Total number of tool-call parts.
+        """
+        return sum(
+            1
+            for msg in messages
+            for part in msg.get("parts", [])
+            if part.get("part_kind") == "tool-call"
+        )
 
     def _estimate_message_tokens(self, msg: dict[str, Any]) -> int:
         """Estimate tokens for a message including ALL parts.
@@ -231,7 +266,7 @@ class SessionExtractor:
 
         This gives the extraction agent a structured view of what tools
         were called, in what order, how long they took, and whether they
-        failed — without the noise of full message formatting.
+        failed - without the noise of full message formatting.
 
         Returns empty string if no tool log exists.
         """
@@ -253,7 +288,9 @@ class SessionExtractor:
 
                 # Compact one-line summary per tool call
                 status = "ERROR" if error else "ok"
-                args_brief = ", ".join(f"{k}={v[:80]}" for k, v in args.items()) if args else ""
+                args_brief = (
+                    ", ".join(f"{k}={str(v)[:80]}" for k, v in args.items()) if args else ""
+                )
                 lines.append(
                     f"  {tool}({args_brief}) -> [{status}, {elapsed:.1f}s, {result_len} chars]"
                 )
@@ -294,7 +331,7 @@ class SessionExtractor:
                     lines.append(f"[User{ts_str}]: {content}")
 
                 elif part_kind == "system-prompt":
-                    # Skip system prompts — not useful for insight extraction
+                    # Skip system prompts - not useful for insight extraction
                     continue
 
                 elif part_kind == "text":
@@ -427,8 +464,8 @@ def _parse_json_response(
     # Strip markdown code fences if present
     cleaned = text.strip()
     if cleaned.startswith("```"):
-        first_newline = cleaned.index("\n")
-        cleaned = cleaned[first_newline + 1 :]
+        first_newline = cleaned.find("\n")
+        cleaned = cleaned[first_newline + 1 :] if first_newline != -1 else cleaned[3:]
     if cleaned.endswith("```"):
         cleaned = cleaned[:-3]
     cleaned = cleaned.strip()

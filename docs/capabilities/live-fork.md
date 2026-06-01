@@ -60,7 +60,7 @@ The CLI lifecycle around an unresolved agent-initiated fork:
 
 1. `agent.run()` starts → [`LiveForkCapability.for_run`][pydantic_deep.capabilities.forking.LiveForkCapability.for_run] either allocates a fresh [`ForkCoordinator`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator] OR preserves the previous turn's coordinator if it is **not** [`is_resolved`][pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.is_resolved].
 2. Agent calls `fork_run` → coordinator gains a `ForkHandle` and live branches.
-3. Parent turn ends → [`ChatScreen`][apps.cli.screens.chat.ChatScreen] calls [`reconcile_active_fork`][apps.cli.forking.reconcile_active_fork], which either adopts the coordinator (creating a `CLIForkSession` with `adopted=True`) or clears `app.active_fork` if the agent merged itself within the same turn.
+3. Parent turn ends → `ChatScreen` calls `reconcile_active_fork`, which either adopts the coordinator (creating a `CLIForkSession` with `adopted=True`) or clears `app.active_fork` if the agent merged itself within the same turn.
 4. User merges (`/merge` or branch-tab `Enter`) OR aborts (overview `Esc`) → coordinator overlays are released → `is_resolved` flips to `True` → next `for_run` allocates fresh.
 
 Branches survive the parent turn ending only because step 1 preserves the coordinator and step 3 stashes it on `app.active_fork`. Manual abort (`Esc` on the overview) explicitly tears the stash down via `coordinator.aclose()`.
@@ -86,7 +86,7 @@ Branches survive the parent turn ending only because step 1 preserves the coordi
 
 ### Per-branch budgets
 
-[`BranchSpec.budget_usd`][pydantic_deep.types.BranchSpec] is enforced. When a branch's [`CostTracking`][pydantic_ai_shields.CostTracking] cumulative cost crosses its cap, the branch is cancelled and its state transitions to [`"budget_exhausted"`][pydantic_deep.types.BranchState]; siblings keep running.
+[`BranchSpec.budget_usd`][pydantic_deep.types.BranchSpec] is enforced. When a branch's `CostTracking` cumulative cost crosses its cap, the branch is cancelled and its state transitions to [`"budget_exhausted"`][pydantic_deep.types.BranchState]; siblings keep running.
 
 Pass a fork-wide cap at the `fork_run` call:
 
@@ -106,7 +106,7 @@ await agent.run(
 # )
 ```
 
-When the sum of branch costs crosses `aggregate_budget_usd`, every still-running branch is terminated with state [`"aggregate_budget_exhausted"`][pydantic_deep.types.BranchState]. See [Limitations](#limitations--non-goals) below for the best-effort caveat.
+When the sum of branch costs crosses `aggregate_budget_usd`, every still-running branch is terminated with state [`"aggregate_budget_exhausted"`][pydantic_deep.types.BranchState]. See [Limitations](#limitations-non-goals) below for the best-effort caveat.
 
 ### Per-branch isolation
 
@@ -535,7 +535,7 @@ The deferred-commit ordering on `auto_with_fallback` is load-bearing: the accept
 
 - `[enter]` — accept; the dispatcher calls `merge_or_select(f"pick:{winner_id}")` to commit.
 - `[d]` — view diff; opens the diff explorer and re-pushes the widget on return (the verdict context survives the round-trip).
-- `[o]` — override; opens [`MergePickerModal`][apps.cli.modals.merge_picker.MergePickerModal] with the judge's pick preselected and the verdict reasoning shown as a subtitle.
+- `[o]` — override; opens `MergePickerModal` with the judge's pick preselected and the verdict reasoning shown as a subtitle.
 - `[escape]` — cancel; dismisses the widget without committing. The cached judge outcome means the next `/merge` re-shows the widget instantly without re-invoking the judge LLM.
 
 ### Judge prompt boundedness

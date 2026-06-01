@@ -1,7 +1,7 @@
 """Declarative agent specification for YAML/JSON configuration.
 
 Allows defining deep agents via YAML or JSON files instead of Python code.
-The spec mirrors ``create_deep_agent()`` parameters 1:1.
+The spec mirrors `create_deep_agent()` parameters 1:1.
 
 Example:
     ```python
@@ -42,23 +42,26 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+from pydantic_ai_backends import StateBackend
 
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
 
 
 class DeepAgentSpec(BaseModel):
-    """Declarative agent specification — mirrors ``create_deep_agent()`` params.
+    """Declarative agent specification - mirrors `create_deep_agent()` params.
 
-    All fields have the same defaults as ``create_deep_agent()``.
+    All fields have the same defaults as `create_deep_agent()`.
     Only serializable parameters are included (callbacks and Python objects
-    like ``backend``, ``tools``, ``toolsets`` must be passed as overrides).
+    like `backend`, `tools`, `toolsets` must be passed as overrides).
     """
 
     model_config = ConfigDict(extra="forbid")
 
     # Core
     model: str | None = None
+    fallback_model: str | list[str] | None = None
+    base_prompt: str | None = None
     instructions: str | None = None
     output_style: str | None = None
     styles_dir: str | list[str] | None = None
@@ -79,6 +82,11 @@ class DeepAgentSpec(BaseModel):
     include_memory: bool = True
     include_checkpoints: bool = False
     include_teams: bool = False
+    include_improve: bool = False
+    include_liteparse: bool = False
+    stuck_loop_detection: bool = True
+    periodic_reminder: bool | None = None
+    forking: bool = False
     web_search: bool = True
     web_fetch: bool = True
     thinking: bool | str = "high"
@@ -92,6 +100,7 @@ class DeepAgentSpec(BaseModel):
 
     # Processors
     eviction_token_limit: int | None = 20_000
+    max_binary_content: int | None = 3
     patch_tool_calls: bool = True
 
     # Filesystem
@@ -171,12 +180,12 @@ class DeepAgent:
 
         Args:
             path: Path to YAML (.yaml/.yml) or JSON (.json) file.
-            **overrides: Override spec values (e.g., ``model="anthropic:claude-opus-4-6"``).
-                Non-serializable params like ``backend``, ``tools``, ``on_cost_update``
+            **overrides: Override spec values (e.g., `model="anthropic:claude-opus-4-6"`).
+                Non-serializable params like `backend`, `tools`, `on_cost_update`
                 can only be passed here.
 
         Returns:
-            Tuple of (agent, deps) ready for ``agent.run()``.
+            Tuple of (agent, deps) ready for `agent.run()`.
 
         Example:
             ```python
@@ -198,6 +207,12 @@ class DeepAgent:
             except Exception:  # pragma: no cover
                 data = json.loads(text)  # pragma: no cover
 
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Spec file {path} must contain a mapping at the top level, "
+                f"got {type(data).__name__}"
+            )
+
         return cls.from_spec(data, **overrides)
 
     @classmethod
@@ -209,11 +224,11 @@ class DeepAgent:
         """Create an agent from a dict specification.
 
         Args:
-            data: Dict with ``create_deep_agent()`` parameter names as keys.
+            data: Dict with `create_deep_agent()` parameter names as keys.
             **overrides: Override spec values. Takes precedence over data.
 
         Returns:
-            Tuple of (agent, deps) ready for ``agent.run()``.
+            Tuple of (agent, deps) ready for `agent.run()`.
 
         Example:
             ```python
@@ -245,26 +260,41 @@ class DeepAgent:
 
         # Also pass through any key not in DeepAgentSpec fields (e.g., model=TestModel())
         spec_fields = set(DeepAgentSpec.model_fields)
+
+        def _partition(
+            items: dict[str, Any],
+            spec_part: dict[str, Any],
+            passthrough_part: dict[str, Any],
+        ) -> None:
+            for k, v in items.items():
+                if k in non_spec_keys or k not in spec_fields:
+                    passthrough_part[k] = v
+                elif not isinstance(v, (str, int, float, bool, list, dict, type(None))):
+                    # Non-serializable value for a spec field (e.g., model=TestModel())
+                    passthrough_part[k] = v
+                else:
+                    spec_part[k] = v
+
+        # Partition both data and overrides so non-spec / non-serializable keys
+        # are routed to passthrough regardless of where they were supplied.
+        spec_data: dict[str, Any] = {}
         spec_overrides: dict[str, Any] = {}
         passthrough: dict[str, Any] = {}
-        for k, v in overrides.items():
-            if k in non_spec_keys or k not in spec_fields:
-                passthrough[k] = v
-            elif k in spec_fields and not isinstance(
-                v, (str, int, float, bool, list, dict, type(None))
-            ):
-                # Non-serializable value for a spec field (e.g., model=TestModel())
-                passthrough[k] = v
-            else:
-                spec_overrides[k] = v
+        _partition(data, spec_data, passthrough)
+        _partition(overrides, spec_overrides, passthrough)
 
         # Merge: data + spec_overrides (overrides win)
-        merged = {**data, **spec_overrides}
+        merged = {**spec_data, **spec_overrides}
 
         # Validate through Pydantic model
         spec = DeepAgentSpec(**merged)
 
-        # Build kwargs for create_deep_agent
+        # Build kwargs for create_deep_agent.
+        # Note: this uses exclude_none (not exclude_defaults like to_file). The
+        # asymmetry is intentional: to_file produces minimal files containing only
+        # non-default values, while from_spec must forward every explicit value.
+        # This relies on DeepAgentSpec defaults staying in sync with
+        # create_deep_agent defaults (verified by test_spec_defaults_match_factory).
         kwargs = spec.model_dump(exclude_none=True)
 
         # Add non-serializable params
@@ -284,7 +314,7 @@ class DeepAgent:
 
         Args:
             path: Output path. Extension determines format (.yaml/.yml or .json).
-            **params: ``create_deep_agent()`` parameters to save.
+            **params: `create_deep_agent()` parameters to save.
 
         Example:
             ```python
@@ -310,6 +340,5 @@ class DeepAgent:
 
 def _default_backend() -> Any:
     """Create default StateBackend for spec-loaded agents."""
-    from pydantic_ai_backends import StateBackend
 
     return StateBackend()

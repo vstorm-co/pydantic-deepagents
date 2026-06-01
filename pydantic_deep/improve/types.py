@@ -7,6 +7,10 @@ to context files, and full improvement reports.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
+
+ChangeType = Literal["append", "update", "create"]
+"""Valid change types for a :class:`ProposedChange`."""
 
 
 @dataclass
@@ -128,7 +132,7 @@ class ProposedChange:
 
     target_file: str
     """Target file: 'SOUL.md', 'AGENTS.md', 'MEMORY.md', or 'skills/...'."""
-    change_type: str
+    change_type: ChangeType
     """Type of change: 'append', 'update', or 'create'."""
     section: str | None
     """Section in the file (for 'update' changes), or None."""
@@ -164,5 +168,7 @@ class ImprovementReport:
     """Number of sessions that failed extraction."""
     last_error: Exception | None = field(default=None, repr=False)
     """Last extraction error (for diagnostics)."""
+    extraction_errors: list[tuple[str, Exception]] = field(default_factory=list, repr=False)
+    """All extraction failures as (session_id, error) pairs (for diagnostics)."""
     timestamp: str = ""
     """ISO timestamp of when the report was generated."""

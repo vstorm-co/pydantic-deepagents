@@ -101,7 +101,7 @@ def test_tui_invoke_returns_empty_list_and_spawns_no_processes() -> None:
 
 
 def test_custom_invoke_uses_template_substitution() -> None:
-    """``custom`` kind: env var template gets ``{parent}`` / ``{branches}`` filled in."""
+    """`custom` kind: env var template gets `{parent}` / `{branches}` filled in."""
     with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         EditorDetector.invoke(

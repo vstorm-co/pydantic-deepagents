@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic_ai_backends import LocalBackend
 
+from apps.cli.config import load_config
 from apps.cli.prompts import build_cli_instructions
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
@@ -20,16 +21,16 @@ from pydantic_deep.deps import DeepAgentDeps
 def _detect_fork_test_command(backend: Any) -> str | None:
     """Auto-detect a test command from the project root for the fork test runner.
 
-    Checks common test framework markers in ``backend.root_dir`` (only
-    :class:`~pydantic_ai_backends.LocalBackend` has a ``root_dir``).
-    Returns a ready-to-run shell string, or ``None`` when nothing is
+    Checks common test framework markers in `backend.root_dir` (only
+    :class:`~pydantic_ai_backends.LocalBackend` has a `root_dir`).
+    Returns a ready-to-run shell string, or `None` when nothing is
     detected — the fork runner stays disabled in that case and
-    ``auto_with_fallback`` falls through to the manual picker as before.
+    `auto_with_fallback` falls through to the manual picker as before.
 
     Priority order:
-    1. ``pyproject.toml`` / ``pytest.ini`` / ``setup.cfg`` → pytest
-    2. ``package.json`` with a ``test`` script → npm test
-    3. ``Makefile`` with a ``test:`` or ``test :`` target → make test
+    1. `pyproject.toml` / `pytest.ini` / `setup.cfg` → pytest
+    2. `package.json` with a `test` script → npm test
+    3. `Makefile` with a `test:` or `test :` target → make test
     """
     root_obj = getattr(backend, "root_dir", None)
     if root_obj is None:
@@ -159,33 +160,33 @@ def create_cli_agent(  # noqa: C901
     Configuration precedence: explicit arguments > config file > defaults.
 
     Args:
-        model: Model to use. Falls back to config, then ``"anthropic:claude-sonnet-4-6"``.
+        model: Model to use. Falls back to config, then `"anthropic:claude-sonnet-4-6"`.
         working_dir: Filesystem root directory. Defaults to cwd.
         shell_allow_list: Allowed shell command prefixes. None = all allowed.
         on_cost_update: Callback for cost updates.
         on_context_update: Callback for context usage updates.
         extra_middleware: Additional middleware to include.
         backend: Override the file storage backend (e.g., DockerSandbox).
-            Takes precedence over ``sandbox``.
-        sandbox: Sandbox type: ``"local"`` or ``"docker"``. When ``"docker"``,
+            Takes precedence over `sandbox`.
+        sandbox: Sandbox type: `"local"` or `"docker"`. When `"docker"`,
             creates a DockerSandbox with the working directory mounted at
-            ``/workspace``. Falls back to ``config.sandbox``.
+            `/workspace`. Falls back to `config.sandbox`.
         sandbox_image: Docker image for the sandbox container. Falls back to
-            ``config.sandbox_image`` (default: ``python:3.12-slim``).
+            `config.sandbox_image` (default: `python:3.12-slim`).
         sandbox_env_vars: Environment variables to inject into the Docker sandbox
-            container. Falls back to ``config.sandbox_env_vars``. Only applied when
-            ``sandbox="docker"``. Values are passed at container start-time via
-            ``RuntimeConfig`` with ``cache_image=False`` so they are not baked
+            container. Falls back to `config.sandbox_env_vars`. Only applied when
+            `sandbox="docker"`. Values are passed at container start-time via
+            `RuntimeConfig` with `cache_image=False` so they are not baked
             permanently into a cached Docker image.
-        sandbox_env_file: Path to a ``.env`` file whose variables are injected into
-            the Docker sandbox container. Falls back to ``config.sandbox_env_file``.
-            Merged with ``sandbox_env_vars``; explicit ``sandbox_env_vars`` take
+        sandbox_env_file: Path to a `.env` file whose variables are injected into
+            the Docker sandbox container. Falls back to `config.sandbox_env_file`.
+            Merged with `sandbox_env_vars`; explicit `sandbox_env_vars` take
             priority over file values.
         workspace: Named Docker workspace shared across threads. When set, the
             container persists between sessions so installed packages and any
             files outside the mounted volume survive restarts. Multiple threads
             (conversation histories) can share the same workspace. The actual
-            Docker container name is ``pydantic-deep-{dir_hash}-{workspace}``.
+            Docker container name is `pydantic-deep-{dir_hash}-{workspace}`.
         include_skills: Whether to include the skills toolset.
         include_plan: Whether to include the planner subagent.
         include_memory: Whether to include persistent agent memory.
@@ -198,19 +199,18 @@ def create_cli_agent(  # noqa: C901
         session_id: Session identifier for per-session plans storage.
         extra_instructions: Additional instructions appended to the system prompt.
         skills_dir: Override skills directory path. When None, auto-discovers
-            from ``{working_dir}/.pydantic-deep/skills/``.
-        periodic_reminder: Enable periodic task reminders. ``None`` uses
-            the config default (``True`` / ``"llm"``). ``True``/``False`` overrides.
-        reminder_mode: Generator for the reminder text. ``"llm"`` (default) uses
-            ``LLMReminderGenerator``. ``"first"`` re-states first user message
-            (zero-cost). ``"context"`` uses a compact transcript (zero-cost).
-        reminder_model: Model used by the ``"llm"`` reminder generator.
-            Defaults to ``config.reminder_model``, then falls back to the main model.
+            from `{working_dir}/.pydantic-deep/skills/`.
+        periodic_reminder: Enable periodic task reminders. `None` uses
+            the config default (`True` / `"llm"`). `True`/`False` overrides.
+        reminder_mode: Generator for the reminder text. `"llm"` (default) uses
+            `LLMReminderGenerator`. `"first"` re-states first user message
+            (zero-cost). `"context"` uses a compact transcript (zero-cost).
+        reminder_model: Model used by the `"llm"` reminder generator.
+            Defaults to `config.reminder_model`, then falls back to the main model.
 
     Returns:
         Tuple of (agent, deps) ready for agent.run().
     """
-    from apps.cli.config import load_config
 
     config = load_config(config_path)
 
@@ -414,6 +414,23 @@ def create_cli_agent(  # noqa: C901
 
     queue = MessageQueue()
 
+    # MCP servers configured via `/mcp` (enabled + authenticated ones only).
+    # Failures (missing optional dep, bad config) degrade to no MCP support.
+    # `mcp_degraded` collects servers that turn out unreachable at runtime so the
+    # TUI can tell the user *why* a server's tools are missing.
+    mcp_servers: list[Any] = []
+    mcp_degraded: set[str] = set()
+    if not lean:
+        try:
+            from apps.cli.mcp_store import build_mcp_servers_for_agent
+
+            def _on_mcp_degraded(name: str, _reason: str) -> None:
+                mcp_degraded.add(name)
+
+            mcp_servers = build_mcp_servers_for_agent(on_degraded=_on_mcp_degraded)
+        except Exception:
+            mcp_servers = []
+
     agent = create_deep_agent(
         model=effective_model,
         fallback_model=fallback_model or config.fallback_model or None,
@@ -469,6 +486,7 @@ def create_cli_agent(  # noqa: C901
         hooks=hooks or None,
         middleware=middleware or None,
         toolsets=[local_context] if local_context else None,
+        mcp_servers=mcp_servers or None,
         capabilities=extra_capabilities or None,
         # Message queue for mid-run steering and follow-up delivery
         message_queue=queue,
@@ -487,6 +505,9 @@ def create_cli_agent(  # noqa: C901
         message_queue=queue,
     )
     deps._task_manager = task_mgr  # type: ignore[attr-defined]
+    # Shared set the resilient MCP wrappers fill when a server is unreachable;
+    # the chat screen surfaces these to the user after a run.
+    deps.mcp_degraded = mcp_degraded  # type: ignore[attr-defined]
     return agent, deps
 
 

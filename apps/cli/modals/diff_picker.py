@@ -1,6 +1,6 @@
 """Diff picker modal — choose which file + branches to send to the external diff tool.
 
-Replaces the "type the path manually" UX of ``/fork diff <path>``: opens
+Replaces the "type the path manually" UX of `/fork diff <path>`: opens
 a modal listing every touched path from :class:`BranchDiffReport` and lets
 the user toggle which branches to include in the diff invocation. On
 confirm, returns a :class:`DiffPickerResult` that the dispatcher feeds to
@@ -8,10 +8,10 @@ confirm, returns a :class:`DiffPickerResult` that the dispatcher feeds to
 
 Navigation:
 
-- ``↑`` / ``↓`` (or ``k`` / ``j``) move the path selection.
-- ``←`` / ``→`` (or ``h`` / ``l``) move the branch selection.
-- ``Space`` toggles the currently-selected branch.
-- ``Enter`` confirms; ``Esc`` cancels.
+- `↑` / `↓` (or `k` / `j`) move the path selection.
+- `←` / `→` (or `h` / `l`) move the branch selection.
+- `Space` toggles the currently-selected branch.
+- `Enter` confirms; `Esc` cancels.
 """
 
 from __future__ import annotations
@@ -27,6 +27,8 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
+from apps.cli.modals.merge_picker import MergePickerModal
+
 if TYPE_CHECKING:
     from pydantic_deep.types import BranchDiffReport, BranchStatus
 
@@ -38,11 +40,11 @@ class DiffPickerResult:
     Attributes:
         path: Relative path to diff (one of the report's touched paths).
         branch_ids: Branch ids the user wants in the diff invocation,
-            in the original ``label_to_id`` order. At least one entry
+            in the original `label_to_id` order. At least one entry
             (the modal forbids confirming with everything unchecked).
-        include_parent: When ``True`` (default), the parent snapshot is
+        include_parent: When `True` (default), the parent snapshot is
             passed to the editor alongside the branch files.  When
-            ``False``, only the selected branch files are opened so the
+            `False`, only the selected branch files are opened so the
             user sees a direct branch-vs-branch diff.
     """
 
@@ -133,11 +135,11 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
         """Construct the modal.
 
         Args:
-            report: Diff over the active fork — its ``paths`` list drives
+            report: Diff over the active fork — its `paths` list drives
                 the path selector.
-            branches: Branch statuses from ``CLIForkSession.inspect()`` —
+            branches: Branch statuses from `CLIForkSession.inspect()` —
                 used to derive labels for branches missing from
-                ``label_to_id``.
+                `label_to_id`.
             label_to_id: Maps user-facing branch labels to coordinator
                 branch ids; preserves the user's preferred branch order.
             initial_branch_id: When supplied (e.g. when launched from the
@@ -213,7 +215,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
 
     @staticmethod
     def _display_path(path: str) -> str:
-        """Return a short, human-readable version of ``path``.
+        """Return a short, human-readable version of `path`.
 
         Absolute paths under the current working directory are made
         relative; absolute paths outside CWD fall back to the basename.
@@ -313,7 +315,6 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
 
     def action_browse_merge_view(self) -> None:
         """Open :class:`MergePickerModal` in view-only mode for this fork."""
-        from apps.cli.modals.merge_picker import MergePickerModal
 
         label_to_id = {label: bid for bid, label in self._id_to_label.items()}
         self.app.push_screen(
@@ -361,7 +362,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
 
     @property
     def selected_path(self) -> str | None:
-        """Path that ``Enter`` would currently confirm (or ``None`` if empty)."""
+        """Path that `Enter` would currently confirm (or `None` if empty)."""
         return self._paths[self._path_index] if self._paths else None
 
     @property

@@ -1,12 +1,12 @@
 """Overlay apply-to-parent on merge.
 
-``merge_or_select("pick:<id>")`` flushes the winner's
+`merge_or_select("pick:<id>")` flushes the winner's
 :class:`BranchOverlay` writes onto the parent backend; discarded
 branches' overlays are released without flush — only the winner's
 writes propagate.
 
 The tests construct coordinators directly with a stub agent that writes
-to its (overlay) backend during ``agent.run``. This sidesteps TestModel
+to its (overlay) backend during `agent.run`. This sidesteps TestModel
 to keep the per-branch behaviour fully deterministic.
 """
 
@@ -26,17 +26,17 @@ from pydantic_deep.types import BranchIsolation, BranchSpec, FlushError
 
 
 class _StubResult:
-    """Minimal stand-in for pydantic-ai ``AgentRunResult``."""
+    """Minimal stand-in for pydantic-ai `AgentRunResult`."""
 
     def all_messages(self) -> list[Any]:
         return []
 
 
 class _StubAgent:
-    """Agent stub whose ``run`` writes to the (overlay) backend deterministically.
+    """Agent stub whose `run` writes to the (overlay) backend deterministically.
 
-    The branch ``steer`` text drives the per-branch payload — each branch
-    writes ``cat.md`` and ``dog.md`` with branch-specific content so we
+    The branch `steer` text drives the per-branch payload — each branch
+    writes `cat.md` and `dog.md` with branch-specific content so we
     can tell who wrote what after the merge.
     """
 
@@ -252,7 +252,7 @@ async def test_materializer_branch_snapshot_matches_flushed_parent(tmp_path: Pat
 
     await coord.merge_or_select(f"pick:{winner_id}")
 
-    # ``keep_artifacts=True`` keeps the on-disk snapshot intact AFTER merge.
+    # `keep_artifacts=True` keeps the on-disk snapshot intact AFTER merge.
     assert mirror.exists()
     assert mirror.read_bytes() == parent.read_bytes("cat.md")
 
@@ -315,7 +315,7 @@ async def test_per_write_error_is_surfaced_and_does_not_abort(tmp_path: Path) ->
     )
     await asyncio.gather(*[rt.task for rt in coord.branches.values()])
 
-    # Stub parent.write to fail for ``cat.md`` only — ``dog.md`` should
+    # Stub parent.write to fail for `cat.md` only — `dog.md` should
     # still flush successfully and the failure must appear in MergeResult.errors.
     real_write = parent.write
 
@@ -378,7 +378,7 @@ async def test_nested_fork_flush_up_one_level(tmp_path: Path) -> None:
 
     root_parent = StateBackend()
     outer_overlay = BranchOverlay(root_parent)
-    # Pretend ``outer_overlay`` is the parent backend of the inner fork.
+    # Pretend `outer_overlay` is the parent backend of the inner fork.
     inner_coord = _make_coord(_StubAgent(), outer_overlay, tmp_path)
     inner_handle = await inner_coord.fork(
         [BranchSpec(label="alpha", steer="alpha"), BranchSpec(label="beta", steer="beta")],
@@ -401,7 +401,7 @@ async def test_nested_fork_flush_up_one_level(tmp_path: Path) -> None:
 
 
 def test_flush_to_without_snapshot_skips_conflict_detection(tmp_path: Path) -> None:
-    """No pre_flush_snapshot → ``conflicts`` is empty regardless of parent state."""
+    """No pre_flush_snapshot → `conflicts` is empty regardless of parent state."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = StateBackend()
@@ -484,7 +484,7 @@ def test_flush_to_exception_on_second_write_rolls_back_applied_path(tmp_path: Pa
 
 
 def test_overlay_snapshot_records_none_when_parent_read_raises(tmp_path: Path) -> None:
-    """When ``parent.read_bytes`` raises FileNotFoundError, the snapshot records ``None``."""
+    """When `parent.read_bytes` raises FileNotFoundError, the snapshot records `None`."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
     from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 
@@ -508,7 +508,7 @@ def test_overlay_snapshot_records_none_when_parent_read_raises(tmp_path: Path) -
 
 
 def test_overlay_snapshot_records_none_on_keyerror(tmp_path: Path) -> None:
-    """``KeyError`` from ``parent.read_bytes`` is treated the same as FileNotFoundError."""
+    """`KeyError` from `parent.read_bytes` is treated the same as FileNotFoundError."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
     from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 
@@ -532,7 +532,7 @@ def test_overlay_snapshot_records_none_on_keyerror(tmp_path: Path) -> None:
 
 
 def test_detect_conflicts_skips_path_not_in_snapshot(tmp_path: Path) -> None:
-    """``_detect_conflicts`` skips paths absent from the supplied snapshot."""
+    """`_detect_conflicts` skips paths absent from the supplied snapshot."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = StateBackend()
@@ -545,7 +545,7 @@ def test_detect_conflicts_skips_path_not_in_snapshot(tmp_path: Path) -> None:
 
 
 def test_detect_conflicts_handles_keyerror_in_parent_read_bytes(tmp_path: Path) -> None:
-    """``KeyError`` from ``parent.read_bytes`` is treated as deletion."""
+    """`KeyError` from `parent.read_bytes` is treated as deletion."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = StateBackend()
@@ -594,7 +594,7 @@ def test_materializer_does_not_overwrite_existing_manifest(tmp_path: Path) -> No
 async def test_fork_with_share_readonly_backend_skips_materializer_attach(
     tmp_path: Path,
 ) -> None:
-    """``backend='share_readonly'`` skips overlay creation → no materializer hook."""
+    """`backend='share_readonly'` skips overlay creation → no materializer hook."""
     parent = StateBackend()
     parent.write("cat.md", "shared")
     coord = _make_coord(_StubAgent(), parent, tmp_path)
@@ -618,7 +618,7 @@ async def test_fork_with_share_readonly_backend_skips_materializer_attach(
 
 
 class _DeleteCapturingBackend(StateBackend):  # type: ignore[misc]
-    """Test stub: a backend that records ``delete(path)`` calls."""
+    """Test stub: a backend that records `delete(path)` calls."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -629,7 +629,7 @@ class _DeleteCapturingBackend(StateBackend):  # type: ignore[misc]
 
 
 class _ExecuteCapturingBackend(StateBackend):  # type: ignore[misc]
-    """Test stub: backend with ``execute_enabled=True`` that captures commands."""
+    """Test stub: backend with `execute_enabled=True` that captures commands."""
 
     execute_enabled: bool = True
 
@@ -696,7 +696,7 @@ def test_flush_to_delete_error_is_surfaced(tmp_path: Path) -> None:
 
 
 def test_flush_to_delete_on_state_backend_records_unsupported_error(tmp_path: Path) -> None:
-    """``StateBackend`` has neither execute_enabled nor delete — surface an error."""
+    """`StateBackend` has neither execute_enabled nor delete — surface an error."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = StateBackend()
@@ -713,7 +713,7 @@ def test_flush_to_delete_on_state_backend_records_unsupported_error(tmp_path: Pa
 
 
 def test_flush_to_delete_via_execute_nonzero_exit_records_error(tmp_path: Path) -> None:
-    """``rm -f`` exiting non-zero (e.g. permission denied) surfaces as a FlushError."""
+    """`rm -f` exiting non-zero (e.g. permission denied) surfaces as a FlushError."""
     from pydantic_ai_backends import ExecuteResponse
 
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
@@ -746,7 +746,7 @@ def test_flush_to_delete_via_execute_nonzero_exit_records_error(tmp_path: Path) 
 def test_flush_to_write_then_delete_propagates_delete_and_drops_applied(
     tmp_path: Path,
 ) -> None:
-    """``write; delete`` sequence ends as a deletion — no spurious applied_paths entry."""
+    """`write; delete` sequence ends as a deletion — no spurious applied_paths entry."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = _DeleteCapturingBackend()
@@ -765,7 +765,7 @@ def test_flush_to_write_then_delete_propagates_delete_and_drops_applied(
 def test_flush_to_delete_then_write_propagates_write_and_drops_deleted(
     tmp_path: Path,
 ) -> None:
-    """``delete; write`` sequence ends as a write — the path leaves ``deleted_paths``."""
+    """`delete; write` sequence ends as a write — the path leaves `deleted_paths`."""
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 
     parent = _DeleteCapturingBackend()

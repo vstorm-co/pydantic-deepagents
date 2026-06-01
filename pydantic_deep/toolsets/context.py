@@ -28,17 +28,17 @@ DEFAULT_CONTEXT_FILENAMES: list[str] = [
 ]
 """Default filenames to scan for during auto-discovery.
 
-- ``AGENTS.md`` — Project instructions, conventions, architecture.
+- `AGENTS.md` — Project instructions, conventions, architecture.
   Compatible with the `agents.md spec <https://agents.md/>`_.
   Visible to main agent and subagents.
-- ``CLAUDE.md`` — Claude Code project instructions.
+- `CLAUDE.md` — Claude Code project instructions.
   Visible to main agent and subagents.
-- ``SOUL.md`` — Agent personality, style, user preferences.
+- `SOUL.md` — Agent personality, style, user preferences.
   Visible to main agent only (filtered for subagents).
-- ``.cursorrules`` — Cursor editor conventions.
-- ``.github/copilot-instructions.md`` — GitHub Copilot instructions.
-- ``CONVENTIONS.md`` — Project coding conventions.
-- ``CODING_GUIDELINES.md`` — Coding guidelines.
+- `.cursorrules` — Cursor editor conventions.
+- `.github/copilot-instructions.md` — GitHub Copilot instructions.
+- `CONVENTIONS.md` — Project coding conventions.
+- `CODING_GUIDELINES.md` — Coding guidelines.
 """
 
 SUBAGENT_CONTEXT_ALLOWLIST: frozenset[str] = frozenset(
@@ -121,6 +121,36 @@ def discover_context_files(
     return found
 
 
+def _discover_and_load(
+    backend: BackendProtocol,
+    search_path: str = "/",
+    filenames: list[str] | None = None,
+) -> list[ContextFile]:
+    """Discover and load context files in a single pass.
+
+    Unlike calling `discover_context_files` followed by `load_context_files`,
+    this reads each file's bytes only once. Missing files are silently skipped.
+
+    Args:
+        backend: Backend to search and read from.
+        search_path: Root path to search (default: "/").
+        filenames: Filenames to look for (default: DEFAULT_CONTEXT_FILENAMES).
+
+    Returns:
+        List of loaded context files.
+    """
+    filenames = filenames or DEFAULT_CONTEXT_FILENAMES
+    result: list[ContextFile] = []
+    for name in filenames:
+        path = f"{search_path.rstrip('/')}/{name}"
+        raw = backend.read_bytes(path)
+        if not raw:
+            continue
+        content = raw.decode("utf-8", errors="replace")
+        result.append(ContextFile(name=path.rsplit("/", 1)[-1], path=path, content=content))
+    return result
+
+
 def _truncate_content(content: str, max_chars: int) -> str:
     """Truncate content preserving head (70%) and tail (30%).
 
@@ -136,9 +166,9 @@ def _truncate_content(content: str, max_chars: int) -> str:
     head_len = int(max_chars * 0.7)
     tail_len = max_chars - head_len
     truncated = len(content) - max_chars
-    return (
-        content[:head_len] + f"\n\n... [{truncated} chars truncated] ...\n\n" + content[-tail_len:]
-    )
+    head = content[:head_len]
+    tail = content[-tail_len:] if tail_len > 0 else ""
+    return head + f"\n\n... [{truncated} chars truncated] ...\n\n" + tail
 
 
 def format_context_prompt(
@@ -213,15 +243,17 @@ class ContextToolset(FunctionToolset[Any]):
         Returns:
             Formatted context prompt, or None if no files found.
         """
-        backend: BackendProtocol = ctx.deps.backend
+        backend: BackendProtocol | None = getattr(ctx.deps, "backend", None)
+        if backend is None:
+            return None
+
         if self._context_discovery:
-            paths = discover_context_files(backend)
+            loaded = _discover_and_load(backend)
         elif self._context_files:
-            paths = self._context_files
+            loaded = load_context_files(backend, self._context_files)
         else:
             return None
 
-        loaded = load_context_files(backend, paths)
         if not loaded:
             return None
 

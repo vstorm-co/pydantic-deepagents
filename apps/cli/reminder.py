@@ -43,6 +43,22 @@ def _build_reminder_config(
     return cfg
 
 
+def _resolve_reminder_model(app: DeepApp) -> str | None:
+    """Resolve the LLM reminder model: configured `reminder_model` or main model.
+
+    Mirrors :func:`_build_reminder_config` so live-switching to `"llm"` mode
+    uses the same model as the startup configuration instead of the generator
+    default.
+    """
+    try:
+        from apps.cli.config import load_config
+
+        reminder_model = load_config().reminder_model
+    except Exception:  # pragma: no cover - defensive: bad config shouldn't break switching
+        reminder_model = None
+    return reminder_model or getattr(app, "model_name", None) or getattr(app, "_model", None)
+
+
 def _apply_reminder_mode(app: DeepApp, mode: str) -> None:
     """Update the running agent's PeriodicReminderCapability without restart."""
     from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderCapability
@@ -62,9 +78,16 @@ def _apply_reminder_mode(app: DeepApp, mode: str) -> None:
         app.notify("Selected reminder mode: off")
         return
 
-    from pydantic_deep.capabilities.periodic_reminder import make_config_for_mode
+    from pydantic_deep.capabilities.periodic_reminder import (
+        LLMReminderGenerator,
+        make_config_for_mode,
+    )
 
     new_config = make_config_for_mode(mode)
+    if mode == "llm":
+        model = _resolve_reminder_model(app)
+        if model is not None:
+            new_config.generator = LLMReminderGenerator(model=model)
     new_config.on_reminder = existing.config.on_reminder if existing is not None else None
 
     if existing is not None:

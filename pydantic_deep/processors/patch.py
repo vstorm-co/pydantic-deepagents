@@ -140,7 +140,7 @@ def patch_tool_calls_processor(
        → removes the orphaned ToolReturnParts from the ModelRequest
 
     This is a HistoryProcessor compatible with pydantic-ai's
-    ``history_processors`` parameter.
+    `history_processors` parameter.
 
     Args:
         messages: List of model messages (conversation history).
@@ -197,9 +197,15 @@ def patch_tool_calls_processor(
                 patched2.append(msg)
                 continue
 
-            # Filter out orphaned ToolReturnParts from this ModelRequest
+            # Filter out orphaned ToolReturnParts from this ModelRequest.
+            # Orphaned results are only ever recorded against ModelRequest
+            # messages (see _find_orphaned_results), but guard explicitly so
+            # the invariant holds even under `python -O` (which strips asserts).
+            if not isinstance(msg, ModelRequest):
+                patched2.append(msg)  # pragma: no cover
+                continue  # pragma: no cover
+
             ids_to_strip = strip_by_index[i]
-            assert isinstance(msg, ModelRequest)
             remaining_parts = [
                 part
                 for part in msg.parts
@@ -217,17 +223,17 @@ def patch_tool_calls_processor(
 
 @dataclass
 class PatchToolCallsCapability(AbstractCapability[Any]):
-    """Capability that fixes orphaned tool calls/results via ``before_model_request``.
+    """Capability that fixes orphaned tool calls/results via `before_model_request`.
 
     Repairs two cases before each model request:
 
-    1. **Orphaned tool calls** - ``ToolCallPart`` without a matching
-       ``ToolReturnPart`` → injects a synthetic return with
-       ``"Tool call was cancelled."``.
-    2. **Orphaned tool results** - ``ToolReturnPart`` without a matching
-       ``ToolCallPart`` → removes the orphaned return.
+    1. **Orphaned tool calls** - `ToolCallPart` without a matching
+       `ToolReturnPart` → injects a synthetic return with
+       `"Tool call was cancelled."`.
+    2. **Orphaned tool results** - `ToolReturnPart` without a matching
+       `ToolCallPart` → removes the orphaned return.
 
-    This replaces the ``patch_tool_calls_processor`` history processor with a
+    This replaces the `patch_tool_calls_processor` history processor with a
     capability hook that runs at the same lifecycle point but integrates with
     the pydantic-ai capabilities system.
     """

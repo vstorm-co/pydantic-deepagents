@@ -56,15 +56,27 @@ class ApprovalModal(ModalScreen[str]):
         Binding("escape", "deny", "Cancel", show=False),
     ]
 
-    def __init__(self, tool_name: str, args: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        tool_name: str,
+        args: dict[str, Any],
+        position: tuple[int, int] | None = None,
+    ) -> None:
         super().__init__()
         self._tool_name = tool_name
         self._args = args
+        # (index, total) when several tool calls await approval this turn, so
+        # the user understands that confirming runs one of N pending calls.
+        self._position = position
 
     def compose(self) -> ComposeResult:
         with Vertical(id="approval-container"):
+            suffix = ""
+            if self._position is not None and self._position[1] > 1:
+                idx, total = self._position
+                suffix = f"  [dim]({idx} of {total})[/dim]"
             yield Static(
-                "\u26a0  Approve tool call?",
+                f"\u26a0  Approve tool call?{suffix}",
                 id="approval-title",
             )
 

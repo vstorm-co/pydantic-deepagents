@@ -90,26 +90,33 @@ class MessageQueue:
         return bool(self._follow_up)
 
     def pending_count(self) -> tuple[int, int]:
-        """Return ``(steering_count, follow_up_count)`` without the lock (display only)."""
+        """Return `(steering_count, follow_up_count)` without the lock (display only)."""
         return len(self._steering), len(self._follow_up)
 
     @staticmethod
     def _drain(dq: deque[QueuedMessage]) -> list[QueuedMessage]:
+        """Drain a batch from `dq` respecting each message's `delivery_mode`.
+
+        A `one_at_a_time` head is delivered alone. An `all` head batches the
+        contiguous leading run of `all` messages, stopping before the first
+        `one_at_a_time` - so a head marked `all` never overrides the mode of
+        a later message that asked to be delivered separately.
+        """
         if not dq:
             return []
-        head = dq[0]
-        if head.delivery_mode == "all":
-            drained = list(dq)
-            dq.clear()
-            return drained
-        return [dq.popleft()]
+        if dq[0].delivery_mode != "all":
+            return [dq.popleft()]
+        drained: list[QueuedMessage] = []
+        while dq and dq[0].delivery_mode == "all":
+            drained.append(dq.popleft())
+        return drained
 
 
 @dataclass
 class MessageQueueCapability(AbstractCapability[Any]):
     """Injects queued steering messages before each model request.
 
-    Register via ``create_deep_agent(message_queue=queue)`` or directly::
+    Register via `create_deep_agent(message_queue=queue)` or directly::
 
         capability = MessageQueueCapability(queue=queue)
         agent = Agent(model, capabilities=[capability])
@@ -128,7 +135,11 @@ class MessageQueueCapability(AbstractCapability[Any]):
 
             steering_part = UserPromptPart(content=format_steering(queued))
 
-            msgs = request_context.messages
+            # Build a fresh list and reassign rather than mutating
+            # request_context.messages in place. The latter is the shared run
+            # history; mutating it would corrupt state seen by later
+            # capabilities. This mirrors PeriodicReminderCapability.
+            msgs = list(request_context.messages)
             for i in range(len(msgs) - 1, -1, -1):
                 if isinstance(msgs[i], ModelRequest):
                     existing: ModelRequest = msgs[i]  # type: ignore[assignment]
@@ -137,6 +148,7 @@ class MessageQueueCapability(AbstractCapability[Any]):
             else:
                 # No existing ModelRequest (e.g. very first call with empty history).
                 msgs.append(ModelRequest(parts=[steering_part]))
+            request_context.messages = msgs
 
         return request_context
 
@@ -160,9 +172,9 @@ async def run_with_queue(
         agent: The agent to run.
         prompt: The initial user prompt.
         deps: Agent dependencies.
-        queue: The shared ``MessageQueue`` instance.
+        queue: The shared `MessageQueue` instance.
         message_history: Existing conversation history (passed through to agent.run).
-        **run_kwargs: Extra keyword arguments forwarded to ``agent.run()``.
+        **run_kwargs: Extra keyword arguments forwarded to `agent.run()`.
 
     Returns:
         The final :class:`~pydantic_ai.AgentRunResult`.
@@ -175,7 +187,17 @@ async def run_with_queue(
         final = await agent.run(current_prompt, deps=deps, message_history=history, **run_kwargs)
         history = list(final.all_messages())
         pending = await queue.drain_follow_up()
-        current_prompt = format_follow_up(pending) if pending else None
+        if pending:
+            # Follow-ups re-enter the loop. Any steering still queued is left in
+            # place so MessageQueueCapability injects it during the re-run.
+            current_prompt = format_follow_up(pending)
+            continue
+        # No follow-ups: the loop is about to exit. Steering enqueued after this
+        # run's final model request was never injected (there is no further
+        # request to inject into), so deliver it on a fresh turn rather than
+        # leaving it in the queue forever.
+        leftover = await queue.drain_steering()
+        current_prompt = format_steering(leftover) if leftover else None
 
     assert final is not None
     return final
@@ -187,7 +209,7 @@ def format_steering(messages: list[QueuedMessage]) -> str:
     if len(messages) == 1:
         return f"[steering] {messages[0].content}"
     lines = "\n".join(f"- {m.content}" for m in messages)
-    return f"[steering — multiple messages]\n{lines}"
+    return f"[steering - multiple messages]\n{lines}"
 
 
 def format_follow_up(messages: list[QueuedMessage]) -> str:

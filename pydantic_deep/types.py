@@ -49,7 +49,7 @@ OutputT = TypeVar("OutputT")
 class BrowseResult:
     """Result of a browser navigation or interaction.
 
-    Returned by helper utilities that wrap ``BrowserToolset`` tool output
+    Returned by helper utilities that wrap `BrowserToolset` tool output
     into a structured form. The toolset tools themselves return plain strings
     for pydantic-ai compatibility; use this dataclass when you want typed
     access to individual fields in your own code.
@@ -57,9 +57,9 @@ class BrowseResult:
     Attributes:
         url: The page URL after the action.
         title: The page title.
-        content: Page content as Markdown, truncated to ``max_content_tokens``.
-        screenshot: Base64-encoded PNG screenshot, or ``None`` if not captured.
-        error: Error message if the action failed, or ``None`` on success.
+        content: Page content as Markdown, truncated to `max_content_tokens`.
+        screenshot: Base64-encoded PNG screenshot, or `None` if not captured.
+        error: Error message if the action failed, or `None` on success.
     """
 
     url: str
@@ -89,15 +89,15 @@ class BranchSpec:
     """Specification for a single branch in a fork.
 
     Attributes:
-        label: Human-readable branch label (e.g. ``"approach_a"``).
+        label: Human-readable branch label (e.g. `"approach_a"`).
         steer: First user message delivered to the branch agent - the
             instruction that differentiates this branch from siblings.
-        model: Optional model override for the branch. ``None`` inherits
+        model: Optional model override for the branch. `None` inherits
             the parent's model.
         budget_usd: Optional per-branch USD budget. Enforced by
-            :class:`_BudgetWatcher`: when the branch's ``CostTracking``
+            :class:`_BudgetWatcher`: when the branch's `CostTracking`
             cumulative cost crosses this cap the branch is cancelled and
-            transitions to :data:`BranchState` ``"budget_exhausted"``.
+            transitions to :data:`BranchState` `"budget_exhausted"`.
         extra_instructions: Optional extra instructions appended to the
             branch's system prompt.
     """
@@ -114,12 +114,12 @@ class BranchIsolation:
     """Isolation flags controlling what state branches share with the parent.
 
     Defaults match the project's per-branch isolation policy:
-    ``history`` always copies; ``backend``, ``memory``, ``todos`` copy by
-    default; ``message_queue`` is isolated; ``team_bus`` is shared
+    `history` always copies; `backend`, `memory`, `todos` copy by
+    default; `message_queue` is isolated; `team_bus` is shared
     (peer-to-peer bus - branches can talk to each other by default).
 
-    Only ``backend="copy"`` and ``message_queue="isolated"`` are exercised
-    by the current fork pipeline; the other ``share`` / ``share_readonly``
+    Only `backend="copy"` and `message_queue="isolated"` are exercised
+    by the current fork pipeline; the other `share` / `share_readonly`
     values are accepted for forward compatibility.
     """
 
@@ -141,9 +141,9 @@ BranchState = Literal[
 ]
 """Lifecycle states of a single branch.
 
-``budget_exhausted`` means the per-branch cap was crossed: the watcher
+`budget_exhausted` means the per-branch cap was crossed: the watcher
 cancels the branch mid-run and the partial-history snapshot becomes the
-durable record. ``aggregate_budget_exhausted`` means the fork-wide cap
+durable record. `aggregate_budget_exhausted` means the fork-wide cap
 was hit and may interrupt any still-running branch mid-stream.
 """
 
@@ -165,9 +165,9 @@ class BranchStatus:
 class BranchCost:
     """Per-branch cost snapshot - element of :class:`ForkCostSummary`.
 
-    ``cumulative_usd`` is the externally-facing name for the upstream
-    ``CostTracking.total_cost`` value; the rename happens at the
-    :meth:`ForkCoordinator.fork_cost` boundary. ``None`` indicates pricing
+    `cumulative_usd` is the externally-facing name for the upstream
+    `CostTracking.total_cost` value; the rename happens at the
+    :meth:`ForkCoordinator.fork_cost` boundary. `None` indicates pricing
     was unavailable for the branch's model (e.g. an unrecognised model in
     the genai-prices catalogue) - the branch still runs, but its budget
     cap is effectively disabled.
@@ -183,10 +183,10 @@ class BranchCost:
 
 @_dataclass(frozen=True)
 class ForkCostSummary:
-    """Output of the ``fork_cost(fork_id)`` tool.
+    """Output of the `fork_cost(fork_id)` tool.
 
-    Sums :attr:`BranchCost.cumulative_usd` across branches with a non-``None``
-    cost; branches with ``None`` are omitted from the aggregate to avoid
+    Sums :attr:`BranchCost.cumulative_usd` across branches with a non-`None`
+    cost; branches with `None` are omitted from the aggregate to avoid
     misleading partial sums.
     """
 
@@ -203,14 +203,14 @@ class MergeStrategy:
 
     :attr:`kind` selects the resolution mode:
 
-    - ``"manual"`` - caller picks via ``merge_or_select(action="pick:<id>")``.
-    - ``"auto"`` - :class:`JudgeAgent` picks; coordinator commits immediately.
-    - ``"auto_with_fallback"`` - judge picks; if effective confidence is at
+    - `"manual"` - caller picks via `merge_or_select(action="pick:<id>")`.
+    - `"auto"` - :class:`JudgeAgent` picks; coordinator commits immediately.
+    - `"auto_with_fallback"` - judge picks; if effective confidence is at
       or above :attr:`confidence_threshold` the commit is deferred to the
       caller (so the acceptance widget can offer an override), otherwise
       the caller opens the manual picker with the judge's pick
       preselected. This is the default.
-    - ``"vote"`` - multiple judges (default: Haiku + GPT-mini + Gemini
+    - `"vote"` - multiple judges (default: Haiku + GPT-mini + Gemini
       Flash) evaluate independently; majority wins, tie broken by highest
       confidence; coordinator commits immediately.
     """
@@ -224,7 +224,7 @@ class MergeStrategy:
 
 @_dataclass
 class ForkHandle:
-    """Handle returned by ``ForkCoordinator.fork()`` identifying a live fork."""
+    """Handle returned by `ForkCoordinator.fork()` identifying a live fork."""
 
     fork_id: str
     parent_checkpoint_id: str | None
@@ -239,22 +239,22 @@ class PendingApprovalRequest:
 
     Branch tasks run as plain :class:`asyncio.Task` coroutines and cannot
     reach the TUI's interactive permission modal directly.  When a branch
-    agent triggers a deferred-approval tool call (e.g. ``execute``), the
+    agent triggers a deferred-approval tool call (e.g. `execute`), the
     branch sets :attr:`~BranchRuntime.pending_approval` on its own
     :class:`BranchRuntime` and suspends until the user responds via
     :attr:`response`.
 
-    The TUI poll loop detects a non-``None`` ``pending_approval``, surfaces
+    The TUI poll loop detects a non-`None` `pending_approval`, surfaces
     a :class:`~apps.cli.modals.branch_approval.BranchApprovalModal`, and
-    puts ``True`` (approve) or ``False`` (deny) into :attr:`response`.
+    puts `True` (approve) or `False` (deny) into :attr:`response`.
     The branch then resumes and forwards the answer to pydantic-ai's
     :class:`~pydantic_ai.tools.DeferredToolResults`.
 
     Attributes:
         branch_id: Branch that is waiting (matches :attr:`BranchRuntime.spec.branch_id`).
         description: Human-readable "tool_name: arg" string, shown in the modal.
-        response: Single-slot :class:`asyncio.Queue`; put ``True`` to approve,
-            ``False`` to deny.  The branch ``await``s :meth:`asyncio.Queue.get`
+        response: Single-slot :class:`asyncio.Queue`; put `True` to approve,
+            `False` to deny.  The branch `await`s :meth:`asyncio.Queue.get`
             and unblocks as soon as the TUI responds.
     """
 
@@ -267,7 +267,7 @@ class PendingApprovalRequest:
 class FlushError:
     """One per-write failure observed by :meth:`BranchOverlay.flush_to`.
 
-    ``flush_to`` never aborts on the first failure - it accumulates errors
+    `flush_to` never aborts on the first failure - it accumulates errors
     for the caller to surface alongside the changes that did land. Surfaced
     on :attr:`MergeResult.errors` so the CLI / agent can report partial
     success without losing track of what didn't apply.
@@ -282,30 +282,30 @@ class FlushError:
 class FlushReport:
     """Outcome of replaying a :class:`BranchOverlay` onto the parent backend.
 
-    Produced by :meth:`BranchOverlay.flush_to` during ``merge_or_select``
+    Produced by :meth:`BranchOverlay.flush_to` during `merge_or_select`
     when the user picks a winner with default-flush semantics. The fields
     flow through to :class:`MergeResult` so the CLI / agent can render
     "Merged: kept branch X · N files applied · conflicts: … · errors: N"
     style notifications.
 
-    - ``applied_paths`` lists paths whose final overlay content was
+    - `applied_paths` lists paths whose final overlay content was
       written; a path's last write/edit wins, multiple in-overlay edits
       to the same path collapse to one entry.
-    - ``applied_changes`` counts every replayed op (≥ ``len(applied_paths)``).
-    - ``conflicts`` lists paths where the parent's pre-flush content
+    - `applied_changes` counts every replayed op (≥ `len(applied_paths)`).
+    - `conflicts` lists paths where the parent's pre-flush content
       diverged from the pre-fork snapshot - both modified-by-third-actor
       and deleted-by-third-actor cases land here. Conflicting paths are
       NOT replayed onto the parent (non-destructive): the newer parent
-      content is preserved and the path is excluded from ``applied_paths``
+      content is preserved and the path is excluded from `applied_paths`
       so the caller can resolve the conflict manually.
-    - ``errors`` is one :class:`FlushError` per per-write failure (e.g.
-      parent ``WriteResult.error`` non-empty or parent raised). The
-      failing path is excluded from ``applied_paths``; remaining writes
+    - `errors` is one :class:`FlushError` per per-write failure (e.g.
+      parent `WriteResult.error` non-empty or parent raised). The
+      failing path is excluded from `applied_paths`; remaining writes
       still flush.
-    - ``deleted_paths`` lists paths the branch removed via the ``delete``
+    - `deleted_paths` lists paths the branch removed via the `delete`
       agent tool that were successfully propagated to the parent backend
       on merge. Paths whose deletion failed (parent raised, or the
-      parent backend cannot delete) land in ``errors`` instead.
+      parent backend cannot delete) land in `errors` instead.
     """
 
     applied_paths: list[str]
@@ -317,7 +317,7 @@ class FlushReport:
 
 @_dataclass
 class MergeResult:
-    """Result returned by ``ForkCoordinator.merge_or_select()``."""
+    """Result returned by `ForkCoordinator.merge_or_select()`."""
 
     fork_id: str
     winner_branch_id: str
@@ -335,23 +335,23 @@ class MergeResult:
 class FileChange:
     """Single overlay mutation event recorded by :class:`BranchOverlay`.
 
-    Event-level log entry: one record per successful ``write``, ``edit``,
-    or ``delete`` on the branch overlay. The temporal-ordered list
+    Event-level log entry: one record per successful `write`, `edit`,
+    or `delete` on the branch overlay. The temporal-ordered list
     returned by :meth:`BranchOverlay.changes` is the data spine consumed
     by every downstream consumer of the fork pipeline:
 
-    - :func:`build_diff_report` - uses ``path`` to know which files a
+    - :func:`build_diff_report` - uses `path` to know which files a
       branch touched.
-    - :class:`ForkMaterializer` - uses ``op`` to replay ``write`` /
-      ``edit`` / ``delete`` semantics on the on-disk mirror.
-    - :class:`JudgeAgent` - uses ``timestamp`` for temporal heuristics
+    - :class:`ForkMaterializer` - uses `op` to replay `write` /
+      `edit` / `delete` semantics on the on-disk mirror.
+    - :class:`JudgeAgent` - uses `timestamp` for temporal heuristics
       when scoring branch outcomes.
 
     Not to be confused with :class:`BranchChange`, which is a state-level
     aggregate describing a branch's per-path outcome relative to the
-    parent backend (``"created"`` / ``"modified"`` / ``"deleted"`` /
-    ``"untouched"``). ``FileChange`` logs individual operations;
-    ``BranchChange`` summarises their cumulative effect.
+    parent backend (`"created"` / `"modified"` / `"deleted"` /
+    `"untouched"`). `FileChange` logs individual operations;
+    `BranchChange` summarises their cumulative effect.
     """
 
     path: str
@@ -362,39 +362,39 @@ class FileChange:
 BranchDiffOperation = Literal["created", "modified", "deleted", "untouched"]
 """What a single branch did to a given path, relative to the parent backend.
 
-``"deleted"`` surfaces when a branch removed the path — either via the
-``delete_file`` agent tool, or via a shell ``rm`` invoked through
-``execute`` against a :class:`~pydantic_ai_backends.LocalBackend` parent
+`"deleted"` surfaces when a branch removed the path — either via the
+`delete_file` agent tool, or via a shell `rm` invoked through
+`execute` against a :class:`~pydantic_ai_backends.LocalBackend` parent
 (the snapshot mutation tracker propagates the deletion back into the
-overlay). The classifier ``_classify_agreement`` treats deletions like
-any other operation: all-deleters → ``unanimous_change``, mixed →
-``split``, single deleter → ``unique``.
+overlay). The classifier `_classify_agreement` treats deletions like
+any other operation: all-deleters → `unanimous_change`, mixed →
+`split`, single deleter → `unique`.
 """
 
 
 BranchDiffAgreement = Literal["unanimous_change", "unanimous_no_change", "split", "unique"]
 """Cross-branch classification of a single path's outcomes.
 
-- ``unanimous_change``: ≥2 branches touched and all touchers produced identical content.
-- ``unanimous_no_change``: no branch touched the path (only surfaces when an
-  explicit ``paths`` filter pulls it into the report for transparency).
-- ``split``: ≥2 branches touched and their outcomes differ.
-- ``unique``: exactly one branch touched (others left the path alone).
+- `unanimous_change`: ≥2 branches touched and all touchers produced identical content.
+- `unanimous_no_change`: no branch touched the path (only surfaces when an
+  explicit `paths` filter pulls it into the report for transparency).
+- `split`: ≥2 branches touched and their outcomes differ.
+- `unique`: exactly one branch touched (others left the path alone).
 """
 
 
 @_dataclass(frozen=True)
 class BranchChange:
-    """One branch's outcome for a single path within a ``BranchDiffReport``.
+    """One branch's outcome for a single path within a `BranchDiffReport`.
 
     State-level aggregate: describes the END STATE of a path on a single
     branch relative to the parent backend, classified into one
-    :data:`BranchDiffOperation` (``"created"`` / ``"modified"`` /
-    ``"deleted"`` / ``"untouched"``). The classification is derived from
+    :data:`BranchDiffOperation` (`"created"` / `"modified"` /
+    `"deleted"` / `"untouched"`). The classification is derived from
     parent existence + overlay content, NOT from :class:`FileChange.op` -
-    a branch that issues an ``op="write"`` on a path absent from the
-    parent yields ``operation="created"``; the same ``op="write"`` on a
-    path present in the parent yields ``operation="modified"``.
+    a branch that issues an `op="write"` on a path absent from the
+    parent yields `operation="created"`; the same `op="write"` on a
+    path present in the parent yields `operation="modified"`.
 
     Not to be confused with :class:`FileChange`, which is the event-level
     log of individual writes/edits/deletes that produced this state.
@@ -407,11 +407,17 @@ class BranchChange:
     unified_diff_vs_parent: str
     size_bytes: int
     is_binary: bool
+    #: Full hex sha256 of the raw bytes for binary changes; `None` otherwise.
+    #: Used as the content-identity key for agreement classification so two
+    #: distinct binaries are never collapsed into agreement. The
+    #: human-readable `unified_diff_vs_parent` placeholder keeps only a
+    #: truncated prefix, which is not collision-safe for comparison.
+    binary_sha256: str | None = None
 
 
 @_dataclass(frozen=True)
 class PathDiff:
-    """Per-path slice of a ``BranchDiffReport``: parent state + every branch's outcome."""
+    """Per-path slice of a `BranchDiffReport`: parent state + every branch's outcome."""
 
     path: str
     parent_content: str | None
@@ -421,7 +427,19 @@ class PathDiff:
 
 @_dataclass(frozen=True)
 class DiffSummary:
-    """Aggregate metrics for a ``BranchDiffReport``."""
+    """Aggregate metrics for a `BranchDiffReport`.
+
+    `agreement_score` is `1.0 - split_paths / max(total_paths_touched, 1)`.
+    Only *contested* paths - those touched by more than one branch with
+    diverging end states (`agreement == "split"`) - count against the
+    score. Paths touched by exactly one branch (`agreement == "unique"`)
+    count toward neither agreement nor disagreement, so maximal
+    non-overlapping divergence (every branch editing different files) yields
+    `agreement_score == 1.0`. This is intentional: the metric measures
+    same-path conflict, not breadth of divergence. `per_branch_unique`
+    captures the orthogonal "how much did each branch touch alone" signal.
+    The judge consumes `1 - agreement_score` as `quality_spread`.
+    """
 
     total_paths_touched: int
     unanimous_paths: int
@@ -448,8 +466,8 @@ class BranchDiffReport:
 class JudgeVerdict(BaseModel):
     """Structured output of :meth:`JudgeAgent.evaluate`.
 
-    Pydantic ``BaseModel`` (not dataclass) because pydantic-ai's ``output_type``
-    contract requires a ``BaseModel``-shaped schema for structured output.
+    Pydantic `BaseModel` (not dataclass) because pydantic-ai's `output_type`
+    contract requires a `BaseModel`-shaped schema for structured output.
     """
 
     winner_branch_id: str
@@ -465,20 +483,20 @@ class JudgeVerdict(BaseModel):
 
 @_dataclass(frozen=True)
 class ConfidenceSignals:
-    """Three weighted signals combined by ``compute_confidence``.
+    """Three weighted signals combined by `compute_confidence`.
 
-    - ``quality_spread`` - ``1 - agreement_score`` from :class:`BranchDiffReport`.
+    - `quality_spread` - `1 - agreement_score` from :class:`BranchDiffReport`.
       High = branches diverged meaningfully; weight 0.4.
-    - ``test_pass_ratio`` - passed / total tests in the winner branch. ``None``
+    - `test_pass_ratio` - passed / total tests in the winner branch. `None`
       when no per-branch test signal is available; the cap-at-0.65 safety rail
       kicks in. Weight 0.4.
-    - ``internal_consistency`` - ``1 - (retries + stuck_loop_hits) / turns`` for
-      the winner; clamped to ``[0.0, 1.0]``. Weight 0.2.
+    - `internal_consistency` - `1 - (retries + stuck_loop_hits) / turns` for
+      the winner; clamped to `[0.0, 1.0]`. Weight 0.2.
 
     The pipeline currently ships without a per-branch test-runner hook,
-    so ``test_pass_ratio`` is ``None`` in practice; the safety rail caps
-    the combined heuristic at ``0.65`` in that case and
-    ``auto_with_fallback`` falls through to manual resolution until a
+    so `test_pass_ratio` is `None` in practice; the safety rail caps
+    the combined heuristic at `0.65` in that case and
+    `auto_with_fallback` falls through to manual resolution until a
     test-signal hook lands (see follow-ups in the live-fork doc).
     """
 
@@ -492,10 +510,10 @@ class BranchOutcome:
     """Per-branch summary the judge sees in its prompt.
 
     Intentionally narrow - no full message history. The judge sees the
-    original goal, the structured diff report, and one ``BranchOutcome``
+    original goal, the structured diff report, and one `BranchOutcome`
     per branch. Keeps the prompt bounded and the cost predictable.
 
-    ``error_count`` is typed as ``int`` but in practice is ``0`` or ``1``
+    `error_count` is typed as `int` but in practice is `0` or `1`
     per branch (derived from the terminal branch state). Richer tool-level
     error counting is a forward-compatible extension.
     """
@@ -520,18 +538,18 @@ class ResolveOutcome:
     Three commit semantics live behind the same envelope so the caller (CLI)
     can branch cleanly:
 
-    - ``committed=True``: the coordinator already ran ``merge_or_select``; see
-      :attr:`merge_result`. Modes that hit this path: ``"auto"`` and ``"vote"``.
-    - ``committed=False, auto_eligible=True``: above-threshold
-      ``"auto_with_fallback"``. Commit is deferred to the caller so the
-      acceptance widget can offer an ``[o]`` override before the merge fires.
-    - ``committed=False, auto_eligible=False``: below-threshold
-      ``"auto_with_fallback"`` (caller opens picker preselected) OR
-      ``"manual"`` (no judge ran, caller picks).
+    - `committed=True`: the coordinator already ran `merge_or_select`; see
+      :attr:`merge_result`. Modes that hit this path: `"auto"` and `"vote"`.
+    - `committed=False, auto_eligible=True`: above-threshold
+      `"auto_with_fallback"`. Commit is deferred to the caller so the
+      acceptance widget can offer an `[o]` override before the merge fires.
+    - `committed=False, auto_eligible=False`: below-threshold
+      `"auto_with_fallback"` (caller opens picker preselected) OR
+      `"manual"` (no judge ran, caller picks).
 
-    :attr:`judge_usage` carries the judge's ``result.usage`` (summed across
+    :attr:`judge_usage` carries the judge's `result.usage` (summed across
     judges in vote mode) so the caller can attribute the cost separately
-    from branch-agent usage, without extending ``pydantic-ai-shields``'
+    from branch-agent usage, without extending `pydantic-ai-shields`'
     :class:`CostTracking` API with a new cost category.
     """
 

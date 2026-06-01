@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 from typing import Any
 
 from textual.app import ComposeResult
@@ -11,19 +12,79 @@ from textual.widgets import Static
 
 from apps.cli.widgets.spinner import Spinner
 
+# How many diff/preview lines to show before collapsing the rest behind a
+# "... N more" marker. The full content is always available in expanded view.
+_PREVIEW_LIMIT = 12
+
+# Per-tool glyphs shown in the header for instant visual scanning.
+_TOOL_ICONS: dict[str, str] = {
+    "read_file": "\U0001f4d6",  # 📖
+    "write_file": "✍️",  # ✍️
+    "edit_file": "✏️",  # ✏️
+    "execute": "⚡",  # ⚡
+    "grep": "\U0001f50d",  # 🔍
+    "glob": "\U0001f4c1",  # 📁
+    "task": "\U0001f916",  # 🤖
+    "web_search": "\U0001f310",  # 🌐
+    "web_fetch": "\U0001f517",  # 🔗
+}
+
+
+def _tool_icon(tool_name: str) -> str:
+    """Return a leading glyph for a tool, defaulting to the diamond marker."""
+    return _TOOL_ICONS.get(tool_name, "◆")  # ◆
+
 
 def _rich_escape(text: str) -> str:
-    """Escape every ``[`` so Rich's markup parser can't mis-pair tags.
+    """Escape every `[` so Rich's markup parser can't mis-pair tags.
 
-    ``rich.markup.escape`` only protects ``[`` followed by ``[a-z#/@]``,
-    so payloads like ``[{'label': ...}]`` slip through and confuse the
-    parser when neighbouring real tags exist (``[dim]...[/dim]``).
+    `rich.markup.escape` only protects `[` followed by `[a-z#/@]`,
+    so payloads like `[{'label': ...}]` slip through and confuse the
+    parser when neighbouring real tags exist (`[dim]...[/dim]`).
     """
     return text.replace("[", r"\[")
 
 
+def _diff_lines(
+    old: str, new: str, prefix: str, *, limit: int = _PREVIEW_LIMIT
+) -> tuple[list[str], int, int]:
+    """Build a colored unified-style diff between ``old`` and ``new``.
+
+    Returns ``(rendered_lines, added_count, removed_count)``. Uses
+    :class:`difflib.SequenceMatcher` so unchanged regions are skipped and
+    changed lines are interleaved as ``- removed`` / ``+ added``.
+    """
+    old_lines = old.splitlines()
+    new_lines = new.splitlines()
+    matcher = difflib.SequenceMatcher(a=old_lines, b=new_lines, autojunk=False)
+
+    rendered: list[str] = []
+    added = 0
+    removed = 0
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag in ("replace", "delete"):
+            for line in old_lines[i1:i2]:
+                removed += 1
+                if len(rendered) < limit:
+                    rendered.append(f"{prefix}    ⎿  [red]- {_rich_escape(line)}[/red]")
+        if tag in ("replace", "insert"):
+            for line in new_lines[j1:j2]:
+                added += 1
+                if len(rendered) < limit:
+                    rendered.append(f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]")
+
+    shown = added + removed
+    if shown > limit:
+        rendered.append(f"[dim]{prefix}    ⎿  ... ({shown - limit} more changed lines)[/dim]")
+    return rendered, added, removed
+
+
 def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
-    """Format tool call arguments as a compact one-liner."""
+    """Format tool call arguments as a compact one-liner.
+
+    The header is a single line, so long values are trimmed here only; the
+    full value (command, diff, content) is rendered in the body/expanded view.
+    """
     if tool_name == "read_file":
         path = args.get("file_path") or args.get("path", "?")
         parts = [str(path)]
@@ -41,8 +102,13 @@ def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
         path = args.get("file_path") or args.get("path", "?")
         return str(path)
     elif tool_name == "execute":
-        cmd = args.get("command", "?")
-        return str(cmd)[:60]
+        cmd = str(args.get("command", "?"))
+        # Show the full command on a single logical line; collapse newlines so
+        # multi-line scripts stay readable in the one-line header.
+        one_line = " ".join(cmd.split())
+        if len(one_line) > 80:
+            return one_line[:79] + "…"
+        return one_line
     elif tool_name == "grep":
         pattern = args.get("pattern", "?")
         path = args.get("path", ".")
@@ -132,6 +198,12 @@ class ToolCallWidget(Widget):
         self.is_subagent_tool = is_subagent_tool
         self.result_text: str = ""
         self.result_preview: str = ""
+        # Diff line counts for edit_file/write_file, surfaced in the header.
+        self._added: int = 0
+        self._removed: int = 0
+        # Set when the user interrupts: shows immediate "stopping" feedback
+        # while cancellation propagates to the underlying process.
+        self._cancelling: bool = False
         self._spinner = Spinner()
 
     @property
@@ -148,13 +220,14 @@ class ToolCallWidget(Widget):
     def compose(self) -> ComposeResult:
         prefix = "│  " if self.is_subagent_tool else ""
         args_preview = _rich_escape(_format_args_preview(self.tool_name, self.args))
+        icon = _tool_icon(self.tool_name)
         if args_preview:
             call_str = f"{self.tool_name}([dim]{args_preview}[/dim])"
         else:
             call_str = self.tool_name
 
         yield Static(
-            f"{prefix}◆ {call_str}",
+            f"{prefix}{icon} {call_str}",
             id="tool-header",
             classes="tool-header",
         )
@@ -194,49 +267,86 @@ class ToolCallWidget(Widget):
     def _build_preview(self, result: str) -> str:
         """Build a preview string for the tool result.
 
-        For edit_file: shows a mini diff with old/new strings.
-        For write_file: shows "wrote N lines to <path>".
-        For everything else: shows first 3 lines + truncation.
+        - ``edit_file``: a real +/- diff (difflib) with a "... N more" tail.
+        - ``write_file``: the written content as ``+`` lines with line numbers.
+        - ``execute``: the full command (``$ ...``) followed by its output.
+        - everything else: first lines of the result + truncation marker.
         """
         prefix = "│  " if self.is_subagent_tool else ""
 
-        # Inline diff for edit_file
+        # Real diff for edit_file
         if self.tool_name == "edit_file":
             old = self.args.get("old_string", "")
             new = self.args.get("new_string", "")
             if old or new:
-                diff_lines: list[str] = []
-                for line in old.splitlines()[:3]:
-                    diff_lines.append(f"{prefix}    ⎿  [red]- {_rich_escape(line)}[/red]")
-                if old.count("\n") > 3:
-                    diff_lines.append(
-                        f"[dim]{prefix}    ⎿  ... ({old.count(chr(10)) - 2} more removed)[/dim]"
-                    )
-                for line in new.splitlines()[:3]:
-                    diff_lines.append(f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]")
-                if new.count("\n") > 3:
-                    diff_lines.append(
-                        f"[dim]{prefix}    ⎿  ... ({new.count(chr(10)) - 2} more added)[/dim]"
-                    )
-                return "\n".join(diff_lines) if diff_lines else ""
+                lines, added, removed = _diff_lines(old, new, prefix)
+                self._added, self._removed = added, removed
+                return "\n".join(lines) if lines else ""
 
-        # Summary for write_file
+        # write_file: real diff against the pre-write content when overwriting,
+        # otherwise show the new content as additions (new file).
         if self.tool_name == "write_file":
             path = self.args.get("file_path") or self.args.get("path", "")
             content = self.args.get("content", "")
-            n_lines = content.count("\n") + 1 if content else 0
-            return f"[dim]{prefix}    ⎿  wrote {n_lines} lines to {_rich_escape(str(path))}[/dim]"
+            old = self.args.get("_old_content")
+            if old is not None and old != content:
+                lines, added, removed = _diff_lines(old, content, prefix)
+                self._added, self._removed = added, removed
+                head = f"[dim]{prefix}    ⎿  updated {_rich_escape(str(path))}[/dim]"
+                return "\n".join([head, *lines]) if lines else head
+            content_lines = content.splitlines() if content else []
+            self._added = len(content_lines)
+            self._removed = 0
+            head = (
+                f"[dim]{prefix}    ⎿  wrote {len(content_lines)} lines to "
+                f"{_rich_escape(str(path))}[/dim]"
+            )
+            body = [
+                f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]"
+                for line in content_lines[:_PREVIEW_LIMIT]
+            ]
+            if len(content_lines) > _PREVIEW_LIMIT:
+                body.append(
+                    f"[dim]{prefix}    ⎿  ... "
+                    f"({len(content_lines) - _PREVIEW_LIMIT} more added)[/dim]"
+                )
+            return "\n".join([head, *body])
 
-        # Default: first 3 lines
+        # Full command + output for execute
+        if self.tool_name == "execute":
+            cmd = str(self.args.get("command", ""))
+            cmd_lines = [
+                f"{prefix}    ⎿  [bold cyan]$ {_rich_escape(line)}[/bold cyan]"
+                for line in cmd.splitlines()
+            ]
+            out_lines = result.strip().splitlines()
+            shown_out = out_lines[:_PREVIEW_LIMIT]
+            body = [f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]" for line in shown_out]
+            if len(out_lines) > _PREVIEW_LIMIT:
+                body.append(
+                    f"[dim]{prefix}    ⎿  ... ({len(out_lines) - _PREVIEW_LIMIT} more lines)[/dim]"
+                )
+            return "\n".join([*cmd_lines, *body])
+
+        # Default: first lines of the result
         lines = result.strip().splitlines()
         if lines:
-            preview_lines = lines[:3]
-            if len(lines) > 3:
-                preview_lines.append(f"... ({len(lines) - 3} more lines)")
+            preview_lines = lines[:_PREVIEW_LIMIT]
+            if len(lines) > _PREVIEW_LIMIT:
+                preview_lines.append(f"... ({len(lines) - _PREVIEW_LIMIT} more lines)")
             return "\n".join(
                 f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]" for line in preview_lines
             )
         return ""
+
+    def _diff_badge(self) -> str:
+        """Compact ``+N -M`` badge for edit/write tools (empty when no change)."""
+        parts = []
+        if self._added:
+            parts.append(f"[green]+{self._added}[/green]")
+        if self._removed:
+            parts.append(f"[red]-{self._removed}[/red]")
+        return ("  " + " ".join(parts)) if parts else ""
 
     def _refresh_header(self) -> None:
         try:
@@ -245,25 +355,32 @@ class ToolCallWidget(Widget):
             return
         prefix = "│  " if self.is_subagent_tool else ""
         args_preview = _rich_escape(_format_args_preview(self.tool_name, self.args))
+        icon = _tool_icon(self.tool_name)
+        badge = self._diff_badge()
 
         if self.status == "pending":
             if args_preview:
                 call_str = f"{self.tool_name}([dim]{args_preview}[/dim])"
             else:
                 call_str = self.tool_name
-            frame = self._spinner.frame
-            right = f"{frame} {self._spinner.elapsed:.1f}s"
-            header.update(f"{prefix}◆ {call_str}  {right}")
+            if self._cancelling:
+                header.update(
+                    f"{prefix}[yellow]{icon}[/yellow] {call_str}  [yellow]⏹ stopping…[/yellow]"
+                )
+            else:
+                frame = self._spinner.frame
+                right = f"{frame} {self._spinner.elapsed:.1f}s"
+                header.update(f"{prefix}{icon} {call_str}  {right}")
         elif self.status == "success":
             call_str = f"{self.tool_name}({args_preview})" if args_preview else self.tool_name
             header.update(
-                f"{prefix}[green]◆[/green] {call_str}"
+                f"{prefix}[green]{icon}[/green] {call_str}{badge}"
                 f"  [dim]{self.elapsed:.1f}s[/dim] [bold green]✓[/bold green]"
             )
         elif self.status == "error":
             call_str = f"{self.tool_name}({args_preview})" if args_preview else self.tool_name
             header.update(
-                f"{prefix}[red]◆[/red] {call_str}"
+                f"{prefix}[red]{icon}[/red] {call_str}{badge}"
                 f"  [dim]{self.elapsed:.1f}s[/dim] [bold red]✗[/bold red]"
             )
 
@@ -292,6 +409,17 @@ class ToolCallWidget(Widget):
             expanded_output.add_class("visible")
         else:
             expanded_output.remove_class("visible")
+
+    def mark_cancelling(self) -> None:
+        """Show an immediate "stopping" indicator for an in-flight call.
+
+        No-op once the call has finished. The flag is honoured by
+        :meth:`_refresh_header` so the spinner tick doesn't overwrite it.
+        """
+        if self.status != "pending":
+            return
+        self._cancelling = True
+        self._refresh_header()
 
     def action_toggle_expand(self) -> None:
         if self.result_text:

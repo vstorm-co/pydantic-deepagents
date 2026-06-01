@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -138,6 +139,14 @@ class TestTruncateContent:
         text = "A" * 2000 + "ZEND"
         result = _truncate_content(text, max_tokens=10)
         assert result.endswith("ZEND")
+
+    def test_zero_budget_truncates_to_marker_only(self) -> None:
+        # max_tokens=0 → max_chars=0, head and tail must be empty (not the
+        # whole string via content[-0:]).
+        text = "abcdef" * 100
+        result = _truncate_content(text, max_tokens=0)
+        assert "truncated" in result
+        assert "abcdef" not in result
 
     @pytest.mark.parametrize("direction", ["up", "down", "left", "right"])
     def test_scroll_directions_accepted(self, direction: str) -> None:
@@ -508,6 +517,21 @@ class TestBrowserToolset:
         assert f"Scrolled {direction}" in result
 
     @pytest.mark.asyncio
+    async def test_scroll_invalid_direction_returns_error(self) -> None:
+        page = _make_page()
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state)
+        ctx = _ctx()
+
+        tool = next(t for t in ts.tools.values() if t.name == "scroll")
+        result = await tool.function(ctx, "diagonal")
+
+        assert "Error" in result
+        assert "diagonal" in result
+        page.evaluate.assert_not_called()
+        page.mouse.wheel.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_scroll_with_coordinates(self) -> None:
         page = _make_page()
         state = _BrowserState(page=page)
@@ -562,6 +586,49 @@ class TestBrowserToolset:
         assert result == "js-result"
 
     @pytest.mark.asyncio
+    async def test_execute_js_serializes_structured_result(self) -> None:
+        page = _make_page()
+        page.evaluate = AsyncMock(return_value={"a": 1, "b": [2, 3]})
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state)
+        ctx = _ctx()
+
+        tool = next(t for t in ts.tools.values() if t.name == "execute_js")
+        result = await tool.function(ctx, "({a: 1, b: [2, 3]})")
+
+        assert result == '{"a": 1, "b": [2, 3]}'
+
+    @pytest.mark.asyncio
+    async def test_execute_js_none_returns_undefined(self) -> None:
+        page = _make_page()
+        page.evaluate = AsyncMock(return_value=None)
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state)
+        ctx = _ctx()
+
+        tool = next(t for t in ts.tools.values() if t.name == "execute_js")
+        result = await tool.function(ctx, "undefined")
+
+        assert result == "undefined"
+
+    @pytest.mark.asyncio
+    async def test_execute_js_unserializable_falls_back_to_str(self) -> None:
+        # A dict with a non-string, non-coercible key raises TypeError from
+        # json.dumps even with default=str (default only handles values), so
+        # we fall back to str().
+        weird = {(1, 2): "tuple-key"}
+        page = _make_page()
+        page.evaluate = AsyncMock(return_value=weird)
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state)
+        ctx = _ctx()
+
+        tool = next(t for t in ts.tools.values() if t.name == "execute_js")
+        result = await tool.function(ctx, "weird")
+
+        assert result == str(weird)
+
+    @pytest.mark.asyncio
     async def test_execute_js_error(self) -> None:
         page = _make_page()
         page.evaluate = AsyncMock(side_effect=Exception("syntax error"))
@@ -573,6 +640,95 @@ class TestBrowserToolset:
         result = await tool.function(ctx, "??invalid??")
 
         assert "JS error" in result
+
+
+# ── allowed_domains enforcement on all navigation paths ───────────────────────
+
+
+class TestAllowedDomainEnforcement:
+    """The allowlist must be enforced on every navigation path, not just navigate.
+
+    Regression tests for the bypass where click / execute_js / go_back /
+    go_forward could reach a disallowed domain because only navigate checked
+    the allowlist.
+    """
+
+    def _blocked_toolset(self) -> tuple[BrowserToolset, AsyncMock]:
+        """A toolset whose page has navigated off the allowlist to evil.com."""
+        page = _make_page()
+        page.url = "https://evil.com/"
+        page.goto = AsyncMock()
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state, allowed_domains=["safe.com"])
+        return ts, page
+
+    @pytest.mark.asyncio
+    async def test_click_blocks_when_left_allowlist(self) -> None:
+        ts, page = self._blocked_toolset()
+        tool = next(t for t in ts.tools.values() if t.name == "click")
+        result = await tool.function(_ctx(), "a.external-link")
+        assert "allowed_domains" in result
+        assert "evil.com" in result
+        page.goto.assert_awaited_once_with("about:blank")
+
+    @pytest.mark.asyncio
+    async def test_execute_js_blocks_when_left_allowlist(self) -> None:
+        ts, page = self._blocked_toolset()
+        tool = next(t for t in ts.tools.values() if t.name == "execute_js")
+        result = await tool.function(_ctx(), "location.href='https://evil.com'")
+        assert "allowed_domains" in result
+        assert "evil.com" in result
+        # JS result must NOT be surfaced when the page left the allowlist
+        assert result != "js-result"
+
+    @pytest.mark.asyncio
+    async def test_go_back_blocks_when_left_allowlist(self) -> None:
+        ts, page = self._blocked_toolset()
+        tool = next(t for t in ts.tools.values() if t.name == "go_back")
+        result = await tool.function(_ctx())
+        assert "allowed_domains" in result
+        assert "evil.com" in result
+
+    @pytest.mark.asyncio
+    async def test_go_forward_blocks_when_left_allowlist(self) -> None:
+        ts, page = self._blocked_toolset()
+        tool = next(t for t in ts.tools.values() if t.name == "go_forward")
+        result = await tool.function(_ctx())
+        assert "allowed_domains" in result
+        assert "evil.com" in result
+
+    @pytest.mark.asyncio
+    async def test_click_allowed_when_on_allowlist(self) -> None:
+        page = _make_page()
+        page.url = "https://docs.safe.com/page"
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state, allowed_domains=["safe.com"])
+        with patch("pydantic_deep.toolsets.browser._HAS_HTML2TEXT", False):
+            tool = next(t for t in ts.tools.values() if t.name == "click")
+            result = await tool.function(_ctx(), "button#ok")
+        assert "Clicked" in result
+        assert "allowed_domains" not in result
+
+    @pytest.mark.asyncio
+    async def test_enforce_allowed_domain_handles_goto_failure(self) -> None:
+        """A failure navigating away to about:blank still returns the error."""
+        page = _make_page()
+        page.url = "https://evil.com/"
+        page.goto = AsyncMock(side_effect=Exception("navigation failed"))
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state, allowed_domains=["safe.com"])
+        result = await ts._enforce_allowed_domain("click")
+        assert result is not None
+        assert "evil.com" in result
+
+    @pytest.mark.asyncio
+    async def test_no_enforcement_when_allowed_domains_none(self) -> None:
+        """With no allowlist, navigation to any domain is permitted."""
+        page = _make_page()
+        page.url = "https://anywhere.com/"
+        state = _BrowserState(page=page)
+        ts = BrowserToolset(state=state, allowed_domains=None)
+        assert await ts._enforce_allowed_domain("click") is None
 
 
 # ── BrowserCapability ─────────────────────────────────────────────────────────
@@ -622,6 +778,50 @@ class TestBrowserCapability:
         assert cap.screenshot_on_navigate is True
         assert cap.max_content_tokens == 1000
         assert cap.timeout_ms == 5000
+
+    @pytest.mark.asyncio
+    async def test_launch_error_persists_across_runs(self) -> None:
+        """A failed launch stays disabled across runs (not reset in finally).
+
+        Regression: `_state` is created once in `__post_init__` and shared
+        across every run, so clearing `launch_error` in `wrap_run`'s
+        `finally` re-exposed browser tools and re-attempted the still-failing
+        launch on each subsequent run, contradicting the "restart the agent"
+        message.
+        """
+        pw, _browser, _page = _make_playwright_mock()
+        pw.chromium.launch = AsyncMock(side_effect=Exception("no chromium"))
+
+        cap = BrowserCapability(auto_install=False)
+
+        async def handler() -> Any:
+            # Trigger the lazy launch, which fails and records launch_error.
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            return None
+
+        with patch(
+            "pydantic_deep.capabilities.browser.async_playwright",
+            return_value=pw,
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+
+        # The failure must survive the run's finally block (the fix).
+        assert cap._state.launch_error is not None
+        first_error = cap._state.launch_error
+
+        # A second run must NOT clear the error either, so the launcher it would
+        # have re-attempted stays gated and tools remain hidden.
+        async def noop_handler() -> Any:
+            return None
+
+        with patch(
+            "pydantic_deep.capabilities.browser.async_playwright",
+            return_value=pw,
+        ):
+            await cap.wrap_run(_ctx(), handler=noop_handler)
+
+        assert cap._state.launch_error == first_error
 
     def test_get_toolset_returns_toolset(self) -> None:
         cap = BrowserCapability()
@@ -881,7 +1081,7 @@ class TestBrowserCapability:
 
     @pytest.mark.asyncio
     async def test_wrap_run_popup_callback_fires(self) -> None:
-        """The _on_popup callback executes after lazy launch."""
+        """The _on_popup callback closes the popup and re-navigates the main tab."""
         cap = BrowserCapability()
         pw, browser, page = _make_playwright_mock()
         captured_callback: Any = None
@@ -892,30 +1092,247 @@ class TestBrowserCapability:
                 captured_callback = callback
 
         page.on = on_event
-        ensure_future_calls: list[Any] = []
+        fake_popup = MagicMock()
+        fake_popup.url = "https://popup.example.com"
+        fake_popup.close = AsyncMock()
 
         async def handler() -> Any:
             assert cap._state._lazy_launcher is not None
             await cap._state._lazy_launcher()  # triggers launch + popup registration
-            # Invoke the popup callback while still inside wrap_run (and the patch)
+            # Invoke the popup callback while still inside wrap_run
             assert captured_callback is not None
-            fake_popup = MagicMock()
-            fake_popup.url = "https://popup.example.com"
-            fake_popup.close = AsyncMock()
             captured_callback(fake_popup)
-            # ensure_future should have been called twice (close + goto)
-            assert len(ensure_future_calls) == 2
+            # Exactly one fire-and-forget task is tracked with a strong reference
+            assert len(cap._state._popup_tasks) == 1
+            await asyncio.gather(*cap._state._popup_tasks)
             return MagicMock()
 
         with (
             patch("pydantic_deep.capabilities.browser._require_browser"),
             patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
-            patch(
-                "pydantic_deep.capabilities.browser.asyncio.ensure_future",
-                side_effect=lambda coro: ensure_future_calls.append(coro),
-            ),
         ):
             await cap.wrap_run(_ctx(), handler=handler)
+
+        # Popup is closed first, then the main tab navigates to the popup URL.
+        fake_popup.close.assert_awaited_once()
+        page.goto.assert_awaited_with("https://popup.example.com")
+        # The task reference is discarded once it completes.
+        assert len(cap._state._popup_tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_route_guard_installed_only_with_allowlist(self) -> None:
+        """page.route is installed when allowed_domains is set, skipped otherwise."""
+        # With allowlist → route installed
+        cap = BrowserCapability(allowed_domains=["safe.com"])
+        pw, browser, page = _make_playwright_mock()
+
+        async def handler() -> Any:
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+        page.route.assert_awaited_once()
+
+        # Without allowlist → route NOT installed
+        cap2 = BrowserCapability(allowed_domains=None)
+        pw2, browser2, page2 = _make_playwright_mock()
+
+        async def handler2() -> Any:
+            assert cap2._state._lazy_launcher is not None
+            await cap2._state._lazy_launcher()
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw2),
+        ):
+            await cap2.wrap_run(_ctx(), handler=handler2)
+        page2.route.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_route_guard_aborts_disallowed_navigation(self) -> None:
+        """The route guard aborts top-level navigations to disallowed domains."""
+        cap = BrowserCapability(allowed_domains=["safe.com"])
+        pw, browser, page = _make_playwright_mock()
+        captured_guard: Any = None
+
+        async def capture_route(pattern: str, handler: Any) -> None:
+            nonlocal captured_guard
+            captured_guard = handler
+
+        page.route = capture_route
+
+        async def handler() -> Any:
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+
+        assert captured_guard is not None
+
+        def _make_request(url: str, *, navigation: bool, main: bool) -> MagicMock:
+            req = MagicMock()
+            req.url = url
+            req.is_navigation_request.return_value = navigation
+            req.frame = page.main_frame if main else MagicMock()
+            return req
+
+        # Disallowed top-level navigation → aborted
+        route = AsyncMock()
+        await captured_guard(route, _make_request("https://evil.com", navigation=True, main=True))
+        route.abort.assert_awaited_once()
+        route.continue_.assert_not_called()
+
+        # Allowed top-level navigation → continued
+        route = AsyncMock()
+        await captured_guard(route, _make_request("https://safe.com", navigation=True, main=True))
+        route.continue_.assert_awaited_once()
+        route.abort.assert_not_called()
+
+        # Disallowed but non-navigation sub-resource → continued (not blocked)
+        route = AsyncMock()
+        await captured_guard(
+            route, _make_request("https://cdn.evil.com/a.js", navigation=False, main=True)
+        )
+        route.continue_.assert_awaited_once()
+        route.abort.assert_not_called()
+
+        # Disallowed navigation in a sub-frame → continued (only main frame guarded)
+        route = AsyncMock()
+        await captured_guard(route, _make_request("https://evil.com", navigation=True, main=False))
+        route.continue_.assert_awaited_once()
+        route.abort.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_popup_to_disallowed_domain_not_reopened(self) -> None:
+        """A popup to a disallowed domain is closed but NOT re-navigated to."""
+        cap = BrowserCapability(allowed_domains=["safe.com"])
+        pw, browser, page = _make_playwright_mock()
+        captured_callback: Any = None
+
+        def on_event(event: str, callback: Any) -> None:
+            nonlocal captured_callback
+            if event == "popup":
+                captured_callback = callback
+
+        page.on = on_event
+        fake_popup = MagicMock()
+        fake_popup.url = "https://evil.com"
+        fake_popup.close = AsyncMock()
+
+        async def handler() -> Any:
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            assert captured_callback is not None
+            captured_callback(fake_popup)
+            assert len(cap._state._popup_tasks) == 1
+            await asyncio.gather(*cap._state._popup_tasks)
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+
+        # The popup is closed, but the main tab is NOT navigated to the evil domain.
+        fake_popup.close.assert_awaited_once()
+        page.goto.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_popup_task_exception_is_logged_and_discarded(self) -> None:
+        """A failing popup task has its exception retrieved/logged, not swallowed."""
+        cap = BrowserCapability()
+        pw, browser, page = _make_playwright_mock()
+        captured_callback: Any = None
+
+        def on_event(event: str, callback: Any) -> None:
+            nonlocal captured_callback
+            if event == "popup":
+                captured_callback = callback
+
+        page.on = on_event
+        fake_popup = MagicMock()
+        fake_popup.url = "https://popup.example.com"
+        fake_popup.close = AsyncMock(side_effect=RuntimeError("navigation timeout"))
+
+        async def handler() -> Any:
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            assert captured_callback is not None
+            captured_callback(fake_popup)
+            tasks = list(cap._state._popup_tasks)
+            assert len(tasks) == 1
+            # Awaiting the gather must not raise - the exception is retrieved
+            # inside the done callback rather than propagating.
+            await asyncio.gather(*tasks, return_exceptions=True)
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
+            patch("pydantic_deep.capabilities.browser.logger") as mock_logger,
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+
+        mock_logger.warning.assert_called_once()
+        assert len(cap._state._popup_tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_popup_task_cancelled_is_ignored(self) -> None:
+        """A cancelled popup task is discarded without touching .exception()."""
+        cap = BrowserCapability()
+        pw, browser, page = _make_playwright_mock()
+        captured_callback: Any = None
+
+        def on_event(event: str, callback: Any) -> None:
+            nonlocal captured_callback
+            if event == "popup":
+                captured_callback = callback
+
+        page.on = on_event
+        started = asyncio.Event()
+        fake_popup = MagicMock()
+        fake_popup.url = "https://popup.example.com"
+
+        async def _slow_close() -> None:
+            started.set()
+            await asyncio.sleep(60)
+
+        fake_popup.close = _slow_close
+
+        async def handler() -> Any:
+            assert cap._state._lazy_launcher is not None
+            await cap._state._lazy_launcher()
+            assert captured_callback is not None
+            captured_callback(fake_popup)
+            (task,) = cap._state._popup_tasks
+            await started.wait()
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            return MagicMock()
+
+        with (
+            patch("pydantic_deep.capabilities.browser._require_browser"),
+            patch("pydantic_deep.capabilities.browser.async_playwright", return_value=pw),
+            patch("pydantic_deep.capabilities.browser.logger") as mock_logger,
+        ):
+            await cap.wrap_run(_ctx(), handler=handler)
+
+        # Cancellation is not reported as a failure and the reference is dropped.
+        mock_logger.warning.assert_not_called()
+        assert len(cap._state._popup_tasks) == 0
 
     async def test_prepare_tools_clears_unapproved_on_browser_tools(self) -> None:
         """Browser tools with kind='unapproved' are reset to 'function'."""

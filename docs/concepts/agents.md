@@ -1,6 +1,6 @@
 # Agents
 
-The `create_deep_agent()` function is the main entry point for creating deep agents.
+The [`create_deep_agent`][pydantic_deep.agent.create_deep_agent] function is the main entry point for creating deep agents.
 
 ## Basic Usage
 
@@ -64,7 +64,7 @@ agent = create_deep_agent(
 ```
 
 !!! note "Subagent instructions work differently"
-    The `instructions` field in [`SubAgentConfig`][pydantic_deep.types.SubAgentConfig] is always **appended** to `BASE_PROMPT` automatically — you only write the specialized part. This keeps subagent configs concise.
+    The `instructions` field in `SubAgentConfig` is always **appended** to `BASE_PROMPT` automatically — you only write the specialized part. This keeps subagent configs concise.
 
 ### Enabling/Disabling Features
 
@@ -206,22 +206,22 @@ agent = create_deep_agent(
 
 See [Cost Tracking](../advanced/cost-tracking.md) for more details.
 
-### Middleware & Permissions
+### Capabilities & Middleware
+
+Register additional pydantic-ai capabilities via the `capabilities` parameter, or
+legacy middleware via `middleware`:
 
 ```python
-from pydantic_ai_middleware import AgentMiddleware
-
-class MyMiddleware(AgentMiddleware):
-    async def before_tool_call(self, tool_name, tool_args, deps, ctx=None):
-        return tool_args
+from pydantic_ai.capabilities import AbstractCapability
 
 agent = create_deep_agent(
-    middleware=[MyMiddleware()],
-    permission_handler=my_handler,
+    capabilities=[MyCapability()],
 )
 ```
 
-See [Middleware](../advanced/middleware.md) for more details.
+To gate sensitive tools behind approval, use `interrupt_on` (see
+[Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/middleware.md)
+for more details.
 
 ### Eviction Processor
 
@@ -357,21 +357,21 @@ agent = create_deep_agent(
 # 6. Skills prompt: "## Available Skills\n- git: Git operations..."
 ```
 
-Each prompt generator can be used standalone:
+Several prompt generators can be used standalone:
 
 ```python
-from pydantic_deep import (
-    get_console_system_prompt,
-    get_skills_system_prompt,
-)
+from pydantic_deep import get_console_system_prompt
 from pydantic_ai_todo import get_todo_system_prompt
 from subagents_pydantic_ai import get_subagent_system_prompt
 
 # Generate individual prompts
 console_prompt = get_console_system_prompt()
 todo_prompt = get_todo_system_prompt(deps)
-skills_prompt = get_skills_system_prompt(deps, skills)
+subagent_prompt = get_subagent_system_prompt(subagents)
 ```
+
+The skills prompt is produced by the `SkillsToolset` itself via its
+`get_instructions()` method, which pydantic-ai calls automatically.
 
 ## Multi-User Considerations
 
@@ -379,7 +379,7 @@ All stateful features (memory, checkpoints, plans, evicted files) write to `ctx.
 
 ## Dependencies
 
-The `DeepAgentDeps` class holds all runtime state:
+The [`DeepAgentDeps`][pydantic_deep.deps.DeepAgentDeps] class holds all runtime state:
 
 ```python
 from dataclasses import dataclass
@@ -432,7 +432,7 @@ for path, info in deps.uploads.items():
     print(f"{path}: {info['size']} bytes, {info['line_count']} lines")
 ```
 
-Or use the `run_with_files()` helper:
+Or use the [`run_with_files`][pydantic_deep.agent.run_with_files] helper:
 
 ```python
 from pydantic_deep import run_with_files

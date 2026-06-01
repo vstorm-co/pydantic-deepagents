@@ -282,7 +282,7 @@ def test_safe_relative_neutralizes_parent_traversal(tmp_path: Path) -> None:
     m = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
     branch_base = tmp_path / "fork1" / "branches" / "approach_a"
     parent_base = tmp_path / "fork1" / "parent"
-    # ``..`` segments must not let a write escape the materializer root.
+    # `..` segments must not let a write escape the materializer root.
     for evil in ("../../etc/cron.d/x", "a/../../b", "/../../etc/passwd", "foo/../../../bar"):
         bt = m.branch_path("approach_a", evil)
         pt = m.parent_path(evil)

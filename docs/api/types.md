@@ -237,43 +237,48 @@ class TaskHandle:
 
 ### Skill
 
-Complete skill definition.
+A skill instance with metadata, content, resources, and scripts. `Skill` is a
+**dataclass** (not a TypedDict) and is accessed via attributes
+(e.g. `skill.name`, not `skill["name"]`). It can be created programmatically or
+loaded from filesystem directories.
 
 ```python
-class Skill(TypedDict):
-    name: str                            # Unique identifier
-    description: str                     # Brief description
-    path: str                            # Path to skill directory
-    tags: list[str]                      # Categorization tags
-    version: str                         # Semantic version
-    author: str                          # Skill author
-    frontmatter_loaded: bool             # True if only frontmatter loaded
-    instructions: NotRequired[str]       # Full instructions (loaded on demand)
-    resources: NotRequired[list[str]]    # Additional files in skill directory
+@dataclass
+class Skill:
+    name: str                            # Unique skill name
+    description: str                     # Brief description of what the skill does
+    content: str                         # Main instructional content
+    license: str | None = None           # Optional license information
+    compatibility: str | None = None     # Optional environment requirements (max 500 chars)
+    resources: list[SkillResource] = []  # Resources (files or callables)
+    scripts: list[SkillScript] = []      # Scripts (functions or file-based)
+    uri: str | None = None               # Optional base location URI (internal use)
+    metadata: dict[str, Any] | None = None  # Additional metadata fields
 ```
 
-### SkillDirectory
+`Skill` also provides `@skill.resource` and `@skill.script` decorators for
+attaching callables. See [`Skill`][pydantic_deep.toolsets.skills.types.Skill].
 
-Configuration for skill discovery.
+### SkillsDirectory
+
+Skill source for a single filesystem directory. Discovers and loads skills by
+finding `SKILL.md` files and their associated resources and scripts.
 
 ```python
-class SkillDirectory(TypedDict):
-    path: str                           # Path to skills directory
-    recursive: NotRequired[bool]        # Search recursively (default: True)
+class SkillsDirectory:
+    def __init__(
+        self,
+        *,
+        path: str | Path,
+        validate: bool = True,
+        max_depth: int | None = 3,
+        script_executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor | None = None,
+    ) -> None: ...
 ```
 
-### SkillFrontmatter
-
-YAML frontmatter from SKILL.md.
-
-```python
-class SkillFrontmatter(TypedDict):
-    name: str
-    description: str
-    tags: NotRequired[list[str]]
-    version: NotRequired[str]
-    author: NotRequired[str]
-```
+See [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory].
+For non-local backends, use
+[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory].
 
 ---
 
@@ -306,28 +311,25 @@ config: SubAgentConfig = {
 ### Creating a Skill
 
 ```python
-from pydantic_deep import Skill
+from pydantic_deep import Skill, SkillResource
 
-skill: Skill = {
-    "name": "api-design",
-    "description": "Design RESTful APIs",
-    "path": "/path/to/skill",
-    "tags": ["api", "rest"],
-    "version": "1.0.0",
-    "author": "your-name",
-    "frontmatter_loaded": True,
-}
+skill = Skill(
+    name="api-design",
+    description="Design RESTful APIs",
+    content="When designing APIs, follow REST conventions...",
+    resources=[
+        SkillResource(name="checklist.md", content="- Use nouns for resources\n..."),
+    ],
+)
 ```
 
-### Creating a SkillDirectory
+### Discovering Skills from a Directory
 
 ```python
-from pydantic_deep import SkillDirectory
+from pydantic_deep import SkillsDirectory
 
-dirs: list[SkillDirectory] = [
-    {"path": "~/.pydantic-deep/skills", "recursive": True},
-    {"path": "./project-skills", "recursive": False},
-]
+source = SkillsDirectory(path="~/.pydantic-deep/skills")
+skills = source.get_skills()  # dict[str, Skill]
 ```
 
 ---
@@ -478,19 +480,20 @@ class ContextFile:
 
 ## Type Checking
 
-All types support runtime checking:
+`Skill` is a dataclass, so fields are accessed as attributes:
 
 ```python
 from pydantic_deep import Skill
 
 def process_skill(skill: Skill) -> None:
     # Type checker knows all fields
-    print(skill["name"])
-    print(skill["description"])
+    print(skill.name)
+    print(skill.description)
+    print(skill.content)
 
-    # Optional fields
-    if "instructions" in skill:
-        print(skill["instructions"])
+    # Optional fields default to None / empty
+    for resource in skill.resources:
+        print(resource.name)
 ```
 
 Types are exported from the main module:
@@ -508,7 +511,8 @@ from pydantic_deep import (
     SubAgentConfig,
     CompiledSubAgent,
     Skill,
-    SkillDirectory,
-    SkillFrontmatter,
+    SkillResource,
+    SkillScript,
+    SkillsDirectory,
 )
 ```

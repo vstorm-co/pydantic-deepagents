@@ -189,3 +189,7 @@ class FileSelected(Message):
     def __init__(self, path: str) -> None:
         super().__init__()
         self.path = path
+
+
+class PasteImageRequested(Message):
+    """User asked to paste an image from the clipboard (Ctrl+V)."""

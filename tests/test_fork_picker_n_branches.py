@@ -2,13 +2,13 @@
 
 Verifies that the picker:
 
-- renders ``app.fork_branch_count`` branch rows (instead of a hard-coded 2)
+- renders `app.fork_branch_count` branch rows (instead of a hard-coded 2)
 - shows the resolved per-branch model on each row (override or default)
-- prefills ``budget_usd`` per branch from ``app.fork_branch_budgets`` and the
-  aggregate-budget input from ``app.fork_aggregate_budget_usd``
+- prefills `budget_usd` per branch from `app.fork_branch_budgets` and the
+  aggregate-budget input from `app.fork_aggregate_budget_usd`
 - validates distinct non-empty labels at N>2, positive budget floats
-- on submit returns a :class:`ForkPickerResult` whose ``specs`` length
-  matches ``app.fork_branch_count`` and whose ``aggregate_budget_usd`` is
+- on submit returns a :class:`ForkPickerResult` whose `specs` length
+  matches `app.fork_branch_count` and whose `aggregate_budget_usd` is
   forwarded
 """
 
@@ -62,7 +62,7 @@ def fork_app() -> DeepApp:
 
 
 def _text_of(static: Static) -> str:
-    """Read a Static's current text — Textual >= 5 exposes ``content``."""
+    """Read a Static's current text — Textual >= 5 exposes `content`."""
     return str(getattr(static, "content", ""))
 
 
@@ -101,8 +101,8 @@ class TestPickerNRowRendering:
             assert "anthropic:claude-sonnet-4-6" in texts[3]
 
     async def test_per_branch_budgets_propagate_to_specs(self, fork_app: DeepApp) -> None:
-        """Each spec's ``budget_usd`` is taken from ``app.fork_branch_budgets[i]``.
-        Empty slots → ``None`` (no cap)."""
+        """Each spec's `budget_usd` is taken from `app.fork_branch_budgets[i]`.
+        Empty slots → `None` (no cap)."""
         captured: dict[str, Any] = {}
 
         async def _on_dismiss(result: ForkPickerResult | None) -> None:
@@ -127,7 +127,7 @@ class TestPickerNRowRendering:
     async def test_aggregate_read_from_app_state(self, fork_app: DeepApp) -> None:
         """Aggregate cap is no longer a picker Input — it's read off
         :attr:`DeepApp.fork_aggregate_budget_usd` at submit time (configured
-        via ``/fork-config``). Confirm the picker still propagates it."""
+        via `/fork-config`). Confirm the picker still propagates it."""
         captured: dict[str, Any] = {}
 
         async def _on_dismiss(result: ForkPickerResult | None) -> None:
@@ -259,7 +259,7 @@ class TestPickerSubmit:
             await pilot.pause()
 
     async def test_branch_count_minimum_one(self, fork_app: DeepApp) -> None:
-        """``_branch_count`` is clamped to ≥1 so the picker never renders a zero-row form."""
+        """`_branch_count` is clamped to ≥1 so the picker never renders a zero-row form."""
         async with fork_app.run_test(size=(140, 50)) as pilot:
             await pilot.pause()
             fork_app.fork_branch_count = 0

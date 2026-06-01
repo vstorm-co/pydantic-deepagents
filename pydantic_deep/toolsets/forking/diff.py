@@ -6,12 +6,12 @@ grouping them by path, and rendering unified diffs against the shared
 parent backend. Consumed by the CLI merge picker, IDE bridge, and judge.
 
 The module exposes :func:`build_diff_report` (public) and helpers; the
-agent-facing ``diff_branches`` tool lives in this package's ``__init__``
+agent-facing `diff_branches` tool lives in this package's `__init__`
 to keep the toolset's tool registry in one file.
 
 **Read consistency.** :func:`build_diff_report` does not acquire the
-coordinator's ``_lock``. While a branch is still writing, an in-flight
-``FileChange`` may not yet be visible in ``overlay.changes()``. This is
+coordinator's `_lock`. While a branch is still writing, an in-flight
+`FileChange` may not yet be visible in `overlay.changes()`. This is
 intentional - the diff is a read-only inspection and blocking on the
 coordinator lock can starve concurrent writers. The report is therefore
 best-effort and may miss writes that complete during report construction.
@@ -40,9 +40,9 @@ if TYPE_CHECKING:
 class _BytesReadable(Protocol):
     """Minimal read surface needed by the diff builder.
 
-    Both ``BackendProtocol`` and ``BranchOverlay`` satisfy this - using a
+    Both `BackendProtocol` and `BranchOverlay` satisfy this - using a
     narrow local protocol keeps strict typing happy without depending on
-    backend-level method signature quirks (e.g. ``grep_raw`` arity).
+    backend-level method signature quirks (e.g. `grep_raw` arity).
     """
 
     def exists(self, path: str) -> bool: ...
@@ -64,22 +64,26 @@ _BINARY_HASH_PREFIX_HEX_LEN: int = 12
 
 
 def _is_binary_bytes(data: bytes) -> bool:
-    """Return ``True`` when ``data`` contains a null byte in its first ~8 KB."""
+    """Return `True` when `data` contains a null byte in its first ~8 KB."""
     return b"\x00" in data[:_BINARY_SNIFF_BYTES]
 
 
-def _binary_placeholder(data: bytes) -> str:
-    """Return the ``[binary · {size} · sha256:{12 hex}]`` placeholder string."""
-    digest = hashlib.sha256(data).hexdigest()
-    return f"[binary · {len(data)} · sha256:{digest[:_BINARY_HASH_PREFIX_HEX_LEN]}]"
+def _binary_placeholder(data: bytes, *, digest: str | None = None) -> str:
+    """Return the `[binary · {size} · sha256:{12 hex}]` placeholder string.
+
+    `digest` may be a precomputed full hex sha256 to avoid hashing twice;
+    only its first :data:`_BINARY_HASH_PREFIX_HEX_LEN` chars are displayed.
+    """
+    full = digest if digest is not None else hashlib.sha256(data).hexdigest()
+    return f"[binary · {len(data)} · sha256:{full[:_BINARY_HASH_PREFIX_HEX_LEN]}]"
 
 
 def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
-    """Read ``path`` from ``backend`` as raw bytes, or ``None`` if absent.
+    """Read `path` from `backend` as raw bytes, or `None` if absent.
 
-    Uses ``exists()`` first because some backends (notably ``StateBackend``)
-    silently return ``b""`` for missing paths instead of raising - we need
-    to distinguish "empty file" from "no file" for the ``operation``
+    Uses `exists()` first because some backends (notably `StateBackend`)
+    silently return `b""` for missing paths instead of raising - we need
+    to distinguish "empty file" from "no file" for the `operation`
     classification (created vs modified).
     """
     if not backend.exists(path):
@@ -91,7 +95,7 @@ def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
 
 
 def _decode_text(data: bytes) -> str | None:
-    """Decode ``data`` as UTF-8 text; return ``None`` if it isn't valid UTF-8."""
+    """Decode `data` as UTF-8 text; return `None` if it isn't valid UTF-8."""
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError:
@@ -131,14 +135,17 @@ def _truncate_unified_diff(diff_text: str) -> str:
 def _change_identity(bc: BranchChange) -> tuple[bool, str | None]:
     """Return a content-identity key for comparing two branch changes.
 
-    Binary changes carry ``new_content=None`` (raw bytes are never captured),
+    Binary changes carry `new_content=None` (raw bytes are never captured),
     so two branches writing *different* bytes to the same path would compare
-    equal on ``new_content`` and be mislabelled as agreement. The binary
-    placeholder embeds a size + sha256 of the content, so use it as the
-    identity for binary changes; text changes use ``new_content`` directly.
+    equal on `new_content` and be mislabelled as agreement. Use the FULL
+    sha256 digest (:attr:`BranchChange.binary_sha256`) as the identity for
+    binary changes: the human-readable `unified_diff_vs_parent` placeholder
+    keeps only a 12-hex (48-bit) prefix, which can collide across distinct
+    binaries of equal length and spuriously read as agreement. Text changes
+    use `new_content` directly.
     """
     if bc.is_binary:
-        return (True, bc.unified_diff_vs_parent)
+        return (True, bc.binary_sha256)
     return (False, bc.new_content)
 
 
@@ -164,9 +171,9 @@ def _resolve_parent_content(
     parent_backend: _BytesReadable,
     path: str,
 ) -> tuple[str | None, bytes | None]:
-    """Return ``(parent_text_or_none, parent_raw_bytes_or_none)`` for a path.
+    """Return `(parent_text_or_none, parent_raw_bytes_or_none)` for a path.
 
-    Binary parent content surfaces as ``(None, raw_bytes)`` so callers can
+    Binary parent content surfaces as `(None, raw_bytes)` so callers can
     still detect binary status without exposing undecodable bytes through
     the text field of :class:`PathDiff`.
     """
@@ -186,7 +193,7 @@ def _build_branch_change(
     parent_text: str | None,
     parent_raw: bytes | None,
 ) -> BranchChange:
-    """Build a single :class:`BranchChange` describing a branch's outcome at ``path``."""
+    """Build a single :class:`BranchChange` describing a branch's outcome at `path`."""
     overlay = runtime.overlay
     branch_id = runtime.status.id
     branch_label = runtime.status.label
@@ -234,7 +241,8 @@ def _build_branch_change(
     operation: BranchDiffOperation = "modified" if parent_raw is not None else "created"
 
     if is_binary:
-        placeholder = _binary_placeholder(raw)
+        digest = hashlib.sha256(raw).hexdigest()
+        placeholder = _binary_placeholder(raw, digest=digest)
         return BranchChange(
             branch_id=branch_id,
             branch_label=branch_label,
@@ -243,6 +251,7 @@ def _build_branch_change(
             unified_diff_vs_parent=placeholder,
             size_bytes=len(raw),
             is_binary=True,
+            binary_sha256=digest,
         )
 
     decoded = _decode_text(raw)
@@ -275,16 +284,26 @@ def build_diff_report(
 
     Args:
         fork_id: Identifier of the fork being inspected - echoed in the
-            report's ``fork_id`` field.
-        runtimes: Branch runtimes to compare; usually ``list(coordinator.branches.values())``.
+            report's `fork_id` field.
+        runtimes: Branch runtimes to compare; usually `list(coordinator.branches.values())`.
         paths_filter: Optional path list; when provided, only these paths
             appear in the report. Untouched filtered paths surface as
-            ``agreement="unanimous_no_change"`` for transparency.
+            `agreement="unanimous_no_change"` for transparency.
 
     Returns:
         A :class:`BranchDiffReport` covering every touched path (or every
         filtered path). See module docstring for read-consistency caveat.
     """
+    # Every per-branch map below is keyed on `runtime.status.id`; duplicate
+    # ids would silently clobber one branch's touched-set / unique counter with
+    # another's. raise > assert so the precondition survives python -O.
+    branch_ids = [runtime.status.id for runtime in runtimes]
+    if len(set(branch_ids)) != len(branch_ids):
+        raise ValueError(
+            "build_diff_report requires unique runtime status ids; "
+            f"got duplicates in {branch_ids!r}."
+        )
+
     touched_per_branch: dict[str, set[str]] = {}
     for runtime in runtimes:
         overlay = runtime.overlay

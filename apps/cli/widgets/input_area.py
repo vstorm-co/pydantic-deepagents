@@ -10,7 +10,12 @@ from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Input, Static, TextArea
 
-from apps.cli.messages import CommandSelected, FileSelected, UserSubmitted
+from apps.cli.messages import (
+    CommandSelected,
+    FileSelected,
+    PasteImageRequested,
+    UserSubmitted,
+)
 
 
 class HintsBar(Static):
@@ -117,6 +122,13 @@ class PromptInput(Input):
 
     def on_key(self, event: Any) -> None:
         """Handle special keys for history and triggers."""
+        if event.key == "ctrl+v":
+            # The focused Input consumes the key before app-level bindings run,
+            # so trigger the clipboard-image paste from here directly.
+            event.prevent_default()
+            event.stop()
+            self.post_message(PasteImageRequested())
+            return
         if event.key == "up" and not self.value:
             # Navigate history backwards
             if self._history and self._history_index < len(self._history) - 1:

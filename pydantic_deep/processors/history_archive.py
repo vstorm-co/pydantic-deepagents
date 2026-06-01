@@ -1,7 +1,7 @@
 """Conversation history search tool with BM25 ranking.
 
-Provides a ``search_conversation_history`` tool that searches through
-the persistent ``messages.json`` file maintained by
+Provides a `search_conversation_history` tool that searches through
+the persistent `messages.json` file maintained by
 :class:`~pydantic_ai_summarization.ContextManagerMiddleware`.
 
 The middleware saves every message continuously. This module only *reads*
@@ -230,7 +230,7 @@ def create_history_search_toolset(
     *,
     id: str = "deep-history-search",
 ) -> FunctionToolset[Any]:
-    """Create a toolset with the ``search_conversation_history`` tool.
+    """Create a toolset with the `search_conversation_history` tool.
 
     Args:
         messages_path: Absolute path to the messages.json file
@@ -272,13 +272,15 @@ def create_history_search_toolset(
         shown_indices: set[int] = set()
 
         for doc_idx, score in ranked[:_MAX_MATCHES]:
-            if doc_idx in shown_indices:  # pragma: no cover
-                continue  # pragma: no cover
+            if doc_idx in shown_indices:
+                continue
 
             start = max(0, doc_idx - _CONTEXT_LINES)
             end = min(len(formatted_lines), doc_idx + _CONTEXT_LINES + 1)
 
-            shown_indices.add(doc_idx)
+            # Record the full emitted window so neighboring matches whose
+            # context overlaps this one are skipped instead of repeating lines.
+            shown_indices.update(range(start, end))
             excerpt = "\n".join(formatted_lines[start:end])
             results.append(f"[score: {score:.1f}]\n{excerpt}")
 

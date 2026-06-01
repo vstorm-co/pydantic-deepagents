@@ -1,7 +1,7 @@
 """Live Run Forking — budget and aggregate cap tests (issue #105).
 
 The 7 cases from the issue's Test plan. Cost callbacks fire in two places
-in production: ``CostTracking.after_run`` invokes ``on_cost_update`` once
+in production: `CostTracking.after_run` invokes `on_cost_update` once
 per branch run, awaiting awaitables. These tests drive the watchers
 directly with synthesised :class:`CostInfo` values to keep the test surface
 deterministic — the integration test (#6) goes one level higher and
@@ -236,7 +236,7 @@ async def test_budget_watcher_cancels_running_branch_task():
 async def test_budget_exhausted_branch_can_be_picked_as_winner():
     """See "Capturing partial history" in docs/capabilities/live-fork.md —
     the awaited task raises CancelledError but the coordinator returns the
-    snapshot captured on the last ``before_model_request`` instead."""
+    snapshot captured on the last `before_model_request` instead."""
     deps = DeepAgentDeps(backend=StateBackend())
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
@@ -585,7 +585,7 @@ def test_build_branch_cost_tracking_warns_when_no_parent_and_no_model():
 
 async def test_aggregate_watcher_second_call_skips_non_running_branches():
     """After branches transition to aggregate_budget_exhausted, a follow-up
-    cost update must not re-terminate them (covers the non-``running``
+    cost update must not re-terminate them (covers the non-`running`
     branch of the watcher's iteration)."""
     deps = DeepAgentDeps(backend=StateBackend())
     agent = _make_test_agent()
@@ -688,10 +688,10 @@ def test_build_branch_cost_tracking_from_model_name_when_no_parent():
 
 
 async def test_start_fork_from_cli_forwards_aggregate_budget():
-    """``apps.cli.forking.start_fork_from_cli`` must thread the picker's
-    ``aggregate_budget_usd`` through to ``coordinator.fork`` so the
+    """`apps.cli.forking.start_fork_from_cli` must thread the picker's
+    `aggregate_budget_usd` through to `coordinator.fork` so the
     aggregate watcher gets the right cap. Mirrors the constructor-vs-call
-    test ``test_aggregate_per_call_budget_overrides_constructor_default``
+    test `test_aggregate_per_call_budget_overrides_constructor_default`
     but at the CLI bridge level."""
     from pydantic_ai.messages import ModelRequest, UserPromptPart
 

@@ -1,6 +1,6 @@
 """Improve toolset - agent-callable tools for self-improvement.
 
-Provides ``improve`` and ``get_improvement_status`` tools so the agent
+Provides `improve` and `get_improvement_status` tools so the agent
 can trigger the improve pipeline and check its status.
 """
 

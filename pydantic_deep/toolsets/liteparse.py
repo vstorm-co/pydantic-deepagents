@@ -1,12 +1,12 @@
 """LiteParse document parsing toolset.
 
 Provides tools for parsing PDFs, DOCX, images and other documents using the
-LiteParse Node.js CLI via the ``liteparse`` Python package.
+LiteParse Node.js CLI via the `liteparse` Python package.
 
 Requirements:
     - Node.js >= 18 installed on the system
-    - LiteParse CLI: ``npm install -g @llamaindex/liteparse``
-    - Python package: ``pip install pydantic-deep[liteparse]``
+    - LiteParse CLI: `npm install -g @llamaindex/liteparse`
+    - Python package: `pip install pydantic-deep[liteparse]`
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets import FunctionToolset
 
-# Dynamic imports keep ``liteparse`` opaque to static type checkers - its API
-# shape differs between versions, so binding to ``Any`` here avoids both
+# Dynamic imports keep `liteparse` opaque to static type checkers - its API
+# shape differs between versions, so binding to `Any` here avoids both
 # missing-attribute errors when stubs are absent and unused-ignore noise when
 # stubs happen to be present.
 _HAS_LITEPARSE = False
@@ -91,12 +91,12 @@ class LiteparseToolset(FunctionToolset[Any]):
 
     Requirements:
         - Node.js >= 18 on the system
-        - LiteParse CLI (auto-installed via npm on first use if ``install_if_not_available=True``)
-        - ``pip install pydantic-deep[liteparse]``
+        - LiteParse CLI (auto-installed via npm on first use if `install_if_not_available=True`)
+        - `pip install pydantic-deep[liteparse]`
 
     Tools:
-        - ``parse_document``: Extract text content from a document
-        - ``screenshot_document``: Generate page screenshots saved to the backend
+        - `parse_document`: Extract text content from a document
+        - `screenshot_document`: Generate page screenshots saved to the backend
     """
 
     def __init__(
@@ -120,7 +120,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             max_pages: Maximum pages to parse per document. Defaults to 10,000.
             install_if_not_available: Auto-install CLI via npm on first use. Defaults to True.
             descriptions: Optional dict to override tool descriptions.
-                Keys: ``parse_document``, ``screenshot_document``.
+                Keys: `parse_document`, `screenshot_document`.
         """
         super().__init__(id="deep-liteparse")
         self._ocr_enabled = ocr_enabled

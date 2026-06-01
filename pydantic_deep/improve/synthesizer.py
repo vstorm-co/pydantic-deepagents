@@ -14,14 +14,14 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from pydantic_deep.improve.prompts import SYNTHESIS_PROMPT
-from pydantic_deep.improve.types import ProposedChange, SessionInsights
+from pydantic_deep.improve.types import ChangeType, ProposedChange, SessionInsights
 
 
 class _ProposedChangeModel(BaseModel):
     """Pydantic model for a single proposed change (used for structured output)."""
 
     target_file: str
-    change_type: str
+    change_type: ChangeType
     section: str | None = None
     content: str
     reason: str
@@ -61,7 +61,7 @@ class InsightSynthesizer:
         Args:
             insights: Per-session insights extracted by the extractor.
             current_context: Current context files, e.g.
-                ``{"SOUL.md": "...", "AGENTS.md": "...", "MEMORY.md": "..."}``.
+                `{"SOUL.md": "...", "AGENTS.md": "...", "MEMORY.md": "..."}`.
             tool_sequences: Optional mapping of session_id to raw tool call
                 sequence text. Following Meta-Harness (Lee et al., 2026):
                 giving the synthesis agent raw traces enables better

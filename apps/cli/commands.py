@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import subprocess
 import sys
 import tempfile
@@ -12,7 +11,22 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp
 
+from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
+
+from apps.cli.debug_log import get_logger
+from apps.cli.forking import (
+    ForkingNotEnabledError,
+    ForkPickerResult,
+    resolve_capability,
+    start_fork_from_cli,
+)
+from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
+from apps.cli.modals.fork_config import ForkConfigModal
+from apps.cli.modals.fork_picker import ForkPickerModal
+from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
 from apps.cli.text_heuristics import looks_like_error
+from apps.cli.widgets.judge_loading import JudgeAborted, JudgeLoadingScreen
+from apps.cli.widgets.merge_acceptance import MergeAcceptanceAction, MergeAcceptanceWidget
 from apps.cli.widgets.status_bar import StatusBar
 
 _FORK_ID_PREFIX_LEN = 8
@@ -20,7 +34,6 @@ _FORK_ID_PREFIX_LEN = 8
 
 async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
     """Dispatch a slash command to the appropriate handler."""
-    from apps.cli.debug_log import get_logger
 
     log = get_logger()
 
@@ -156,10 +169,10 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                         for cap in getattr(agent, "_capabilities", []):
                             cap_type = type(cap).__name__
                             if "ContextManager" in cap_type:
-                                compress = getattr(cap, "compress", None)
-                                if compress is not None:
+                                compact = getattr(cap, "compact", None)
+                                if compact is not None:
                                     app.notify("Compacting with LLM...", severity="information")
-                                    await compress(history)
+                                    app.message_history = await compact(history, focus)
                                     compacted = True
                                     app.notify("Context compacted (LLM)")
                                 break
@@ -218,9 +231,16 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                 continue
             total_input += getattr(usage, "input_tokens", 0) or 0
             total_output += getattr(usage, "output_tokens", 0) or 0
-        est_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
+        # Prefer the authoritative cost from CostTracking (genai-prices, accurate
+        # per active model). Fall back to a rough Sonnet-rate heuristic only when
+        # no tracked cost is available.
+        if app.total_cost > 0:
+            cost_label = f"${app.total_cost:.4f}"
+        else:
+            est_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
+            cost_label = f"~${est_cost:.4f}"
         app.notify(
-            f"Cost: ~${est_cost:.4f}  ·  "
+            f"Cost: {cost_label}  ·  "
             f"Input: {total_input:,} tokens  ·  Output: {total_output:,} tokens"
         )
 
@@ -250,6 +270,18 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
         except Exception:
             app.notify("No todos yet", severity="information")
 
+    elif cmd == "/paste":
+        handler = getattr(app.screen, "attach_clipboard_image", None)
+        if handler is not None:
+            handler()
+        else:
+            app.notify("Image paste is unavailable on this screen", severity="warning")
+
+    elif cmd == "/mcp":
+        from apps.cli.modals.mcp_view import MCPViewModal
+
+        app.push_screen(MCPViewModal())
+
     elif cmd == "/skills":
         from apps.cli.modals.skills_view import SkillsViewModal
 
@@ -259,6 +291,15 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
         from apps.cli.modals.diff_view import DiffViewModal
 
         app.push_screen(DiffViewModal(working_dir=app.working_dir))
+
+    elif cmd == "/screenshot":
+        # Export the current TUI as an SVG - handy for docs / marketing assets.
+        try:
+            filename = arg.strip() or None
+            saved = app.save_screenshot(filename)
+            app.notify(f"📸 Screenshot saved: {saved}")
+        except Exception as exc:  # pragma: no cover - defensive
+            app.notify(f"Screenshot failed: {exc}", severity="error")
 
     elif cmd == "/version":
         app.notify(f"pydantic-deep v{app.app_version}")
@@ -431,7 +472,12 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
 
                 if report.failed_sessions > 0:
                     err_msg = f"{report.failed_sessions} session(s) failed extraction"
-                    if report.last_error:
+                    if report.extraction_errors:
+                        details = "; ".join(
+                            f"{sid}: {exc}" for sid, exc in report.extraction_errors
+                        )
+                        err_msg += f" ({details})"
+                    elif report.last_error:
                         err_msg += f": {report.last_error}"
                     app.notify(err_msg, severity="warning", timeout=10)
 
@@ -468,7 +514,7 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
                 except Exception:
                     app.notify(f"Improve failed: {e}", severity="error")
 
-        asyncio.ensure_future(_run_improve())
+        app._spawn_tracked(_run_improve(), label="/improve")
 
     elif cmd == "/help":
         from apps.cli.modals.help_view import HelpModal
@@ -612,14 +658,7 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
 
 
 async def _dispatch_fork(app: DeepApp) -> None:
-    """Handle ``/fork`` — open the picker modal and spawn branches on submit."""
-    from apps.cli.forking import (
-        ForkingNotEnabledError,
-        ForkPickerResult,
-        resolve_capability,
-        start_fork_from_cli,
-    )
-    from apps.cli.modals.fork_picker import ForkPickerModal
+    """Handle `/fork` — open the picker modal and spawn branches on submit."""
 
     if app.agent is None:
         app.notify("Agent not configured — use /provider first", severity="error")
@@ -669,8 +708,7 @@ async def _dispatch_fork(app: DeepApp) -> None:
 
 
 def _dispatch_fork_config(app: DeepApp) -> None:
-    """Handle ``/fork-config`` — open the settings modal."""
-    from apps.cli.modals.fork_config import ForkConfigModal
+    """Handle `/fork-config` — open the settings modal."""
 
     if app.agent is None:
         app.notify("Agent not configured — use /provider first", severity="error")
@@ -692,8 +730,7 @@ def _dispatch_fork_config(app: DeepApp) -> None:
 
 
 async def _dispatch_merge(app: DeepApp) -> None:
-    """Handle ``/merge`` — dispatch on :attr:`MergeStrategy.kind`."""
-    from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
+    """Handle `/merge` — dispatch on :attr:`MergeStrategy.kind`."""
 
     session = app.active_fork
     if session is None:
@@ -740,7 +777,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
         await _commit_pick(picked.branch_id)
 
     def _on_open_in_editor(branch_id: str) -> None:
-        """Bridge the merge picker's ``o`` binding into the diff picker.
+        """Bridge the merge picker's `o` binding into the diff picker.
 
         The merge picker passes the currently-highlighted branch id; we
         detect the editor kind once and open the diff picker pre-checked
@@ -765,9 +802,9 @@ async def _dispatch_merge(app: DeepApp) -> None:
     ) -> None:
         """Push :class:`MergePickerModal` with the shared per-dispatch context.
 
-        Closes over ``report`` / ``statuses`` / ``session.label_to_id`` /
-        ``_on_open_in_editor`` / ``_on_pick`` so each call site collapses to
-        one line. ``preselected_id`` and ``subtitle`` carry the only
+        Closes over `report` / `statuses` / `session.label_to_id` /
+        `_on_open_in_editor` / `_on_pick` so each call site collapses to
+        one line. `preselected_id` and `subtitle` carry the only
         per-call-site variation across the three picker call sites.
         """
         app.push_screen(
@@ -785,8 +822,6 @@ async def _dispatch_merge(app: DeepApp) -> None:
     if strategy.kind == "manual":
         _push_picker()
         return
-
-    from apps.cli.widgets.judge_loading import JudgeLoadingScreen
 
     async def _on_judge_complete(result: Any) -> None:
         await _handle_judge_result(
@@ -819,7 +854,6 @@ async def _handle_judge_result(
     on_pick: Any,
 ) -> None:
     """Route JudgeLoadingScreen result to the appropriate next screen."""
-    from apps.cli.widgets.judge_loading import JudgeAborted
 
     if isinstance(result, Exception):
         from apps.cli.debug_log import get_logger
@@ -892,11 +926,6 @@ async def _dispatch_acceptance_widget(
     commit_pick: Any,
 ) -> None:
     """Push :class:`MergeAcceptanceWidget` and route its actions."""
-    from apps.cli.modals.merge_picker import MergePickerModal
-    from apps.cli.widgets.merge_acceptance import (
-        MergeAcceptanceAction,
-        MergeAcceptanceWidget,
-    )
 
     session = app.active_fork
     if session is None:  # pragma: no cover - defensive
@@ -1020,7 +1049,7 @@ def _format_merge_notification(label: str, result: Any) -> str:
 
 
 async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
-    """Handle ``/fork diff`` — external diff inspection via picker.
+    """Handle `/fork diff` — external diff inspection via picker.
 
     Always opens :class:`DiffPickerModal` so the user can pick a touched
     path + branch subset from a list. Any path argument typed after the
@@ -1029,7 +1058,6 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
     Falls back to the in-TUI :class:`MergePickerModal` (diff-explore
     mode) when no external editor is detected.
     """
-    from apps.cli.modals.merge_picker import MergePickerModal
     from pydantic_deep.toolsets.forking.editor import EditorDetector
 
     session = app.active_fork
@@ -1068,8 +1096,8 @@ def _labeled_symlinks(
 ) -> tuple[Path | None, list[Path]]:
     """Return short-path symlinks so editor title bars show branch labels.
 
-    Creates ``{tempdir}/pd_{fork_id}/parent/{basename}`` and
-    ``{tempdir}/pd_{fork_id}/{label}/{basename}`` symlinks pointing at the
+    Creates `{tempdir}/pd_{fork_id}/parent/{basename}` and
+    `{tempdir}/pd_{fork_id}/{label}/{basename}` symlinks pointing at the
     materialiser paths.  Keeping the temp-dir prefix short ensures the
     label component stays visible in PyCharm/VS Code title truncation.
     """
@@ -1100,10 +1128,9 @@ def _open_diff_picker(
     """Show :class:`DiffPickerModal` and dispatch the editor on confirm.
 
     Extracted so the merge picker's "Open in editor" button can reuse
-    the same flow with ``initial_branch_id`` set to the merge picker's
+    the same flow with `initial_branch_id` set to the merge picker's
     currently-highlighted branch.
     """
-    from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
     from pydantic_deep.toolsets.forking.editor import EditorDetector
 
     session = app.active_fork
@@ -1165,15 +1192,12 @@ def _replay_branch_into_main_chat(
 ) -> None:
     """Append the winning branch's new messages to the main MessageList.
 
-    ``branch_messages`` is the slice of the patched history that belongs
+    `branch_messages` is the slice of the patched history that belongs
     to the branch (everything after the parent's pre-fork history).  The
     steer appears as a user message, the branch's tool calls and text
     responses follow, and a compact system summary closes the turn so the
     parent agent has file-change context for its next run.
     """
-    from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
-
-    from apps.cli.text_heuristics import looks_like_error
 
     try:
         from apps.cli.screens.chat import ChatScreen

@@ -39,6 +39,37 @@ def _make_ctx(backend: StateBackend | None = None) -> RunContext[DeepAgentDeps]:
     )
 
 
+class _FakeTaskHandle:
+    """Minimal stand-in for a subagent TaskManager handle."""
+
+    def __init__(self) -> None:
+        self.result: str | None = None
+        self.error: str | None = None
+
+
+class _FakeTaskManager:
+    """Minimal subagent TaskManager: tracks asyncio tasks + handles by id."""
+
+    def __init__(self) -> None:
+        self.tasks: dict[str, asyncio.Task[Any]] = {}
+        self.handles: dict[str, _FakeTaskHandle] = {}
+        self.hard_cancel_calls: list[str] = []
+
+    def add(self, task_id: str, task: asyncio.Task[Any]) -> None:
+        self.tasks[task_id] = task
+        self.handles[task_id] = _FakeTaskHandle()
+
+    def get_handle(self, task_id: str) -> _FakeTaskHandle | None:
+        return self.handles.get(task_id)
+
+    async def hard_cancel(self, task_id: str) -> bool:
+        self.hard_cancel_calls.append(task_id)
+        task = self.tasks.get(task_id)
+        if task is not None and not task.done():
+            task.cancel()
+        return True
+
+
 def _minimal_agent(**kwargs: Any) -> Any:
     """Create agent with minimal toolsets for fast tests."""
     defaults = {
@@ -617,6 +648,102 @@ class TestAgentTeam:
         await team.dissolve()
         await team.dissolve()  # Should not raise
         assert team._dissolved is True
+
+    async def test_wait_all_via_task_manager(self):
+        """wait_all awaits the real background task by id and syncs its result."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+
+        async def worker() -> None:
+            await asyncio.sleep(0.01)
+            team.task_manager.get_handle("tid12345").result = "mgr done"
+
+        team.task_manager.add("tid12345", asyncio.create_task(worker()))
+        team._handles["agent-0"].task_id = "tid12345"
+
+        results = await team.wait_all()
+        assert results == {"agent-0": "mgr done"}
+        assert team._handles["agent-0"].status == "completed"
+
+    async def test_wait_all_via_task_manager_error(self):
+        """wait_all surfaces a failed background task's error via the manager."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+
+        async def failing() -> None:
+            team.task_manager.get_handle("tid99999").error = "mgr boom"
+            raise ValueError("mgr boom")
+
+        team.task_manager.add("tid99999", asyncio.create_task(failing()))
+        team._handles["agent-0"].task_id = "tid99999"
+
+        results = await team.wait_all()
+        assert results == {"agent-0": "mgr boom"}
+        assert team._handles["agent-0"].status == "failed"
+
+    async def test_refresh_from_manager_noop_without_task_id(self):
+        """_refresh_from_manager is a no-op when the handle has no task_id."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+        handle = team._handles["agent-0"]
+        team._refresh_from_manager(handle)  # task_id is None -> early return
+        assert handle.status == "idle"
+
+    async def test_refresh_from_manager_handle_missing(self):
+        """_refresh_from_manager is a no-op when the manager has no such handle."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+        handle = team._handles["agent-0"]
+        handle.task_id = "unknown"  # not registered -> get_handle returns None
+        team._refresh_from_manager(handle)
+        assert handle.status == "idle"
+
+    async def test_refresh_from_manager_no_result_no_error(self):
+        """A still-running manager handle (no result/error) leaves status alone."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+        handle = team._handles["agent-0"]
+        team.task_manager.handles["tid"] = _FakeTaskHandle()  # neither set
+        handle.task_id = "tid"
+        team._refresh_from_manager(handle)
+        assert handle.status == "idle"
+
+    async def test_wait_all_task_manager_no_live_task(self):
+        """wait_all syncs from the manager even when no live asyncio task exists."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+        # Only a handle is registered (no tracked asyncio task), already done.
+        th = _FakeTaskHandle()
+        th.result = "already done"
+        team.task_manager.handles["done-tid"] = th
+        team._handles["agent-0"].task_id = "done-tid"
+        results = await team.wait_all()
+        assert results == {"agent-0": "already done"}
+        assert team._handles["agent-0"].status == "completed"
+
+    async def test_dissolve_cancels_via_task_manager(self):
+        """Dissolve hard-cancels a running background task via the manager."""
+        team = self._make_team(1)
+        team.task_manager = _FakeTaskManager()
+        await team.spawn()
+
+        async def long_task() -> None:
+            await asyncio.sleep(100)
+
+        task = asyncio.create_task(long_task())
+        team.task_manager.add("tidcancel", task)
+        team._handles["agent-0"].task_id = "tidcancel"
+
+        await team.dissolve()
+        await asyncio.sleep(0)  # let cancellation propagate
+        assert task.cancelled()
+        assert team.task_manager.hard_cancel_calls == ["tidcancel"]
 
 
 class TestCreateTeamToolset:

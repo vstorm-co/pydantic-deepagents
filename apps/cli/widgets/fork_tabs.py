@@ -1,4 +1,4 @@
-"""Tab strip showing one chip per branch + a ``+`` overview pseudo-tab."""
+"""Tab strip showing one chip per branch + a `+` overview pseudo-tab."""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ if TYPE_CHECKING:
     from pydantic_deep.types import BranchCost, BranchStatus
 
 OVERVIEW_TAB_ID = "__overview__"
-"""Sentinel branch id returned by :class:`ForkTabsWidget.BranchTabSelected` for the ``+`` tab."""
+"""Sentinel branch id returned by :class:`ForkTabsWidget.BranchTabSelected` for the `+` tab."""
 
 
 class ForkTabsWidget(Horizontal):
-    """Horizontal strip rendering one chip per branch plus a ``+`` overview tab.
+    """Horizontal strip rendering one chip per branch plus a `+` overview tab.
 
     The widget is rendered as plain Static labels rather than Textual's
-    built-in ``Tabs`` so we can mix branch chips with the overview chip
+    built-in `Tabs` so we can mix branch chips with the overview chip
     and keep the chip styling consistent with the existing CLI palette.
     """
 
@@ -52,7 +52,7 @@ class ForkTabsWidget(Horizontal):
     active_id: reactive[str] = reactive(OVERVIEW_TAB_ID)
 
     class BranchTabSelected(Message):
-        """Posted when the user clicks a branch chip or cycles via ``Tab``."""
+        """Posted when the user clicks a branch chip or cycles via `Tab`."""
 
         def __init__(self, branch_id: str) -> None:
             super().__init__()
@@ -103,12 +103,12 @@ class ForkTabsWidget(Horizontal):
     ) -> None:
         """Re-render chip text in-place when per-branch costs change.
 
-        ``watch_statuses`` mounts chips with ``await self.mount(...)`` (async),
-        so when ``_poll_fork_state`` sets ``statuses`` then ``branch_costs`` in the
+        `watch_statuses` mounts chips with `await self.mount(...)` (async),
+        so when `_poll_fork_state` sets `statuses` then `branch_costs` in the
         same turn the chip may not exist yet on this synchronous pass. Re-apply
         once immediately (for already-mounted chips) and again after the next
         refresh (once the pending mounts have completed) so a freshly mounted
-        chip still gets its ``$x/$y`` cost instead of lagging a tick.
+        chip still gets its `$x/$y` cost instead of lagging a tick.
         """
         self._apply_costs()
         self.call_after_refresh(self._apply_costs)
@@ -133,7 +133,7 @@ class ForkTabsWidget(Horizontal):
                 child.add_class("active")
 
     def cycle_focus(self) -> str:
-        """Advance ``active_id`` to the next chip and return it.
+        """Advance `active_id` to the next chip and return it.
 
         Order: overview → branch[0] → branch[1] → … → overview.
         """

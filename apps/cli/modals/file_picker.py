@@ -12,6 +12,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
+from apps.cli.modals._filter_input import FilterInput
+
 _SKIP_DIRS = {
     ".git",
     ".venv",
@@ -105,7 +107,6 @@ class FilePickerModal(ModalScreen[str | None]):
     def on_mount(self) -> None:
         self._all_files = _scan_files(self._working_dir)
         self._update_list(self._all_files[:50])
-        from apps.cli.modals._filter_input import FilterInput
 
         self.query_one("#file-filter", FilterInput).focus()
 

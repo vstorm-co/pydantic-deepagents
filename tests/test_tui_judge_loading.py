@@ -3,8 +3,8 @@
 Drives the screen through Textual's :class:`Pilot`, asserting that:
 
 - the success path dismisses with the :class:`ResolveOutcome`;
-- exceptions raised inside ``resolve()`` dismiss with the raw exception
-  (so the caller can branch on ``isinstance(result, Exception)``);
+- exceptions raised inside `resolve()` dismiss with the raw exception
+  (so the caller can branch on `isinstance(result, Exception)`);
 - :kbd:`Escape` cancels the in-flight judge task and dismisses with
   :class:`JudgeAborted` — the user's escape hatch when a slow LLM call
   stalls.
@@ -37,7 +37,7 @@ class _ProbeApp(App[None]):
 
 
 async def test_success_path_dismisses_with_outcome() -> None:
-    """``resolve()`` returns a value → the screen dismisses with that value."""
+    """`resolve()` returns a value → the screen dismisses with that value."""
     app = _ProbeApp()
     sentinel = object()
     coordinator = SimpleNamespace(resolve=AsyncMock(return_value=sentinel))
@@ -64,7 +64,7 @@ async def test_success_path_dismisses_with_outcome() -> None:
 async def test_exception_path_dismisses_with_exception(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A failing ``resolve()`` dismisses with the exception + logs the traceback."""
+    """A failing `resolve()` dismisses with the exception + logs the traceback."""
     app = _ProbeApp()
     boom = RuntimeError("provider 5xx")
 
@@ -127,9 +127,9 @@ async def test_escape_aborts_judge_task() -> None:
 
 
 async def test_escape_before_task_started_is_safe() -> None:
-    """``action_abort`` is a no-op when the task hasn't been created yet.
+    """`action_abort` is a no-op when the task hasn't been created yet.
 
-    Guards against an Escape between ``__init__`` and ``on_mount`` (rare but
+    Guards against an Escape between `__init__` and `on_mount` (rare but
     possible if a parent screen pre-empts mount).
     """
     app = _ProbeApp()
@@ -152,7 +152,7 @@ async def test_escape_before_task_started_is_safe() -> None:
 
 
 async def test_spinner_label_includes_abort_hint() -> None:
-    """The label shows the elapsed counter and the ``(esc to abort)`` hint."""
+    """The label shows the elapsed counter and the `(esc to abort)` hint."""
     app = _ProbeApp()
     started = asyncio.Event()
 
@@ -181,7 +181,7 @@ async def test_spinner_label_includes_abort_hint() -> None:
 
 
 async def test_passive_mode_does_not_start_task() -> None:
-    """``passive=True`` shows the spinner but never calls ``resolve()``."""
+    """`passive=True` shows the spinner but never calls `resolve()`."""
     app = _ProbeApp()
     resolve_called = False
 

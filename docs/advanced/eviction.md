@@ -20,7 +20,7 @@ agent = create_deep_agent(eviction_token_limit=None)
 
 ## How It Works
 
-The `EvictionCapability` uses the `after_tool_execute` hook to intercept large tool results **before** they enter the conversation history. This means the full output never bloats the message list in memory.
+The [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability] uses the `after_tool_execute` hook to intercept large tool results **before** they enter the conversation history. This means the full output never bloats the message list in memory.
 
 1. After each tool call, `after_tool_execute` checks the result size
 2. If the result exceeds the token limit (chars / 4), it:
@@ -29,7 +29,7 @@ The `EvictionCapability` uses the `after_tool_execute` hook to intercept large t
 3. The agent can then use `read_file` with `offset`/`limit` to access the full output
 
 !!! tip "Why a capability hook instead of a history processor?"
-    The previous `EvictionProcessor` (history processor) ran **after** the large output was already stored in the message list — the full content sat in memory until the next model call. The `EvictionCapability` intercepts via `after_tool_execute`, so the large output never enters the history.
+    The legacy [`EvictionProcessor`][pydantic_deep.processors.eviction.EvictionProcessor] (history processor) ran **after** the large output was already stored in the message list — the full content sat in memory until the next model call. The [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability] intercepts via `after_tool_execute`, so the large output never enters the history, and it is the default used by `create_deep_agent`.
 
 ### Before Eviction
 
@@ -58,11 +58,11 @@ Preview (head/tail):
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `eviction_token_limit` | `int \| None` | `None` | Token threshold for eviction. `None` disables eviction. |
+| `eviction_token_limit` | `int \| None` | `20_000` | Token threshold for eviction. `None` disables eviction. |
 
 ### Standalone Usage
 
-For custom agent setups, use `EvictionProcessor` directly:
+For custom agent setups that rely on history processors, the legacy [`EvictionProcessor`][pydantic_deep.processors.eviction.EvictionProcessor] can be used directly:
 
 ```python
 from pydantic_ai import Agent

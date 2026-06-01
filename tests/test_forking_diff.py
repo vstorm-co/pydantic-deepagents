@@ -27,6 +27,8 @@ from pydantic_deep import (
 from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
 from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
 from pydantic_deep.toolsets.forking.diff import (
+    _binary_placeholder,
+    _change_identity,
     _classify_agreement,
     _decode_text,
     _is_binary_bytes,
@@ -53,8 +55,8 @@ async def _make_runtime(
 ) -> BranchRuntime:
     """Build a minimal :class:`BranchRuntime` with throwaway spec/task/deps.
 
-    The diff builder only reads ``runtime.overlay`` and
-    ``runtime.status``; the other fields are stubbed to keep tests fast
+    The diff builder only reads `runtime.overlay` and
+    `runtime.status`; the other fields are stubbed to keep tests fast
     and isolated from the agent run loop.
     """
 
@@ -236,12 +238,80 @@ async def test_diff_identical_binary_writes_are_unanimous() -> None:
     assert pd.agreement == "unanimous_change"
 
 
-def test_decode_text_returns_none_for_invalid_utf8() -> None:
-    """Unit test: ``_decode_text`` returns None for non-UTF-8 bytes.
+def _binary_change(
+    branch_id: str,
+    *,
+    placeholder: str,
+    digest: str | None,
+) -> BranchChange:
+    return BranchChange(
+        branch_id=branch_id,
+        branch_label=branch_id,
+        operation="created",
+        new_content=None,
+        unified_diff_vs_parent=placeholder,
+        size_bytes=0,
+        is_binary=True,
+        binary_sha256=digest,
+    )
 
-    Covers the failure path that callers map to ``new_content=None`` or
+
+def test_binary_change_identity_uses_full_digest_not_truncated_placeholder() -> None:
+    """Bug 83: distinct binaries sharing the 12-hex placeholder must not agree.
+
+    Two binaries of equal length whose sha256 collides in the first 48 bits
+    would share an identical human-readable placeholder. Classification keyed
+    on that placeholder would mislabel them as agreement; keying on the FULL
+    sha256 digest keeps them 'split'.
+    """
+    shared_placeholder = "[binary · 192 · sha256:deadbeefcafe]"
+    change_a = _binary_change("a", placeholder=shared_placeholder, digest="deadbeefcafe" + "0" * 52)
+    change_b = _binary_change("b", placeholder=shared_placeholder, digest="deadbeefcafe" + "1" * 52)
+
+    # Placeholders collide, but the full-digest identity diverges.
+    assert change_a.unified_diff_vs_parent == change_b.unified_diff_vs_parent
+    assert _change_identity(change_a) != _change_identity(change_b)
+    assert _classify_agreement({"a": change_a, "b": change_b}) == "split"
+
+
+def test_binary_change_identity_agrees_on_matching_full_digest() -> None:
+    """Identical full digests classify as agreement even with a shared placeholder."""
+    placeholder = "[binary · 192 · sha256:deadbeefcafe]"
+    digest = "deadbeefcafe" + "0" * 52
+    change_a = _binary_change("a", placeholder=placeholder, digest=digest)
+    change_b = _binary_change("b", placeholder=placeholder, digest=digest)
+
+    assert _change_identity(change_a) == _change_identity(change_b)
+    assert _classify_agreement({"a": change_a, "b": change_b}) == "unanimous_change"
+
+
+def test_binary_placeholder_accepts_precomputed_digest() -> None:
+    """`_binary_placeholder` reuses a precomputed digest and equals the implicit hash."""
+    import hashlib
+
+    data = b"\x00\x01\x02" * 8
+    full = hashlib.sha256(data).hexdigest()
+    assert _binary_placeholder(data, digest=full) == _binary_placeholder(data)
+    assert full[:12] in _binary_placeholder(data, digest=full)
+
+
+async def test_build_diff_report_rejects_duplicate_status_ids() -> None:
+    """Bug 84: duplicate runtime status ids would clobber per-branch maps."""
+    parent = StateBackend()
+    overlay_a = await _overlay_with_writes(parent, {"foo.py": "a\n"})
+    overlay_b = await _overlay_with_writes(parent, {"foo.py": "b\n"})
+    runtime_a = await _make_runtime(branch_id="dup", label="alpha", overlay=overlay_a)
+    runtime_b = await _make_runtime(branch_id="dup", label="beta", overlay=overlay_b)
+    with pytest.raises(ValueError, match="unique runtime status ids"):
+        build_diff_report("fork-dup", [runtime_a, runtime_b])
+
+
+def test_decode_text_returns_none_for_invalid_utf8() -> None:
+    """Unit test: `_decode_text` returns None for non-UTF-8 bytes.
+
+    Covers the failure path that callers map to `new_content=None` or
     parent_content=None. Tested at the helper boundary because
-    ``StateBackend`` normalises bytes through ``errors="replace"`` and
+    `StateBackend` normalises bytes through `errors="replace"` and
     therefore never feeds invalid UTF-8 into the higher-level builder.
     """
     assert _decode_text(b"\xff\xfe latin1") is None
@@ -496,10 +566,10 @@ async def test_diff_branch_with_no_overlay_marked_untouched() -> None:
 
 
 async def test_diff_all_branches_no_overlay_with_filter() -> None:
-    """All runtimes have ``overlay=None`` → parent_backend stays None inside the loop.
+    """All runtimes have `overlay=None` → parent_backend stays None inside the loop.
 
-    Exercises the ``parent_backend is None`` fall-through inside the path
-    loop — only reachable when a ``paths_filter`` forces at least one
+    Exercises the `parent_backend is None` fall-through inside the path
+    loop — only reachable when a `paths_filter` forces at least one
     iteration even though no branch has an overlay.
     """
     report = build_diff_report(
@@ -519,7 +589,7 @@ async def test_diff_all_branches_no_overlay_with_filter() -> None:
 async def test_diff_unique_when_first_branch_is_untouched() -> None:
     """Dict-order trick: untouched branch listed first → loop skips it before breaking.
 
-    Covers the ``continue past untouched`` branch in ``per_branch_unique``
+    Covers the `continue past untouched` branch in `per_branch_unique`
     accumulation, which a straightforward dict where the touched branch
     is inserted first would never hit.
     """
@@ -570,7 +640,7 @@ def test_diff_empty_runtimes_list() -> None:
 
 
 # ---------------------------------------------------------------------------
-# build_diff_report — ``operation="deleted"`` rendering for recorded deletes
+# build_diff_report — `operation="deleted"` rendering for recorded deletes
 # ---------------------------------------------------------------------------
 
 
@@ -685,12 +755,12 @@ def _seed_history(text: str) -> list[Any]:
 
 
 def _make_tool_ctx(deps: DeepAgentDeps) -> RunContext[DeepAgentDeps]:
-    """Build a minimal ``RunContext`` for invoking a tool function directly.
+    """Build a minimal `RunContext` for invoking a tool function directly.
 
-    ``RunContext`` has no public test factory; ``__new__`` produces an
-    uninitialised instance whose only used attribute is ``deps``. Anything
-    else accessed on the returned context will ``AttributeError`` — the
-    tests only exercise the ``ctx.deps`` path.
+    `RunContext` has no public test factory; `__new__` produces an
+    uninitialised instance whose only used attribute is `deps`. Anything
+    else accessed on the returned context will `AttributeError` — the
+    tests only exercise the `ctx.deps` path.
     """
     ctx = cast(Any, RunContext.__new__(RunContext))
     ctx.deps = deps
@@ -703,8 +773,8 @@ async def _make_coord_with_fork(
 ) -> tuple[DeepAgentDeps, ForkCoordinator, Any]:
     """Build a wired DeepAgentDeps + ForkCoordinator pair for tool-level tests.
 
-    Returns ``(deps, coordinator, handle)`` — ``handle`` is ``None`` when
-    ``with_handle=False`` (caller wants a coordinator that has not yet forked).
+    Returns `(deps, coordinator, handle)` — `handle` is `None` when
+    `with_handle=False` (caller wants a coordinator that has not yet forked).
     """
     agent = _make_test_agent()
     deps = DeepAgentDeps(backend=StateBackend())
@@ -727,11 +797,11 @@ async def _make_coord_with_fork(
 
 
 def _diff_tool_from(toolset: Any) -> Any:
-    """Pull the ``diff_branches`` tool function out of a forking toolset.
+    """Pull the `diff_branches` tool function out of a forking toolset.
 
-    Centralises the ``toolset.tools`` access — ``tools`` is a public
-    attribute on ``FunctionToolset`` but not on the ``AbstractToolset``
-    base, so callers iterating ``agent.toolsets`` need to narrow the type.
+    Centralises the `toolset.tools` access — `tools` is a public
+    attribute on `FunctionToolset` but not on the `AbstractToolset`
+    base, so callers iterating `agent.toolsets` need to narrow the type.
     """
     return toolset.tools["diff_branches"]
 
@@ -809,7 +879,7 @@ async def test_diff_tool_returns_typed_report_on_success() -> None:
 
 
 async def test_public_build_diff_report_entry_point() -> None:
-    """``build_diff_report`` is re-exported and produces the same report shape."""
+    """`build_diff_report` is re-exported and produces the same report shape."""
     from pydantic_deep import build_diff_report
 
     parent = StateBackend()
@@ -833,16 +903,16 @@ async def test_public_build_diff_report_entry_point() -> None:
 
 
 async def test_diff_branches_tool_wired_through_create_deep_agent() -> None:
-    """The ``forking=True`` wiring path produces a working ``diff_branches`` tool.
+    """The `forking=True` wiring path produces a working `diff_branches` tool.
 
     Goes beyond a registration check — finds the registered
-    ``LiveForkCapability`` instance, simulates ``for_run`` to allocate a
-    coordinator, then invokes the registered ``diff_branches`` tool and
+    `LiveForkCapability` instance, simulates `for_run` to allocate a
+    coordinator, then invokes the registered `diff_branches` tool and
     asserts it returns a typed :class:`BranchDiffReport`.
 
-    Avoids ``agent.run`` because ``TestModel`` auto-calls every registered
-    tool with stub payloads, which makes ``fork_run`` raise on the warmup.
-    Simulating ``for_run`` directly is the smallest test surface that still
+    Avoids `agent.run` because `TestModel` auto-calls every registered
+    tool with stub payloads, which makes `fork_run` raise on the warmup.
+    Simulating `for_run` directly is the smallest test surface that still
     proves the full wiring chain works.
     """
     agent = create_deep_agent(model=TestModel(), forking=True)

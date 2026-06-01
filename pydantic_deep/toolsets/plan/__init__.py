@@ -1,8 +1,8 @@
 """Plan toolset for interactive implementation planning.
 
 Provides Claude Code-style plan mode with:
-- ``ask_user``: Ask questions with predefined options during planning
-- ``save_plan``: Save implementation plans to markdown files
+- `ask_user`: Ask questions with predefined options during planning
+- `save_plan`: Save implementation plans to markdown files
 - Built-in planner subagent instructions
 """
 

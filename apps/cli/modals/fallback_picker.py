@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -17,7 +19,7 @@ _NO_FALLBACK_ID = "__no_fallback__"
 class FallbackPickerModal(ModalScreen[str | None]):
     """Modal for selecting an optional fallback model.
 
-    Returns the selected model string, or ``None`` when the user chooses
+    Returns the selected model string, or `None` when the user chooses
     "No fallback" or dismisses the modal.
     """
 
@@ -58,7 +60,6 @@ class FallbackPickerModal(ModalScreen[str | None]):
         self._current_fallback = current_fallback
 
     def compose(self) -> ComposeResult:
-        import os
 
         with Vertical(id="fallback-container"):
             yield Static(f"[bold]Select fallback for[/bold] [cyan]{self._primary_model}[/cyan]")

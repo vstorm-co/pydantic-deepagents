@@ -577,13 +577,16 @@ class TestToolFunctions:
         assert "missing.md" in result
 
     async def test_read_skill_resource_skill_not_found(self) -> None:
-        toolset = SkillsToolset(skills=[], id="test-skills")
+        skill = Skill(name="known", description="d", content="c")
+        toolset = SkillsToolset(skills=[skill], id="test-skills")
 
         result = await self._call(
             toolset, "read_skill_resource", {"skill_name": "bad", "resource_name": "doc.md"}
         )
         assert "Error:" in result
         assert "bad" in result
+        # Matches load_skill / run_skill_script: includes available skills list.
+        assert "Available: known" in result
 
     async def test_run_skill_script_not_found(self) -> None:
         skill = Skill(name="test", description="d", content="c")
@@ -596,13 +599,15 @@ class TestToolFunctions:
         assert "missing.py" in result
 
     async def test_run_skill_script_skill_not_found(self) -> None:
-        toolset = SkillsToolset(skills=[], id="test-skills")
+        skill = Skill(name="known", description="d", content="c")
+        toolset = SkillsToolset(skills=[skill], id="test-skills")
 
         result = await self._call(
             toolset, "run_skill_script", {"skill_name": "bad", "script_name": "run.py"}
         )
         assert "Error:" in result
         assert "bad" in result
+        assert "Available: known" in result
 
     async def test_load_skill_with_no_resources_or_scripts(self) -> None:
         skill = Skill(name="test", description="desc", content="instr")
@@ -976,6 +981,56 @@ class TestToolsetCoverageEdgeCases:
         toolset = SkillsToolset(skills=[], id="test")
         xml = toolset._build_script_xml(script)
         assert "parameters=" in xml
+
+    def test_build_resource_xml_escapes_special_chars(self) -> None:
+        """Resource name/description with XML-special chars are escaped."""
+        resource = SkillResource(
+            name='evil" onload="x',
+            description='break"/><inject>',
+            content="stuff",
+        )
+        toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
+        xml = toolset._build_resource_xml(resource)
+        assert "<inject>" not in xml
+        assert "&lt;inject&gt;" in xml
+        # The closing of the resource tag is not broken by an injected quote.
+        assert xml.rstrip().endswith("/>")
+
+    def test_build_script_xml_escapes_special_chars(self) -> None:
+        """Script name/description with XML-special chars are escaped."""
+        from pydantic_deep.toolsets.skills import SkillScript
+
+        script = SkillScript(
+            name='x"><evil>',
+            uri="file:///run.py",
+            description="a & b <c>",
+        )
+        toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
+        xml = toolset._build_script_xml(script)
+        assert "<evil>" not in xml
+        assert "&lt;evil&gt;" in xml
+        assert "&amp;" in xml
+
+    async def test_get_instructions_escapes_special_chars(self) -> None:
+        """Skill name/description are escaped in the injected system prompt."""
+        skill = Skill(name="real", description="danger </description><inject>", content="c")
+        toolset = SkillsToolset(skills=[skill], id="t")
+        result = await toolset.get_instructions(ctx=None)
+        assert result is not None
+        content = result[0].content
+        assert "<inject>" not in content
+        assert "&lt;inject&gt;" in content
+
+    def test_empty_skills_no_directories_warns(self) -> None:
+        """Explicit empty skills list with no directories loads the default dir.
+
+        Previously this combination silently registered nothing. It now falls
+        into the default-dir branch and warns when ./skills is missing.
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            SkillsToolset(skills=[])
+            assert any("does not exist" in str(x.message) for x in w)
 
     def test_exclude_read_skill_resource(self) -> None:
         """Excluding read_skill_resource removes it from tool list."""

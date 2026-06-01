@@ -8,6 +8,8 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Input, Static
 
+from apps.cli.config import DEFAULT_CONFIG_PATH, CliConfig, load_config, set_config_value
+
 
 class SettingsScreen(Screen):
     """Full-screen settings form. Reads from config.toml, writes on Save."""
@@ -53,7 +55,6 @@ class SettingsScreen(Screen):
         self._config_path = None
 
     def compose(self) -> ComposeResult:
-        from apps.cli.config import DEFAULT_CONFIG_PATH, load_config
 
         self._config = load_config()
         self._config_path = DEFAULT_CONFIG_PATH
@@ -119,7 +120,6 @@ class SettingsScreen(Screen):
 
     def _save_config(self) -> None:
         """Save current form values to config.toml."""
-        from apps.cli.config import set_config_value
 
         if self._config_path is None:
             return
@@ -134,13 +134,17 @@ class SettingsScreen(Screen):
         approve = self.query_one("#cfg-approve_tools", Input).value.strip()
         fields_to_save.append(("approve_tools", approve))
 
+        # Always persist thinking_effort: an empty string is coerced to None by
+        # set_config_value, so clearing the field resets it to the default
+        # ("high") instead of silently keeping the old persisted value.
         thinking = self.query_one("#cfg-thinking_effort", Input).value.strip()
-        if thinking:
-            fields_to_save.append(("thinking_effort", thinking))
+        fields_to_save.append(("thinking_effort", thinking))
 
+        # Always persist temperature: an empty string is coerced to None by
+        # set_config_value, so clearing the field resets it to the provider
+        # default instead of silently keeping the old persisted value.
         temp = self.query_one("#cfg-temperature", Input).value.strip()
-        if temp:
-            fields_to_save.append(("temperature", temp))
+        fields_to_save.append(("temperature", temp))
 
         # Checkboxes
         checkbox_fields = [
@@ -174,7 +178,6 @@ class SettingsScreen(Screen):
 
     def _reset_to_defaults(self) -> None:
         """Reset all form fields to default config values."""
-        from apps.cli.config import CliConfig
 
         defaults = CliConfig()
 

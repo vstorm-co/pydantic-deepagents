@@ -16,13 +16,20 @@ from typing import Any
 from pydantic_deep.improve.extractor import SessionExtractor
 from pydantic_deep.improve.synthesizer import InsightSynthesizer
 from pydantic_deep.improve.types import ImprovementReport, ProposedChange, SessionInsights
+from pydantic_deep.toolsets.memory import DEFAULT_MEMORY_DIR, get_memory_path
 
-# Default context file mapping: logical name → path relative to working_dir.
+# Default MEMORY.md path, aligned with the memory toolset's default location
+# (`get_memory_path(DEFAULT_MEMORY_DIR, "main")`) so that improve writes
+# memory changes where the toolset reads them. The leading slash is stripped so
+# the path composes correctly under `working_dir`.
+_DEFAULT_MEMORY_PATH: str = get_memory_path(DEFAULT_MEMORY_DIR, "main").lstrip("/")
+
+# Default context file mapping: logical name -> path relative to working_dir.
 # Callers can override via context_files parameter to match their backend layout.
 DEFAULT_CONTEXT_FILES: dict[str, str] = {
     "SOUL.md": "SOUL.md",
     "AGENTS.md": "AGENTS.md",
-    "MEMORY.md": ".pydantic-deep/main/MEMORY.md",
+    "MEMORY.md": _DEFAULT_MEMORY_PATH,
 }
 
 # State file location
@@ -33,19 +40,34 @@ _STATE_FILE = "improve_state.json"
 ProgressCallback = Any  # Callable[[str, int, int], None]  (stage, current, total)
 
 
+def _parse_md_heading(line: str) -> tuple[int, str] | None:
+    """Parse a markdown heading line into `(level, text)`.
+
+    Returns `None` for non-heading lines. `level` is the number of leading
+    `#` characters and `text` is the heading text with surrounding `#` and
+    whitespace stripped.
+    """
+    stripped = line.lstrip()
+    if not stripped.startswith("#"):
+        return None
+    hashes = len(stripped) - len(stripped.lstrip("#"))
+    return hashes, stripped[hashes:].strip()
+
+
 class ImprovementAnalyzer:
     """Orchestrates the full improve pipeline.
 
     Discovers sessions, extracts insights per session (in parallel),
     loads current context files, and synthesizes proposed changes.
 
-    The ``context_files`` parameter controls where context files are read
+    The `context_files` parameter controls where context files are read
     from and written to, making this work with any backend layout::
 
         # Default (CLI/TUI with LocalBackend):
         analyzer = ImprovementAnalyzer(working_dir=Path("."))
-        # → reads SOUL.md, AGENTS.md from root
-        # → reads MEMORY.md from .pydantic-deep/main/MEMORY.md
+        # reads SOUL.md, AGENTS.md from root
+        # reads MEMORY.md from .deep/memory/main/MEMORY.md (aligned with the
+        # memory toolset default)
 
         # Custom layout (e.g., Docker sandbox):
         analyzer = ImprovementAnalyzer(
@@ -53,7 +75,7 @@ class ImprovementAnalyzer:
             context_files={
                 "SOUL.md": "SOUL.md",
                 "AGENTS.md": "AGENTS.md",
-                "MEMORY.md": "/.deep/memory/main/MEMORY.md",
+                "MEMORY.md": ".pydantic-deep/main/MEMORY.md",
             },
         )
     """
@@ -71,7 +93,7 @@ class ImprovementAnalyzer:
         Args:
             model: Model identifier for extraction and synthesis agents.
             sessions_dir: Directory containing session folders with messages.json.
-                Defaults to ``~/.pydantic-deep/sessions``.
+                Defaults to `~/.pydantic-deep/sessions`.
             working_dir: Working directory where context files live.
                 Defaults to current working directory.
             on_progress: Callback for progress updates.
@@ -149,7 +171,7 @@ class ImprovementAnalyzer:
         insights: list[SessionInsights] = []
         total_chunks = 0
         failed_sessions = 0
-        last_error: Exception | None = None
+        extraction_errors: list[tuple[str, Exception]] = []
         for i, path in enumerate(session_paths):
             self._progress("extracting", i + 1, len(session_paths))
             try:
@@ -158,7 +180,7 @@ class ImprovementAnalyzer:
                 total_chunks += chunks
             except Exception as exc:
                 failed_sessions += 1
-                last_error = exc
+                extraction_errors.append((path.name, exc))
 
         # 3. Load current context files + raw tool sequences
         self._progress("synthesizing", 0, 1)
@@ -180,7 +202,8 @@ class ImprovementAnalyzer:
             insights=insights,
             proposed_changes=proposed_changes,
             failed_sessions=failed_sessions,
-            last_error=last_error,
+            last_error=extraction_errors[-1][1] if extraction_errors else None,
+            extraction_errors=extraction_errors,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
@@ -259,7 +282,7 @@ class ImprovementAnalyzer:
 
         Uses the context_files mapping to resolve logical names to actual
         paths. For example, a change targeting "MEMORY.md" will be written
-        to ``.pydantic-deep/main/MEMORY.md`` by default.
+        to `.deep/memory/main/MEMORY.md` by default.
 
         Args:
             changes: List of proposed changes to apply.
@@ -299,30 +322,38 @@ class ImprovementAnalyzer:
                     continue
 
                 existing = filepath.read_text(encoding="utf-8")
-                if change.section and change.section in existing:
-                    # Replace the section content
-                    # Find the section and replace until next heading or EOF
-                    lines = existing.splitlines(keepends=True)
-                    new_lines: list[str] = []
-                    in_section = False
-                    replaced = False
-                    for line in lines:
-                        if change.section in line and not replaced:
-                            in_section = True
-                            new_lines.append(line)
-                            new_lines.append("\n")
-                            new_lines.append(change.content)
-                            new_lines.append("\n")
-                            continue
-                        if in_section:
-                            # Skip until next heading or end
-                            stripped = line.strip()
-                            if stripped.startswith("#") and change.section not in line:
-                                in_section = False
-                                replaced = True
-                                new_lines.append(line)
-                        else:
-                            new_lines.append(line)
+                lines = existing.splitlines(keepends=True)
+
+                # Match the section only on a heading line whose text equals the
+                # requested section (after stripping leading `#` and whitespace
+                # from both), so a section name appearing in body prose is never
+                # mistaken for the heading.
+                section_text = change.section.lstrip("#").strip() if change.section else ""
+                match_index = -1
+                match_level = 0
+                if section_text:
+                    for idx, line in enumerate(lines):
+                        heading = _parse_md_heading(line)
+                        if heading is not None and heading[1] == section_text:
+                            match_index, match_level = idx, heading[0]
+                            break
+
+                if match_index >= 0:
+                    # Replace the section body: keep the heading, swap in the new
+                    # content, and terminate at the next heading of the same or
+                    # higher level (fewer-or-equal `#`). When the section is the
+                    # last one, `end_index` stays at EOF so nothing is lost.
+                    end_index = len(lines)
+                    for idx in range(match_index + 1, len(lines)):
+                        heading = _parse_md_heading(lines[idx])
+                        if heading is not None and heading[0] <= match_level:
+                            end_index = idx
+                            break
+                    new_lines = lines[: match_index + 1]
+                    new_lines.append("\n")
+                    new_lines.append(change.content)
+                    new_lines.append("\n")
+                    new_lines.extend(lines[end_index:])
                     filepath.write_text("".join(new_lines), encoding="utf-8")
                 else:
                     # No section match, append instead
@@ -332,6 +363,15 @@ class ImprovementAnalyzer:
                         encoding="utf-8",
                     )
                 modified.append(target)
+
+            else:
+                # Guard against unknown change types. Without this, an
+                # unrecognized value would be silently dropped, leaving the
+                # caller to believe the change was handled.
+                raise ValueError(
+                    f"Unknown change_type {change.change_type!r} for target "
+                    f"{target!r}; expected 'append', 'update', or 'create'."
+                )
 
         return modified
 

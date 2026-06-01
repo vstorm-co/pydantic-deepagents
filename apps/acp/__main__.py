@@ -12,6 +12,9 @@ import asyncio
 import os
 from pathlib import Path
 
+from acp import run_agent
+from apps.acp.server import AgentSessionContext, DeepAgentACP
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="pydantic-deep ACP server")
@@ -35,8 +38,6 @@ def main() -> None:
                     if key and key not in os.environ:
                         os.environ[key] = value
 
-    from acp import run_agent
-    from apps.acp.server import AgentSessionContext, DeepAgentACP
     from pydantic_deep import create_deep_agent
 
     # Auto-detect default model from available API keys

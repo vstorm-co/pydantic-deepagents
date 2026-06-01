@@ -85,6 +85,9 @@ browser = [
     "playwright>=1.40.0",
     "html2text>=2020.1",
 ]
+# MCP (Model Context Protocol) client support — connect to MCP servers.
+# py-key-value-aio[disk] persists OAuth tokens (e.g. hosted Figma) across runs.
+mcp = ["pydantic-ai-slim[mcp]>=1.97.0", "py-key-value-aio[disk]>=0.4.5"]
 # Document parsing via LiteParse (requires Node.js >= 18)
 liteparse = ["liteparse>=0.1.0"]
 # ACP (Agent Client Protocol) support for editor integration
@@ -93,7 +96,7 @@ acp = ["agent-client-protocol>=0.8.0"]
 logfire = ["logfire>=4.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse]",
+    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse,mcp]",
 ]
 
 [project.urls]

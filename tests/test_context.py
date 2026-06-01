@@ -1,5 +1,6 @@
 """Tests for project context file loading and injection."""
 
+import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
@@ -17,7 +18,7 @@ from pydantic_deep import (
     format_context_prompt,
     load_context_files,
 )
-from pydantic_deep.toolsets.context import _truncate_content
+from pydantic_deep.toolsets.context import _discover_and_load, _truncate_content
 
 TEST_MODEL = TestModel()
 
@@ -163,6 +164,39 @@ class TestDiscoverContextFiles:
         assert found == ["/project/AGENTS.md"]
 
 
+class TestDiscoverAndLoad:
+    """Tests for the _discover_and_load single-pass helper."""
+
+    def test_returns_loaded_files(self):
+        """Test discovery and loading in one pass."""
+        backend = StateBackend()
+        backend.write("/AGENTS.md", "# Agents")
+        backend.write("/SOUL.md", "# Soul")
+
+        files = _discover_and_load(backend)
+        names = {f.name for f in files}
+        assert "AGENTS.md" in names
+        assert "SOUL.md" in names
+
+    def test_none_found(self):
+        """Test empty backend returns empty list."""
+        backend = StateBackend()
+        assert _discover_and_load(backend) == []
+
+    def test_custom_filenames_and_search_path(self):
+        """Test custom filenames and search path with trailing slash."""
+        backend = StateBackend()
+        backend.write("/project/CUSTOM.md", "# Custom")
+
+        files = _discover_and_load(
+            backend, search_path="/project/", filenames=["CUSTOM.md", "MISSING.md"]
+        )
+        assert len(files) == 1
+        assert files[0].name == "CUSTOM.md"
+        assert files[0].path == "/project/CUSTOM.md"
+        assert files[0].content == "# Custom"
+
+
 class TestTruncateContent:
     """Tests for _truncate_content helper."""
 
@@ -199,6 +233,16 @@ class TestTruncateContent:
         # Tail: 30% of 500 = 150 chars
         assert result[-150:] == "T" * 150
         assert "[500 chars truncated]" in result
+
+    def test_zero_max_chars_drops_all_content(self):
+        """Test that max_chars=0 yields only the marker, not the full content."""
+        content = "A" * 100
+        result = _truncate_content(content, 0)
+
+        # With max_chars=0 both head and tail are empty; content[-0:] must not
+        # leak the entire string back into the result.
+        assert "A" not in result
+        assert "[100 chars truncated]" in result
 
 
 class TestFormatContextPrompt:
@@ -392,6 +436,48 @@ class TestContextToolset:
         result = await toolset.get_instructions(ctx)
         assert result is None
 
+    async def test_get_instructions_no_backend_returns_none(self):
+        """Test get_instructions returns None when deps has no backend attribute."""
+
+        class _NoBackendDeps:
+            pass
+
+        ctx = RunContext(
+            deps=_NoBackendDeps(),
+            model=TEST_MODEL,
+            usage=RunUsage(),
+        )
+
+        toolset = ContextToolset(context_discovery=True)
+        result = await toolset.get_instructions(ctx)
+        assert result is None
+
+    async def test_get_instructions_discovery_reads_each_file_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test discovery reads each context file's bytes only once."""
+        backend = StateBackend()
+        backend.write("/AGENTS.md", "# Agents")
+        ctx = _make_ctx(backend)
+
+        read_counts: dict[str, int] = {}
+        original_read = backend.read_bytes
+
+        def _counting_read(path: str) -> bytes:
+            read_counts[path] = read_counts.get(path, 0) + 1
+            data: bytes = original_read(path)
+            return data
+
+        monkeypatch.setattr(backend, "read_bytes", _counting_read)
+
+        toolset = ContextToolset(context_discovery=True)
+        result = await toolset.get_instructions(ctx)
+
+        assert result is not None
+        # Found files must be read exactly once, not once to test existence and
+        # again to load contents.
+        assert read_counts["/AGENTS.md"] == 1
+
 
 class TestCreateDeepAgentContext:
     """Tests for create_deep_agent with context parameters."""
@@ -454,7 +540,8 @@ class TestPerSubagentContext:
         assert agent is not None
 
     def test_per_subagent_context_injects_toolset(self):
-        """Test that context_files injects ContextToolset into config toolsets."""
+        """context_files injection adds a ContextToolset to the config toolsets."""
+        from pydantic_deep.agent import _inject_subagent_context_toolset
         from pydantic_deep.types import SubAgentConfig
 
         config = SubAgentConfig(
@@ -463,19 +550,17 @@ class TestPerSubagentContext:
             instructions="Write code",
             context_files=["/agents/coder/AGENTS.md"],
         )
-        subagents = [config]
+        _inject_subagent_context_toolset(config)
 
-        create_deep_agent(model=TEST_MODEL, subagents=subagents)
-
-        # After create_deep_agent, config["toolsets"] should contain ContextToolset
         assert "toolsets" in config
         toolset_types = [type(t).__name__ for t in config["toolsets"]]
         assert "ContextToolset" in toolset_types
 
     def test_per_subagent_preserves_existing_toolsets(self):
-        """Test that existing config toolsets are not lost."""
+        """Existing config toolsets are not lost when a ContextToolset is added."""
         from pydantic_ai.toolsets import FunctionToolset
 
+        from pydantic_deep.agent import _inject_subagent_context_toolset
         from pydantic_deep.types import SubAgentConfig
 
         existing_toolset = FunctionToolset(id="custom")
@@ -487,18 +572,16 @@ class TestPerSubagentContext:
             context_files=["/CODING_RULES.md"],
             toolsets=[existing_toolset],
         )
-        subagents = [config]
+        _inject_subagent_context_toolset(config)
 
-        create_deep_agent(model=TEST_MODEL, subagents=subagents)
-
-        # Should have existing toolset + ContextToolset + AgentMemoryToolset
         toolset_types = [type(t).__name__ for t in config["toolsets"]]
         assert "FunctionToolset" in toolset_types
         assert "ContextToolset" in toolset_types
         assert len(config["toolsets"]) >= 2
 
     def test_per_subagent_no_context_files_no_context_injection(self):
-        """Test that configs without context_files don't get ContextToolset."""
+        """Configs without context_files are left untouched (no ContextToolset)."""
+        from pydantic_deep.agent import _inject_subagent_context_toolset
         from pydantic_deep.types import SubAgentConfig
 
         config = SubAgentConfig(
@@ -506,11 +589,9 @@ class TestPerSubagentContext:
             description="Generic worker",
             instructions="Do tasks",
         )
-        subagents = [config]
+        _inject_subagent_context_toolset(config)
 
-        create_deep_agent(model=TEST_MODEL, subagents=subagents)
-
-        # config should NOT have ContextToolset added
+        # No context_files -> early return, no toolsets key injected.
         if "toolsets" in config:
             toolset_types = [type(t).__name__ for t in config["toolsets"]]
             assert "ContextToolset" not in toolset_types
@@ -522,9 +603,9 @@ class TestPerSubagentContext:
         so they should not be filtered (unlike shared base context).
         """
         config_toolset = ContextToolset(
-            context_files=["/agents/coder/SOUL.md"],  # SOUL.md — normally filtered for subagents
+            context_files=["/agents/coder/SOUL.md"],  # SOUL.md - normally filtered for subagents
         )
-        # is_subagent defaults to False — no filtering
+        # is_subagent defaults to False - no filtering
         assert config_toolset._is_subagent is False
 
 

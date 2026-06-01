@@ -1,12 +1,13 @@
 """Project initialization for pydantic-deep CLI.
 
-Creates the ``.pydantic-deep/`` directory structure with scaffolding:
+Creates the `.pydantic-deep/` directory structure with scaffolding:
 config, memory template, skills (copied from built-in), sessions dir.
 """
 
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 _AGENTS_MD_TEMPLATE = """\
@@ -41,7 +42,7 @@ approve_tools = ["execute"]
 
 
 def init_project(root: Path | None = None, *, quiet: bool = False) -> Path:
-    """Initialize ``.pydantic-deep/`` directory with scaffolding.
+    """Initialize `.pydantic-deep/` directory with scaffolding.
 
     Idempotent — safe to call multiple times. Existing files are not
     overwritten.
@@ -51,7 +52,7 @@ def init_project(root: Path | None = None, *, quiet: bool = False) -> Path:
         quiet: Suppress output messages.
 
     Returns:
-        Path to the ``.pydantic-deep/`` directory.
+        Path to the `.pydantic-deep/` directory.
     """
     root = root or Path.cwd()
     pd_dir = root / ".pydantic-deep"
@@ -119,13 +120,13 @@ def _copy_builtin_skills(target_dir: Path, *, quiet: bool = False) -> None:
 
 
 def ensure_initialized(root: Path | None = None) -> Path:
-    """Ensure ``.pydantic-deep/`` exists with all scaffolding.
+    """Ensure `.pydantic-deep/` exists with all scaffolding.
 
-    Idempotent — calls ``init_project`` which only creates missing
+    Idempotent — calls `init_project` which only creates missing
     files and directories, never overwrites existing ones.
 
     Returns:
-        Path to the ``.pydantic-deep/`` directory.
+        Path to the `.pydantic-deep/` directory.
     """
     root = root or Path.cwd()
     return init_project(root, quiet=True)
@@ -133,7 +134,6 @@ def ensure_initialized(root: Path | None = None) -> Path:
 
 def _log(msg: str) -> None:
     """Print a message to stderr."""
-    import sys
 
     print(msg, file=sys.stderr)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -91,6 +92,20 @@ class TestShouldFire:
         cfg = PeriodicReminderConfig(every_n_turns=1, first_after=1)
         for turn in range(1, 20):
             assert _should_fire(turn, turn - 1, cfg)
+
+
+class TestConfigValidation:
+    def test_rejects_zero_every_n_turns(self) -> None:
+        with pytest.raises(ValueError, match="every_n_turns must be >= 1"):
+            PeriodicReminderConfig(every_n_turns=0)
+
+    def test_rejects_negative_every_n_turns(self) -> None:
+        with pytest.raises(ValueError, match="every_n_turns must be >= 1"):
+            PeriodicReminderConfig(every_n_turns=-3)
+
+    def test_accepts_minimum_every_n_turns(self) -> None:
+        cfg = PeriodicReminderConfig(every_n_turns=1)
+        assert cfg.every_n_turns == 1
 
 
 class TestRender:
@@ -444,7 +459,9 @@ class TestLLMReminderGenerator:
         assert MockAgent.call_count == 1
 
     @pytest.mark.anyio
-    async def test_exception_fallback_to_default_generate(self) -> None:
+    async def test_exception_fallback_to_default_generate(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         gen = LLMReminderGenerator(model="anthropic:claude-haiku-4-5-20251001")
         msgs = _make_messages("Do the thing")
 
@@ -453,9 +470,14 @@ class TestLLMReminderGenerator:
             mock_instance.run = AsyncMock(side_effect=RuntimeError("network fail"))
             MockAgent.return_value = mock_instance
 
-            result = await gen(_ctx(), 1, msgs)
+            with caplog.at_level(
+                logging.WARNING, logger="pydantic_deep.capabilities.periodic_reminder"
+            ):
+                result = await gen(_ctx(), 1, msgs)
 
         assert "Do the thing" in result
+        assert "failed to generate a reminder" in caplog.text
+        assert "network fail" in caplog.text
 
 
 class TestMakeConfigForMode:

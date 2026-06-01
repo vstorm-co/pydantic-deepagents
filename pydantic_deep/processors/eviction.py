@@ -6,9 +6,9 @@ a preview + file reference, preventing context pollution.
 Pattern inspired by deepagents FilesystemMiddleware._intercept_large_tool_result().
 Architecture follows summarization-pydantic-ai (SummarizationProcessor pattern).
 
-Uses ``RunContext`` to access the runtime backend from deps, ensuring evicted
+Uses `RunContext` to access the runtime backend from deps, ensuring evicted
 files are written to the same backend that console tools (read_file, grep) use.
-Falls back to ``self.backend`` for standalone usage without ``RunContext``.
+Falls back to `self.backend` for standalone usage without `RunContext`.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
+from collections import OrderedDict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -34,7 +35,7 @@ from pydantic_ai_backends import BackendProtocol
 NUM_CHARS_PER_TOKEN = 4
 """Approximate number of characters per token.
 
-Same convention as ``count_tokens_approximately`` in summarization-pydantic-ai.
+Same convention as `count_tokens_approximately` in summarization-pydantic-ai.
 """
 
 DEFAULT_TOKEN_LIMIT = 20_000
@@ -49,8 +50,23 @@ DEFAULT_HEAD_LINES = 5
 DEFAULT_TAIL_LINES = 5
 """Default number of lines to show from the end of content in preview."""
 
+DEFAULT_PREVIEW_MAX_CHARS = 2_000
+"""Default character cap for a preview.
+
+The head/tail line logic does nothing for content with few or no newlines
+(minified JSON, base64 blobs): the whole payload is a single "line". This cap
+bounds the preview by characters so eviction actually shrinks the context
+rather than just mirroring the payload back into the message."""
+
 DEFAULT_MAX_BINARY_CONTENT = 3
 """Default maximum number of multimodal binary parts to keep in history."""
+
+DEFAULT_MAX_EVICTED_IDS = 1_000
+"""Cap on remembered already-evicted tool_call_ids (legacy `EvictionProcessor`).
+
+The set of evicted IDs would otherwise grow for the whole session. Older IDs
+are dropped FIFO once the cap is reached; the only cost of forgetting one is a
+harmless re-eviction if that (already-replaced) part somehow reappears."""
 
 EVICTION_MESSAGE_TEMPLATE = """Tool result too large, saved to: {file_path}
 
@@ -67,7 +83,7 @@ BINARY_PRUNED_TEMPLATE = (
     "[Binary content omitted: {media_type}, {size} bytes, "
     'saved to {file_path}. Use read_file(path="{file_path}") to retrieve.]'
 )
-"""Template for the text replacement of a pruned ``BinaryContent`` part."""
+"""Template for the text replacement of a pruned `BinaryContent` part."""
 
 _MEDIA_TYPE_EXTENSIONS: dict[str, str] = {
     "image/jpeg": "jpg",
@@ -97,10 +113,10 @@ _MEDIA_TYPE_EXTENSIONS: dict[str, str] = {
 
 
 def _extension_for_media_type(media_type: str) -> str:
-    """Return a filename extension for ``media_type``.
+    """Return a filename extension for `media_type`.
 
-    Falls back to the media subtype (e.g. ``"image/x-foo"`` -> ``"x-foo"``)
-    or ``"bin"`` when the media type cannot be split.
+    Falls back to the media subtype (e.g. `"image/x-foo"` -> `"x-foo"`)
+    or `"bin"` when the media type cannot be split.
     """
     if media_type in _MEDIA_TYPE_EXTENSIONS:
         return _MEDIA_TYPE_EXTENSIONS[media_type]
@@ -112,11 +128,11 @@ def _extension_for_media_type(media_type: str) -> str:
 
 
 def _binary_storage_path(eviction_path: str, binary: BinaryContent) -> str:
-    """Build a deterministic storage path for a ``BinaryContent`` value."""
+    """Build a deterministic storage path for a `BinaryContent` value."""
     # pydantic-ai >=1.97 exposes BinaryContent as a PydanticDataclass whose
-    # fields and the ``identifier`` property are invisible to pyright (the
+    # fields and the `identifier` property are invisible to pyright (the
     # attributes exist at runtime; this is upstream type-info incompleteness).
-    # mypy's pydantic plugin sees them fine, so the ``unused-ignore`` code
+    # mypy's pydantic plugin sees them fine, so the `unused-ignore` code
     # keeps mypy quiet about the pyright-only ignore on the same line.
     extension = _extension_for_media_type(binary.media_type)  # type: ignore[attr-defined, unused-ignore]
     return f"{eviction_path.rstrip('/')}/binary_{binary.identifier}.{extension}"  # type: ignore[attr-defined, unused-ignore]
@@ -131,13 +147,25 @@ def _binary_replacement_text(binary: BinaryContent, file_path: str) -> str:
     )
 
 
-def create_content_preview(content: str, *, head_lines: int = 5, tail_lines: int = 5) -> str:
+def create_content_preview(
+    content: str,
+    *,
+    head_lines: int = 5,
+    tail_lines: int = 5,
+    max_chars: int | None = None,
+) -> str:
     """Create a preview showing the head and tail of content with a truncation marker.
 
     Args:
         content: The full content string to preview.
         head_lines: Number of lines to show from the start.
         tail_lines: Number of lines to show from the end.
+        max_chars: Optional hard character cap applied after the line-based trim.
+            `None` (default) leaves the line-based result as-is. Pass a value
+            to also bound single-line / few-line payloads (minified JSON,
+            base64) that the line logic alone returns whole. Callers that trim
+            by lines only (e.g. unified-diff rendering, which is always
+            multi-line) leave this `None` so the line marker is preserved.
 
     Returns:
         Preview string with head, truncation marker, and tail.
@@ -145,13 +173,43 @@ def create_content_preview(content: str, *, head_lines: int = 5, tail_lines: int
     lines = content.splitlines()
 
     if len(lines) <= head_lines + tail_lines:
-        return content
+        preview = content
+    else:
+        head = lines[:head_lines]
+        tail = lines[-tail_lines:]
+        truncated = len(lines) - head_lines - tail_lines
+        preview = (
+            "\n".join(head) + f"\n\n... [{truncated} lines truncated] ...\n\n" + "\n".join(tail)
+        )
 
-    head = lines[:head_lines]
-    tail = lines[-tail_lines:]
-    truncated = len(lines) - head_lines - tail_lines
+    # Optional character cap - the line logic above is a no-op for content with
+    # few or no newlines, so a single "line" can still be the entire payload.
+    # Bound by characters so eviction genuinely reduces context.
+    if max_chars is not None and len(preview) > max_chars:
+        head_chars = max_chars // 2
+        tail_chars = max_chars - head_chars
+        cut = len(preview) - max_chars
+        preview = (
+            preview[:head_chars]
+            + f"\n\n... [{cut} chars truncated] ...\n\n"
+            + preview[-tail_chars:]
+        )
 
-    return "\n".join(head) + f"\n\n... [{truncated} lines truncated] ...\n\n" + "\n".join(tail)
+    return preview
+
+
+def _contains_binary(value: Any) -> bool:
+    """Return True if `value` is a `BinaryContent` or a list/tuple holding one.
+
+    Such values are multimodal payloads (e.g. screenshots). Text eviction must
+    skip them: `_content_to_str` would coerce the bytes into a text repr,
+    discarding the image and bloating the context with a base64-ish dump.
+    """
+    if isinstance(value, BinaryContent):
+        return True
+    if isinstance(value, (list, tuple)):
+        return any(isinstance(item, BinaryContent) for item in value)
+    return False
 
 
 def _content_to_str(content: Any) -> str:
@@ -190,14 +248,14 @@ def _sanitize_id(tool_call_id: str) -> str:
 class EvictionProcessor:
     """History processor that evicts large tool outputs to files.
 
-    Scans ``ToolReturnPart`` elements in message history and saves
+    Scans `ToolReturnPart` elements in message history and saves
     content exceeding the token limit to the backend filesystem,
     replacing it with a preview + file reference.
 
-    Uses ``RunContext`` to access the runtime backend from deps, ensuring
+    Uses `RunContext` to access the runtime backend from deps, ensuring
     evicted files are written to the same backend that console tools
-    (read_file, grep, execute) use. Falls back to ``self.backend`` for
-    standalone usage without ``RunContext``.
+    (read_file, grep, execute) use. Falls back to `self.backend` for
+    standalone usage without `RunContext`.
 
     Attributes:
         backend: Fallback backend for standalone usage (without RunContext).
@@ -245,15 +303,24 @@ class EvictionProcessor:
     Called with (tool_name, file_path, original_chars, preview_chars).
     """
 
-    _evicted_ids: set[str] = field(default_factory=set, repr=False)
-    """Tracks tool_call_ids that have already been evicted to prevent re-eviction."""
+    max_evicted_ids: int = DEFAULT_MAX_EVICTED_IDS
+    """Upper bound on remembered evicted IDs; oldest are dropped FIFO past this."""
+
+    _evicted_ids: OrderedDict[str, None] = field(default_factory=OrderedDict, repr=False)
+    """Bounded FIFO set of tool_call_ids already evicted, to prevent re-eviction."""
+
+    def _mark_evicted(self, tool_call_id: str) -> None:
+        """Record `tool_call_id` as evicted, dropping the oldest past the cap."""
+        self._evicted_ids[tool_call_id] = None
+        while len(self._evicted_ids) > self.max_evicted_ids:
+            self._evicted_ids.popitem(last=False)
 
     def _resolve_backend(self, ctx: RunContext[Any]) -> BackendProtocol:
         """Resolve the backend to use for writing evicted content.
 
-        Prefers the runtime backend from ``ctx.deps.backend`` to ensure
+        Prefers the runtime backend from `ctx.deps.backend` to ensure
         evicted files are accessible by console tools (read_file, grep).
-        Falls back to ``self.backend`` if deps has no backend attribute.
+        Falls back to `self.backend` if deps has no backend attribute.
 
         Args:
             ctx: The run context from pydantic-ai.
@@ -272,8 +339,8 @@ class EvictionProcessor:
         """Process messages and evict large tool outputs.
 
         This is the main entry point called by pydantic-ai's history
-        processor mechanism before each model request. The ``RunContext``
-        parameter is detected by pydantic-ai's ``is_takes_ctx()`` and
+        processor mechanism before each model request. The `RunContext`
+        parameter is detected by pydantic-ai's `is_takes_ctx()` and
         automatically provided.
 
         Args:
@@ -305,6 +372,12 @@ class EvictionProcessor:
                     new_parts.append(part)  # type: ignore[arg-type]
                     continue
 
+                # Never text-evict multimodal payloads (BinaryContent) - that
+                # would discard the bytes for a text repr.
+                if _contains_binary(part.content):
+                    new_parts.append(part)  # type: ignore[arg-type]
+                    continue
+
                 content_str = _content_to_str(part.content)
 
                 if len(content_str) <= char_limit:
@@ -325,6 +398,7 @@ class EvictionProcessor:
                     content_str,
                     head_lines=self.head_lines,
                     tail_lines=self.tail_lines,
+                    max_chars=DEFAULT_PREVIEW_MAX_CHARS,
                 )
                 replacement = EVICTION_MESSAGE_TEMPLATE.format(
                     file_path=file_path,
@@ -339,7 +413,7 @@ class EvictionProcessor:
                     timestamp=part.timestamp,
                 )
                 new_parts.append(evicted_part)  # type: ignore[arg-type]
-                self._evicted_ids.add(part.tool_call_id)
+                self._mark_evicted(part.tool_call_id)
 
                 if self.on_eviction is not None:
                     _result = self.on_eviction(
@@ -375,7 +449,7 @@ def create_eviction_processor(
 ) -> EvictionProcessor:
     """Create an eviction processor for large tool outputs.
 
-    Factory function following the pattern of ``create_summarization_processor()``
+    Factory function following the pattern of `create_summarization_processor()`
     from summarization-pydantic-ai.
 
     Args:
@@ -420,7 +494,7 @@ from pydantic_ai.tools import ToolDefinition  # noqa: E402
 
 @dataclass
 class EvictionCapability(AbstractCapability[Any]):
-    """Capability that intercepts large tool outputs via ``after_tool_execute``.
+    """Capability that intercepts large tool outputs via `after_tool_execute`.
 
     Unlike :class:`EvictionProcessor` (a history processor that runs after the
     result is already in message history), this capability intercepts the tool
@@ -431,13 +505,13 @@ class EvictionCapability(AbstractCapability[Any]):
     is replaced with a compact preview + file reference.
 
     For tool results that are :class:`pydantic_ai.messages.ToolReturn` values,
-    only the ``return_value`` is considered for size-based eviction; multimodal
-    ``content`` (such as :class:`BinaryContent` screenshots) is preserved.
+    only the `return_value` is considered for size-based eviction; multimodal
+    `content` (such as :class:`BinaryContent` screenshots) is preserved.
 
     Multimodal binary parts that accumulate across messages are bounded by
-    ``max_binary_content`` via :meth:`before_model_request`. Older binaries are
+    `max_binary_content` via :meth:`before_model_request`. Older binaries are
     written to the backend and replaced with a compact retrievable text
-    reference, so the agent can still re-read them via ``read_file``.
+    reference, so the agent can still re-read them via `read_file`.
 
     Args:
         backend: Fallback backend for writing evicted files.
@@ -447,8 +521,8 @@ class EvictionCapability(AbstractCapability[Any]):
         tail_lines: Lines from end in preview.
         max_binary_content: Maximum multimodal binary parts to keep in
             history. Older binaries are persisted to the backend and replaced
-            with a text reference. ``None`` disables binary pruning.
-        on_eviction: Optional callback ``(tool_name, file_path, original_chars, preview_chars)``.
+            with a text reference. `None` disables binary pruning.
+        on_eviction: Optional callback `(tool_name, file_path, original_chars, preview_chars)`.
     """
 
     backend: BackendProtocol | None = None
@@ -477,8 +551,8 @@ class EvictionCapability(AbstractCapability[Any]):
     ) -> Any:
         """Intercept large tool results before they enter message history.
 
-        ``ToolReturn`` results are handled specially: only ``return_value`` is
-        considered for size-based text eviction so multimodal ``content`` (e.g.
+        `ToolReturn` results are handled specially: only `return_value` is
+        considered for size-based text eviction so multimodal `content` (e.g.
         :class:`BinaryContent` screenshots) is never collapsed into a string.
         """
         if isinstance(result, ToolReturn):
@@ -503,11 +577,15 @@ class EvictionCapability(AbstractCapability[Any]):
         call: ToolCallPart,
         value: Any,
     ) -> str | None:
-        """Apply text eviction to ``value``.
+        """Apply text eviction to `value`.
 
-        Returns the replacement text when eviction occurred or ``None`` when
+        Returns the replacement text when eviction occurred or `None` when
         the value is below the threshold or eviction could not be performed.
         """
+        # Never text-evict multimodal payloads - that would turn an image into
+        # its ~100KB text repr and lose the bytes.
+        if _contains_binary(value):
+            return None
         content_str = _content_to_str(value)
         char_limit = self.token_limit * NUM_CHARS_PER_TOKEN
 
@@ -529,6 +607,7 @@ class EvictionCapability(AbstractCapability[Any]):
             content_str,
             head_lines=self.head_lines,
             tail_lines=self.tail_lines,
+            max_chars=DEFAULT_PREVIEW_MAX_CHARS,
         )
         replacement = EVICTION_MESSAGE_TEMPLATE.format(
             file_path=file_path,
@@ -551,11 +630,11 @@ class EvictionCapability(AbstractCapability[Any]):
     ) -> Any:
         """Bound the number of multimodal binary parts in message history.
 
-        Walks ``request_context.messages`` newest-to-oldest and keeps the most
-        recent ``max_binary_content`` :class:`BinaryContent` parts. Older
+        Walks `request_context.messages` newest-to-oldest and keeps the most
+        recent `max_binary_content` :class:`BinaryContent` parts. Older
         binaries are written to the runtime backend and replaced with a
         compact text reference so the agent can still retrieve them via
-        ``read_file``. Binaries are left untouched when no backend is
+        `read_file`. Binaries are left untouched when no backend is
         available or when a write fails, to avoid losing data.
         """
         limit = self.max_binary_content
@@ -582,7 +661,7 @@ def _prune_binaries_in_messages(
     backend: BackendProtocol,
     eviction_path: str,
 ) -> list[ModelMessage]:
-    """Return ``messages`` with older binary parts pruned and stored in ``backend``."""
+    """Return `messages` with older binary parts pruned and stored in `backend`."""
     kept = 0
     new_messages: list[ModelMessage] = list(messages)
 
@@ -648,10 +727,10 @@ def _prune_user_content(
     backend: BackendProtocol,
     eviction_path: str,
 ) -> tuple[str | list[Any], int, bool]:
-    """Prune binaries from a ``UserPromptPart.content`` value.
+    """Prune binaries from a `UserPromptPart.content` value.
 
     Walks the list right-to-left so the most recent binaries (later in the
-    list) are kept. Returns the rebuilt content, updated ``kept`` count, and a
+    list) are kept. Returns the rebuilt content, updated `kept` count, and a
     flag indicating whether any pruning occurred.
     """
     if isinstance(content, str):
@@ -685,7 +764,7 @@ def _prune_tool_return_content(
     backend: BackendProtocol,
     eviction_path: str,
 ) -> tuple[Any, int, bool]:
-    """Prune binaries from a ``ToolReturnPart.content`` value.
+    """Prune binaries from a `ToolReturnPart.content` value.
 
     Handles three shapes:
 
@@ -735,9 +814,9 @@ def _store_and_replace_binary(
     backend: BackendProtocol,
     eviction_path: str,
 ) -> str | None:
-    """Persist ``binary`` to the backend and return a text replacement.
+    """Persist `binary` to the backend and return a text replacement.
 
-    Returns ``None`` when the write fails, signalling that the caller should
+    Returns `None` when the write fails, signalling that the caller should
     keep the original binary in place.
     """
     file_path = _binary_storage_path(eviction_path, binary)

@@ -34,6 +34,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import urllib.parse  # noqa: E402
+
+import httpx  # noqa: E402
+import markdown as md_lib  # noqa: E402
+import uvicorn  # noqa: E402
 from fastapi import (  # noqa: E402
     FastAPI,
     File,
@@ -44,8 +49,9 @@ from fastapi import (  # noqa: E402
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import HTMLResponse, JSONResponse  # noqa: E402
+from fastapi.responses import HTMLResponse, JSONResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
+from pydantic import TypeAdapter  # noqa: E402
 from pydantic_ai import (  # noqa: E402
     BinaryContent,
     FinalResultEvent,
@@ -75,6 +81,7 @@ from pydantic_ai.tools import (  # noqa: E402
     ToolDenied,
 )
 from pydantic_ai.toolsets import AbstractToolset  # noqa: E402
+from subagents_pydantic_ai.types import TaskStatus  # noqa: E402
 
 from pydantic_deep import (  # noqa: E402
     DeepAgentDeps,
@@ -296,7 +303,6 @@ def _save_session_meta(session: UserSession, title: str | None = None) -> None:
 
 def _persist_history(session: UserSession) -> None:
     """Serialize message_history to disk for agent continuity on reload."""
-    from pydantic import TypeAdapter
 
     history_dir = WORKSPACES_DIR / session.session_id
     history_dir.mkdir(parents=True, exist_ok=True)
@@ -310,7 +316,6 @@ def _persist_history(session: UserSession) -> None:
 
 def _restore_history(session_id: str) -> list[ModelMessage] | None:
     """Restore message_history from disk if available."""
-    from pydantic import TypeAdapter
 
     history_file = WORKSPACES_DIR / session_id / "history.json"
     if not history_file.exists():
@@ -348,7 +353,6 @@ def _get_task_manager() -> Any | None:
 
 async def _monitor_background_tasks(websocket: WebSocket, session: UserSession) -> None:
     """Poll TaskManager for newly completed/failed tasks and push notifications via WebSocket."""
-    from subagents_pydantic_ai.types import TaskStatus
 
     task_manager = _get_task_manager()
     if task_manager is None:
@@ -389,7 +393,6 @@ async def _monitor_background_tasks(websocket: WebSocket, session: UserSession) 
 
 def _collect_completed_task_results(session: UserSession) -> str | None:
     """Collect results from completed background tasks that haven't been injected yet."""
-    from subagents_pydantic_ai.types import TaskStatus
 
     task_manager = _get_task_manager()
     if task_manager is None:
@@ -473,7 +476,6 @@ _current_canvas_session: str | None = None
 
 async def _save_canvas(session_id: str) -> None:
     """Save current canvas elements to disk for the given session."""
-    import httpx
 
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -493,7 +495,6 @@ async def _save_canvas(session_id: str) -> None:
 
 async def _load_canvas(session_id: str) -> None:
     """Clear canvas and load saved elements for the given session."""
-    import httpx
 
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -1394,7 +1395,6 @@ async def get_file_content(filepath: str, session_id: str = Query(..., descripti
 
     session = user_sessions[session_id]
 
-    import urllib.parse
 
     decoded_path = urllib.parse.unquote(filepath)
     if not decoded_path.startswith("/"):
@@ -1414,14 +1414,12 @@ async def get_file_content(filepath: str, session_id: str = Query(..., descripti
 @app.get("/files/binary/{filepath:path}")
 async def get_file_binary(filepath: str, session_id: str = Query(..., description="Session ID")):
     """Get binary file content (images, etc.)."""
-    from fastapi.responses import Response
 
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
     session = user_sessions[session_id]
 
-    import urllib.parse
 
     decoded_path = urllib.parse.unquote(filepath)
     if not decoded_path.startswith("/"):
@@ -1431,10 +1429,8 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
     content_type = _CONTENT_TYPES.get(ext, "application/octet-stream")
 
     try:
-        result = session.deps.backend.read(decoded_path)
-        if isinstance(result, bytes):
-            return Response(content=result, media_type=content_type)
-        return Response(content=result.encode("utf-8"), media_type=content_type)
+        result = session.deps.backend.read_bytes(decoded_path)
+        return Response(content=result, media_type=content_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -1759,7 +1755,6 @@ async def export_report(
     filepath: str = Query("/workspace/report.md", description="Report file path"),
 ):
     """Export a report file in various formats (md, html, pdf)."""
-    from fastapi.responses import Response
 
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1788,7 +1783,6 @@ async def export_report(
         )
 
     def _md_to_html(md_content: str) -> str:
-        import markdown as md_lib
 
         _css = (
             "body{font-family:system-ui;max-width:800px;margin:2rem auto;padding:0 1rem;"
@@ -1844,7 +1838,6 @@ async def export_report(
 @app.get("/preview/{session_id}/{filepath:path}")
 async def preview_file(session_id: str, filepath: str):
     """Serve raw files from container for live preview."""
-    from fastapi.responses import Response
 
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1858,7 +1851,7 @@ async def preview_file(session_id: str, filepath: str):
     content_type = _CONTENT_TYPES.get(ext, "text/plain")
 
     try:
-        result = session.deps.backend.read(filepath)
+        result = session.deps.backend.read_bytes(filepath)
         return Response(content=result, media_type=content_type)
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -1866,7 +1859,6 @@ async def preview_file(session_id: str, filepath: str):
 
 def main():
     """Run the DeepResearch server."""
-    import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8080)
 

@@ -1,11 +1,11 @@
 """Loading overlay shown while the judge LLM evaluates branches.
 
-Pushed by :func:`apps.cli.commands._dispatch_merge` for any non-``manual``
-strategy. The screen owns the ``resolve()`` coroutine, runs it as an
-``asyncio.Task``, ticks a braille spinner while waiting, and dismisses
+Pushed by :func:`apps.cli.commands._dispatch_merge` for any non-`manual`
+strategy. The screen owns the `resolve()` coroutine, runs it as an
+`asyncio.Task`, ticks a braille spinner while waiting, and dismisses
 itself with the :class:`~pydantic_deep.types.ResolveOutcome` on success or
 with the raised :class:`Exception` on failure. The caller branches on
-``isinstance(result, Exception)``.
+`isinstance(result, Exception)`.
 
 Pressing :kbd:`Escape` cancels the judge task and dismisses with
 :class:`JudgeAborted`, giving the user an escape hatch when an LLM call
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class JudgeAborted(Exception):
     """Raised inside the screen's dismiss path when the user hits Escape.
 
-    The caller's ``isinstance(result, Exception)`` branch surfaces this as
+    The caller's `isinstance(result, Exception)` branch surfaces this as
     a notification and falls back to the manual picker — same handling as
     any other judge failure, but with a clearer message.
     """
@@ -49,9 +49,9 @@ class JudgeLoadingScreen(ModalScreen["Any | Exception"]):
     Dismisses with the :class:`~pydantic_deep.types.ResolveOutcome` on
     success or with an :class:`Exception` on failure / user abort.
 
-    When ``passive=True`` the screen does **not** call
+    When `passive=True` the screen does **not** call
     :meth:`~pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.resolve`
-    itself — the judge is being run by the agent's ``merge_or_select`` tool
+    itself — the judge is being run by the agent's `merge_or_select` tool
     inside the same asyncio event loop. The screen shows the spinner while
     the tool awaits the judge LLM and is dismissed externally by the
     :class:`~apps.cli.screens.chat.ChatScreen` when the tool result arrives.
@@ -143,7 +143,7 @@ class JudgeLoadingScreen(ModalScreen["Any | Exception"]):
             self.dismiss(exc)
 
     def action_abort(self) -> None:
-        """Cancel the in-flight judge task; ``_run`` dismisses with :class:`JudgeAborted`."""
+        """Cancel the in-flight judge task; `_run` dismisses with :class:`JudgeAborted`."""
         if self._passive:
             # In passive mode the judge runs inside the agent's tool call —
             # there is no local task to cancel. Just dismiss the overlay.

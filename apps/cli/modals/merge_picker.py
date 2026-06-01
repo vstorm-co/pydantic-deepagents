@@ -1,15 +1,15 @@
-"""Merge picker modal — opens on ``/merge`` to pick a winning branch.
+"""Merge picker modal — opens on `/merge` to pick a winning branch.
 
 Renders the :class:`BranchDiffReport` as a side-by-side per-branch
 summary: status, list of touched paths, and the first few diff lines
 per path. Two ways to pick:
 
-- **Arrow navigation** — ``←`` / ``→`` (or ``h`` / ``l``) move the
-  highlight between panels; ``Enter`` picks the highlighted one.
-- **Number shortcut** — ``1``-``9`` pick the corresponding branch
+- **Arrow navigation** — `←` / `→` (or `h` / `l`) move the
+  highlight between panels; `Enter` picks the highlighted one.
+- **Number shortcut** — `1`-`9` pick the corresponding branch
   directly; the 10-branch case uses arrow nav.
 
-Returns the chosen branch id or ``None`` on cancel.
+Returns the chosen branch id or `None` on cancel.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from rich.markup import escape as _escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -40,7 +41,7 @@ class MergePickerResult:
 class MergePickerModal(ModalScreen["MergePickerResult | None"]):
     """Pick the winner of an active fork.
 
-    Bindings ``1``–``9`` pick the corresponding branch panel directly;
+    Bindings `1`–`9` pick the corresponding branch panel directly;
     for more than 9 branches, arrow navigation is the primary method.
     """
 
@@ -78,7 +79,7 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         border: round $surface-lighten-2;
     }
     /* Focus ring — applied to the panel whose index matches
-     * ``_selected_index``. ``$accent`` is the standard "this is what
+     * `_selected_index`. `$accent` is the standard "this is what
      * Enter will pick" colour used elsewhere in the TUI. */
     MergePickerModal .merge-panel.selected {
         border: round $accent;
@@ -232,7 +233,7 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         self._dismiss_with(self._ordered_ids[self._selected_index])
 
     def action_pick_by_index(self, index: int) -> None:
-        """Power-user shortcut: pick branch at ``index`` (0-based)."""
+        """Power-user shortcut: pick branch at `index` (0-based)."""
         if self._view_only:
             return
         if 0 <= index < len(self._ordered_ids):
@@ -242,7 +243,7 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         self.dismiss(MergePickerResult(branch_id=branch_id))
 
     def action_open_in_editor(self) -> None:
-        """Delegate to the optional ``on_open_in_editor`` callback.
+        """Delegate to the optional `on_open_in_editor` callback.
 
         Wired by :func:`_dispatch_merge` to call
         :class:`EditorDetector` against the currently-selected branch's
@@ -271,7 +272,7 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
         self._refresh_selection()
 
     def _refresh_selection(self) -> None:
-        """Re-apply the ``selected`` class to the active panel + redraw hint."""
+        """Re-apply the `selected` class to the active panel + redraw hint."""
         for i in range(len(self._ordered_ids)):
             try:
                 panel = self.query_one(f"#merge-panel-{i}", Vertical)
@@ -291,13 +292,12 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
 def _diff_preview(unified_diff: str, limit: int | None = _DIFF_PREVIEW_LINES) -> str:
     """Render a colourised, header-stripped preview of a unified diff.
 
-    Drops the ``---``/``+++`` file-name headers (they're already shown above
-    the snippet via the ``path`` row) so the entire ``limit`` budget goes to
-    actual changes. ``limit=None`` renders all lines (used by the expanded
-    state of :class:`_DiffPreview`). Colours: green for ``+``, red for ``-``,
-    cyan for ``@@`` hunk markers, dim for context.
+    Drops the `---`/`+++` file-name headers (they're already shown above
+    the snippet via the `path` row) so the entire `limit` budget goes to
+    actual changes. `limit=None` renders all lines (used by the expanded
+    state of :class:`_DiffPreview`). Colours: green for `+`, red for `-`,
+    cyan for `@@` hunk markers, dim for context.
     """
-    from rich.markup import escape as _escape
 
     if not unified_diff.strip():
         return ""
@@ -336,9 +336,9 @@ def _meaningful_diff_lines(unified_diff: str) -> int:
 class _DiffPreview(Static):
     """Per-file diff snippet with click-to-expand toggle.
 
-    Collapsed by default — shows ``_DIFF_PREVIEW_LINES`` meaningful lines and
-    a ``(click to expand)`` hint when the underlying diff has more. Clicking
-    swaps to the full diff with a ``(click to collapse)`` hint. Diffs that
+    Collapsed by default — shows `_DIFF_PREVIEW_LINES` meaningful lines and
+    a `(click to expand)` hint when the underlying diff has more. Clicking
+    swaps to the full diff with a `(click to collapse)` hint. Diffs that
     fit in the preview budget have no hint and ignore clicks.
     """
 

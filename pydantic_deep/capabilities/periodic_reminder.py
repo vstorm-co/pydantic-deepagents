@@ -6,7 +6,7 @@ turns to keep the agent anchored to its original task.
 Three generator shapes are supported:
 
 - **Static string** - a fixed reminder message used verbatim.
-- **Async callable** - receives ``(ctx, turn, messages)`` and returns a str.
+- **Async callable** - receives `(ctx, turn, messages)` and returns a str.
 - **LLMReminderGenerator** - uses a small model to summarize progress.
 
 Example:
@@ -23,6 +23,7 @@ Example:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, Protocol, runtime_checkable
@@ -30,6 +31,8 @@ from typing import Any, Literal, Protocol, runtime_checkable
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
+
+logger = logging.getLogger(__name__)
 
 # Prefixes used by _render() to wrap injected reminders.  Used to filter
 # synthetic entries out of compact transcripts so they don't pollute future
@@ -42,8 +45,8 @@ class ReminderGenerator(Protocol):
     """Protocol for reminder generator callables and classes.
 
     Implement this to provide custom reminder text based on conversation
-    state.  Both plain ``async def`` functions and classes with
-    ``async def __call__`` satisfy this protocol.
+    state.  Both plain `async def` functions and classes with
+    `async def __call__` satisfy this protocol.
     """
 
     async def __call__(
@@ -60,7 +63,7 @@ class ReminderGenerator(Protocol):
             messages: Full conversation history at the moment of injection.
 
         Returns:
-            Reminder text (will be rendered according to ``render_style``).
+            Reminder text (will be rendered according to `render_style`).
         """
         ...
 
@@ -72,15 +75,15 @@ class PeriodicReminderConfig:
     Args:
         every_n_turns: Fire a reminder every N turns after the first one (default 10).
         first_after: Turn on which to fire the *first* reminder (default: 5).
-            Pass ``None`` to use ``every_n_turns``.
+            Pass `None` to use `every_n_turns`.
         max_reminders_per_run: Cap on total reminders per run. None means unlimited.
         render_style: How to wrap the reminder before injecting it.
-            ``"system_reminder_tag"`` wraps in ``<system-reminder>`` tags,
-            ``"developer_note"`` prefixes with a bracketed note,
-            ``"user_prompt"`` injects plain text.
+            `"system_reminder_tag"` wraps in `<system-reminder>` tags,
+            `"developer_note"` prefixes with a bracketed note,
+            `"user_prompt"` injects plain text.
         generator: What to use for the reminder text.
-            ``None`` → zero-cost default (extracts first user message).
-            ``str`` → static message used verbatim.
+            `None` → zero-cost default (extracts first user message).
+            `str` → static message used verbatim.
             :class:`ReminderGenerator` → async callable / class.
     """
 
@@ -92,6 +95,17 @@ class PeriodicReminderConfig:
     )
     generator: str | ReminderGenerator | None = None
     on_reminder: Callable[[int, str], None] | None = field(default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        """Validate the firing cadence.
+
+        `every_n_turns` is used as a modulo divisor in :func:`_should_fire`,
+        so a value below 1 would raise `ZeroDivisionError` (when 0) or fire
+        nonsensically (when negative) deep inside `before_model_request`.
+        Fail fast at construction with a clear error instead.
+        """
+        if self.every_n_turns < 1:
+            raise ValueError(f"every_n_turns must be >= 1, got {self.every_n_turns}")
 
 
 @dataclass
@@ -136,6 +150,12 @@ class LLMReminderGenerator:
             result = await self._agent.run(prompt)
             return result.output
         except Exception:
+            logger.warning(
+                "LLMReminderGenerator failed to generate a reminder via model %r; "
+                "falling back to the zero-cost default.",
+                self.model,
+                exc_info=True,
+            )
             return _default_generate(messages)
 
 
@@ -221,15 +241,15 @@ def _should_fire(turn: int, reminder_count: int, cfg: PeriodicReminderConfig) ->
 class PeriodicReminderCapability(AbstractCapability[Any]):
     """Capability that periodically reminds the agent of its original task.
 
-    Uses ``before_model_request`` to increment a turn counter and inject a
-    reminder ``ModelRequest`` into the message history every N turns.
-    Per-run state isolation via ``for_run()`` ensures concurrent runs don't
+    Uses `before_model_request` to increment a turn counter and inject a
+    reminder `ModelRequest` into the message history every N turns.
+    Per-run state isolation via `for_run()` ensures concurrent runs don't
     share turn counters.
 
     Args:
         config: :class:`PeriodicReminderConfig` controlling firing cadence,
             render style, and generator.  Pass
-            ``PeriodicReminderConfig()`` for sensible defaults.
+            `PeriodicReminderConfig()` for sensible defaults.
     """
 
     config: PeriodicReminderConfig = field(default_factory=PeriodicReminderConfig)
@@ -278,9 +298,9 @@ def make_config_for_mode(mode: str) -> PeriodicReminderConfig:
     :class:`PeriodicReminderConfig` with sensible per-mode defaults.
 
     Args:
-        mode: ``"llm"`` (default - uses :class:`LLMReminderGenerator`),
-              ``"first"`` (zero-cost, re-states first user message),
-              ``"context"`` (zero-cost compact transcript), or any other
+        mode: `"llm"` (default - uses :class:`LLMReminderGenerator`),
+              `"first"` (zero-cost, re-states first user message),
+              `"context"` (zero-cost compact transcript), or any other
               string (falls back to LLM generation).
 
     Returns:

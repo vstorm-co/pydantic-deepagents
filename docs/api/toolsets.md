@@ -260,18 +260,9 @@ Modular capability tools.
 | `load_skill` | Load skill instructions |
 | `read_skill_resource` | Read skill resource file |
 
-### Factory
-
-```python
-def create_skills_toolset(
-    *,
-    id: str = "skills",
-    directories: list[SkillDirectory] | None = None,
-    skills: list[Skill] | None = None,
-) -> SkillsToolset
-```
-
 ### Constructor
+
+`SkillsToolset` is constructed directly (there is no separate factory function):
 
 ```python
 from pydantic_deep.toolsets.skills import SkillsToolset
@@ -342,36 +333,39 @@ Read a resource file from a skill.
 
 #### Skill
 
+`Skill` is a dataclass (accessed via attributes, not dict keys). See
+[`Skill`][pydantic_deep.toolsets.skills.types.Skill] and the
+[Types reference](types.md#skill).
+
 ```python
-class Skill(TypedDict):
+@dataclass
+class Skill:
     name: str
     description: str
-    path: str
-    tags: list[str]
-    version: str
-    author: str
-    frontmatter_loaded: bool
-    instructions: NotRequired[str]
-    resources: NotRequired[list[str]]
+    content: str
+    license: str | None = None
+    compatibility: str | None = None
+    resources: list[SkillResource] = []
+    scripts: list[SkillScript] = []
+    uri: str | None = None
+    metadata: dict[str, Any] | None = None
 ```
 
-#### SkillDirectory
+#### SkillsDirectory
+
+A filesystem skill source. See
+[`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory].
 
 ```python
-class SkillDirectory(TypedDict):
-    path: str
-    recursive: NotRequired[bool]
-```
-
-#### SkillFrontmatter
-
-```python
-class SkillFrontmatter(TypedDict):
-    name: str
-    description: str
-    tags: NotRequired[list[str]]
-    version: NotRequired[str]
-    author: NotRequired[str]
+class SkillsDirectory:
+    def __init__(
+        self,
+        *,
+        path: str | Path,
+        validate: bool = True,
+        max_depth: int | None = 3,
+        script_executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor | None = None,
+    ) -> None: ...
 ```
 
 ---
@@ -526,6 +520,10 @@ toolset = create_plan_toolset(
 
 Or via `create_deep_agent(include_plan=True)` (default).
 
+::: pydantic_deep.toolsets.plan.create_plan_toolset
+    options:
+      show_source: false
+
 ---
 
 ## ContextToolset
@@ -547,31 +545,50 @@ toolset = ContextToolset(
 
 ---
 
-## Helper Functions
+## Skill Discovery
 
-### discover_skills
-
-```python
-def discover_skills(
-    directories: list[SkillDirectory],
-    backend: Any | None = None,
-) -> list[Skill]
-```
-
-Discover skills from filesystem directories.
-
-### parse_skill_md
+Skill discovery is handled by the
+[`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory] and
+[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory]
+classes (frontmatter parsing and directory traversal are internal implementation
+details). Pass these directly to `SkillsToolset` or to `create_deep_agent` via
+`skill_directories`:
 
 ```python
-def parse_skill_md(content: str) -> tuple[dict[str, Any], str]
+from pydantic_deep.toolsets.skills import SkillsDirectory, SkillsToolset
+
+source = SkillsDirectory(path="~/.pydantic-deep/skills")
+skills = source.get_skills()  # dict[str, Skill]
+
+toolset = SkillsToolset(directories=[source])
 ```
 
-Parse SKILL.md into frontmatter and instructions.
+### Skill
 
-### load_skill_instructions
+::: pydantic_deep.toolsets.skills.types.Skill
+    options:
+      show_source: false
 
-```python
-def load_skill_instructions(skill_path: str) -> str
-```
+### SkillsDirectory
 
-Load full instructions from a skill directory.
+::: pydantic_deep.toolsets.skills.directory.SkillsDirectory
+    options:
+      show_source: false
+
+### BackendSkillsDirectory
+
+::: pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory
+    options:
+      show_source: false
+
+---
+
+## LiteparseToolset
+
+Document parsing tools (PDF, DOCX, and more) backed by LiteParse. See
+[LiteParse](../advanced/liteparse.md). Enable via
+`create_deep_agent(include_liteparse=True)`.
+
+::: pydantic_deep.LiteparseToolset
+    options:
+      show_source: false

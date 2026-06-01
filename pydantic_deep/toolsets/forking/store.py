@@ -1,6 +1,6 @@
 """Fork state storage protocol and in-memory implementation.
 
-``InMemoryForkStateStore`` is the default store. Persistent stores
+`InMemoryForkStateStore` is the default store. Persistent stores
 (file-backed, SQLite, etc.) are not yet implemented.
 """
 
@@ -15,7 +15,7 @@ from pydantic_deep.types import ForkHandle
 class ForkStateStore(Protocol):
     """Protocol for fork state storage backends.
 
-    Stores ``ForkHandle`` records keyed by ``fork_id``. Forks live for the
+    Stores `ForkHandle` records keyed by `fork_id`. Forks live for the
     duration of the parent run; on process restart, in-memory state is lost.
     """
 
@@ -24,7 +24,7 @@ class ForkStateStore(Protocol):
         ...
 
     async def get(self, fork_id: str) -> ForkHandle | None:
-        """Return the handle for ``fork_id`` or ``None`` if unknown."""
+        """Return the handle for `fork_id` or `None` if unknown."""
         ...
 
     async def list_all(self) -> list[ForkHandle]:
@@ -32,7 +32,7 @@ class ForkStateStore(Protocol):
         ...
 
     async def remove(self, fork_id: str) -> bool:
-        """Remove a handle by id. Returns ``True`` if it existed."""
+        """Remove a handle by id. Returns `True` if it existed."""
         ...
 
 

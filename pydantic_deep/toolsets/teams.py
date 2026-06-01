@@ -1,8 +1,8 @@
 """Agent teams with shared todos and peer-to-peer messaging.
 
 Teams provide coordination infrastructure on top of the subagent execution
-engine. When a ``registry`` is provided, team members are registered as
-subagents and ``assign_task`` delegates to the subagent ``task()`` tool
+engine. When a `registry` is provided, team members are registered as
+subagents and `assign_task` delegates to the subagent `task()` tool
 for actual execution.
 """
 
@@ -26,7 +26,7 @@ class SharedTodoItem:
     """A todo item for team-shared task management.
 
     Unlike the regular Todo (from pydantic-ai-todo), this includes
-    ``assigned_to``, ``blocked_by``, and ``created_by`` fields for
+    `assigned_to`, `blocked_by`, and `created_by` fields for
     multi-agent coordination.
     """
 
@@ -41,7 +41,7 @@ class SharedTodoItem:
 class SharedTodoList:
     """Asyncio-safe shared TODO list for agent teams.
 
-    Uses ``asyncio.Lock`` for concurrent access safety.
+    Uses `asyncio.Lock` for concurrent access safety.
     Supports claiming, dependencies, and auto-unblocking.
     """
 
@@ -69,7 +69,7 @@ class SharedTodoList:
     async def claim(self, item_id: str, agent_name: str) -> bool:
         """Claim an item for an agent.
 
-        Returns ``False`` if already claimed, not found, not pending,
+        Returns `False` if already claimed, not found, not pending,
         or blocked by incomplete dependencies.
         """
         async with self._lock:
@@ -120,7 +120,7 @@ class SharedTodoList:
             return self._items.get(item_id)
 
     async def remove(self, item_id: str) -> bool:
-        """Remove an item. Returns ``False`` if not found."""
+        """Remove an item. Returns `False` if not found."""
         async with self._lock:
             return self._items.pop(item_id, None) is not None
 
@@ -144,7 +144,7 @@ class TeamMessage:
 class TeamMessageBus:
     """Peer-to-peer message bus for agent teams.
 
-    Unlike ``InMemoryMessageBus`` (parent-child only), this supports
+    Unlike `InMemoryMessageBus` (parent-child only), this supports
     any registered agent sending to any other registered agent.
     """
 
@@ -163,7 +163,7 @@ class TeamMessageBus:
     async def send(self, sender: str, receiver: str, content: str) -> None:
         """Send a message to a specific agent.
 
-        Raises ``KeyError`` if the receiver is not registered.
+        Raises `KeyError` if the receiver is not registered.
         """
         if receiver not in self._queues:
             raise KeyError(f"Agent '{receiver}' is not registered")
@@ -189,7 +189,7 @@ class TeamMessageBus:
             timeout: If > 0 and inbox is empty, wait up to this many
                 seconds for a message before returning.
 
-        Raises ``KeyError`` if the agent is not registered.
+        Raises `KeyError` if the agent is not registered.
         """
         if agent_name not in self._queues:
             raise KeyError(f"Agent '{agent_name}' is not registered")
@@ -243,7 +243,7 @@ class AgentTeam:
 
     Coordinates shared TODO lists and peer-to-peer messaging
     between team members. Execution is delegated to the subagent
-    system via a ``DynamicAgentRegistry``.
+    system via a `DynamicAgentRegistry`.
     """
 
     name: str
@@ -251,6 +251,10 @@ class AgentTeam:
     shared_todos: SharedTodoList = field(default_factory=SharedTodoList)
     message_bus: TeamMessageBus = field(default_factory=TeamMessageBus)
     shared_backend: BackendProtocol = field(default_factory=StateBackend)
+    # Subagent `TaskManager`. When set, `wait_all`/`dissolve` manage the
+    # real background subagent tasks via `handle.task_id` (the actual flow set
+    # up by `assign_task`), rather than the rarely-set `handle.task` field.
+    task_manager: Any | None = field(default=None, repr=False)
     _handles: dict[str, TeamMemberHandle] = field(default_factory=dict, repr=False)
     _dissolved: bool = field(default=False, repr=False)
 
@@ -275,23 +279,51 @@ class AgentTeam:
         """Send a message to all members."""
         await self.message_bus.broadcast("team_lead", message)
 
+    def _refresh_from_manager(self, handle: TeamMemberHandle) -> None:
+        """Sync a handle's result/error/status from the subagent TaskManager."""
+        if not (handle.task_id and self.task_manager is not None):
+            return
+        th = self.task_manager.get_handle(handle.task_id)
+        if th is None:
+            return
+        if th.result:
+            handle.result = th.result
+            handle.status = "completed"
+        elif th.error:
+            handle.error = th.error
+            handle.status = "failed"
+
     async def wait_all(self) -> dict[str, str]:
         """Wait for all running member tasks to complete."""
         results: dict[str, str] = {}
         for name, handle in self._handles.items():
+            # Legacy / programmatic path: a directly-attached asyncio.Task.
             if handle.task is not None and not handle.task.done():
                 with contextlib.suppress(Exception):
                     await handle.task
+            # Real subagent flow: await the background task by id, then sync
+            # the result/error the runner recorded on the TaskManager handle.
+            elif handle.task_id and self.task_manager is not None:
+                task = getattr(self.task_manager, "tasks", {}).get(handle.task_id)
+                if task is not None and not task.done():
+                    with contextlib.suppress(Exception):
+                        await task
+                self._refresh_from_manager(handle)
             results[name] = handle.result or handle.error or "no result"
         return results
 
     async def dissolve(self) -> None:
-        """Unregister all members and mark team as dissolved."""
+        """Unregister all members, cancel running tasks, mark team dissolved."""
         for handle in self._handles.values():
+            # Legacy / programmatic path: a directly-attached asyncio.Task.
             if handle.task is not None and not handle.task.done():
                 handle.task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await handle.task
+            # Real subagent flow: cancel the background task via the manager.
+            elif handle.task_id and self.task_manager is not None:
+                with contextlib.suppress(Exception):
+                    await self.task_manager.hard_cancel(handle.task_id)
             self.message_bus.unregister(handle.name)
         self._handles.clear()
         self._dissolved = True
@@ -305,7 +337,7 @@ Use teams when a task benefits from parallel work by specialists \
 (e.g., one member writes code while another writes tests).
 
 You must provide a list of members, each with 'name', 'role', 'description', \
-and 'instructions' keys. Only one team can be active at a time — dissolve \
+and 'instructions' keys. Only one team can be active at a time - dissolve \
 the current team before creating a new one."""
 
 ASSIGN_TASK_DESCRIPTION = """\
@@ -344,24 +376,24 @@ def create_team_toolset(  # noqa: C901
 ) -> FunctionToolset[Any]:
     """Create a toolset for managing agent teams.
 
-    When ``registry`` and ``task_fn`` are provided, team members are
-    registered as subagents and ``assign_task`` delegates execution to
+    When `registry` and `task_fn` are provided, team members are
+    registered as subagents and `assign_task` delegates execution to
     the subagent system.
 
     Args:
-        id: Toolset identifier. Defaults to ``"deep-team"``.
+        id: Toolset identifier. Defaults to `"deep-team"`.
         descriptions: Optional mapping of tool name to custom description.
-        registry: ``DynamicAgentRegistry`` for registering team members
+        registry: `DynamicAgentRegistry` for registering team members
             as subagents at runtime.
-        agent_factory: Callable ``(SubAgentConfig) -> Agent`` used to
-            create member agents. Passed as ``agent_factory`` on the
-            SubAgentConfig so ``_compile_subagent`` uses it.
-        task_fn: The subagent ``task()`` tool function. When provided,
-            ``assign_task`` calls it to execute via the subagent engine.
-        task_manager: Subagent ``TaskManager`` for checking task status.
+        agent_factory: Callable `(SubAgentConfig) -> Agent` used to
+            create member agents. Passed as `agent_factory` on the
+            SubAgentConfig so `_compile_subagent` uses it.
+        task_fn: The subagent `task()` tool function. When provided,
+            `assign_task` calls it to execute via the subagent engine.
+        task_manager: Subagent `TaskManager` for checking task status.
 
     Returns:
-        A ``FunctionToolset`` with team management tools.
+        A `FunctionToolset` with team management tools.
     """
     toolset: FunctionToolset[Any] = FunctionToolset(id=id or "deep-team")
     _descs = descriptions or {}
@@ -394,6 +426,7 @@ def create_team_toolset(  # noqa: C901
             name=team_name,
             members=team_members,
             shared_backend=backend,
+            task_manager=task_manager,
         )
         _team[0] = team
         handles = await team.spawn()

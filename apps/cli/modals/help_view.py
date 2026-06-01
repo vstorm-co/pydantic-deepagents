@@ -21,8 +21,10 @@ _HELP_TEXT = """\
   [bold cyan]/fork-config[/bold cyan]  Configure /fork branches, models, and budgets (persisted)
   [bold cyan]/help[/bold cyan]        Show this help
   [bold cyan]/load[/bold cyan]        Load a saved session
+  [bold cyan]/mcp[/bold cyan]         Manage MCP servers (connect, login, import from Claude Code)
   [bold cyan]/merge[/bold cyan]       Resolve the active fork (pick a winner)
   [bold cyan]/model[/bold cyan]       Change model
+  [bold cyan]/paste[/bold cyan]       Attach an image from the clipboard
   [bold cyan]/provider[/bold cyan]    Configure AI provider
   [bold cyan]/remember[/bold cyan]    Add note to persistent memory
   [bold cyan]/remind[/bold cyan]      Switch periodic reminder mode (off / first / context / llm)
@@ -42,6 +44,7 @@ _HELP_TEXT = """\
   [bold]/[/bold]            Open command picker
   [bold]@[/bold]            Open file picker
   [bold]![/bold]            Shell command (e.g. [dim]!make test[/dim])
+  [bold]Ctrl+V[/bold]       Attach image from clipboard
   [bold]Ctrl+K[/bold]       Toggle todos panel
   [bold]Ctrl+L[/bold]       Clear screen
   [bold]Ctrl+C[/bold]       Interrupt / exit

@@ -1,7 +1,7 @@
 """Built-in subagent definitions for pydantic-deep.
 
-These subagents are included by default when ``include_builtin_subagents=True``
-(the default). Each is a full deep agent created via ``create_deep_agent()``.
+These subagents are included by default when `include_builtin_subagents=True`
+(the default). Each is a full deep agent created via `create_deep_agent()`.
 """
 
 from __future__ import annotations

@@ -9,7 +9,11 @@ Complete API documentation for pydantic-deep.
 | [`pydantic_deep.agent`](agent.md) | Agent factory and configuration |
 | [Backends](backends.md) | Storage backends (via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)) |
 | [`pydantic_deep.toolsets`](toolsets.md) | Tool collections |
+| [`pydantic_deep.capabilities`](capabilities.md) | Lifecycle capabilities |
 | [`pydantic_deep.processors`](processors.md) | History processors |
+| [`pydantic_deep.mcp`](mcp.md) | MCP client support |
+| [Forking](forking.md) | Live Run Forking (parallel branches) |
+| [`pydantic_deep.spec`](spec.md) | Declarative agent specs (YAML/JSON) |
 | [`pydantic_deep.types`](types.md) | Type definitions |
 
 ## Quick Reference
@@ -47,8 +51,9 @@ from pydantic_deep import (
     SubAgentConfig,
     CompiledSubAgent,
     Skill,
-    SkillDirectory,
-    SkillFrontmatter,
+    SkillResource,
+    SkillScript,
+    SkillsDirectory,
     ResponseFormat,
 )
 

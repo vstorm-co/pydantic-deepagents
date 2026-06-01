@@ -310,9 +310,9 @@ agent = create_deep_agent(
 )
 ```
 
-## Context Manager Middleware
+## Context Manager Capability
 
-The `ContextManagerMiddleware` from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) is a **dual-protocol** component that acts as both a history processor and an `AgentMiddleware`. It provides token tracking and automatic compression.
+The `ContextManagerCapability` from [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) is a pydantic-ai capability that provides token tracking and automatic compression as the conversation approaches the token budget.
 
 !!! tip "Enabled by default"
     Context manager is **enabled by default** in `create_deep_agent()` via `context_manager=True`.
@@ -338,30 +338,33 @@ agent = create_deep_agent(context_manager=False)
 
 ### How It Works
 
-1. **Before each model call**, the middleware counts tokens in the message history
+1. **Before each model call**, the capability counts tokens in the message history
 2. **Calls `on_context_update`** with `(percentage, current_tokens, max_tokens)`
 3. **If usage exceeds `compress_threshold`** (default 0.9 = 90%), triggers LLM-based summarization
-4. **As middleware**, can also truncate overly large tool outputs
+4. Can also truncate overly large tool outputs
 
 ### Configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `context_manager` | `bool` | `True` | Enable/disable |
-| `context_manager_max_tokens` | `int` | `200,000` | Token budget |
+| `context_manager_max_tokens` | `int \| None` | `None` (auto-detected from model) | Token budget |
 | `on_context_update` | `Callable` | `None` | Callback: `(float, int, int) -> Any` |
 
 ### Standalone Usage
 
 ```python
-from pydantic_ai_summarization import create_context_manager_middleware
+from pydantic_ai_summarization import ContextManagerCapability
+from pydantic_deep import create_deep_agent
 
-middleware = create_context_manager_middleware(
+capability = ContextManagerCapability(
     max_tokens=200_000,
     compress_threshold=0.9,
-    keep=("messages", 20),
     on_usage_update=lambda pct, cur, mx: print(f"{pct:.0%}"),
 )
+
+# Pass via capabilities (disable the auto-managed one to avoid duplicates)
+agent = create_deep_agent(capabilities=[capability], context_manager=False)
 ```
 
 ## Eviction Processor

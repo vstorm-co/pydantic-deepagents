@@ -16,7 +16,7 @@ from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.types import FileData, Todo, UploadedFile
 
-#: pydantic-ai's default ``request_limit=50`` is too low for autonomous agents
+#: pydantic-ai's default `request_limit=50` is too low for autonomous agents
 #: that routinely need 50-200+ requests on complex tasks.
 DEFAULT_USAGE_LIMITS = UsageLimits(request_limit=None)
 
@@ -34,7 +34,7 @@ class DeepAgentDeps:
         todos: Task list for planning
         subagents: Pre-configured subagents available for delegation
         checkpoint_store: Per-session checkpoint store (e.g. InMemoryCheckpointStore).
-            When set, overrides the global store passed to ``create_deep_agent()``.
+            When set, overrides the global store passed to `create_deep_agent()`.
     """
 
     backend: BackendProtocol = field(default_factory=StateBackend)
@@ -76,6 +76,7 @@ class DeepAgentDeps:
                 "pending": "[ ]",
                 "in_progress": "[*]",
                 "completed": "[x]",
+                "blocked": "[!]",
             }.get(todo.status, "[ ]")
             lines.append(f"- {status_icon} {todo.content}")
 
@@ -198,8 +199,11 @@ class DeepAgentDeps:
             try:
                 path = self.upload_file(name, content, upload_dir=upload_dir)
                 paths.append(path)
-            except RuntimeError:  # pragma: no cover
-                pass  # Skip failed uploads
+            except Exception:
+                # Skip failed uploads so one bad file doesn't abort the batch.
+                # This covers backend write errors (RuntimeError) as well as
+                # any failure during encoding detection or metadata inference.
+                continue
         return paths
 
     def get_uploads_summary(self) -> str:
@@ -233,6 +237,24 @@ class DeepAgentDeps:
         - Empty subagents (no nested delegation by default)
         - Same files (shared)
         - Same uploads (shared)
+        - Same ask_user callback (propagated)
+        - Same checkpoint_store (shared)
+        - Same message_queue (shared - subagents can steer the parent)
+
+        Intentionally NOT propagated (a subagent is its own isolation
+        domain, so these are reset rather than inherited):
+        - `context_middleware`: a CLI-only handle used by `/compact` and
+          `/context` over the *parent's* history; a subagent has its own
+          history and never runs those commands.
+        - `fork_coordinator`: allocated lazily per-run by the fork
+          capability, so a forking subagent gets its own (mirrors how
+          `clone_for_branch` resets it).
+        - `_fork_depth`: subagent nesting is bounded separately by
+          `max_depth`; fork depth restarts at 0 for the subagent.
+        - `_branch_cost_tracking` / `_branch_id` /
+          `_parent_fork_coordinator`: branch bookkeeping set by
+          `ForkCoordinator.fork` and only meaningful to an agent wired
+          with the fork capability; inert on a separately-compiled subagent.
 
         Args:
             max_depth: Maximum nesting depth for subagent. If > 0, subagents

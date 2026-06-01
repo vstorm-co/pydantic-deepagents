@@ -75,6 +75,9 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://ai.pydantic.dev/objects.inv
           options:
             docstring_style: google
             show_source: true
@@ -98,6 +101,7 @@ plugins:
           - concepts/skills.md: Skills system
         Capabilities:
           - capabilities/live-fork.md: Live Run Forking (parallel agent branches)
+          - capabilities/message-queue.md: Message queue (steering and follow-up)
         Advanced Features:
           - advanced/human-in-the-loop.md: Human-in-the-loop patterns
           - advanced/subagents.md: Subagent delegation
@@ -132,7 +136,17 @@ plugins:
           - api/agent.md: Agent factory API
           - api/backends.md: Backend API
           - api/toolsets.md: Toolset API
+          - api/capabilities.md: Capabilities API
           - api/processors.md: Processor API
+          - api/mcp.md: MCP client API
+          - api/forking.md: Live Run Forking API
+          - api/checkpointing.md: Checkpointing API
+          - api/teams.md: Teams API
+          - api/memory.md: Memory API
+          - api/context-files.md: Context Files API
+          - api/output-styles.md: Output Styles API
+          - api/hooks.md: Hooks API
+          - api/spec.md: Agent spec (YAML/JSON) API
           - api/types.md: Type definitions
 
 markdown_extensions:
@@ -218,6 +232,7 @@ nav:
     - Skills: concepts/skills.md
   - Capabilities:
       - capabilities/live-fork.md
+      - capabilities/message-queue.md
   - Advanced Features:
     - advanced/human-in-the-loop.md
     - advanced/subagents.md
@@ -228,6 +243,8 @@ nav:
     - advanced/teams.md
     - advanced/output-styles.md
     - advanced/hooks.md
+    - advanced/fallback-models.md
+    - advanced/agent-spec.md
     - advanced/memory.md
     - advanced/context-files.md
     - advanced/eviction.md
@@ -270,8 +287,25 @@ nav:
     - Agent: api/agent.md
     - Backends: api/backends.md
     - Toolsets: api/toolsets.md
+    - Capabilities: api/capabilities.md
     - Processors: api/processors.md
+    - MCP: api/mcp.md
+    - Forking: api/forking.md
+    - Checkpointing: api/checkpointing.md
+    - Teams: api/teams.md
+    - Memory: api/memory.md
+    - Context Files: api/context-files.md
+    - Output Styles: api/output-styles.md
+    - Hooks: api/hooks.md
+    - Agent Spec: api/spec.md
     - Types: api/types.md
+
+# C4 and architecture pages are internal design docs, intentionally left out of
+# the published site (and out of nav). Excluding them keeps their work-in-progress
+# cross-links from failing the strict build.
+exclude_docs: |
+  c4/
+  architecture/
 
 validation:
   nav:

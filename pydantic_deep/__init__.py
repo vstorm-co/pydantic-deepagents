@@ -120,6 +120,20 @@ from pydantic_deep.capabilities.hooks import (
 )
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.mcp import (
+    BUILTIN_MCP_NAMES,
+    MCPAuth,
+    MCPConfigError,
+    MCPNotInstalledError,
+    MCPProbeResult,
+    MCPRegistry,
+    MCPServerConfig,
+    auth_satisfied,
+    build_mcp_server,
+    builtin_mcp_servers,
+    parse_mcp_servers,
+    probe_mcp_server,
+)
 from pydantic_deep.processors.eviction import (
     BINARY_PRUNED_TEMPLATE,
     DEFAULT_EVICTION_PATH,
@@ -277,6 +291,19 @@ __all__ = [
     "DeepAgentDeps",
     "DeepAgent",
     "DeepAgentSpec",
+    # MCP (Model Context Protocol) client support
+    "MCPServerConfig",
+    "MCPAuth",
+    "MCPRegistry",
+    "MCPProbeResult",
+    "MCPConfigError",
+    "MCPNotInstalledError",
+    "build_mcp_server",
+    "probe_mcp_server",
+    "auth_satisfied",
+    "builtin_mcp_servers",
+    "BUILTIN_MCP_NAMES",
+    "parse_mcp_servers",
     # Backends (from pydantic-ai-backend)
     "BackendProtocol",
     "SandboxProtocol",

@@ -16,9 +16,12 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
+
+from apps.cli.config import get_project_dir
 
 try:
     import tomllib
@@ -28,7 +31,6 @@ except ModuleNotFoundError:
 
 def _keys_path() -> Path:
     """Path to keys.toml file."""
-    from apps.cli.config import get_project_dir
 
     return get_project_dir() / "keys.toml"
 
@@ -87,7 +89,9 @@ def save_key(key_name: str, key_value: str) -> None:
     for k in sorted(data):
         v = data[k]
         if isinstance(v, str) and v:
-            lines.append(f'{k} = "{v}"')
+            # json.dumps yields a valid TOML basic string (escapes ", \, newlines)
+            # so tokens with special chars don't corrupt the whole file.
+            lines.append(f"{k} = {json.dumps(v)}")
     path.write_text("\n".join(lines) + "\n")
 
     # Also set in current process
@@ -126,5 +130,7 @@ def remove_key(key_name: str) -> None:
     for k in sorted(data):
         v = data[k]
         if isinstance(v, str) and v:
-            lines.append(f'{k} = "{v}"')
+            # json.dumps yields a valid TOML basic string (escapes ", \, newlines)
+            # so tokens with special chars don't corrupt the whole file.
+            lines.append(f"{k} = {json.dumps(v)}")
     path.write_text("\n".join(lines) + "\n")

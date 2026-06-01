@@ -1,19 +1,19 @@
 """Tests for branch-level tool-approval routing.
 
-When a branch agent produces ``DeferredToolRequests`` output, the branch
+When a branch agent produces `DeferredToolRequests` output, the branch
 suspends on :attr:`BranchRuntime.pending_approval` (a
 :class:`~pydantic_deep.types.PendingApprovalRequest` carrying an
 :class:`asyncio.Queue`). The TUI poll loop detects this, surfaces an
-approval modal, and puts ``True`` (approve) or ``False`` (deny) into the
+approval modal, and puts `True` (approve) or `False` (deny) into the
 queue to unblock the branch.
 
-These tests simulate the TUI by polling ``pending_approval`` and feeding
+These tests simulate the TUI by polling `pending_approval` and feeding
 the queue directly, then asserting on the branch's outcome — what reaches
 :attr:`BranchRuntime.blocked_commands`, what surfaces in the post-merge
-:class:`~pydantic_deep.types.MergeResult`, and that ``pending_approval``
+:class:`~pydantic_deep.types.MergeResult`, and that `pending_approval`
 is correctly cleared on completion and cancellation. Also covers the
 unit-level :func:`_describe_blocked_call` helper that formats a
-``ToolCallPart`` into the ``"tool_name: arg"`` string shown in the modal.
+`ToolCallPart` into the `"tool_name: arg"` string shown in the modal.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from pydantic_deep.types import BranchIsolation, BranchSpec
 
 
 class _NormalResult:
-    """Stand-in for a clean ``AgentRunResult`` with no deferred tools."""
+    """Stand-in for a clean `AgentRunResult` with no deferred tools."""
 
     output = "ok"
 
@@ -46,7 +46,7 @@ class _NormalResult:
 
 
 class _DeferredResult:
-    """Stand-in for an ``AgentRunResult`` whose output is a ``DeferredToolRequests``."""
+    """Stand-in for an `AgentRunResult` whose output is a `DeferredToolRequests`."""
 
     def __init__(self, calls: list[ToolCallPart]) -> None:
         self.output = DeferredToolRequests(calls=[], approvals=calls)
@@ -56,11 +56,11 @@ class _DeferredResult:
 
 
 class _DeferringAgent:
-    """Agent stub: first ``run()`` returns deferred, second returns clean.
+    """Agent stub: first `run()` returns deferred, second returns clean.
 
     Mirrors the real pydantic-ai contract: when an approval-required tool
-    is invoked the run ends with ``output=DeferredToolRequests(...)``; the
-    coordinator's helper continues with ``deferred_tool_results`` and the
+    is invoked the run ends with `output=DeferredToolRequests(...)`; the
+    coordinator's helper continues with `deferred_tool_results` and the
     next run returns a normal result.
     """
 
@@ -134,7 +134,7 @@ async def _feed_approval(coord: ForkCoordinator, bid: str, approved: bool) -> No
 
 
 async def test_branch_deny_records_blocked_command(tmp_path: Path) -> None:
-    """Denying the approval modal records the call in ``blocked_commands``."""
+    """Denying the approval modal records the call in `blocked_commands`."""
     deferred_call = ToolCallPart(
         tool_name="execute",
         args={"command": "pytest -q"},
@@ -162,7 +162,7 @@ async def test_branch_deny_records_blocked_command(tmp_path: Path) -> None:
 
 
 async def test_branch_approve_does_not_record_blocked(tmp_path: Path) -> None:
-    """Approving the approval modal leaves ``blocked_commands`` empty."""
+    """Approving the approval modal leaves `blocked_commands` empty."""
     deferred_call = ToolCallPart(
         tool_name="execute",
         args={"command": "pytest -q"},
@@ -191,7 +191,7 @@ async def test_branch_approve_does_not_record_blocked(tmp_path: Path) -> None:
 
 
 async def test_branch_denied_commands_surface_in_merge_result(tmp_path: Path) -> None:
-    """Denied calls reach ``MergeResult.blocked_commands`` after merge."""
+    """Denied calls reach `MergeResult.blocked_commands` after merge."""
     deferred_call = ToolCallPart(
         tool_name="execute",
         args={"command": "make"},
@@ -216,7 +216,7 @@ async def test_branch_denied_commands_surface_in_merge_result(tmp_path: Path) ->
 
 
 async def test_branch_without_deferrals_keeps_blocked_empty(tmp_path: Path) -> None:
-    """A branch that never triggers approval has empty ``blocked_commands``."""
+    """A branch that never triggers approval has empty `blocked_commands`."""
     coord = _make_coord(_NoDeferAgent(), StateBackend(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
@@ -232,7 +232,7 @@ async def test_branch_without_deferrals_keeps_blocked_empty(tmp_path: Path) -> N
 
 
 async def test_pending_approval_cleared_after_response(tmp_path: Path) -> None:
-    """``pending_approval`` is reset to ``None`` once the branch unblocks."""
+    """`pending_approval` is reset to `None` once the branch unblocks."""
     deferred_call = ToolCallPart(
         tool_name="execute",
         args={"command": "ls"},
@@ -257,10 +257,10 @@ async def test_pending_approval_cleared_after_response(tmp_path: Path) -> None:
 
 
 async def test_pending_approval_cleared_after_cancellation(tmp_path: Path) -> None:
-    """Cancelling a branch while it's suspended on approval clears ``pending_approval``.
+    """Cancelling a branch while it's suspended on approval clears `pending_approval`.
 
-    The finally block in ``_run_branch_with_approval`` must run on
-    ``asyncio.CancelledError`` so the next branch's modal can fire
+    The finally block in `_run_branch_with_approval` must run on
+    `asyncio.CancelledError` so the next branch's modal can fire
     without being shadowed by an orphaned request from the cancelled
     branch.  Regression guard against a coordination deadlock.
     """
@@ -294,7 +294,7 @@ async def test_pending_approval_cleared_after_cancellation(tmp_path: Path) -> No
 
 
 async def test_approval_helper_denies_when_runtime_missing(tmp_path: Path) -> None:
-    """Unknown ``branch_id`` → deny the deferred call (no path to user consent).
+    """Unknown `branch_id` → deny the deferred call (no path to user consent).
 
     Defensive path: in production the runtime is always present (fork()
     inserts it before scheduling).  When the runtime is missing the
@@ -337,7 +337,7 @@ def test_describe_blocked_call_without_command_arg() -> None:
 
 
 def test_describe_blocked_call_with_non_dict_args() -> None:
-    """Non-dict ``args`` fall back to the tool name only."""
+    """Non-dict `args` fall back to the tool name only."""
 
     class _Stub:
         tool_name = "weird_tool"
@@ -347,7 +347,7 @@ def test_describe_blocked_call_with_non_dict_args() -> None:
 
 
 def test_describe_blocked_call_with_args_as_dict_fallback() -> None:
-    """When ``args`` is not a dict but ``args_as_dict()`` returns one, use it."""
+    """When `args` is not a dict but `args_as_dict()` returns one, use it."""
 
     class _Stub:
         tool_name = "execute"
@@ -360,7 +360,7 @@ def test_describe_blocked_call_with_args_as_dict_fallback() -> None:
 
 
 def test_describe_blocked_call_with_args_as_dict_raising() -> None:
-    """A raising ``args_as_dict()`` returns the tool-name fallback."""
+    """A raising `args_as_dict()` returns the tool-name fallback."""
 
     class _Stub:
         tool_name = "execute"
@@ -373,7 +373,7 @@ def test_describe_blocked_call_with_args_as_dict_raising() -> None:
 
 
 def test_describe_blocked_call_with_args_as_dict_returning_non_dict() -> None:
-    """``args_as_dict()`` returning a non-dict falls back to tool name."""
+    """`args_as_dict()` returning a non-dict falls back to tool name."""
 
     class _Stub:
         tool_name = "execute"
@@ -392,7 +392,7 @@ def test_describe_blocked_call_with_empty_command_arg() -> None:
 
 
 def test_describe_blocked_call_with_unknown_object() -> None:
-    """Calls missing ``tool_name`` show as ``<unknown>``."""
+    """Calls missing `tool_name` show as `<unknown>`."""
 
     class _Empty:
         pass

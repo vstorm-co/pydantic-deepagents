@@ -1,16 +1,16 @@
-"""Fork configuration modal — opens on ``/fork-config``.
+"""Fork configuration modal — opens on `/fork-config`.
 
-A settings modal that mutates :class:`apps.cli.app.DeepApp`'s ``fork_*``
-reactive state and writes the new values to ``.pydantic-deep/config.toml``.
+A settings modal that mutates :class:`apps.cli.app.DeepApp`'s `fork_*`
+reactive state and writes the new values to `.pydantic-deep/config.toml`.
 It does **not** spawn a fork — that's still :class:`ForkPickerModal`'s job,
-opened via ``/fork``.
+opened via `/fork`.
 
 The branch-count Input is the resizable anchor: committing a new value
 (Enter on that Input) remounts the per-branch model rows, preserving the
 typed values for slots that survive the resize and surfacing a
 non-fatal warning if shrinking dropped any non-empty values.
 
-On Save the modal validates everything, mutates the four ``app.fork_*``
+On Save the modal validates everything, mutates the four `app.fork_*`
 reactives, persists each via :func:`apps.cli.config.set_config_value`,
 notifies success, and dismisses. Persistence failures are notified but
 do not block dismissal — the in-memory reactive is the source of truth
@@ -19,7 +19,7 @@ for the rest of the session.
 Per-branch budget overrides are NOT in this modal — the only budget
 knobs are the *default per-branch budget* and the *aggregate cap*. If
 a user wants to override a specific branch's budget for a single fork
-they do it in the spawn picker (``/fork``) on a session-only basis.
+they do it in the spawn picker (`/fork`) on a session-only basis.
 """
 
 from __future__ import annotations
@@ -35,6 +35,10 @@ from textual.css.query import NoMatches
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Select, Static
 
+from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+from apps.cli.forking import resolve_capability
+from apps.cli.modals.model_picker import ModelPickerModal
+
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp
 
@@ -45,8 +49,7 @@ _DEFAULT_MAX_BRANCHES_FALLBACK = 10
 
 
 def _resolve_ceiling(app: DeepApp) -> int:
-    """Live ``max_branches`` cap; falls back to ``10`` without a capability."""
-    from apps.cli.forking import resolve_capability
+    """Live `max_branches` cap; falls back to `10` without a capability."""
 
     cap = resolve_capability(app.agent) if app.agent is not None else None
     if cap is None:
@@ -55,14 +58,13 @@ def _resolve_ceiling(app: DeepApp) -> int:
 
 
 def _persist(app: DeepApp, key: str, value: str) -> bool:
-    """Write one fork CLI knob to ``config.toml``; ``notify`` on error.
+    """Write one fork CLI knob to `config.toml`; `notify` on error.
 
-    Returns ``True`` on success, ``False`` on a swallowed exception. Mirrors
-    the model-persistence pattern in ``apps/cli/app.py:243``. The modal
+    Returns `True` on success, `False` on a swallowed exception. Mirrors
+    the model-persistence pattern in `apps/cli/app.py:243`. The modal
     treats persistence failures as best-effort — the user's in-memory
     reactive state is already correct by the time we call this.
     """
-    from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
 
     try:
         set_config_value(DEFAULT_CONFIG_PATH, key, value)
@@ -74,16 +76,16 @@ def _persist(app: DeepApp, key: str, value: str) -> bool:
 
 
 class ForkConfigModal(ModalScreen[None]):
-    """Form-style settings modal for ``/fork`` knobs.
+    """Form-style settings modal for `/fork` knobs.
 
     Reads :attr:`DeepApp.fork_branch_count`,
     :attr:`DeepApp.fork_default_budget_usd`,
     :attr:`DeepApp.fork_aggregate_budget_usd`, and
     :attr:`DeepApp.fork_branch_models` at compose time. On save, mutates
-    each reactive and writes through to ``.pydantic-deep/config.toml`` via
+    each reactive and writes through to `.pydantic-deep/config.toml` via
     :func:`apps.cli.config.set_config_value`.
 
-    Cancellation (``Esc``) dismisses without mutating any state.
+    Cancellation (`Esc`) dismisses without mutating any state.
     """
 
     DEFAULT_CSS = """
@@ -101,8 +103,8 @@ class ForkConfigModal(ModalScreen[None]):
         height: auto;
         margin: 1 0 0 0;
     }
-    /* ``Vertical`` defaults to ``height: 1fr`` which would eat the
-     * outer ``VerticalScroll``'s overflow. Force ``auto`` so children
+    /* `Vertical` defaults to `height: 1fr` which would eat the
+     * outer `VerticalScroll`'s overflow. Force `auto` so children
      * stack to their natural height and the outer scroll engages. */
     ForkConfigModal #fork-config-rows {
         height: auto;
@@ -173,7 +175,7 @@ class ForkConfigModal(ModalScreen[None]):
         self._confidence_threshold = float(getattr(app, "fork_confidence_threshold", 0.80))
 
     def _pad(self, items: list, fill: object) -> list:
-        """Pad/truncate ``items`` to ``self._branch_count`` slots."""
+        """Pad/truncate `items` to `self._branch_count` slots."""
         if len(items) < self._branch_count:
             return items + [fill] * (self._branch_count - len(items))
         return items[: self._branch_count]
@@ -233,10 +235,10 @@ class ForkConfigModal(ModalScreen[None]):
         """Build one branch's model + budget row as a single widget tree.
 
         Returns a fully-constructed :class:`Vertical` (not a generator) so the
-        same builder works both inside ``compose()`` and for dynamic
-        ``mount()`` calls from :meth:`_maybe_resize_rows` — Textual's
-        ``with Container():`` context manager requires the live compose
-        stack, which only exists during the initial ``compose()`` pass.
+        same builder works both inside `compose()` and for dynamic
+        `mount()` calls from :meth:`_maybe_resize_rows` — Textual's
+        `with Container():` context manager requires the live compose
+        stack, which only exists during the initial `compose()` pass.
         """
         return Vertical(
             Static(f"[bold]Branch {i + 1}[/bold]"),
@@ -273,7 +275,7 @@ class ForkConfigModal(ModalScreen[None]):
         return self.query_one(f"#{suffix}", Input)
 
     def _input_or_none(self, suffix: str) -> Input | None:
-        """Like :meth:`_input` but returns ``None`` instead of raising ``NoMatches``.
+        """Like :meth:`_input` but returns `None` instead of raising `NoMatches`.
 
         Per-branch rows mount asynchronously, so a row may not be present yet
         when Save fires — callers surface a friendly error rather than crashing.
@@ -293,7 +295,7 @@ class ForkConfigModal(ModalScreen[None]):
         error.remove_class("visible")
 
     def _parse_positive_float(self, raw: str) -> float | str:
-        """Return ``float`` on success or an error message on failure."""
+        """Return `float` on success or an error message on failure."""
         try:
             value = float(raw)
         except ValueError:
@@ -329,7 +331,6 @@ class ForkConfigModal(ModalScreen[None]):
 
     def _open_judge_model_picker(self) -> None:
         """Push :class:`ModelPickerModal` and write the result back to the judge model button."""
-        from apps.cli.modals.model_picker import ModelPickerModal
 
         btn = self.query_one("#fork-config-judge-model-btn", Button)
         current = str(btn.label)
@@ -343,8 +344,7 @@ class ForkConfigModal(ModalScreen[None]):
         self.app.push_screen(ModelPickerModal(current), _on_pick)
 
     def _open_model_picker_for(self, idx: int) -> None:
-        """Push :class:`ModelPickerModal` and write the result back to slot ``idx``."""
-        from apps.cli.modals.model_picker import ModelPickerModal
+        """Push :class:`ModelPickerModal` and write the result back to slot `idx`."""
 
         current = self._branch_models[idx] or ""
 
@@ -406,7 +406,7 @@ class ForkConfigModal(ModalScreen[None]):
             self._clear_error()
 
     def _read_judge_settings(self) -> tuple[str, str, float] | None:
-        """Validate and return ``(strategy, judge_model, threshold)`` or ``None`` on error."""
+        """Validate and return `(strategy, judge_model, threshold)` or `None` on error."""
         strategy_widget = self.query_one("#fork-config-strategy", Select)
         strategy_value = strategy_widget.value
         strategy = "auto_with_fallback" if strategy_value is Select.BLANK else str(strategy_value)

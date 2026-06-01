@@ -1,16 +1,16 @@
-"""Fork picker modal — opens on ``/fork`` to collect N branch specs.
+"""Fork picker modal — opens on `/fork` to collect N branch specs.
 
-One row per branch with a bold header, a ``Model:`` line (resolved from
-``app.fork_branch_models[i]`` or the agent default), a label input, and
+One row per branch with a bold header, a `Model:` line (resolved from
+`app.fork_branch_models[i]` or the agent default), a label input, and
 a steer input. Branch count, per-branch models, default budget, and the
-aggregate cap all live on the persisted ``app.fork_*`` reactive state
-and are configured through ``/fork-config``. The picker turns the
+aggregate cap all live on the persisted `app.fork_*` reactive state
+and are configured through `/fork-config`. The picker turns the
 collected label/steer pairs into :class:`BranchSpec` instances and
 bundles them in a :class:`apps.cli.forking.ForkPickerResult`.
 
 There is intentionally no budget Input here — each branch's
-``budget_usd`` is read from ``app.fork_branch_budgets[i]`` (configured
-via ``/fork-config``); an empty slot means "no cap".
+`budget_usd` is read from `app.fork_branch_budgets[i]` (configured
+via `/fork-config`); an empty slot means "no cap".
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ class ForkPickerModal(ModalScreen["ForkPickerResult | None"]):
     is fixed for the lifetime of the modal.
 
     Returns:
-        :class:`ForkPickerResult` on submit, or ``None`` on cancel.
+        :class:`ForkPickerResult` on submit, or `None` on cancel.
     """
 
     DEFAULT_CSS = """

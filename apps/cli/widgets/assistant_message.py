@@ -108,7 +108,7 @@ class AssistantMessage(Widget):
         return widget
 
     def has_tool_call(self, call_id: str) -> bool:
-        """True when this message holds the tool-call widget for ``call_id``."""
+        """True when this message holds the tool-call widget for `call_id`."""
         return call_id in self._tool_widgets
 
     def complete_tool_call(
@@ -122,6 +122,11 @@ class AssistantMessage(Widget):
         widget = self._tool_widgets.get(call_id)
         if widget and widget.status == "pending":
             widget.complete(result, elapsed, error)
+
+    def mark_pending_cancelling(self) -> None:
+        """Flag all still-running tool calls as stopping (on user interrupt)."""
+        for widget in self._tool_widgets.values():
+            widget.mark_cancelling()
 
     def append_thinking(self, delta: str) -> None:
         """Append streaming thinking delta — shown as dimmed text."""

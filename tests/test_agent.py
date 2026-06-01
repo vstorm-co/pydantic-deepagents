@@ -65,29 +65,40 @@ class TestCreateDeepAgent:
         agent = create_deep_agent(model=TEST_MODEL, subagents=subagents)
         assert agent is not None
 
+    @staticmethod
+    def _default_factory(**parent_kwargs):
+        """Build the default subagent factory the way create_deep_agent does.
+
+        Tests the factory in isolation rather than reaching into the caller's
+        subagent-config list - which create_deep_agent no longer mutates.
+        """
+        from pydantic_deep.agent import _make_default_deep_agent_factory
+
+        defaults = dict(
+            model=TEST_MODEL,
+            edit_format=None,
+            subagent_extra_toolsets=None,
+            context_files=None,
+            context_discovery=False,
+            include_memory=False,
+            memory_dir=None,
+            web_search=False,
+            web_fetch=False,
+        )
+        defaults.update(parent_kwargs)
+        return _make_default_deep_agent_factory(**defaults)
+
     def test_default_subagent_factory_propagates_web_flags(self):
         """Regression for #77: default subagent factory must inherit parent's
-        ``web_search`` and ``web_fetch`` flags. Otherwise Bedrock/Vertex
+        `web_search` and `web_fetch` flags. Otherwise Bedrock/Vertex
         Anthropic models error out on unsupported beta tools.
         """
         from pydantic_ai.capabilities import WebFetch, WebSearch
 
         def _sub_caps(parent_web_search: bool, parent_web_fetch: bool) -> list[type]:
-            subagents: list[SubAgentConfig] = [
-                SubAgentConfig(
-                    name="researcher",
-                    description="A research agent",
-                    instructions="You research topics",
-                ),
-            ]
-            create_deep_agent(
-                model=TEST_MODEL,
-                subagents=subagents,
-                web_search=parent_web_search,
-                web_fetch=parent_web_fetch,
+            factory = self._default_factory(
+                web_search=parent_web_search, web_fetch=parent_web_fetch
             )
-            factory = subagents[0]["agent_factory"]
-            assert factory is not None
             sub_agent = factory({"instructions": "sub instructions", "model": TEST_MODEL})
             return [type(c) for c in sub_agent._root_capability.capabilities]
 
@@ -103,16 +114,7 @@ class TestCreateDeepAgent:
         """Subagent factory always prepends BASE_PROMPT before task instructions."""
         from pydantic_deep.prompts import BASE_PROMPT
 
-        subagents: list[SubAgentConfig] = [
-            SubAgentConfig(
-                name="researcher",
-                description="A research agent",
-                instructions="Research topics carefully.",
-            ),
-        ]
-        create_deep_agent(model=TEST_MODEL, subagents=subagents)
-        factory = subagents[0]["agent_factory"]
-        assert factory is not None
+        factory = self._default_factory()
         sub_agent = factory({"instructions": "Research topics carefully.", "model": TEST_MODEL})
         assert any(BASE_PROMPT in str(i) for i in sub_agent._instructions)
         assert any("Research topics carefully." in str(i) for i in sub_agent._instructions)
@@ -121,18 +123,28 @@ class TestCreateDeepAgent:
         """Subagent factory with empty instructions uses only BASE_PROMPT."""
         from pydantic_deep.prompts import BASE_PROMPT
 
-        subagents: list[SubAgentConfig] = [
-            SubAgentConfig(
-                name="helper",
-                description="A helper agent",
-                instructions="",
-            ),
-        ]
-        create_deep_agent(model=TEST_MODEL, subagents=subagents)
-        factory = subagents[0]["agent_factory"]
-        assert factory is not None
+        factory = self._default_factory()
         sub_agent = factory({"instructions": "", "model": TEST_MODEL})
         assert any(BASE_PROMPT in str(i) for i in sub_agent._instructions)
+
+    def test_subagent_configs_not_mutated_and_no_toolset_doubling(self):
+        """create_deep_agent must not mutate caller subagent dicts, so reusing
+        the same list (or calling twice) never injects agent_factory into the
+        caller's dict nor doubles the per-subagent context/memory toolsets."""
+        cfg: SubAgentConfig = SubAgentConfig(
+            name="helper",
+            description="A helper agent",
+            instructions="help",
+            context_files=["NOTES.md"],
+            toolsets=[],
+        )
+        cfgs = [cfg]
+
+        for _ in range(2):
+            create_deep_agent(model=TEST_MODEL, subagents=cfgs, include_memory=True)
+            # Caller's dict stays pristine across calls.
+            assert "agent_factory" not in cfg
+            assert cfg["toolsets"] == []
 
     def test_create_with_interrupt_on(self):
         """Test creating an agent with interrupt_on config."""
@@ -281,6 +293,21 @@ class TestDeepAgentDeps:
         assert "Test task" in prompt
         assert "[ ]" in prompt
 
+    def test_get_todo_prompt_blocked_status(self):
+        """Test todo prompt renders the blocked status distinctly."""
+        from pydantic_deep.types import Todo
+
+        deps = DeepAgentDeps(
+            backend=StateBackend(),
+            todos=[
+                Todo(content="Blocked task", status="blocked", active_form="Blocking"),
+            ],
+        )
+        prompt = deps.get_todo_prompt()
+
+        assert "Blocked task" in prompt
+        assert "[!]" in prompt
+
     def test_clone_for_subagent(self):
         """Test cloning deps for a subagent."""
         from pydantic_deep.types import Todo
@@ -364,7 +391,7 @@ class TestDeepAgentDeps:
 
         deps = DeepAgentDeps(backend=StateBackend())
 
-        # Binary content — mock chardet to return no encoding (platform-dependent)
+        # Binary content - mock chardet to return no encoding (platform-dependent)
         content = bytes([0x80, 0x81, 0x82, 0xFF])
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
             path = deps.upload_file("binary.dat", content)
@@ -372,6 +399,33 @@ class TestDeepAgentDeps:
         assert path == "/uploads/binary.dat"
         # Binary files should have line_count = None
         assert deps.uploads[path]["line_count"] is None
+
+    def test_upload_files_skips_failures(self):
+        """A failing file should not abort the rest of the batch."""
+        from unittest.mock import patch
+
+        deps = DeepAgentDeps(backend=StateBackend())
+
+        real_upload_file = deps.upload_file
+
+        def flaky_upload_file(name, content, *, upload_dir="/uploads"):
+            # Simulate a non-RuntimeError failure mid-batch (e.g. an
+            # encoding/metadata error or a backend that raises directly).
+            if name == "bad.bin":
+                raise ValueError("boom")
+            return real_upload_file(name, content, upload_dir=upload_dir)
+
+        with patch.object(deps, "upload_file", side_effect=flaky_upload_file):
+            paths = deps.upload_files(
+                [
+                    ("good1.csv", b"a,b\n1,2\n"),
+                    ("bad.bin", b"\x00\x01"),
+                    ("good2.txt", b"hello"),
+                ]
+            )
+
+        # The bad file is skipped, the good ones still upload.
+        assert paths == ["/uploads/good1.csv", "/uploads/good2.txt"]
 
     def test_get_uploads_summary_empty(self):
         """Test uploads summary with no uploads."""
@@ -401,7 +455,7 @@ class TestDeepAgentDeps:
 
         deps = DeepAgentDeps(backend=StateBackend())
 
-        # Binary file — mock chardet to return no encoding (platform-dependent)
+        # Binary file - mock chardet to return no encoding (platform-dependent)
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
             deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
 
@@ -526,6 +580,7 @@ class TestDepsTodoProxy:
         todo = Todo(content="Test task", status="pending", active_form="Testing")
         deps.todos = [todo]
         proxy._deps = deps
+        assert proxy._deps is deps
         assert proxy.todos == [todo]
 
     def test_delegates_write_to_deps(self):
@@ -558,3 +613,39 @@ class TestDepsTodoProxy:
         agent = create_deep_agent(model=TEST_MODEL, include_todo=True)
         # The agent should have a toolset with id "deep-todo"
         assert agent is not None
+
+    async def test_concurrent_runs_isolated_via_contextvar(self):
+        """Concurrent runs of one proxy see their own deps (no cross-run race).
+
+        The proxy stores its bound deps in a ContextVar, and asyncio copies the
+        context per task, so binding in one task must not leak into another.
+        """
+        import asyncio
+
+        proxy = _DepsTodoProxy()
+        deps_a = DeepAgentDeps(backend=StateBackend())
+        deps_b = DeepAgentDeps(backend=StateBackend())
+        todo_a = Todo(content="A task", status="pending", active_form="Doing A")
+        todo_b = Todo(content="B task", status="pending", active_form="Doing B")
+
+        async def run(deps: DeepAgentDeps, todo: Todo, other_starts: asyncio.Event) -> list:
+            proxy._deps = deps
+            # Yield so the sibling task can bind its own deps in between, which
+            # would clobber a shared attribute but not an isolated ContextVar.
+            other_starts.set()
+            await asyncio.sleep(0)
+            proxy.todos = [todo]
+            await asyncio.sleep(0)
+            return proxy.todos
+
+        ev_a = asyncio.Event()
+        ev_b = asyncio.Event()
+        result_a, result_b = await asyncio.gather(
+            run(deps_a, todo_a, ev_a),
+            run(deps_b, todo_b, ev_b),
+        )
+
+        assert result_a == [todo_a]
+        assert result_b == [todo_b]
+        assert deps_a.todos == [todo_a]
+        assert deps_b.todos == [todo_b]

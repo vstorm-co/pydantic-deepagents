@@ -79,6 +79,15 @@ class TestUtilityFunctions:
         result = _get_relative_path("/skills/my-skill/", "/skills/my-skill/")
         assert result == ""  # empty after stripping
 
+    def test_get_relative_path_sibling_prefix_not_mis_stripped(self):
+        # A sibling sharing a directory prefix must not be treated as a child.
+        # /skills/foobar under base /skills/foo previously mis-stripped to "bar/...".
+        assert _get_relative_path("/skills/foobar/data.json", "/skills/foo") == "data.json"
+
+    def test_get_relative_path_exact_match_no_trailing_slash(self):
+        # file_path equal to base_dir (no trailing slash) returns the basename.
+        assert _get_relative_path("/skills/my-skill", "/skills/my-skill") == "my-skill"
+
 
 class TestBackendSkillResource:
     """Tests for BackendSkillResource."""

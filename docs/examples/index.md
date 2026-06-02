@@ -16,100 +16,100 @@ uv run python examples/<example_name>.py
 
 ## Example Overview
 
-<div class="feature-grid">
+<div class="feature-grid" markdown>
 
-<div class="feature-card">
-<h3>:material-rocket-launch: Basic Usage</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-rocket-launch: Basic Usage</h3>
 <p>Getting started with pydantic-deep. Create agents, use todos, work with files.</p>
 <a href="basic-usage/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-folder: Filesystem</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-folder: Filesystem</h3>
 <p>Real filesystem operations with FilesystemBackend.</p>
 <a href="filesystem/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-layers: Composite Backend</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-layers: Composite Backend</h3>
 <p>Combine multiple backends with path-based routing.</p>
 <a href="composite-backend/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-target: Skills</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-target: Skills</h3>
 <p>Modular capability packages with progressive disclosure.</p>
 <a href="skills/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-account-group: Subagents</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-account-group: Subagents</h3>
 <p>Delegate specialized tasks to subagents.</p>
 <a href="subagents/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-wrench: Custom Tools</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-wrench: Custom Tools</h3>
 <p>Add your own tools alongside built-in toolsets.</p>
 <a href="custom-tools/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-upload: File Uploads</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-upload: File Uploads</h3>
 <p>Upload files for agent processing with run_with_files() or deps.upload_file().</p>
 <a href="file-uploads/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-docker: Docker Sandbox</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-docker: Docker Sandbox</h3>
 <p>Isolated code execution in Docker containers.</p>
 <a href="docker-sandbox/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-cog: Docker Runtimes</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-cog: Docker Runtimes</h3>
 <p>Pre-configured execution environments with RuntimeConfig.</p>
 <a href="docker-runtimes/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-play-speed: Streaming</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-play-speed: Streaming</h3>
 <p>Real-time output with agent.iter() for progress tracking.</p>
 <a href="streaming/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-shield-check: Human-in-the-Loop</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-shield-check: Human-in-the-Loop</h3>
 <p>Approval workflows for sensitive operations.</p>
 <a href="human-in-the-loop/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-chat: Interactive Chat</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-chat: Interactive Chat</h3>
 <p>CLI chatbot with streaming and tool visibility.</p>
 <a href="interactive-chat/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-brain: Thinking</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-brain: Thinking</h3>
 <p>Configure reasoning effort for different complexity levels.</p>
 <a href="thinking/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-web: Web Tools</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-web: Web Tools</h3>
 <p>Web search, fetch, and custom domain restrictions.</p>
 <a href="web-tools/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-lan-connect: MCP Servers</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-lan-connect: MCP Servers</h3>
 <p>Connect to MCP servers for external tool integration.</p>
 <a href="mcp/">View Example →</a>
 </div>
 
-<div class="feature-card">
-<h3>:material-star: Full Application</h3>
+<div class="feature-card" markdown>
+<h3 markdown="span">:material-star: Full Application</h3>
 <p>Complete FastAPI app with WebSocket streaming, Docker, uploads, and more.</p>
 <a href="full-app/">View Example →</a>
 </div>

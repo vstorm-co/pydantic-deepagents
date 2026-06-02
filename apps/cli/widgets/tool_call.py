@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import difflib
+import os
 from typing import Any
 
+from rich.console import Group, RenderableType
+from rich.syntax import Syntax
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -15,6 +19,69 @@ from apps.cli.widgets.spinner import Spinner
 # How many diff/preview lines to show before collapsing the rest behind a
 # "... N more" marker. The full content is always available in expanded view.
 _PREVIEW_LIMIT = 12
+
+# File extensions → Pygments lexer names, used to syntax-highlight freshly
+# written file content. The "ansi_dark" theme is deliberately ANSI-based so the
+# colors track the user's terminal theme instead of fighting it.
+_LANG_BY_EXT: dict[str, str] = {
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".json": "json",
+    ".toml": "toml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".md": "markdown",
+    ".html": "html",
+    ".css": "css",
+    ".scss": "scss",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".zsh": "bash",
+    ".sql": "sql",
+    ".rs": "rust",
+    ".go": "go",
+    ".java": "java",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".xml": "xml",
+    ".kt": "kotlin",
+    ".swift": "swift",
+}
+
+
+def _lang_for_path(path: str) -> str | None:
+    """Return a Pygments lexer name for ``path`` by extension, or ``None``.
+
+    Filenames without a usable extension (e.g. ``Dockerfile``) fall back to a
+    name match so common config files still highlight.
+    """
+    ext = os.path.splitext(path)[1].lower()
+    if ext in _LANG_BY_EXT:
+        return _LANG_BY_EXT[ext]
+    base = os.path.basename(path).lower()
+    if base == "dockerfile":
+        return "docker"
+    if base == "makefile":
+        return "make"
+    return None
+
+
+def _highlight(content: str, lang: str) -> Syntax:
+    """Build a terminal-theme-friendly :class:`Syntax` renderable for code."""
+    return Syntax(
+        content,
+        lang,
+        theme="ansi_dark",
+        background_color="default",
+        word_wrap=True,
+    )
+
 
 # Per-tool glyphs shown in the header for instant visual scanning.
 _TOOL_ICONS: dict[str, str] = {
@@ -197,7 +264,9 @@ class ToolCallWidget(Widget):
         self.call_id = call_id
         self.is_subagent_tool = is_subagent_tool
         self.result_text: str = ""
-        self.result_preview: str = ""
+        # A string (Rich markup) for most tools, or a Rich renderable (e.g. a
+        # syntax-highlighted code block) for freshly written files.
+        self.result_preview: RenderableType = ""
         # Diff line counts for edit_file/write_file, surfaced in the header.
         self._added: int = 0
         self._removed: int = 0
@@ -264,13 +333,17 @@ class ToolCallWidget(Widget):
         self._refresh_header()
         self._refresh_output()
 
-    def _build_preview(self, result: str) -> str:
-        """Build a preview string for the tool result.
+    def _build_preview(self, result: str) -> RenderableType:
+        """Build a preview for the tool result.
 
         - ``edit_file``: a real +/- diff (difflib) with a "... N more" tail.
-        - ``write_file``: the written content as ``+`` lines with line numbers.
+        - ``write_file``: a syntax-highlighted preview of a new file, or a
+          real +/- diff when overwriting.
         - ``execute``: the full command (``$ ...``) followed by its output.
         - everything else: first lines of the result + truncation marker.
+
+        Returns Rich markup (``str``) for most tools, or a Rich renderable for
+        syntax-highlighted new-file writes.
         """
         prefix = "│  " if self.is_subagent_tool else ""
 
@@ -297,10 +370,28 @@ class ToolCallWidget(Widget):
             content_lines = content.splitlines() if content else []
             self._added = len(content_lines)
             self._removed = 0
-            head = (
+            head_markup = (
                 f"[dim]{prefix}    ⎿  wrote {len(content_lines)} lines to "
                 f"{_rich_escape(str(path))}[/dim]"
             )
+            lang = _lang_for_path(str(path))
+            # Top-level writes of a known language render as a real
+            # syntax-highlighted block. Subagent calls keep the line-prefixed
+            # text form so the "│" nesting bar stays intact.
+            if lang is not None and content.strip() and not self.is_subagent_tool:
+                shown = "\n".join(content_lines[:_PREVIEW_LIMIT])
+                parts: list[RenderableType] = [
+                    Text.from_markup(head_markup),
+                    _highlight(shown, lang),
+                ]
+                if len(content_lines) > _PREVIEW_LIMIT:
+                    parts.append(
+                        Text.from_markup(
+                            f"[dim]    ⎿  ... "
+                            f"({len(content_lines) - _PREVIEW_LIMIT} more added)[/dim]"
+                        )
+                    )
+                return Group(*parts)
             body = [
                 f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]"
                 for line in content_lines[:_PREVIEW_LIMIT]
@@ -310,7 +401,7 @@ class ToolCallWidget(Widget):
                     f"[dim]{prefix}    ⎿  ... "
                     f"({len(content_lines) - _PREVIEW_LIMIT} more added)[/dim]"
                 )
-            return "\n".join([head, *body])
+            return "\n".join([head_markup, *body])
 
         # Full command + output for execute
         if self.tool_name == "execute":

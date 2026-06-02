@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from rich.console import Group
+from rich.syntax import Syntax
+
 from apps.cli.widgets.tool_call import (
     _diff_lines,
     _format_args_preview,
+    _highlight,
+    _lang_for_path,
     _tool_icon,
 )
 
@@ -13,6 +18,21 @@ def test_tool_icon_known_and_default() -> None:
     assert _tool_icon("execute") == "⚡"
     assert _tool_icon("read_file") == "\U0001f4d6"
     assert _tool_icon("totally_unknown") == "◆"
+
+
+def test_lang_for_path_by_extension_name_and_unknown() -> None:
+    assert _lang_for_path("/a/b/main.py") == "python"
+    assert _lang_for_path("Component.TSX") == "typescript"
+    assert _lang_for_path("/srv/Dockerfile") == "docker"
+    assert _lang_for_path("Makefile") == "make"
+    assert _lang_for_path("/notes/readme") is None
+    assert _lang_for_path("/data/archive.bin") is None
+
+
+def test_highlight_returns_syntax_with_code() -> None:
+    syntax = _highlight("print('hi')", "python")
+    assert isinstance(syntax, Syntax)
+    assert "print" in syntax.code
 
 
 def test_diff_lines_counts_and_colors() -> None:
@@ -82,8 +102,10 @@ async def test_widget_edit_diff_and_header_badge() -> None:
         assert w._added == 2
         assert "+2" in w._diff_badge()
         assert "-1" in w._diff_badge()
-        assert "[red]- foo" in w.result_preview
-        assert "[green]+ bar" in w.result_preview
+        preview = w.result_preview
+        assert isinstance(preview, str)
+        assert "[red]- foo" in preview
+        assert "[green]+ bar" in preview
 
 
 async def test_widget_write_file_preview_and_execute_command() -> None:
@@ -111,10 +133,19 @@ async def test_widget_write_file_preview_and_execute_command() -> None:
         captured["write"].complete("wrote", 0.1)
         await pilot.pause()
         # Full command shown in body, not truncated.
-        assert "$ ls -la /tmp" in captured["exec"].result_preview
-        assert "total 0" in captured["exec"].result_preview
+        exec_preview = captured["exec"].result_preview
+        assert isinstance(exec_preview, str)
+        assert "$ ls -la /tmp" in exec_preview
+        assert "total 0" in exec_preview
         assert captured["write"]._added == 2
-        assert "[green]+ line1" in captured["write"].result_preview
+        # A new .py file renders as a syntax-highlighted Group, not text.
+        from rich.console import Group
+        from rich.syntax import Syntax
+
+        preview = captured["write"].result_preview
+        assert isinstance(preview, Group)
+        syntax = next(r for r in preview.renderables if isinstance(r, Syntax))
+        assert "line1" in syntax.code
 
 
 async def test_widget_write_file_overwrite_shows_minus_diff() -> None:
@@ -147,9 +178,95 @@ async def test_widget_write_file_overwrite_shows_minus_diff() -> None:
         await pilot.pause()
         assert w._removed >= 1
         assert w._added >= 1
-        assert "[red]- # Python" in w.result_preview
-        assert "[green]+ # JavaScript" in w.result_preview
-        assert "updated" in w.result_preview
+        preview = w.result_preview
+        assert isinstance(preview, str)
+        assert "[red]- # Python" in preview
+        assert "[green]+ # JavaScript" in preview
+        assert "updated" in preview
+
+
+async def test_widget_write_file_highlight_truncates_long_content() -> None:
+    """A long new file highlights the head lines and notes the remainder."""
+    from textual.app import App, ComposeResult
+
+    from apps.cli.widgets.tool_call import ToolCallWidget
+
+    captured: dict[str, ToolCallWidget] = {}
+    body = "\n".join(f"x = {i}" for i in range(40))
+
+    class _Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            w = ToolCallWidget("write_file", {"file_path": "/big.py", "content": body}, "w1")
+            captured["w"] = w
+            yield w
+
+    app = _Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        w = captured["w"]
+        w.complete("wrote", 0.1)
+        await pilot.pause()
+        assert w._added == 40
+        preview = w.result_preview
+        assert isinstance(preview, Group)
+        # head + syntax + "more added" tail
+        assert any("more added" in str(getattr(r, "plain", "")) for r in preview.renderables)
+
+
+async def test_widget_write_file_unknown_ext_falls_back_to_text() -> None:
+    """Unknown extensions keep the plain green-+ text path (no highlighting)."""
+    from textual.app import App, ComposeResult
+
+    from apps.cli.widgets.tool_call import ToolCallWidget
+
+    captured: dict[str, ToolCallWidget] = {}
+
+    class _Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            w = ToolCallWidget(
+                "write_file", {"file_path": "/notes.unknownext", "content": "a\nb"}, "w1"
+            )
+            captured["w"] = w
+            yield w
+
+    app = _Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        w = captured["w"]
+        w.complete("wrote", 0.1)
+        await pilot.pause()
+        assert isinstance(w.result_preview, str)
+        assert "[green]+ a" in w.result_preview
+
+
+async def test_widget_subagent_write_keeps_text_nesting() -> None:
+    """Subagent writes keep the line-prefixed text form for the nesting bar."""
+    from textual.app import App, ComposeResult
+
+    from apps.cli.widgets.tool_call import ToolCallWidget
+
+    captured: dict[str, ToolCallWidget] = {}
+
+    class _Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            w = ToolCallWidget(
+                "write_file",
+                {"file_path": "/sub.py", "content": "x = 1"},
+                "w1",
+                is_subagent_tool=True,
+            )
+            captured["w"] = w
+            yield w
+
+    app = _Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        w = captured["w"]
+        w.complete("wrote", 0.1)
+        await pilot.pause()
+        assert isinstance(w.result_preview, str)
+        assert "│" in w.result_preview
+        assert "[green]+ x = 1" in w.result_preview
 
 
 async def test_widget_mark_cancelling() -> None:

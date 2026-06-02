@@ -12,6 +12,17 @@ from textual.widgets import Static
 
 from apps.cli.widgets.tool_call import ToolCallWidget
 
+# How many trailing lines of the live reasoning stream to keep on screen. The
+# model's thinking can run long; showing the most recent few lines reads as a
+# calm, growing "thinking…" panel instead of a single truncated line that jumps
+# around as new tokens arrive.
+_THINKING_TAIL_LINES = 6
+
+
+def _esc(text: str) -> str:
+    """Escape `[` so Rich markup can't mis-pair tags inside model output."""
+    return text.replace("[", r"\[")
+
 
 def _fmt_tokens(count: int) -> str:
     """Format token count compactly: 500, 1.2K, 150K."""
@@ -129,24 +140,34 @@ class AssistantMessage(Widget):
             widget.mark_cancelling()
 
     def append_thinking(self, delta: str) -> None:
-        """Append streaming thinking delta — shown as dimmed text."""
+        """Append a streaming thinking delta — shown as a live, dimmed panel.
+
+        Renders the most recent :data:`_THINKING_TAIL_LINES` non-empty lines of
+        the accumulated reasoning so the panel reads as a calm, growing stream
+        rather than a single line that jumps as tokens arrive.
+        """
         self._thinking += delta
         if self._thinking_widget is not None:
             self._thinking_widget.display = True
-            lines = self._thinking.strip().splitlines()
-            raw = lines[-1][:120] if lines else ""
-            preview = raw.replace("[", r"\[")
-            self._thinking_widget.update(f"[dim italic]thinking: {preview}[/dim italic]")
+            self._thinking_widget.update(self._render_thinking_stream())
+
+    def _render_thinking_stream(self) -> str:
+        """Build the live thinking panel: a header plus the trailing lines."""
+        lines = [ln for ln in self._thinking.splitlines() if ln.strip()]
+        header = "[dim italic]💭 Thinking…[/dim italic]"
+        if not lines:
+            return header
+        tail = lines[-_THINKING_TAIL_LINES:]
+        body = "\n".join(f"[dim italic]{_esc(ln.strip())}[/dim italic]" for ln in tail)
+        return f"{header}\n{body}"
 
     def finalize_thinking(self) -> None:
-        """Collapse thinking to a summary after streaming completes."""
-        if self._thinking_widget is None or not self._thinking:
+        """Collapse the thinking panel to a one-line summary once it completes."""
+        if self._thinking_widget is None or not self._thinking.strip():
             return
-        lines = self._thinking.strip().splitlines()
-        n = len(lines)
-        raw = lines[0][:100] if lines else ""
-        first = raw.replace("[", r"\[")
-        self._thinking_widget.update(f"[dim italic]thought ({n} lines): {first}...[/dim italic]")
+        n = len([ln for ln in self._thinking.splitlines() if ln.strip()])
+        plural = "s" if n != 1 else ""
+        self._thinking_widget.update(f"[dim italic]💭 Thought for {n} line{plural}[/dim italic]")
 
     def append_text(self, delta: str) -> None:
         """Append streaming text delta — renders immediately for real-time feel."""

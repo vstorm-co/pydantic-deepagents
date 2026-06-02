@@ -1,20 +1,22 @@
 <h1 align="center">Pydantic Deep Agents</h1>
 
 <p align="center">
-  <img src="assets/cli_demo.gif" alt="Pydantic Deep Agents CLI demo" width="800">
+  <b>The deep agent that forks itself.</b><br>
+  Split one task into <b>N parallel branches</b>, let an AI judge merge the winner —<br>
+  in your terminal, or in <b>one function call</b>. 100% type-safe. Any model. Self-hosted.
 </p>
 
 <p align="center">
-  <b>The batteries-included deep agent harness for Python.</b><br>
-  Terminal AI assistant out of the box — or build production agents with one function call.
+  <img src="assets/cli_demo.gif" alt="Pydantic Deep Agents CLI demo" width="800">
 </p>
 
 <p align="center">
   <a href="https://vstorm-co.github.io/pydantic-deepagents/">Docs</a> &middot;
   <a href="https://pypi.org/project/pydantic-deep/">PyPI</a> &middot;
+  <a href="#-live-run-forking--the-feature-no-one-else-has">Forking</a> &middot;
+  <a href="#-why-pydantic-deep">Why</a> &middot;
   <a href="#-cli--terminal-ai-assistant">CLI</a> &middot;
   <a href="#-framework--build-your-own-agent">Framework</a> &middot;
-  <a href="#-deepresearch--reference-app">DeepResearch</a> &middot;
   <a href="https://vstorm-co.github.io/pydantic-deepagents/examples/">Examples</a>
 </p>
 
@@ -34,13 +36,105 @@
 
 ---
 
+Most agents give you **one shot** at a task. They pick an approach, commit to it, and if it's wrong you start over.
+
+**Pydantic Deep Agents can fork mid-run.** One `agent.run()` splits into several branches that each try a different approach in parallel — isolated filesystems, separate budgets, independent reasoning. An AI judge (or you) picks the winner, and its history becomes the run's continuation. It's `git branch` for an agent's thinking.
+
+That's one feature. There are forty more — planning, multi-agent swarms, persistent memory, sandboxed execution, skills, MCP, checkpoints, cost tracking — all batteries-included, all behind a single function call, all **100% type-safe**.
+
+```bash
+# Terminal AI assistant — no Python setup required
+curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+pydantic-deep
+```
+
+```bash
+# Or build your own agent
+pip install pydantic-deep
+```
+
+---
+
+## ⑂ Live Run Forking — the feature no one else has
+
+Claude Code can't do this. Aider can't. LangGraph and CrewAI can't. **It's the reason to use pydantic-deep.**
+
+When an agent hits a fork in the road — "should I refactor this with a decorator or a context manager?" — most tools force one bet. Pydantic Deep Agents lets the run **branch**:
+
+```
+                                  ┌──  branch A: "use a decorator"      ── tests: 8/8 ✓  conf 0.71
+   agent.run("refactor auth") ──┬─┼──  branch B: "use a context manager" ── tests: 6/8 ✗  conf 0.42
+       (shared history)         │ └──  branch C: "extract a base class"   ── tests: 8/8 ✓  conf 0.55
+                                │
+                                └──►  ⚖️  AI judge weighs quality + tests + consistency
+                                          → adopts branch A, continues the run
+```
+
+Each branch is **fully isolated**: a copy-on-write filesystem overlay (reads fall through to the parent, writes stay local), its own steering message, and its own `budget_usd` cap. The coordinator resolves the fork with one of four acceptance modes — `manual`, `auto`, `auto_with_fallback` (default), or `vote` — and the winning branch's history is adopted as the parent run's continuation.
+
+**Framework — opt in with one flag:**
+
+```python
+agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
+    forking=True,                 # gives the agent: fork_run, inspect_branches,
+)                                 # merge_or_select, diff_branches, fork_cost, terminate_branch
+```
+
+**Or run a real test command against every branch and let exit codes decide the winner:**
+
+```python
+from pydantic_deep import LiveForkCapability
+
+agent = create_deep_agent(
+    forking=LiveForkCapability(test_command="pytest -q", test_timeout_s=120),
+)
+# confidence = quality_spread·0.4 + test_pass_ratio·0.4 + internal_consistency·0.2
+```
+
+**CLI — fork an in-flight conversation, watch branches stream live, merge the best:**
+
+```
+/fork                 # split the current run into N parallel branches
+>>A try a decorator   # steer branch A
+>>B use a contextmgr  # steer branch B
+/merge                # resolve — manual picker, AI judge, or vote
+```
+
+Live per-branch panels stream each approach side by side; a judge screen scores them; you accept, review the diff, or decline. Configure branch count, budgets, per-branch models, and merge strategy with `/fork-config`.
+
+> 📖 Full reference: [docs/capabilities/live-fork.md](docs/capabilities/live-fork.md)
+
+---
+
+## 🆚 Why pydantic-deep?
+
+The only tool that is **a terminal assistant** *and* **a Python framework** *and* can **fork its own runs** — without giving up type safety or your choice of model.
+
+| | **Pydantic&nbsp;Deep** | Claude&nbsp;Code | Aider | LangGraph | CrewAI |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Terminal TUI assistant | ✅ | ✅ | ✅ | — | — |
+| Python framework / library | ✅ | — | ~ | ✅ | ✅ |
+| **Live run forking + AI judge** | ✅ | — | — | — | — |
+| Multi-agent swarm + message bus | ✅ | ~ | — | ✅ | ✅ |
+| Any model / any provider | ✅ | Anthropic | ✅ | ✅ | ✅ |
+| Sandboxed Docker execution | ✅ | — | ~ | DIY | DIY |
+| Persistent memory + skills | ✅ | ✅ | — | DIY | ~ |
+| Type-safe structured output | ✅ | — | — | ~ | ~ |
+| MCP servers | ✅ | ✅ | — | ~ | ~ |
+| Self-hosted, open source | ✅ MIT | — | ✅ | ✅ | ✅ |
+
+<sub>✅ first-class · ~ partial / via extensions · — not available · DIY you wire it yourself. Comparison reflects each project as of 2026-06; corrections welcome via PR.</sub>
+
+---
+
 ## What's New
 
-- **2026-04-22** &nbsp;**v0.3.17** — LiteParse document parsing toolset (`include_liteparse=True`). Parse PDFs, DOCX, XLSX and more locally with optional OCR.
-- **2026-04-22** &nbsp;**v0.3.16** — `instructions=` now replaces `BASE_PROMPT` directly. Use `f"{BASE_PROMPT}\n\n..."` to extend it. Subagents still get `BASE_PROMPT` automatically.
-- **2026-04-12** &nbsp;**v0.3.8** — Stuck loop detection, context limit warnings for the model, expanded context file discovery (CLAUDE.md, .cursorrules, etc.), eviction & orphan repair migrated to capabilities hooks.
-- **2026-04-11** &nbsp;**v0.3.6** — One-command installer + self-update: `curl -fsSL .../install.sh | bash` installs everything automatically. New `pydantic-deep update` command. Startup update notifications with 24-hour PyPI cache.
-- **2026-04-10** &nbsp;**v0.3.5** — Headless runner (`pydantic-deep run`), Docker sandbox with named workspaces, browser automation via Playwright, Harbor adapter for Terminal Bench evaluation.
+- **2026-06-01** &nbsp;**v0.3.24** — **Live Run Forking** — split an in-flight `agent.run()` into N parallel branches with copy-on-write isolation, per-branch budgets, a test-runner hook, and four merge modes (`manual` / `auto` / `auto_with_fallback` / `vote`). Opt in with `forking=True`.
+- **2026-06-01** &nbsp;**v0.3.23** — **MCP client support** (framework + CLI). Connect GitHub, Figma (OAuth), Context7, DeepWiki, or any custom server. Import servers straight from Claude Code. New interactive `/mcp` command. Plus a full CLI presentation pass: clipboard image paste, real `+/-` diffs, tool icons, turn summaries.
+- **2026-06-01** &nbsp;**v0.3.23** — **Automatic fallback-model retry** — `fallback_model=` wraps your primary in a `FallbackModel` chain; fires on API errors but never on auth errors. Plus a batteries-included **security hook preset** (`default_security_hook()`) and three new output styles (`markdown`, `json-only`, `bullet`).
+- **2026-04-22** &nbsp;**v0.3.17** — LiteParse document parsing (`include_liteparse=True`) — PDFs, DOCX, XLSX, PPTX, and images with optional OCR, all local.
+- **2026-04-10** &nbsp;**v0.3.5** — Headless runner (`pydantic-deep run`), Docker sandbox with named workspaces, browser automation via Playwright.
 
 > Full history: [CHANGELOG.md](CHANGELOG.md)
 
@@ -48,12 +142,20 @@
 
 ## The Agent Harness
 
-Pydantic Deep Agents is an **agent harness** — the complete infrastructure that wraps an LLM and makes it a functional autonomous agent. The model provides intelligence; the harness provides planning, tools, memory, sandboxed execution, and unlimited context.
+Pydantic Deep Agents is an **agent harness** — the complete infrastructure that wraps an LLM and makes it a functional autonomous agent. The model provides intelligence; the harness provides planning, tools, memory, sandboxed execution, unlimited context, and — uniquely — the ability to fork.
 
 <table>
 <tr>
+<td><b>⑂ Live run forking</b></td>
+<td>Split a run into N isolated branches, each trying a different approach. AI judge or test results pick the winner. <b>No other agent framework has this.</b></td>
+</tr>
+<tr>
 <td><b>🔧 Tool-calling</b></td>
 <td>File read/write/edit, shell execution, glob, grep, web search, web fetch, browser automation — wired up and ready.</td>
+</tr>
+<tr>
+<td><b>🤝 Multi-agent / swarm</b></td>
+<td>Spawn subagents for parallel workstreams. Shared TODO lists with claiming. Peer-to-peer message bus. Full team coordination.</td>
 </tr>
 <tr>
 <td><b>🧠 Persistent memory</b></td>
@@ -62,10 +164,6 @@ Pydantic Deep Agents is an **agent harness** — the complete infrastructure tha
 <tr>
 <td><b>♾️ Unlimited context</b></td>
 <td>Auto-summarization when approaching the token budget. LLM-based or zero-cost sliding window. Never hits a context wall.</td>
-</tr>
-<tr>
-<td><b>🤝 Multi-agent / swarm</b></td>
-<td>Spawn subagents for parallel workstreams. Shared TODO lists with claiming. Peer-to-peer message bus. Full team coordination.</td>
 </tr>
 <tr>
 <td><b>🐳 Sandboxed execution</b></td>
@@ -81,7 +179,7 @@ Pydantic Deep Agents is an **agent harness** — the complete infrastructure tha
 </tr>
 <tr>
 <td><b>📚 Skills system</b></td>
-<td>Domain-specific knowledge loaded on demand from SKILL.md files. Built-in skills: code-review, refactor, test-writer, git-workflow, and more.</td>
+<td>Domain-specific knowledge loaded on demand from SKILL.md files. Built-in: code-review, refactor, test-writer, git-workflow, and more.</td>
 </tr>
 <tr>
 <td><b>📄 Document parsing</b></td>
@@ -89,23 +187,23 @@ Pydantic Deep Agents is an **agent harness** — the complete infrastructure tha
 </tr>
 <tr>
 <td><b>🔌 MCP</b></td>
-<td>Connect any Model Context Protocol server via pydantic-ai's native MCP capability.</td>
+<td>Connect any Model Context Protocol server — GitHub, Figma (OAuth), Context7, DeepWiki, or custom. Import straight from Claude Code.</td>
 </tr>
 <tr>
-<td><b>⚡ Lifecycle hooks</b></td>
-<td>Claude Code-style PRE_TOOL_USE / POST_TOOL_USE hooks. Shell commands or Python handlers. Audit logging, safety gates.</td>
+<td><b>⚡ Lifecycle hooks + security preset</b></td>
+<td>Claude Code-style PRE/POST_TOOL_USE hooks. Shell or Python handlers. <code>default_security_hook()</code> blocks destructive commands out of the box.</td>
 </tr>
 <tr>
 <td><b>📐 Structured output</b></td>
 <td>Type-safe Pydantic model responses via <code>output_type</code>. No JSON parsing. No <code>dict["key"]</code>. Full IDE autocomplete.</td>
 </tr>
 <tr>
-<td><b>🔄 Stuck loop detection</b></td>
-<td>Detects repeated identical tool calls, A-B-A-B alternating patterns, and no-op calls. Warns the model or stops the run.</td>
+<td><b>🔁 Fallback models</b></td>
+<td>Primary model fails? <code>fallback_model=</code> hops to the next in the chain — on API errors, never on auth errors.</td>
 </tr>
 <tr>
-<td><b>⚠️ Context limit warnings</b></td>
-<td>Model receives URGENT/CRITICAL warnings when approaching context limits (70%), well before auto-compression (90%).</td>
+<td><b>🔄 Stuck loop detection</b></td>
+<td>Detects repeated identical tool calls, A-B-A-B alternating patterns, and no-op calls. Warns the model or stops the run.</td>
 </tr>
 <tr>
 <td><b>💰 Cost tracking</b></td>
@@ -127,7 +225,7 @@ Built natively on **[pydantic-ai](https://github.com/pydantic/pydantic-ai)** —
 
 ## 🖥️ CLI — Terminal AI Assistant
 
-A Claude Code-style terminal AI assistant that works with **any model and any provider.**
+A Claude Code-style terminal AI assistant that works with **any model and any provider** — and forks.
 
 ### Install (macOS & Linux)
 
@@ -163,20 +261,22 @@ Switch model anytime: `pydantic-deep config set model openai:gpt-5.4` or `/model
 
 | | Feature |
 |:-:|---------|
-| 💬 | Streaming chat with tool call visualization |
+| ⑂ | **Live run forking** — split a run into branches, stream them side by side, merge the winner |
+| 💬 | Streaming chat with tool call visualization, icons, and real `+/-` diffs |
 | 📁 | File read / write / edit, shell execution, glob, grep |
+| 🤝 | Task planning, plan mode, and subagent delegation |
 | 🧠 | Persistent memory and self-improvement across sessions |
-| 🗂️ | Task planning, plan mode, and subagent delegation |
 | ♾️ | Context compression for unlimited conversations |
 | 🔖 | Checkpoints — save, rewind, and fork any session |
-| 🌐 | Web search & fetch built-in |
-| 🖥️ | Browser automation via Playwright (`--browser`) |
+| 🔌 | MCP servers via `/mcp` — GitHub, Figma (OAuth), and more; import from Claude Code |
+| 🌐 | Web search & fetch built-in · 🖥️ browser automation via Playwright (`--browser`) |
 | 🐳 | Docker sandbox — sandboxed execution with named workspaces |
 | 💭 | Extended thinking — `minimal` / `low` / `medium` / `high` / `xhigh` |
+| 📋 | Clipboard image paste (`Ctrl+V` / `/paste`) — multimodal prompts |
 | 💰 | Real-time cost and token tracking per session |
 | 🛡️ | Tool approval dialogs — approve, auto-approve, or deny per tool call |
 | @ | `@filename` file references · `!command` shell passthrough |
-| ✨ | `/improve`, `/skills`, `/diff`, `/model`, `/theme`, `/compact`, and more |
+| ✨ | `/fork`, `/merge`, `/improve`, `/skills`, `/mcp`, `/model`, `/theme`, `/compact`, and more |
 
 ### Usage
 
@@ -188,7 +288,6 @@ pydantic-deep tui --model openrouter:anthropic/claude-opus-4-6
 # Headless deep agent — benchmarks, CI/CD, scripted automation
 pydantic-deep run "Fix the failing test in test_auth.py"
 pydantic-deep run --task-file task.md --json
-pydantic-deep run "Refactor utils.py" --no-web-search --thinking false
 
 # Docker sandbox — sandboxed execution, project dir mounted at /workspace
 pydantic-deep tui --sandbox docker
@@ -196,7 +295,6 @@ pydantic-deep tui --workspace ml-env     # named workspace, packages persist
 
 # Browser automation (requires pydantic-deep[browser])
 pydantic-deep tui --browser
-pydantic-deep run "Go to example.com and summarize the content" --browser
 
 # Config & skills
 pydantic-deep config set model anthropic:claude-sonnet-4-6
@@ -214,7 +312,7 @@ pydantic-deep update                     # update to latest version
 pip install pydantic-deep
 ```
 
-One function call gives you a production deep agent with planning, tool-calling, multi-agent delegation, persistent memory, unlimited context, and cost tracking. Everything is a toggle:
+One function call gives you a production deep agent with planning, tool-calling, multi-agent delegation, persistent memory, unlimited context, forking, and cost tracking. Everything is a toggle:
 
 ```python
 from pydantic_ai_backends import StateBackend
@@ -222,6 +320,7 @@ from pydantic_deep import create_deep_agent, create_default_deps
 
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",
+    forking=True,               # ⑂ split a run into parallel branches + AI judge
     include_todo=True,          # Task planning with subtasks and dependencies
     include_subagents=True,     # Multi-agent swarm — delegate to subagents
     include_skills=True,        # Domain-specific skills from SKILL.md files
@@ -230,10 +329,10 @@ agent = create_deep_agent(
     include_teams=True,         # Agent teams with shared TODO lists + message bus
     include_liteparse=True,     # Document parsing — PDF, DOCX, XLSX + OCR
     web_search=True,            # Tool-calling: web search
-    web_fetch=True,             # Tool-calling: web fetch
     thinking="high",            # Extended thinking / reasoning effort
     context_manager=True,       # Unlimited context via auto-summarization
     cost_tracking=True,         # Token/USD budget enforcement
+    fallback_model="openai:gpt-5.4",   # auto-retry if the primary model fails
     include_checkpoints=True,   # Save, rewind, and fork conversations
 )
 
@@ -280,27 +379,14 @@ agent = create_deep_agent(
 # Main agent delegates: task(description="Review auth.py", subagent_type="code-reviewer")
 ```
 
-### Unlimited Context
-
-Auto-summarization keeps long-running agents within the token budget:
+### Claude Code-Style Lifecycle Hooks + Security Preset
 
 ```python
-from pydantic_deep import create_summarization_processor
-
-processor = create_summarization_processor(
-    trigger=("tokens", 100000),  # compress at 100k tokens
-    keep=("messages", 20),       # keep last 20 messages verbatim
-)
-agent = create_deep_agent(history_processors=[processor])
-```
-
-### Claude Code-Style Lifecycle Hooks
-
-```python
-from pydantic_deep import Hook, HookEvent
+from pydantic_deep import create_deep_agent, default_security_hook, Hook, HookEvent
 
 agent = create_deep_agent(
     hooks=[
+        *default_security_hook(),   # blocks destructive shell, path traversal, secret leaks
         Hook(
             event=HookEvent.PRE_TOOL_USE,
             command="echo 'Tool: $TOOL_NAME args: $TOOL_INPUT' >> /tmp/audit.log",
@@ -311,12 +397,16 @@ agent = create_deep_agent(
 
 ### MCP Servers
 
-```python
-from pydantic_ai.capabilities import MCP
+Connect GitHub, Figma (OAuth), Context7, DeepWiki, or any custom server — auth handled for you:
 
-agent = create_deep_agent(
-    capabilities=[MCP(url="https://mcp.example.com/api")],
+```python
+from pydantic_deep import create_deep_agent, build_mcp_server, MCPServerConfig
+
+deepwiki = build_mcp_server(
+    MCPServerConfig(name="deepwiki", transport="http", url="https://mcp.deepwiki.com/mcp")
 )
+
+agent = create_deep_agent(mcp_servers=[deepwiki])   # curated defaults via builtin_mcp_servers()
 ```
 
 ### Context Files
@@ -329,9 +419,6 @@ Pydantic Deep Agents auto-discovers and injects project-specific context into ev
 | `CLAUDE.md` | Claude Code project instructions | Main agent + all subagents |
 | `SOUL.md` | Agent personality, style, communication preferences | Main agent only |
 | `.cursorrules` | Cursor editor conventions | Main agent only |
-| `.github/copilot-instructions.md` | GitHub Copilot instructions | Main agent only |
-| `CONVENTIONS.md` | Project coding conventions | Main agent only |
-| `CODING_GUIDELINES.md` | Coding guidelines | Main agent only |
 | `MEMORY.md` | Persistent memory — read/write/update tools | Per-agent (isolated) |
 
 Compatible with Claude Code, Cursor, GitHub Copilot, and other agent frameworks. `AGENTS.md` follows the [agents.md spec](https://agents.md/).
@@ -380,25 +467,34 @@ uv run deepresearch    # → http://localhost:8080
 
 ## Architecture
 
-Pydantic Deep Agents uses pydantic-ai's native **Capabilities API** for all cross-cutting concerns — hooks, memory, skills, context files, teams, and plan mode are all first-class pydantic-ai capabilities.
+Pydantic Deep Agents uses pydantic-ai's native **Capabilities API** for all cross-cutting concerns — forking, hooks, memory, skills, context files, teams, and plan mode are all first-class pydantic-ai capabilities.
 
-### Capabilities
-
-| Capability | Package | What It Does |
-|-----------|---------|--------------|
-| **CostTracking** | [pydantic-ai-shields](https://github.com/vstorm-co/pydantic-ai-shields) | Token/USD budget enforcement and real-time cost callbacks |
-| **ContextManagerCapability** | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Unlimited context via auto-summarization |
-| **LimitWarnerCapability** | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | URGENT/CRITICAL warnings when context limits approach |
-| **StuckLoopDetection** | pydantic-deep | Detects and breaks repetitive agent loops |
-| **EvictionCapability** | pydantic-deep | Intercepts large tool outputs before they enter history |
-| **PatchToolCallsCapability** | pydantic-deep | Fixes orphaned tool calls/results in history |
-| **HooksCapability** | pydantic-deep | Claude Code-style PRE/POST_TOOL_USE lifecycle hooks |
-| **CheckpointMiddleware** | pydantic-deep | Save, rewind, and fork conversation state |
-| **WebSearch / WebFetch** | pydantic-ai built-in | Tool-calling: web search and URL fetching |
-| **SkillsCapability** | pydantic-deep | Domain-specific skills from SKILL.md files |
-| **MemoryCapability** | pydantic-deep | Persistent memory across sessions |
-| **TeamCapability** | pydantic-deep | Multi-agent swarm — shared TODOs, message bus |
-| **PlanCapability** | pydantic-deep | Structured planning before execution |
+```
+                         Pydantic Deep Agents
++---------------------------------------------------------------------+
+|                                                                     |
+|   +----------+ +----------+ +----------+ +----------+ +---------+   |
+|   | Planning | |Filesystem| | Subagents| |  Skills  | |  Teams  |   |
+|   +----+-----+ +----+-----+ +----+-----+ +----+-----+ +----+----+   |
+|        |            |            |            |            |        |
+|        +------------+-----+------+------------+------------+        |
+|                           |                                         |
+|                           v                                         |
+|  Forking       --> +------------------+ <-- Capabilities            |
+|  Summarization --> |    Deep Agent    | <-- Hooks                   |
+|  Checkpointing --> |   (pydantic-ai)  | <-- Memory                  |
+|  Cost Tracking --> |                  | <-- MCP                     |
+|                    +--------+---------+                             |
+|                             |                                       |
+|           +-----------------+-----------------+                     |
+|           v                 v                 v                     |
+|    +------------+    +------------+    +------------+               |
+|    |   State    |    |   Local    |    |   Docker   |               |
+|    |  Backend   |    |  Backend   |    |  Sandbox   |               |
+|    +------------+    +------------+    +------------+               |
+|                                                                     |
++---------------------------------------------------------------------+
+```
 
 ### Modular Packages
 
@@ -412,39 +508,23 @@ Every component is a standalone package — use only what you need:
 | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | LLM summaries or zero-cost sliding window |
 | [pydantic-ai-shields](https://github.com/vstorm-co/pydantic-ai-shields) | Cost tracking, input/output/tool blocking |
 
-```
-                         Pydantic Deep Agents
-+---------------------------------------------------------------------+
-|                                                                     |
-|   +----------+ +----------+ +----------+ +----------+ +---------+   |
-|   | Planning | |Filesystem| | Subagents| |  Skills  | |  Teams  |   |
-|   +----+-----+ +----+-----+ +----+-----+ +----+-----+ +----+----+   |
-|        |            |            |            |            |        |
-|        +------------+-----+------+------------+------------+        |
-|                           |                                         |
-|                           v                                         |
-|  Summarization --> +------------------+ <-- Capabilities            |
-|  Checkpointing --> |    Deep Agent    | <-- Hooks                   |
-|  Cost Tracking --> |   (pydantic-ai)  | <-- Memory                  |
-|  Loop Detect   --> |                  | <-- Limit Warner            |
-|                    +--------+---------+                             |
-|                             |                                       |
-|           +-----------------+-----------------+                     |
-|           v                 v                 v                     |
-|    +------------+    +------------+    +------------+               |
-|    |   State    |    |   Local    |    |   Docker   |               |
-|    |  Backend   |    |  Backend   |    |  Sandbox   |               |
-|    +------------+    +------------+    +------------+               |
-|                                                                     |
-+---------------------------------------------------------------------+
-```
-
 ---
 
 ## Full Feature List
 
 <details>
 <summary><b>Expand</b></summary>
+
+### Live Run Forking
+
+- Split an in-flight `agent.run()` into N parallel branches sharing history up to the fork point
+- Copy-on-write `BranchOverlay` filesystem isolation — reads fall through to parent, writes stay local
+- Per-branch steering messages, per-branch `budget_usd` caps, aggregate budget enforcement
+- Four merge modes: `manual`, `auto`, `auto_with_fallback` (default), `vote`
+- Autonomous `JudgeAgent` with structured `JudgeVerdict`; `compute_confidence` blends quality, test pass ratio, and consistency
+- Test-runner hook — run a shell command against each branch's snapshot; exit code feeds the judge
+- Agent tools: `fork_run`, `inspect_branches`, `merge_or_select`, `terminate_branch`, `diff_branches`, `fork_cost`
+- CLI: `/fork`, `/merge`, `/fork-config`, live per-branch streaming panels, judge screen, merge acceptance gate
 
 ### Tool-Calling
 
@@ -467,34 +547,27 @@ Every component is a standalone package — use only what you need:
 - **Unlimited context** — Auto-summarization when approaching token budget (LLM-based or sliding window)
 - **Context limit warnings** — Model receives URGENT/CRITICAL messages when approaching 70% context usage
 - **Eviction capability** — Intercepts large tool outputs via `after_tool_execute` before they enter history
-- **Context files** — Auto-discover and inject AGENTS.md, CLAUDE.md, SOUL.md, .cursorrules, copilot-instructions, CONVENTIONS.md, CODING_GUIDELINES.md
-- **Checkpoints** — Save state, rewind or fork conversations. In-memory and file-based stores. Per-run isolation via `for_run()`
-
-### Reliability
-
-- **Stuck loop detection** — Detects repeated identical calls, A-B-A-B alternating, and no-op patterns. Warns or stops the agent
-- **Orphan repair** — Fixes orphaned tool calls/results in conversation history before each model request
-- **Context limit warnings** — Injects URGENT/CRITICAL messages so the model knows to wrap up
+- **Context files** — Auto-discover AGENTS.md, CLAUDE.md, SOUL.md, .cursorrules, copilot-instructions, and more
+- **Checkpoints** — Save state, rewind or fork conversations. In-memory and file-based stores
 
 ### Production Features
 
-- **MCP** — Connect any Model Context Protocol server
+- **MCP** — Connect any Model Context Protocol server; import from Claude Code; OAuth + keystore auth
 - **Lifecycle hooks** — Claude Code-style PRE/POST_TOOL_USE. Shell commands or Python handlers
+- **Security preset** — `default_security_hook()` blocks destructive commands, path traversal, secret leaks
+- **Fallback models** — `fallback_model=` chains; fires on API errors, never on auth errors
 - **Structured output** — Type-safe responses with Pydantic models via `output_type`
 - **Cost tracking** — Token/USD budgets with automatic enforcement and real-time callbacks
-- **Streaming** — Full streaming support for real-time responses
-- **Image support** — Multi-modal analysis with image inputs
-- **Human-in-the-loop** — Confirmation workflows for sensitive operations
-- **Output styles** — Built-in (concise, explanatory, formal, conversational) or custom
+- **Output styles** — Built-in (concise, explanatory, formal, conversational, markdown, json-only, bullet) or custom
+- **Streaming · Image support · Human-in-the-loop confirmation workflows**
 
 ### CLI
 
-- Interactive TUI (Textual) with streaming, tool visualization, session management
+- Interactive TUI (Textual) with streaming, tool visualization, live fork panels, session management
 - Headless runner (`pydantic-deep run`) for CI/CD, benchmarks, scripted automation
-- 20+ slash commands: `/improve`, `/compact`, `/diff`, `/model`, `/provider`, `/skills`, `/theme`, and more
-- `@filename` file references, `!command` shell passthrough
-- Tool approval dialogs with auto-approve
-- Debug logging per session
+- 25+ slash commands: `/fork`, `/merge`, `/mcp`, `/improve`, `/compact`, `/diff`, `/model`, `/skills`, `/theme`, and more
+- `@filename` file references, `!command` shell passthrough, clipboard image paste
+- Tool approval dialogs with auto-approve · debug logging per session
 
 </details>
 
@@ -503,18 +576,20 @@ Every component is a standalone package — use only what you need:
 ## Contributing
 
 ```bash
-git clone https://github.com/vstorm-co/pydantic-deepagents.git
-cd pydantic-deepagents
+git clone https://github.com/vstorm-co/pydantic-deep.git
+cd pydantic-deep
 make install
 make test   # 100% coverage required
 make all    # lint + typecheck + test
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues are [labeled here](https://github.com/vstorm-co/pydantic-deep/labels/good%20first%20issue).
+
 ---
 
 ## Vstorm OSS Ecosystem
 
-**pydantic-deepagents** is part of a broader open-source ecosystem for production AI agents:
+**pydantic-deep** is part of a broader open-source ecosystem for production AI agents:
 
 | Project | Description | |
 |---------|-------------|---|
@@ -533,6 +608,8 @@ Browse all projects at [oss.vstorm.co](https://oss.vstorm.co)
 ---
 
 ## Star History
+
+If pydantic-deep saved you from wiring an agent harness by hand — **[give it a ⭐](https://github.com/vstorm-co/pydantic-deep)**. It's the single biggest thing that helps the project grow.
 
 <p align="center">
   <a href="https://www.star-history.com/#vstorm-co/pydantic-deepagents&type=date">

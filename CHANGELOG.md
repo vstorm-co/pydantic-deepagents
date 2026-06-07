@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.26] - 2026-06-07
+## [0.3.27] - 2026-06-07
+
+### Added
+
+- **`subagent_usage_limits` on `create_deep_agent()`** ([subagents-pydantic-ai#43](https://github.com/vstorm-co/subagents-pydantic-ai/issues/43)) (`pydantic_deep/agent.py`). Deep-agent construction now forwards delegated-subagent usage limits straight into `create_subagent_toolset(usage_limits=...)`, so downstream callers no longer have to disable `include_subagents`, build the subagent toolset by hand, and re-wire the delegation prompt + task manager just to raise a specialist's `request_limit`. Accepts either a static `UsageLimits` (same budget for every delegated `agent.run(...)`, including retries) or a `UsageLimitsFactory` (`(ctx, config) -> UsageLimits | None`) that resolves per-specialist limits from the selected `SubAgentConfig` — e.g. a small budget for lightweight specialists and a larger one for heavy research/execution agents. Defaults to `None` (pydantic-ai's own default limit stays in place); only applies when `include_subagents=True`. The underlying capability already existed in `subagents-pydantic-ai`; this exposes it through the normal public deep-agent API.
 
 ### Fixed
 

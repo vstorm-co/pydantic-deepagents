@@ -1,7 +1,7 @@
 """Extended tests for agent factory to reach 100% coverage."""
 
 from collections.abc import Awaitable
-from typing import cast
+from typing import Any, cast
 
 from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.models.fallback import FallbackModel
@@ -715,3 +715,55 @@ class TestFallbackModel:
             async for _ in stream:
                 pass
         assert _fallback_hop_cv.get() == 0
+
+
+class TestSubagentUsageLimits:
+    """subagents#43 — create_deep_agent forwards delegated usage limits."""
+
+    def _spy_toolset(self, monkeypatch: Any) -> dict[str, Any]:
+        """Patch create_subagent_toolset to capture its kwargs, still building it."""
+        from subagents_pydantic_ai import create_subagent_toolset as real
+
+        captured: dict[str, Any] = {}
+
+        def _spy(*args: Any, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return real(*args, **kwargs)
+
+        monkeypatch.setattr("pydantic_deep.agent.create_subagent_toolset", _spy)
+        return captured
+
+    def test_static_usage_limits_forwarded(self, monkeypatch: Any) -> None:
+        """A static UsageLimits reaches create_subagent_toolset unchanged."""
+        from pydantic_ai import UsageLimits
+
+        captured = self._spy_toolset(monkeypatch)
+        limits = UsageLimits(request_limit=123)
+        create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            subagent_usage_limits=limits,
+        )
+        assert captured["usage_limits"] is limits
+
+    def test_factory_usage_limits_forwarded(self, monkeypatch: Any) -> None:
+        """A UsageLimitsFactory is forwarded as-is for per-config resolution."""
+        from pydantic_ai import UsageLimits
+
+        captured = self._spy_toolset(monkeypatch)
+
+        def _factory(ctx: Any, config: Any) -> UsageLimits:  # pragma: no cover
+            return UsageLimits(request_limit=config.get("extra", {}).get("limit", 50))
+
+        create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            subagent_usage_limits=_factory,
+        )
+        assert captured["usage_limits"] is _factory
+
+    def test_usage_limits_default_none(self, monkeypatch: Any) -> None:
+        """Omitting the param forwards None (pydantic-ai default stays in place)."""
+        captured = self._spy_toolset(monkeypatch)
+        create_deep_agent(model=TEST_MODEL, include_subagents=True)
+        assert captured["usage_limits"] is None

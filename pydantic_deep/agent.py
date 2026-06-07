@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, TypeVar, overload
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, UsageLimits
 from pydantic_ai._agent_graph import HistoryProcessor
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.exceptions import ModelAPIError
@@ -25,7 +25,11 @@ from pydantic_ai_backends import (
     get_console_system_prompt,
 )
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
-from subagents_pydantic_ai import create_subagent_toolset, get_subagent_system_prompt
+from subagents_pydantic_ai import (
+    UsageLimitsFactory,
+    create_subagent_toolset,
+    get_subagent_system_prompt,
+)
 
 from pydantic_deep.capabilities.hooks import HookEvent
 from pydantic_deep.deps import DeepAgentDeps
@@ -311,6 +315,7 @@ def create_deep_agent(
     max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
+    subagent_usage_limits: UsageLimits | UsageLimitsFactory | None = None,
     include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: None = None,
@@ -387,6 +392,7 @@ def create_deep_agent(
     max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
+    subagent_usage_limits: UsageLimits | UsageLimitsFactory | None = None,
     include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     *,
@@ -463,6 +469,7 @@ def create_deep_agent(  # noqa: C901
     max_nesting_depth: int = 1,
     subagent_registry: Any | None = None,
     subagent_extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
+    subagent_usage_limits: UsageLimits | UsageLimitsFactory | None = None,
     include_execute: bool | None = None,
     interrupt_on: dict[str, bool] | None = None,
     output_type: OutputSpec[OutputDataT] | None = None,
@@ -564,6 +571,16 @@ def create_deep_agent(  # noqa: C901
         subagent_registry: Optional DynamicAgentRegistry instance. When provided,
             the task tool will also look up dynamically created agents from
             the registry (created via create_agent_factory_toolset).
+        subagent_usage_limits: `UsageLimits` applied to delegated subagent
+            `agent.run(...)` calls (including retries), forwarded to
+            `create_subagent_toolset(usage_limits=...)`. Pass a single
+            `UsageLimits` to use the same budget for every delegated run, or a
+            `UsageLimitsFactory` (`(ctx, config) -> UsageLimits | None`) to
+            resolve per-specialist limits by reading the selected
+            `SubAgentConfig` — e.g. a small budget for lightweight specialists
+            and a larger `request_limit` for heavy research/execution ones.
+            `None` (default) leaves pydantic-ai's own default in place. Only
+            takes effect when `include_subagents=True`.
         include_execute: Whether to include the execute tool. If None (default),
             automatically determined based on whether backend is a SandboxProtocol.
             Set to True to force include even when backend is None (useful when
@@ -897,6 +914,7 @@ def create_deep_agent(  # noqa: C901
             include_general_purpose=False,  # We use our own built-in subagents
             max_nesting_depth=max_nesting_depth,
             registry=subagent_registry,
+            usage_limits=subagent_usage_limits,
         )
         all_toolsets.append(subagent_toolset)
         _subagent_task_manager = getattr(subagent_toolset, "task_manager", None)

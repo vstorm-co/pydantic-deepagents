@@ -1,0 +1,2358 @@
+{
+  "name": "Parametry produktow - generowanie v2 (klasyfikacja + structured output)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        304
+      ],
+      "id": "88b4ed43-ad03-4b14-b66e-0c89725582d1",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "generate",
+              "condition": "isTrue"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        208
+      ],
+      "id": "fc8a54e3-21e2-496b-9138-04d3badf6397",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "photos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        560,
+        48
+      ],
+      "id": "e79df027-bcc7-4430-9d20-bfb41f59f30b",
+      "name": "Split Out",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.2",
+          "mode": "list",
+          "cachedResultName": "gpt-5.2"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 1,
+          "reasoningEffort": "medium"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        240
+      ],
+      "id": "c411eb23-2248-451a-adad-3847aa32ef1e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "brEYBXVPxls1260v",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Analyse and describe images\n",
+        "height": 448,
+        "width": 2480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "af388a2c-6db8-4f35-be5f-5b139a2a0db1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74fd192f-f9c5-4b55-90e2-39753150a303",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "d39fadf0-19bb-4d55-a06a-a2f9cd758f01",
+              "name": "field",
+              "value": "={{ $('Loop Over Images').item.json.field }}",
+              "type": "string"
+            },
+            {
+              "id": "68fe82c4-0bd3-4b68-86e3-d051feb8998c",
+              "name": "url",
+              "value": "={{ $('Loop Over Images').item.json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1552,
+        176
+      ],
+      "id": "f29815fc-20b2-46be-b92b-8ce3e3fe50d9",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst photos = Object.entries(item)\n  .filter(([key, value]) => key.startsWith('s_photo_') && value !== null)\n  .map(([key, value]) => ({ field: key, url: value }));\n\nreturn [{ json: { photos } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        32
+      ],
+      "id": "fd3f7242-618c-4786-864a-c376e55d6c18",
+      "name": "Extract all images"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        752,
+        48
+      ],
+      "id": "a991c239-2699-4382-83a9-b8188dd3e493",
+      "name": "Loop Over Images",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        976,
+        48
+      ],
+      "id": "551ed473-b7e3-43d5-8f0c-6d6077b6660d",
+      "name": "Download Image",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Przeanalizuj zdjęcie produktu car audio. Wypełnij DOKŁADNIE format z system prompta — wszystkie sekcje od ## Typ zdjęcia do ## Jakość zdjęcia. Skup się na konkretach (parametry, etykiety, cechy widoczne) — pomiń ozdobniki.",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "messageType": "imageBinary"
+            },
+            {
+              "message": "=Jesteś specjalistą analizy zdjęć produktów car audio. Twoje zadanie: dostarczyć strukturalną informację o produkcie ze zdjęcia, którą copywriter wykorzysta do napisania opisu sklepowego (3 sekcje: hero/intro, technologia/konstrukcja, efekt/zestaw).\n\nKONTEKST PRODUKTU (do referencji - może być pusty):\n- Producent: {{ $('Get row(s)').item.json.s_product_manufacturer_name }}\n- Nazwa: {{ $('Get row(s)').item.json.s_product_name }}\n- Kategoria: {{ $('Get row(s)').item.json.s_product_category_name }}\n- Opis techniczny producenta: {{ $('Get row(s)').item.json.s_description }}\n\nZASADY GŁÓWNE:\n- Pisz po polsku, technicznie i zwięźle (cel: dane do dalszej obróbki, nie literatura)\n- TRANSKRYBUJ DOSŁOWNIE każdy widoczny tekst, liczbę, etykietę, model, kod, jednostkę — to najcenniejsza informacja\n- Jeśli nie widać czegoś — napisz \"nie widoczne\" zamiast zgadywać\n- NIE wymyślaj parametrów których nie ma na zdjęciu (nawet jeśli znasz produkt z kontekstu)\n- Jeśli kontekst (Producent, Nazwa) sugeruje konkretne parametry, ale na zdjęciu ich nie ma — odnotuj to (\"brak na zdjęciu\")\n- Jeśli zdjęcie jest złe (zamglone, ciemne, urwane) — napisz to wprost na końcu\n\n==========================================\nWYMAGANY FORMAT ODPOWIEDZI (struktura sekcji - zachowaj nagłówki ##)\n==========================================\n\n## Typ zdjęcia\n[Wybierz JEDNO z]: packshot studyjny | zbliżenie/detal | tabliczka znamionowa | zestaw/komplet w opakowaniu | aplikacja w aucie | karta produktu/grafika marketingowa | render 3D/wizualizacja | porównanie/seria modeli | inne (opisz)\n\n## Co przedstawia\n1-2 zdania mówiące KONKRETNIE co widać. Bez metafor.\nPrzykład dobry: \"Subwoofer 12 cali na białym tle, ujęcie pod kątem 3/4. Widoczna membrana z perforacją i czarna obudowa magnesu.\"\nPrzykład zły: \"Profesjonalne zdjęcie produktowe z dramatycznym oświetleniem podkreślającym jakość wykonania.\"\n\n## Widoczne parametry i oznaczenia (DOSŁOWNA TRANSKRYPCJA)\nFormat: <co>: <wartość lub DOSŁOWNY TEKST z cudzysłowem>\nLista WSZYSTKICH widocznych:\n- Modeli, wariantów, numerów katalogowych\n- Wartości liczbowych z jednostkami (RMS, MAX, Ω, Hz, kHz, mm, cm, \", AWG, mm², V, A, dB)\n- Standardów (Bluetooth 5.x, USB, NFC, AUX, klasa wzmacniacza A/B/D, 4-Ohm/2-Ohm)\n- Etykiet, naklejek, tabliczek znamionowych — w cudzysłowie, dosłownie\n- Logotypów producentów i partnerów\n- Certyfikatów, oznaczeń CE, RoHS, itp.\n\nJeśli czegoś nie widać — pomiń (nie zgaduj). Jeśli pole tabliczki jest nieczytelne — napisz \"tabliczka nieczytelna\".\n\n## Cechy wizualne i konstrukcyjne\n- Kolor i wykończenie (czarny mat, czarny glossy, chrom, srebrny anodowany itp.)\n- Materiał membrany / obudowy / cewki (jeśli widać: papier, polipropylen, kevlar, aluminium, butyl, neodym itp.)\n- Złącza i przyciski: liczba, typ, etykiety (np. \"2× wyjście RCA\", \"śrubowe zaciski głośnikowe\", \"panel z 4 przyciskami\")\n- Ekran (jeśli jest): typ (LCD/LED/dotykowy), rozmiar jeśli widać, kolor podświetlenia\n- Format/wymiary widoczne lub jednoznacznie odczytane (1-DIN, 2-DIN, średnica głośnika, wymiary maty itp.)\n\n## Elementy zestawu na zdjęciu\nTylko jeśli zdjęcie pokazuje zestaw/opakowanie. Lista konkretnych elementów (np. głośnik niskotonowy ×2, tweeter ×2, zwrotnica ×2, śruby montażowe, kabel głośnikowy, instrukcja, ramka montażowa, elementy mocujące).\nJeśli zdjęcie nie jest typu \"zestaw\" — napisz \"nie dotyczy\".\n\n## Sugerowana rola sekcji\n[Wybierz JEDNO]: SEKCJA 1 (hero/intro - reprezentacyjne ujęcie produktu) | SEKCJA 2 (technologia/konstrukcja - detale, zbliżenia) | SEKCJA 3 (efekt/zestaw - aplikacja, komplet, montaż)\n+ jedno zdanie uzasadnienia.\n\n## Jakość zdjęcia\nJednolinijkowo: \"ostre, dobre oświetlenie, czytelne tabliczki\" lub np. \"lekko nieostre, tabliczka znamionowa nieczytelna\" lub \"zdjęcie marketingowe — bez parametrów\"."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1200,
+        48
+      ],
+      "id": "b7e0907f-bf4c-46e4-80cc-6331e3b7d051",
+      "name": "Describe Image with LLM",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Generate product description\n\n",
+        "height": 432,
+        "width": 1280
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1120,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "b74d3960-a165-4dee-83d5-0a1a647e7ffd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4"
+        },
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "high"
+          }
+        },
+        "options": {
+          "reasoningEffort": "medium"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1440,
+        -160
+      ],
+      "id": "4e9a9fd2-8a58-47b0-8d92-478150d8bf38",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "brEYBXVPxls1260v",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Get row(s)').item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "s_publication_desc": "={{ $json.output }}",
+            "generated": true,
+            "generate": false,
+            "images": "={{ (() => { try { return JSON.stringify($('Aggregate').item.json.data, null, 2); } catch(e) { return '[]'; } })() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "generate",
+              "displayName": "generate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "generated",
+              "displayName": "generated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "s_publication_desc",
+              "displayName": "s_publication_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "s_product_manufacturer_name",
+              "displayName": "s_product_manufacturer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_name",
+              "displayName": "s_product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_category_name",
+              "displayName": "s_product_category_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_description",
+              "displayName": "s_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_1",
+              "displayName": "s_photo_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_2",
+              "displayName": "s_photo_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_3",
+              "displayName": "s_photo_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_4",
+              "displayName": "s_photo_4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_5",
+              "displayName": "s_photo_5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_6",
+              "displayName": "s_photo_6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_7",
+              "displayName": "s_photo_7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_8",
+              "displayName": "s_photo_8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_9",
+              "displayName": "s_photo_9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_10",
+              "displayName": "s_photo_10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_11",
+              "displayName": "s_photo_11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_12",
+              "displayName": "s_photo_12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_13",
+              "displayName": "s_photo_13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_14",
+              "displayName": "s_photo_14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_15",
+              "displayName": "s_photo_15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_16",
+              "displayName": "s_photo_16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_id",
+              "displayName": "s_product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "images",
+              "displayName": "images",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1984,
+        -272
+      ],
+      "id": "a257f9f6-76b0-4f70-94b6-ee8ee60664f2",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -688,
+        112
+      ],
+      "id": "6ed6d5c5-5992-45dd-a0f0-ad55974f9f74",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Wyodrębnij parametry techniczne dla poniższego produktu car audio i zwróć je jako structured output zgodny ze schematem.\n\n## Grupa parametrów\n{{ $json._group }}{{ $json._categoryMatched ? '' : '  ⚠️ kategoria niedopasowana 1:1 — użyto zestawu zapasowego, bądź ostrożny' }}\n\n## Dane produktu\n- **Producent:** {{ $json.s_product_manufacturer_name || '— (brak — wywnioskuj markę z nazwy modelu)' }}\n- **Nazwa modelu:** {{ $json.s_product_name }}\n- **Kategoria:** {{ $json.s_product_category_name }}\n- **Opis (źródło T1):** {{ $json.s_description || '— (brak — użyj web search wg protokołu, celuj w domenę producenta)' }}\n\n## Parametry do wypełnienia (każdy: wartość albo null)\nDla pól „lista zamknięta\" użyj DOKŁADNIE jednej z wypisanych opcji. Dla „liczba\" — samą liczbę bez jednostki.\n\n{{ $json.paramSpec }}\n\n## Co masz zrobić\n1. Najpierw wyczerpaj T1 (opis powyżej).\n2. Brakujące parametry zweryfikuj web searchem — priorytetowo na oficjalnej domenie producenta (T2/T3).\n3. Każdą wartość przepuść przez autoweryfikację CHECK 1–6.\n4. Czego nie potwierdzisz w T1–T3 → null.\n\nZwróć wyłącznie obiekt zgodny ze schematem.",
+        "options": {
+          "systemMessage": "Jesteś precyzyjnym technikiem-ekstraktorem danych dla sklepu car audio TOP Auto. Twoim\nzadaniem jest WYDOBYCIE parametrów technicznych KONKRETNEGO produktu i zwrócenie ich jako\nstructured output zgodny z dostarczonym schematem JSON. Nie jesteś copywriterem — nie piszesz\nzdań, nie sprzedajesz. Zwracasz wartości albo null.\n\n==========================================\nZASADA NACZELNA: LEPIEJ null NIŻ ZGADYWANIE\n==========================================\nKażde pole, którego wartości NIE potwierdzasz w źródłach T1–T3 (poniżej), ustaw na null.\nSchemat na to pozwala. Pusty (null) parametr jest poprawnym, pożądanym wynikiem.\n- Zgadywanie, „na oko\", oszacowania na podstawie kategorii lub rozmiaru = ZAKAZANE.\n- „Wszystkie sklepy podają tak samo\" NIE jest źródłem (patrz T4).\n- Nie wypełniaj pól „żeby coś było\". Niepełny, ale prawdziwy zestaw > komplet zmyślony.\n\n==========================================\nHIERARCHIA ŹRÓDEŁ\n==========================================\n  T1 — Product Description z danych wejściowych (najwyższe zaufanie)\n  T2 — Oficjalna strona producenta\n  T3 — Oficjalny datasheet / instrukcja / karta katalogowa PDF producenta\n  T4 — WSZYSTKO INNE (inne sklepy, marketplace, Allegro/Amazon/eBay, fora, blogi,\n       opinie, agregatory cen, „podobne produkty\") = ZAKAZANE jako źródło parametru\n\nWartość wyłącznie z T4 → null. Sprzeczne wartości w różnych źródłach → null.\n\n==========================================\nPROTOKÓŁ WEB SEARCH (gdy T1 nie zawiera parametru)\n==========================================\nMasz web search. Używaj go, ale celuj WYŁĄCZNIE w T2/T3 (domena producenta, datasheet PDF).\n\nStrategia (oszczędna — nie szukaj osobno każdego parametru):\n  1. \"<marka> <dokładny model> site:<domena_producenta>\"\n  2. jeśli pusto: \"<marka> <model> specyfikacja\"  oraz  \"<model> specifications datasheet filetype:pdf\"\n  3. Z JEDNEGO wiarygodnego źródła (T2/T3) wyciągnij OD RAZU wszystkie potrzebne parametry.\n  4. Jeśli po 2–3 zapytaniach brak źródła T2/T3 → wszystkie nieznane parametry zostają null.\n\nMapa marek → domeny (rozszerzaj wg potrzeby, zawsze preferuj oficjalną domenę):\n  DLS → dls.se | GAS Audio Power → gas-audioworld.com | Audison → audison.com\n  Hertz → hertzaudio.com | Focal → focal.com | Morel → morel.co.il\n  Helix / Brax → helix-aktiv.com / brax.com | Rockford Fosgate → rockfordfosgate.com\n  JL Audio → jlaudio.com | Alpine → alpine-europe.com | Pioneer → pioneer-car.eu\n  Kenwood → kenwood.com | Kicker → kicker.com | AudioControl → audiocontrol.com\n  Match / Musway → aerco.de / musway.com | Eton → eton-gmbh.com\n\nNie cytuj, nie wklejaj linków — INTERNALIZUJ dane i zwróć surowe wartości.\n\n==========================================\nREGUŁY ODRZUCENIA WARTOŚCI\n==========================================\nREGUŁA WARIANTÓW (krytyczna dla głośników/subwooferów/wzmacniaczy):\n  Modele występują w wariantach (2 Ω / 4 Ω, D2 / D4, SVC / DVC). Jeśli nazwa modelu z danych\n  wejściowych NIE zawiera jednoznacznego oznaczenia wariantu (-2, -4, /2, /4, D2, D4, SVC, DVC),\n  NIE podawaj Impedancji ani mocy zależnej od impedancji → null.\n\nREGUŁA TOŻSAMOŚCI MODELU:\n  Użyj parametru tylko jeśli źródło dotyczy DOKŁADNIE tego modelu (nazwa zgodna w 100%,\n  nie wariant, nie „podobny\" z tej samej rodziny). Niedopasowanie nazwy → null.\n\nREGUŁA JEDNOSTKI:\n  Wartość bez wiarygodnej jednostki/kontekstu (np. samo „250\" bez wiadomo czy W/Hz) → null.\n\n==========================================\nFORMAT WARTOŚCI WG TYPU POLA\n==========================================\nW spisie parametrów (w input) każde pole ma podany typ. Trzymaj się go dokładnie:\n\n- liczba (Numer):\n    Zwróć SAMĄ liczbę, bez jednostki i bez tekstu. Ułamki z kropką.\n    Przykłady:  Skuteczność [dB] → 89   |   Głębokość montażowa [mm] → 63.5   |   Ilość [szt/opk] → 10\n\n- tekst (Tekst):\n    Zwięzła wartość techniczna w naturalnej formie, z jednostką jeśli dotyczy. Bez zdań, bez marketingu.\n    Przykłady:  Impedancja [Ω] → \"4 Ω\"   |   Moc RMS [W] → \"80 W\"  (lub \"2 × 80 W\")\n                Wymiary [mm] → \"165 × 165 × 72 mm\"   |   Pasmo przenoszenia [Hz] → \"45–25000 Hz\"\n                Materiał → \"polipropylen\"   |   Liczba kanałów → \"4\"\n\n- lista zamknięta (Lista rozwijana):\n    Zwróć DOKŁADNIE jedną z dozwolonych opcji (string identyczny co do znaku). Nic spoza listy.\n    Jeśli żadna opcja nie pasuje lub nie wiesz → null.\n\nZAKAZ przybliżeń: żadnych „około 200 W\", „~4 Ω\", „do 60 Hz\", „ok. 165 mm\".\nNie znasz dokładnej wartości → null.\n\n==========================================\nAUTOWERYFIKACJA — przejdź przez KAŻDY parametr przed zwróceniem\n==========================================\n  CHECK 1: Wartość jest w Product Description (T1)?           TAK → użyj.   NIE → CHECK 2.\n  CHECK 2: Wartość pochodzi z T2/T3 (domena/datasheet)?       TAK → CHECK 3. NIE → null.\n  CHECK 3: Źródło dotyczy DOKŁADNIE tego modelu?              TAK → CHECK 4. NIE → null.\n  CHECK 4: Wartość spójna między źródłami T2/T3?              TAK → CHECK 5. NIE → null.\n  CHECK 5: (impedancja/moc zależna) model ma jednoznaczny wariant w nazwie?\n                                                             TAK/nie dotyczy → CHECK 6. NIE → null.\n  CHECK 6: Format zgodny z typem pola (liczba=sama liczba, lista=opcja z listy)?\n                                                             TAK → użyj.    NIE → popraw lub null.\n\n==========================================\nPRIORYTET\n==========================================\nParametry oznaczone (PRIORYTET wyświetlania) trafiają na kartę produktu jako pierwsze —\nzadbaj o nie szczególnie (warto dla nich uruchomić web search). Ta sama zasada null obowiązuje.\n\n==========================================\nZAKAZY\n==========================================\n- NIE dodawaj pól spoza schematu.\n- NIE zwracaj jednostek w polach typu „liczba\".\n- NIE zwracaj wartości spoza listy w polach „lista zamknięta\".\n- NIE zwracaj zdań, opisów, marketingu ani cytatów/linków z web search.\n- NIE używaj T4 jako źródła. NIE zgaduj na podstawie kategorii/rozmiaru.\n- NIE komentuj, nie tłumacz się, nie dopisuj nic poza obiektem wynikowym.\n\n==========================================\nFORMAT WYJŚCIA\n==========================================\nZwróć WYŁĄCZNIE obiekt zgodny z dostarczonym schematem JSON. Każde pole obecne: wartość albo null.",
+          "maxIterations": 20
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1376,
+        -384
+      ],
+      "id": "79efcafe-1ba4-44b7-9469-bbd55b2db3c3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        -176
+      ],
+      "id": "b0aaca00-07d7-4dec-83c4-14a934775d50",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "df316e89-7499-4ece-9277-1842f86d4ce5",
+              "leftValue": "={{ $json.photos }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        32
+      ],
+      "id": "20dde32c-1103-4d45-ae98-db98f24e8fb0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2224,
+        -272
+      ],
+      "id": "31439e75-b8cc-4d74-8c07-a1bb0ff296ce",
+      "name": "Wait",
+      "webhookId": "7e1182d9-e474-4cd3-bdfd-5c0c20ad6ca1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d404e253-9aad-4ff2-9b29-dcbed1952179",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        32
+      ],
+      "id": "cb7d1ce3-daf6-405e-8ed8-86c775861da1",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "generate": false
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "generate",
+              "displayName": "generate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "generated",
+              "displayName": "generated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_publication_desc",
+              "displayName": "s_publication_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_manufacturer_name",
+              "displayName": "s_product_manufacturer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_name",
+              "displayName": "s_product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_category_name",
+              "displayName": "s_product_category_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_description",
+              "displayName": "s_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_1",
+              "displayName": "s_photo_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_2",
+              "displayName": "s_photo_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_3",
+              "displayName": "s_photo_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_4",
+              "displayName": "s_photo_4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_5",
+              "displayName": "s_photo_5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_6",
+              "displayName": "s_photo_6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_7",
+              "displayName": "s_photo_7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_8",
+              "displayName": "s_photo_8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_9",
+              "displayName": "s_photo_9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_10",
+              "displayName": "s_photo_10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_11",
+              "displayName": "s_photo_11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_12",
+              "displayName": "s_photo_12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_13",
+              "displayName": "s_photo_13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_14",
+              "displayName": "s_photo_14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_15",
+              "displayName": "s_photo_15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_16",
+              "displayName": "s_photo_16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_id",
+              "displayName": "s_product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -256,
+        208
+      ],
+      "id": "5890848b-5fd0-4d56-8bdb-e6fed72b8231",
+      "name": "Update row(s)1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        208
+      ],
+      "id": "ee2a58a2-7bdc-4a7d-ab09-b46406e67909",
+      "name": "Get row(s)1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// Post-processor HTML opisów produktów\n// =====================================================\n// Czyści output AI Agent z artefaktów webSearch (cytaty),\n// akceptuje URL-e zdjęć pochodzące z pól s_photo_* (dowolne źródło),\n// waliduje strukturę 3-sekcyjną.\n// =====================================================\n\n// --- 1. Pobierz dane wejściowe ---\nconst html = $input.first().json.output || '';\nconst row = $('Get row(s)').item.json;\n\n// [ZMIANA] normalizacja: wymuś https, przytnij, odrzuć nie-URL\nconst normalizeUrl = (u) => {\n  if (!u || typeof u !== 'string') return null;\n  const s = u.trim();\n  if (!/^https?:\\/\\//i.test(s)) return null;\n  return s.replace(/^http:\\/\\//i, 'https://');\n};\n\n// [ZMIANA] pula + zbiór dozwolonych = dokładnie zdjęcia z s_photo_* tego wiersza\nconst photoUrls = [];\nconst allowed = new Set();\nfor (let i = 1; i <= 16; i++) {\n  const u = normalizeUrl(row[`s_photo_${i}`]);\n  if (u && !allowed.has(u)) { allowed.add(u); photoUrls.push(u); }\n}\n\n// --- 2. Funkcja czyszcząca ---\nfunction cleanProductHtml(html, photoUrls, allowed) {\n  if (!html || typeof html !== 'string') {\n    return { output: '', warnings: ['empty_input'], validation: {} };\n  }\n\n  const warnings = [];\n  const validation = {\n    citationsRemoved: 0,\n    externalImagesReplaced: 0,\n    externalImagesRemoved: 0,\n    forbiddenTagsRemoved: 0,\n    markdownWrappersStripped: 0,\n  };\n\n  let cleaned = html;\n\n  // (1) Strip markdown code fences ```html ... ```\n  const mdFenceRegex = /^\\s*```(?:html|markdown)?\\s*\\n?|\\n?\\s*```\\s*$/g;\n  const beforeFence = cleaned.length;\n  cleaned = cleaned.replace(mdFenceRegex, '');\n  if (cleaned.length !== beforeFence) validation.markdownWrappersStripped++;\n\n  // (2) Remove OpenAI inline citations: ([domain.com](url))\n  const citationRegex = /\\s*\\(\\[[^\\]]+\\]\\(https?:\\/\\/[^)]+\\)\\)/g;\n  const citMatches = cleaned.match(citationRegex);\n  if (citMatches) {\n    validation.citationsRemoved = citMatches.length;\n    cleaned = cleaned.replace(citationRegex, '');\n  }\n\n  // (3) Catch any remaining markdown links [text](url) → text\n  const mdLinkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^)]+)\\)/g;\n  const mdLinkMatches = cleaned.match(mdLinkRegex);\n  if (mdLinkMatches) {\n    warnings.push(`removed_${mdLinkMatches.length}_markdown_links`);\n    cleaned = cleaned.replace(mdLinkRegex, '$1');\n  }\n\n  // (4) [ZMIANA] Filtr <img>: zostaw jeśli src jest wśród zdjęć z s_photo_*, inaczej podmień/wytnij\n  let imgIdx = 0;\n  cleaned = cleaned.replace(/<img\\b[^>]*>/gi, (imgTag) => {\n    const srcMatch = imgTag.match(/\\bsrc\\s*=\\s*[\"']([^\"']+)[\"']/i);\n    const src = normalizeUrl(srcMatch ? srcMatch[1] : '');\n\n    // znany URL (z inputu) → zostaw, wymuszając https w samym tagu\n    if (src && allowed.has(src)) {\n      return imgTag.replace(/\\bsrc\\s*=\\s*[\"'][^\"']+[\"']/i, `src=\"${src}\"`);\n    }\n\n    // nieznany / halucynowany → podmień na realny z puli\n    if (photoUrls.length > 0) {\n      const replacement = photoUrls[imgIdx % photoUrls.length];\n      imgIdx++;\n      validation.externalImagesReplaced++;\n      const altMatch = imgTag.match(/\\balt\\s*=\\s*[\"']([^\"']*)[\"']/i);\n      const alt = altMatch ? altMatch[1] : 'zdjęcie produktu';\n      return `<img src=\"${replacement}\" alt=\"${alt}\">`;\n    }\n\n    validation.externalImagesRemoved++;\n    return '';\n  });\n\n  // (5) Strip empty <div></div>\n  cleaned = cleaned.replace(/<div>\\s*<\\/div>/g, '');\n  cleaned = cleaned.replace(/<div>\\s*\\n?\\s*<\\/div>/g, '');\n\n// (1b) Normalizacja cala -> ″ (łapie też encję &quot; / &#34;)\n  cleaned = cleaned\n    .replace(/(\\d)\\s*(?:&quot;|&#0*34;)/gi, '$1″')  // 10&quot; -> 10″\n    .replace(/(\\d)\\s*[\"\"\"'']{2,}/g, '$1″')          // 10\"\" / 10'' -> 10″\n    .replace(/(\\d)\\s*[\"\"\"]/g, '$1″');                // 10\" -> 10″\n  \n  // (6) Convert h1/h3/h4/h5/h6 → <p><strong>\n  ['h1', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {\n    const openRegex = new RegExp(`<${tag}\\\\b[^>]*>`, 'gi');\n    const closeRegex = new RegExp(`<\\\\/${tag}>`, 'gi');\n    if (openRegex.test(cleaned)) {\n      validation.forbiddenTagsRemoved++;\n      cleaned = cleaned.replace(openRegex, '<p><strong>');\n      cleaned = cleaned.replace(closeRegex, '</strong></p>');\n    }\n  });\n\n  // (7) Remove <script>, <iframe>, <style>, <link>\n  ['script', 'iframe', 'style', 'link'].forEach(tag => {\n    const fullRegex = new RegExp(`<${tag}\\\\b[^>]*>[\\\\s\\\\S]*?<\\\\/${tag}>`, 'gi');\n    const selfRegex = new RegExp(`<${tag}\\\\b[^>]*\\\\/?>`, 'gi');\n    if (fullRegex.test(cleaned) || selfRegex.test(cleaned)) {\n      validation.forbiddenTagsRemoved++;\n      cleaned = cleaned.replace(fullRegex, '');\n      cleaned = cleaned.replace(selfRegex, '');\n    }\n  });\n\n  cleaned = cleaned.trim();\n\n  // (8) Validation\n  const h2Count = (cleaned.match(/<h2\\b/gi) || []).length;\n  validation.sectionCount = h2Count;\n  if (h2Count !== 3) warnings.push(`section_count_${h2Count}_expected_3`);\n\n  validation.length = cleaned.length;\n  if (cleaned.length < 4000) warnings.push(`too_short_${cleaned.length}`);\n  if (cleaned.length > 5500) warnings.push(`too_long_${cleaned.length}`);\n\n  if (!/^<div\\s+class\\s*=\\s*[\"']styleDlaOpisuProduktu[\"']/i.test(cleaned)) {\n    warnings.push('missing_root_wrapper');\n  }\n\n  validation.finalImageCount = (cleaned.match(/<img\\b/gi) || []).length;\n\n  // [ZMIANA] leak-check: każdy <img> którego src NIE ma w allowed\n  const leaked = (cleaned.match(/<img\\b[^>]*>/gi) || []).filter(tag => {\n    const m = tag.match(/\\bsrc\\s*=\\s*[\"']([^\"']+)[\"']/i);\n    return !(m && allowed.has(normalizeUrl(m[1])));\n  });\n  if (leaked.length) warnings.push(`leaked_external_imgs_${leaked.length}`);\n\n  return { output: cleaned, warnings, validation };\n}\n\n// --- 3. Wykonaj czyszczenie ---\nconst result = cleanProductHtml(html, photoUrls, allowed);\n\n// --- 4. Zwróć w formacie n8n ---\nreturn [{\n  json: {\n    output: result.output,\n    warnings: result.warnings,\n    validation: result.validation,\n    originalLength: html.length,\n    cleanedLength: result.output.length,\n    reductionPct: ((1 - result.output.length / html.length) * 100).toFixed(1) + '%',\n    productName: row.s_product_name || '',\n    productId: row.s_product_id || '',\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        -384
+      ],
+      "id": "07d072b9-055a-44d4-852e-324ba89258f1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "={{ $('Build Schema').item.json.jsonSchema }}"
+      },
+      "id": "092c6544-292a-44fe-a1d7-ac6018584298",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// === WALIDACJA / KOERCJA STRUCTURED OUTPUT ===\nconst defs = JSON.parse($('Build Schema').first().json._paramsDef);\nconst ai = ($json.output && typeof $json.output === 'object') ? $json.output : ($json || {});\n\nconst params = {}; let filled = 0, nulled = 0; const warnings = [];\n\nfor (const d of defs) {\n  let v = ai[d.name];\n  if (v === undefined) v = null;\n  if (typeof v === 'string') { v = v.trim(); if (v === '' || /^(null|n\\/a|brak|nieznany|-)$/i.test(v)) v = null; }\n\n  if (v !== null && d.type === 'number') {\n    const n = Number(String(v).replace(',', '.').replace(/[^0-9.\\-]/g, ''));\n    v = Number.isFinite(n) ? n : null;\n  }\n  if (v !== null && d.type === 'enum') {\n    if (!d.options.includes(v)) { warnings.push('enum_odrzucony:'+d.name+'='+v); v = null; }\n  }\n  params[d.name] = v;\n  if (v === null) nulled++; else filled++;\n}\n\nreturn [{ json: {\n  id: $('Get row(s)3').first().json.id,\n  params,\n  paramsJson: JSON.stringify(params, null, 2),\n  _group: $('Build Schema').first().json._group,\n  _groupRaw: $('Build Schema').first().json._groupRaw,\n  _fallbackEmpty: $('Build Schema').first().json._fallbackEmpty,\n  _filled: filled,\n  _nulled: nulled,\n  _warnings: warnings\n}}];"
+      },
+      "id": "69fd1eae-bc73-485d-aa0b-fd3f760a3cc8",
+      "name": "Validate Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Get row(s)2').item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "params": "={{ $json.paramsJson }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "generate",
+              "displayName": "generate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "generated",
+              "displayName": "generated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_publication_desc",
+              "displayName": "s_publication_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_manufacturer_name",
+              "displayName": "s_product_manufacturer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_name",
+              "displayName": "s_product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_category_name",
+              "displayName": "s_product_category_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_description",
+              "displayName": "s_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_1",
+              "displayName": "s_photo_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_2",
+              "displayName": "s_photo_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_3",
+              "displayName": "s_photo_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_4",
+              "displayName": "s_photo_4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_5",
+              "displayName": "s_photo_5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_6",
+              "displayName": "s_photo_6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_7",
+              "displayName": "s_photo_7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_8",
+              "displayName": "s_photo_8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_9",
+              "displayName": "s_photo_9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_10",
+              "displayName": "s_photo_10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_11",
+              "displayName": "s_photo_11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_12",
+              "displayName": "s_photo_12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_13",
+              "displayName": "s_photo_13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_14",
+              "displayName": "s_photo_14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_15",
+              "displayName": "s_photo_15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_16",
+              "displayName": "s_photo_16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_id",
+              "displayName": "s_product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "images",
+              "displayName": "images",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "krotki_opis",
+              "displayName": "krotki_opis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "params",
+              "displayName": "params",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "48cffb40-37aa-46df-8717-e909e0716eb2",
+      "name": "Update row(s)2",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        704
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8bea7b98-cacd-4d7f-a2ba-3af472f467f2",
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        704
+      ],
+      "webhookId": "31153f52-618f-4540-8ea0-d2c870622814"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "generate",
+              "condition": "isTrue"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        752
+      ],
+      "id": "278cde8d-47e9-4b1d-b61b-fdab88017ede",
+      "name": "Get row(s)2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -640,
+        656
+      ],
+      "id": "e523a45a-81a7-4968-a159-388ca9b07beb",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d404e253-9aad-4ff2-9b29-dcbed1952179",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        576
+      ],
+      "id": "1bc02edd-e68a-43a8-a8f2-abad64bde519",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "generate": false
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "generate",
+              "displayName": "generate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "generated",
+              "displayName": "generated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_publication_desc",
+              "displayName": "s_publication_desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_manufacturer_name",
+              "displayName": "s_product_manufacturer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_name",
+              "displayName": "s_product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_category_name",
+              "displayName": "s_product_category_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_description",
+              "displayName": "s_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_1",
+              "displayName": "s_photo_1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_2",
+              "displayName": "s_photo_2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_3",
+              "displayName": "s_photo_3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_4",
+              "displayName": "s_photo_4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_5",
+              "displayName": "s_photo_5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_6",
+              "displayName": "s_photo_6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_7",
+              "displayName": "s_photo_7",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_8",
+              "displayName": "s_photo_8",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_9",
+              "displayName": "s_photo_9",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_10",
+              "displayName": "s_photo_10",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_11",
+              "displayName": "s_photo_11",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_12",
+              "displayName": "s_photo_12",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_13",
+              "displayName": "s_photo_13",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_14",
+              "displayName": "s_photo_14",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_15",
+              "displayName": "s_photo_15",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_photo_16",
+              "displayName": "s_photo_16",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "s_product_id",
+              "displayName": "s_product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        752
+      ],
+      "id": "d7a17ea8-bc9e-408b-bf97-2df4d660c023",
+      "name": "Update row(s)3"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "CXXKnvHWHcTpDdgk",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "/projects/R1mT7D1pazkYxjcC/datatables/CXXKnvHWHcTpDdgk"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        752
+      ],
+      "id": "47d867a5-d9ec-4f00-aed8-339e2241680f",
+      "name": "Get row(s)3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sklasyfikuj produkt do jednej grupy parametrów.\n\n- Producent: {{ $json.s_product_manufacturer_name || '— brak' }}\n- Nazwa: {{ $json.s_product_name }}\n- Kategoria w bazie (NIEPEWNA wskazówka): {{ $json.s_product_category_name || '— brak' }}\n- Opis: {{ $json.s_description || '— brak' }}\n\nZwróć group + reason.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Jesteś klasyfikatorem produktów car audio. Przypisz produkt do DOKŁADNIE JEDNEJ grupy parametrów z listy.\nKieruj się przede wszystkim NAZWĄ i OPISEM produktu — kategoria z bazy bywa nietrafna i jest tylko wskazówką.\nRozróżniaj: Głośniki vs Subwoofery (bas), Zwrotnice jako osobny element, Obudowy (skrzynie) vs Subwoofery.\nJeśli produkt to akcesorium nie pasujące nigdzie — wybierz 'Uniwersalne'.\nZwróć obiekt: group (jedna z listy) + reason (krótkie, 1 zdanie). Nic poza obiektem.\n\nGRUPY:\n- Bezpieczniki car audio — bezpieczniki i oprawki (ANL, AGU, MiniANL/AFS)\n- Equalizery — korektory graficzne/parametryczne jako osobne urządzenie\n- Głośniki samochodowe — głośniki koaksjalne, komponentowe, średnio/wysokotonowe (NIE subwoofery)\n- Konketory/złącza — wtyki, złącza, terminale, oczka, widełki, adaptery RCA/ISO\n- Konwertery i filtry — konwertery hi-low, line output converter, filtry sygnału\n- Obudowy — obudowy/skrzynie pod subwoofery\n- Procesory DSP — procesory dźwięku DSP\n- Przewody car audio — przewody zasilające, głośnikowe, sygnałowe, optyczne, zestawy kabli\n- Radioodtwarzacze — radia, jednostki centralne, multimedia, head units\n- Subwoofery samochodowe — subwoofery / głośniki niskotonowe do basu, także aktywne\n- Uniwersalne — akcesoria i produkty nie pasujące do żadnej z pozostałych grup\n- Wygłuszenia samochodu — maty wygłuszające, pianki, materiały tłumiące\n- Wzmacniacze samochodowe — wzmacniacze mono / 2- / 4-kanałowe\n- Zwrotnice — zwrotnice głośnikowe (crossover) jako osobny element"
+            }
+          ]
+        }
+      },
+      "id": "3dfdcffb-cfc0-4105-8dc4-a7130a6e98a4",
+      "name": "Classify Group",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        272,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4"
+        },
+        "options": {
+          "reasoningEffort": "low"
+        }
+      },
+      "id": "78f77f0a-a570-4ce0-a38a-f3a6038b999d",
+      "name": "Classifier Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        816
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "brEYBXVPxls1260v",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\": \"object\", \"additionalProperties\": false, \"required\": [\"group\", \"reason\"], \"properties\": {\"group\": {\"type\": \"string\", \"enum\": [\"Bezpieczniki car audio\", \"Equalizery\", \"Głośniki samochodowe\", \"Konketory/złącza\", \"Konwertery i filtry\", \"Obudowy\", \"Procesory DSP\", \"Przewody car audio\", \"Radioodtwarzacze\", \"Subwoofery samochodowe\", \"Uniwersalne\", \"Wygłuszenia samochodu\", \"Wzmacniacze samochodowe\", \"Zwrotnice\"]}, \"reason\": {\"type\": \"string\"}}}"
+      },
+      "id": "de6e10a0-5933-4428-8f56-c4032791695c",
+      "name": "Classifier Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// === BUDOWA DYNAMICZNEGO SCHEMA na podstawie SKLASYFIKOWANEJ grupy ===\nconst CONFIG = {\"groups\": {\"Bezpieczniki car audio\": [{\"name\": \"Typ Bezpiecznika\", \"type\": \"enum\", \"options\": [\"ANL\", \"MiniANL (AFS)\", \"AGU\"], \"priority\": true}, {\"name\": \"Ilość [szt/opk]\", \"type\": \"number\", \"options\": null, \"priority\": true}, {\"name\": \"Materiał\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Prąd znamionowy\", \"type\": \"number\", \"options\": null, \"priority\": false}], \"Equalizery\": [], \"Głośniki samochodowe\": [{\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": true}, {\"name\": \"Moc RMS [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Impedancja [Ω]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Częstotliwość rezonansowa [Hz]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Głębokość montażowa [mm]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik niskotonowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik pełnozakresowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik średnioniskotonowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik średniotonowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik wysokotonowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Moc MAX [W]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Otwór montażowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Pasmo przenoszenia [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Skuteczność [dB]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Sposób montażu\", \"type\": \"enum\", \"options\": [\"Uniwersalne\", \"Plug&Play Dedykowane\", \"DIY\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Konketory/złącza\": [{\"name\": \"Długość [m]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Ilość pinów\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Ilość [szt/opk]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Zastosowanie\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Konwertery i filtry\": [], \"Obudowy\": [{\"name\": \"Wymiary [mm]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Pojemność obudowy [l]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Materiał obudowy\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Otwór montażowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Typ obudowy\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Procesory DSP\": [], \"Przewody car audio\": [{\"name\": \"Przekrój [mm2]\", \"type\": \"number\", \"options\": null, \"priority\": true}, {\"name\": \"Materiał\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Długość [m]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Forma sprzedaży\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Izolacja\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Kolor\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Liczba żył\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Rodzaj ekranowania\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Średnica przewodu [mm²]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Typ przewodu\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Radioodtwarzacze\": [{\"name\": \"Rozmiar\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Funkcje\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Wymiary [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Złącza\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Subwoofery samochodowe\": [{\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": true}, {\"name\": \"Moc RMS [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Impedancja [Ω]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Częstotliwość rezonansowa [Hz]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Głębokość montażowa [mm]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Głośnik niskotonowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Moc MAX [W]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Otwór montażowy [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Pasmo przenoszenia [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Skuteczność [dB]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Sposób montażu\", \"type\": \"enum\", \"options\": [\"Uniwersalne\", \"Plug&Play Dedykowane\", \"DIY\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Uniwersalne\": [{\"name\": \"Długość [m]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Forma sprzedaży\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Funkcje\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Grubość [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Ilość [szt/opk]\", \"type\": \"number\", \"options\": null, \"priority\": false}, {\"name\": \"Kolor\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Materiał\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Wygłuszenia samochodu\": [{\"name\": \"Grubość [mm]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Wymiary [mm]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Materiały\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Arkusz\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Forma sprzedaży\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Ilość warstw\", \"type\": \"enum\", \"options\": [\"1\", \"2\", \"3\", \"4\", \"5\", \"6\"], \"priority\": false}, {\"name\": \"Opakowanie\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Zastosowanie\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Wzmacniacze samochodowe\": [{\"name\": \"Liczba kanałów\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Moc RMS 1 Ohm [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Moc RMS 2 Ohm [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Moc RMS 4 Ohm [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Klasa wzmacniacza\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Moc po zmostkowaniu 4 Ohm [W]\", \"type\": \"text\", \"options\": null, \"priority\": true}, {\"name\": \"Hi Level Input\", \"type\": \"enum\", \"options\": [\"Tak\", \"Nie\"], \"priority\": true}, {\"name\": \"Damping factor\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Filtr High Pass\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Filtr Low Pass\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Filtr Subsonic\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Pasmo przenoszenia [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"SN Ratio\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Wymiary [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Zniekształcenia THD\", \"type\": \"text\", \"options\": null, \"priority\": false}], \"Zwrotnice\": [{\"name\": \"Częstotliwość podziału HighPass [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Częstotliwość podziału LowPass [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Częstotliwość podziału [Hz]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Nachylenie zbocza HighPass [dB]\", \"type\": \"enum\", \"options\": [\"6 dB\", \"12 dB\", \"18 dB\", \"24 dB\"], \"priority\": false}, {\"name\": \"Nachylenie zbocza LowPass [dB]\", \"type\": \"enum\", \"options\": [\"6 dB\", \"12 dB\", \"18 dB\", \"24 dB\"], \"priority\": false}, {\"name\": \"Sposób montażu\", \"type\": \"enum\", \"options\": [\"Uniwersalne\", \"Plug&Play Dedykowane\", \"DIY\"], \"priority\": false}, {\"name\": \"Typ produktu\", \"type\": \"enum\", \"options\": [\"Zestaw głośnikowy 2-drożny\", \"Zestaw głośnikowy 3-drożny\", \"Głośniki Wysokotonowe - Tweeter\", \"Głośniki Średniotonowe - Mid\", \"Głośniki Średnioniskotonowe - Woofer\", \"Głośniki Niskotonowe - Subwoofery\", \"Subwoofery aktywne\", \"Wzmacniacz Mono 1-kanałowy\", \"Wzmacniacz 2-kanałowy\", \"Wzmacniacz 4-kanałowy\", \"Głośniki koaksjalne 2-drożne\", \"Głośniki koaksjalne 3-drożne\", \"Głośniki Szerokopasmowe\", \"Zwrotnice\", \"Akcesoria głośnikowe\", \"Akcesoria do wzmacniacza\", \"Akcesoria\", \"Adapter RCA\", \"Adapter ISO\", \"Wiązka Plug&Play\", \"Bypass DSP\", \"Obudowa subwoofera\", \"Konektor oczko\", \"Konektor widełka\", \"Terminal zasilania\", \"Zestaw dedykowany Plug&Play\", \"Przewód zasilający\", \"Przewód głośnikowy\", \"Przewód optyczny\", \"Zestaw przewodów\"], \"priority\": false}, {\"name\": \"Waga [kg]\", \"type\": \"text\", \"options\": null, \"priority\": false}, {\"name\": \"Wymiary [mm]\", \"type\": \"text\", \"options\": null, \"priority\": false}]}, \"aliases\": {\"bezpiecznikicaraudio\": \"Bezpieczniki car audio\", \"equalizery\": \"Equalizery\", \"gosnikisamochodowe\": \"Głośniki samochodowe\", \"konketoryzacza\": \"Konketory/złącza\", \"konwerteryifiltry\": \"Konwertery i filtry\", \"obudowy\": \"Obudowy\", \"procesorydsp\": \"Procesory DSP\", \"przewodycaraudio\": \"Przewody car audio\", \"radioodtwarzacze\": \"Radioodtwarzacze\", \"subwooferysamochodowe\": \"Subwoofery samochodowe\", \"uniwersalne\": \"Uniwersalne\", \"wyguszeniasamochodu\": \"Wygłuszenia samochodu\", \"wzmacniaczesamochodowe\": \"Wzmacniacze samochodowe\", \"zwrotnice\": \"Zwrotnice\", \"glosniki\": \"Głośniki samochodowe\", \"subwoofery\": \"Subwoofery samochodowe\", \"subwoofer\": \"Subwoofery samochodowe\", \"wzmacniacze\": \"Wzmacniacze samochodowe\", \"wzmacniacz\": \"Wzmacniacze samochodowe\", \"przewody\": \"Przewody car audio\", \"kable\": \"Przewody car audio\", \"wygluszenia\": \"Wygłuszenia samochodu\", \"obudowa\": \"Obudowy\", \"bezpieczniki\": \"Bezpieczniki car audio\", \"radio\": \"Radioodtwarzacze\", \"konektory\": \"Konketory/złącza\", \"zlacza\": \"Konketory/złącza\", \"korektory\": \"Equalizery\", \"dsp\": \"Procesory DSP\"}, \"fallbackGroup\": \"Uniwersalne\"};\n\nconst norm = (s) => (s||'').toString().normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'')\n  .toLowerCase().replace(/[^a-z0-9]/g,'');\n\nconst row = $('Get row(s)3').first().json;          // dane produktu\nconst cls = ($json && $json.output && typeof $json.output === 'object') ? $json.output : ($json || {});\n\n// 1) grupa z klasyfikatora; 2) awaryjnie alias po kategorii z bazy; 3) Uniwersalne\nlet group = (cls.group && CONFIG.groups[cls.group]) ? cls.group : '';\nif (!group) group = CONFIG.aliases[norm(row.s_product_category_name)] || '';\nif (!group || !CONFIG.groups[group]) group = CONFIG.fallbackGroup;\n\nconst groupRaw = group;\nlet params = CONFIG.groups[group] || [];\nlet fallbackEmpty = false;\nif (!params.length) { group = CONFIG.fallbackGroup; params = CONFIG.groups[group] || []; fallbackEmpty = true; }\n\nconst properties = {}; const required = [];\nfor (const p of params) {\n  required.push(p.name);\n  let prop;\n  if (p.type === 'number') prop = { type: ['number','null'] };\n  else if (p.type === 'enum') prop = { type: ['string','null'], enum: [...p.options, null] };\n  else prop = { type: ['string','null'] };\n  prop.description = (p.priority ? '[PRIORYTET] ' : '') +\n    'Wartosc tylko jesli potwierdzona w T1-T3. W razie braku/niepewnosci: null.';\n  properties[p.name] = prop;\n}\nconst jsonSchema = { type:'object', additionalProperties:false, required, properties };\n\nconst spec = params.map((p,i) => {\n  const t = p.type==='number' ? 'liczba'\n    : p.type==='enum' ? ('lista zamknieta -> jedna z: ' + p.options.join(' | '))\n    : 'tekst';\n  return (i+1)+'. \"'+p.name+'\" -> '+t + (p.priority ? '   (PRIORYTET wyswietlania)' : '');\n}).join('\\n');\n\nreturn [{ json: {\n  ...row,\n  _group: group,\n  _groupRaw: groupRaw,\n  _fallbackEmpty: fallbackEmpty,\n  _classReason: cls.reason || '',\n  _paramCount: params.length,\n  _paramsDef: JSON.stringify(params),\n  jsonSchema: JSON.stringify(jsonSchema),\n  paramSpec: spec\n}}];"
+      },
+      "id": "9b0df5cc-c8ab-4bf8-913b-e6e8df3d206c",
+      "name": "Build Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=- Producent: {{ $json.s_product_manufacturer_name }}\n- Model: {{ $json.s_product_name }}\n- Kategoria: {{ $json.s_product_category_name }}\n- Opis (T1): {{ $json.s_description }}\n\nParametry do ustalenia:\n{{ $json.paramSpec }}",
+        "options": {
+          "systemMessage": "Jesteś researcherem technicznym car audio. Masz narzędzie WEB SEARCH i MASZ z niego korzystać dla każdego parametru, którego nie ma w opisie (T1).\n\nŹRÓDŁA: T1 = opis z inputu | T2 = oficjalna strona producenta | T3 = oficjalny datasheet/PDF producenta | T4 = inne sklepy/marketplace/fora/agregatory = NIE używać.\n\nDZIAŁANIE:\n1. Wyciągnij co się da z T1.\n2. Braki dociągnij web searchem\n3. Tożsamość modelu: nazwa musi się zgadzać w 100% (nie wariant, nie podobny). Niedopasowanie → \"nie znaleziono\".\n4. Sprzeczne wartości między źródłami → oznacz NIEPEWNE.\n\nZwróć całą odpowiedź wraz z cytatami i linkami",
+          "maxIterations": 20
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1040,
+        704
+      ],
+      "id": "eb79aaed-a536-4752-9ca3-84e510625a7e",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4"
+        },
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "high"
+          }
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        880
+      ],
+      "id": "261fa072-c7c8-4a10-b4ca-c217002d46a8",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "brEYBXVPxls1260v",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Wypełnij parametry z OPISU (T1) i DOSSIER. Nie szukaj sam.\n\nGRUPA: {{ $('Build Schema').first().json._group }}\n\nDANE PRODUKTU:\n- Producent: {{ $('Build Schema').first().json.s_product_manufacturer_name }}\n- Model: {{ $('Build Schema').first().json.s_product_name }}\n- Opis (T1): {{ $('Build Schema').first().json.s_description }}\n\nDOSSIER Z RESEARCHU:\n{{ $json.output }}\n\nPARAMETRY DO WYPEŁNIENIA:\n{{ $('Build Schema').first().json.paramSpec }}\n\nKażde pole: wartość albo null.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Jesteś ekspertem-technikiem car audio. Wypełniasz parametry KONKRETNEGO produktu jako structured output zgodny ze schematem. Masz DWA źródła: OPIS (T1) i DOSSIER z researchu (T2/T3). Sam nie szukasz — korzystasz tylko z tych dwóch.\n\nZASADA NACZELNA: czego nie ma w T1 ani w dossier (jako potwierdzone, nie \"nie znaleziono\", nie NIEPEWNE) → null. Zgadywanie, \"na oko\", szacowanie po kategorii/rozmiarze = ZAKAZANE.\n\nPOLA KLASYFIKACYJNE vs MIERZONE:\n- \"Typ produktu\" i \"Sposób montażu\" WOLNO wywnioskować z jednoznacznego opisu (np. opis mówi \"głośnik centralny reference 4\\\", pasmo 50–25000 Hz\" → pełnozakresowy → \"Głośniki Szerokopasmowe\"; \"DirectFit / plug-and-play / drop-in dedykowany\" → \"Plug&Play Dedykowane\"). Tu null tylko gdy naprawdę nie da się określić.\n- Parametry MIERZONE (moc, impedancja, częstotliwości, wymiary, skuteczność, waga) wymagają twardego źródła T1/T2/T3.\n\nREGUŁA WAGI: \"Waga [kg]\" = waga PRODUKTU. Waga brutto / waga z opakowaniem / waga przesyłki ≠ waga produktu → jeśli masz tylko brutto/opakowanie, daj null.\n\nREGUŁA WARIANTÓW: jeśli nazwa modelu nie precyzuje wariantu impedancji (2Ω/4Ω/D2/D4/SVC/DVC), nie podawaj impedancji ani mocy zależnej od wariantu → null.\n\nFORMAT:\n- liczba: sama liczba bez jednostki (89, 63.5).\n- tekst: zwięzła wartość z jednostką (\"4 Ω\", \"100 W\", \"50–25000 Hz\", \"165 mm\").\n- lista zamknięta: dokładnie jedna z opcji, inaczej null.\nBez zdań, bez marketingu, bez pól spoza schematu.\n\nZwróć WYŁĄCZNIE obiekt zgodny ze schematem."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1376,
+        704
+      ],
+      "id": "4caf9f9a-573e-48a6-9989-cfda05246ed1",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1296,
+        880
+      ],
+      "id": "a5d77adb-4cca-42ee-8c95-0b8459518e77",
+      "name": "OpenAI Chat Model5",
+      "credentials": {
+        "openAiApi": {
+          "id": "brEYBXVPxls1260v",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Parametry\n",
+        "height": 544,
+        "width": 3056
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "60561b8a-1812-4677-8198-76d9feca6547",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Describe Image with LLM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract all images": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Images": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Describe Image with LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe Image with LLM": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Extract all images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Params": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)2": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)2": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)3": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)3": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Classify Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classifier Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Group",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classifier Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Classify Group",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Group": {
+      "main": [
+        [
+          {
+            "node": "Build Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Schema": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "Validate Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b292e54c-b319-4d59-8d2e-5b2f2877879b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "26019a859bec068d8e38e09f2f5cb25a65ac8038f81152d2139e60a1deb111c9"
+  },
+  "id": "PWw3jroqDPrhlwib",
+  "tags": [
+    {
+      "updatedAt": "2026-05-15T22:27:28.389Z",
+      "createdAt": "2026-05-15T22:27:28.389Z",
+      "id": "n0NolQ902j2xdevt",
+      "name": "produkty"
+    }
+  ]
+}

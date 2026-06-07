@@ -26,6 +26,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("/fork", "Spawn parallel branches from current state"),
     ("/fork diff", "Pick file + branches to open in external diff tool (PyCharm/VS Code)"),
     ("/fork-config", "Configure /fork branches, models, and budgets (persisted)"),
+    ("/goal", "Keep working toward a condition (/goal <condition>, /goal clear)"),
     ("/help", "Show commands and shortcuts"),
     ("/improve", "Analyze sessions and self-improve"),
     ("/load", "Load a saved session"),

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "pydantic-deep",
+  "version": "0.1.0",
+  "identifier": "co.vstorm.pydantic-deep",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "pydantic-deep",
+        "width": 1200,
+        "height": 820,
+        "minWidth": 720,
+        "minHeight": 480,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.png"],
+    "resources": [],
+    "category": "DeveloperTool",
+    "shortDescription": "pydantic-deep desktop agent"
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": ["https://releases.vstorm.co/pydantic-deep/{{target}}/{{current_version}}"],
+      "dialog": true
+    }
+  }
+}

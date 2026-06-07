@@ -364,6 +364,43 @@ def init(
     init_project(root)
 
 
+@app.command()
+def desktop(
+    port: Annotated[
+        int | None,
+        typer.Option("--port", "-p", help="Gateway port (default: OS-assigned free port)"),
+    ] = None,
+    host: Annotated[
+        str,
+        typer.Option("--host", help="Gateway bind host"),
+    ] = "127.0.0.1",
+) -> None:
+    """Launch the native desktop app (gateway + window).
+
+    Requires the desktop extra: ``pip install 'pydantic-deep[desktop]'``.
+    """
+    from apps.desktop.launcher import run_desktop
+
+    raise typer.Exit(code=run_desktop(host=host, port=port))
+
+
+@app.command()
+def gateway(
+    port: Annotated[
+        int,
+        typer.Option("--port", "-p", help="Port to serve on (0 = OS-assigned)"),
+    ] = 0,
+    host: Annotated[
+        str,
+        typer.Option("--host", help="Bind host"),
+    ] = "127.0.0.1",
+) -> None:
+    """Run the HTTP + WebSocket gateway (headless; prints {port, token} JSON)."""
+    from apps.gateway.__main__ import main as gateway_main
+
+    raise typer.Exit(code=gateway_main(["--host", host, "--port", str(port)]))
+
+
 # ── Config subcommands ──────────────────────────────────────────
 
 config_app = typer.Typer(name="config", help="Manage configuration.", no_args_is_help=True)

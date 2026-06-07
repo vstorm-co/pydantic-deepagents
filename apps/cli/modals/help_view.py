@@ -19,6 +19,7 @@ _HELP_TEXT = """\
   [bold cyan]/diff[/bold cyan]        Show git diff
   [bold cyan]/fork[/bold cyan]        Spawn N parallel branches (Live Run Forking)
   [bold cyan]/fork-config[/bold cyan]  Configure /fork branches, models, and budgets (persisted)
+  [bold cyan]/goal[/bold cyan]        Keep working toward a condition (/goal clear to stop)
   [bold cyan]/help[/bold cyan]        Show this help
   [bold cyan]/load[/bold cyan]        Load a saved session
   [bold cyan]/mcp[/bold cyan]         Manage MCP servers (connect, login, import from Claude Code)

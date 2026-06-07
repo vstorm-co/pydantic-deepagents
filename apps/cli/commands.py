@@ -54,6 +54,10 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
         except Exception:
             pass
         app.message_history.clear()
+        # Starting a fresh conversation also drops any active goal.
+        from apps.cli.goal import clear_goal
+
+        clear_goal(app, notify=False)
         app.notify("History cleared")
 
     elif cmd == "/undo":
@@ -331,6 +335,11 @@ async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
             _apply_reminder_mode(app, mode)
 
         app.push_screen(ReminderPickerModal(current_mode=current), _handle_remind)
+
+    elif cmd == "/goal":
+        from apps.cli.goal import handle_goal_command
+
+        await handle_goal_command(app, arg)
 
     elif cmd == "/settings":
         from apps.cli.screens.settings import SettingsScreen

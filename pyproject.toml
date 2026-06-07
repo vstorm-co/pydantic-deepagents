@@ -48,6 +48,7 @@ dependencies = [
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
+    "websockets>=16.0",
 ]
 
 [project.optional-dependencies]
@@ -94,9 +95,13 @@ liteparse = ["liteparse>=0.1.0"]
 acp = ["agent-client-protocol>=0.8.0"]
 # Logfire tracing support
 logfire = ["logfire>=4.0"]
+# HTTP + WebSocket gateway (REST + streaming) — backs the desktop/web frontends
+gateway = ["pydantic-deep[web]"]
+# Native desktop app — gateway + a pywebview window (pure Python shell)
+desktop = ["pydantic-deep[web]", "pywebview>=5.0"]
 # All optional dependencies
 all = [
-    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse,mcp]",
+    "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse,mcp,gateway,desktop]",
 ]
 
 [project.urls]
@@ -115,6 +120,13 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pydantic_deep", "apps"]
+# Never ship the frontend's installed node_modules / source maps in the wheel;
+# the built SPA (apps/desktop/dist) is shipped, its toolchain is not.
+exclude = [
+    "apps/desktop/node_modules",
+    "apps/desktop/src",
+    "**/*.map",
+]
 
 # Dependency groups for development
 [dependency-groups]

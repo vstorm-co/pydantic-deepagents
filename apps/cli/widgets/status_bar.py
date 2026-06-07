@@ -57,6 +57,7 @@ class StatusBar(Widget):
     total_output_tokens: reactive[int] = reactive(0)
     message_count: reactive[int] = reactive(0)
     model_name: reactive[str] = reactive("")
+    goal_active: reactive[bool] = reactive(False)
 
     def compose(self) -> ComposeResult:
         yield Static(id="status-content")
@@ -91,6 +92,9 @@ class StatusBar(Widget):
     def watch_model_name(self) -> None:
         self._refresh_content()
 
+    def watch_goal_active(self) -> None:
+        self._refresh_content()
+
     def _refresh_content(self) -> None:
         try:
             content = self.query_one("#status-content", Static)
@@ -104,6 +108,10 @@ class StatusBar(Widget):
             parts.append("[dim]manual[/dim]")
         else:
             parts.append("[green]auto[/green]")
+
+        # Goal loop — show while an active goal is driving turns
+        if self.goal_active:
+            parts.append("[cyan]◎ goal[/cyan]")
 
         # Todos
         if self.total_todos > 0:

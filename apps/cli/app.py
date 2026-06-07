@@ -25,6 +25,7 @@ from apps.cli.styles.themes import register_themes
 from apps.cli.widgets.header import DeepHeader
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.status_bar import StatusBar
+from pydantic_deep.goal import GoalEvaluator, GoalState
 
 
 def _detect_git_branch(working_dir: str) -> str:
@@ -105,6 +106,10 @@ class DeepApp(App):
         self.last_response: str = ""
         self._startup_error = startup_error
         self.queue = getattr(deps, "message_queue", None)
+        # Active goal-completion loop (set via /goal). The evaluator is created
+        # lazily on first use so sessions that never set a goal pay nothing.
+        self._goal: GoalState | None = None
+        self._goal_evaluator: GoalEvaluator | None = None
         # Status-bar / reminder callbacks, retained so reconfigure_agent (e.g.
         # after /model) recreates the agent with the same wiring. Without this,
         # the cost/token/context status bar and reminder notifications go dead

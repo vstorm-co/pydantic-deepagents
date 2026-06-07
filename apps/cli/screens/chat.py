@@ -1229,6 +1229,14 @@ class ChatScreen(Screen):
                         _follow_up_scheduled = True
                         self.call_later(self._run_agent, _follow_up_text)
 
+                # Goal loop: if a goal is active and no queued follow-up took
+                # over, evaluate the condition after this turn and continue on a
+                # fresh turn when it isn't met yet. Scheduled (not awaited) so
+                # the worker returns and the evaluator runs against the saved
+                # history.
+                if not _follow_up_scheduled and getattr(app, "_goal", None) is not None:
+                    self.call_later(self._continue_goal)
+
         except asyncio.CancelledError:
             _run_cancelled = True
             log.info("Agent run cancelled")
@@ -1317,6 +1325,53 @@ class ChatScreen(Screen):
     def _reset_queue_badge(self) -> None:
         with contextlib.suppress(Exception):
             self.query_one(QueuedWidget).reset()
+
+    async def _continue_goal(self) -> None:
+        """Evaluate the active goal and drive another turn when not yet met.
+
+        Runs after a turn completes (scheduled from the stream worker). Uses a
+        small evaluator model to judge the goal condition against the saved
+        history; on success the goal clears, otherwise the evaluator's reason is
+        fed back into a fresh turn. A hard turn cap stops runaway loops.
+        """
+        from apps.cli.goal import clear_goal, get_goal_evaluator, set_goal_indicator
+        from pydantic_deep.goal import goal_continue_directive
+
+        app = self.app
+        goal = getattr(app, "_goal", None)
+        if goal is None or goal.achieved:
+            return
+        # A new run already started (e.g. the user typed) — let it drive.
+        task = app.agent_task
+        if task is not None and not task.done():
+            return
+
+        evaluator = get_goal_evaluator(app)
+        evaluation = await evaluator.evaluate(goal.condition, app.message_history)
+        # The goal may have been cleared while we awaited the evaluator.
+        if app._goal is not goal:
+            return
+        goal.record(evaluation)
+
+        if evaluation.met:
+            clear_goal(app, notify=False)
+            app.notify(f"✓ Goal achieved — {evaluation.reason}", timeout=10)
+            return
+        if goal.exhausted:
+            set_goal_indicator(app, False)
+            app._goal = None
+            app.notify(
+                f"Goal stopped after {goal.turns} turns — {evaluation.reason}",
+                severity="warning",
+                timeout=10,
+            )
+            return
+
+        app.notify(f"◎ Goal not met — {evaluation.reason}", timeout=6)
+        directive = goal_continue_directive(goal.condition, evaluation.reason)
+        with contextlib.suppress(Exception):
+            self.query_one(MessageList).append_user_message(directive)
+        self._run_agent(directive)
 
     # Skip the pre-write diff read for files larger than this (bytes): the diff
     # preview is truncated anyway, and large/binary reads aren't worth stalling on.

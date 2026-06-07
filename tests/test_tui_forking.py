@@ -463,12 +463,21 @@ class TestForkTabsCostRender:
             # watch_statuses mounts chips async while watch_branch_costs is sync.
             tabs.statuses = statuses
             tabs.branch_costs = costs
-            await pilot.pause()
-            await pilot.pause()
 
+            # The chip mounts asynchronously and the cost is re-applied once it
+            # exists, so poll until it lands rather than guessing a fixed pause
+            # count — the fixed-count version flaked under full-suite load.
             sid = statuses[0].id
-            chip = tabs.query_one(f"#fork-tab-{sid}", Static)
-            text = str(getattr(chip, "content", ""))
+            text = ""
+            for _ in range(50):
+                await pilot.pause()
+                try:
+                    chip = tabs.query_one(f"#fork-tab-{sid}", Static)
+                except Exception:
+                    continue
+                text = str(getattr(chip, "content", ""))
+                if "$0.42" in text:
+                    break
             assert "$0.42" in text, f"cost missing from chip text: {text!r}"
 
             await session.abort()

@@ -209,6 +209,7 @@ from pydantic_deep.toolsets.memory import (
     DEFAULT_MEMORY_DIR,
     DEFAULT_MEMORY_FILENAME,
     AgentMemoryToolset,
+    MemoryAccessError,
     MemoryFile,
     format_memory_prompt,
     get_memory_path,
@@ -384,6 +385,7 @@ __all__ = [
     "SUBAGENT_CONTEXT_ALLOWLIST",
     # Memory (persistent agent memory)
     "AgentMemoryToolset",
+    "MemoryAccessError",
     "MemoryFile",
     "load_memory",
     "get_memory_path",

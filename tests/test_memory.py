@@ -556,3 +556,114 @@ class TestMemoryExports:
         assert DEFAULT_MEMORY_DIR is not None
         assert DEFAULT_MEMORY_FILENAME is not None
         assert DEFAULT_MAX_MEMORY_LINES is not None
+
+
+class _WriteDenyBackend(StateBackend):
+    """StateBackend whose writes are always rejected with a WriteResult error.
+
+    Reads behave normally, so this isolates the "memory is readable but the
+    backend refuses to persist the write" path (issue #135) — distinct from a
+    path the backend denies for reading too.
+    """
+
+    def write(self, path, content):  # type: ignore[override]
+        from pydantic_ai_backends import WriteResult
+
+        return WriteResult(error="disk quota exceeded")
+
+
+def _denied_backend_and_dir(tmp_path):
+    """A LocalBackend whose allowed dir excludes the memory directory."""
+    from pydantic_ai_backends import LocalBackend
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    backend = LocalBackend(root_dir=str(workspace), allowed_directories=[str(workspace)])
+    memory_dir = str(tmp_path / "outside-memory")
+    return backend, memory_dir
+
+
+class TestMemoryFailureSurfacing:
+    """Issue #135 — backend write/permission failures must be visible."""
+
+    def test_load_memory_raises_on_denied_path(self, tmp_path):
+        """A denied path raises MemoryAccessError, not a silent None."""
+        from pydantic_deep import MemoryAccessError
+
+        backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        path = get_memory_path(memory_dir, "main")
+        try:
+            load_memory(backend, path, "main")
+            raise AssertionError("expected MemoryAccessError")
+        except MemoryAccessError as exc:
+            assert "denied" in str(exc).lower() or "outside" in str(exc).lower()
+
+    def test_load_memory_empty_existing_file_returns_none(self):
+        """An empty (but accessible) file is missing/empty memory, not an error."""
+        backend = StateBackend()
+        path = get_memory_path(DEFAULT_MEMORY_DIR, "main")
+        backend.write(path, b"")
+        assert load_memory(backend, path, "main") is None
+
+    async def test_read_memory_surfaces_denied_access(self, tmp_path):
+        """read_memory reports an error instead of 'No memory saved yet.'."""
+        backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=memory_dir)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        result = await toolset.tools["read_memory"].function(ctx)
+        assert result.startswith("Error:")
+        assert "No memory saved yet" not in result
+
+    async def test_write_memory_surfaces_denied_access(self, tmp_path):
+        """write_memory reports the access failure instead of phantom success."""
+        backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=memory_dir)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        result = await toolset.tools["write_memory"].function(ctx, content="note")
+        assert result.startswith("Error:")
+        assert "Memory updated" not in result
+
+    async def test_write_memory_surfaces_write_result_error(self):
+        """A rejected backend write is not reported as a successful update."""
+        backend = _WriteDenyBackend()
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=DEFAULT_MEMORY_DIR)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        result = await toolset.tools["write_memory"].function(ctx, content="note")
+        assert result.startswith("Error:")
+        assert "disk quota exceeded" in result
+
+    async def test_update_memory_surfaces_denied_access(self, tmp_path):
+        """update_memory reports the access failure instead of normal-looking output."""
+        backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=memory_dir)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        result = await toolset.tools["update_memory"].function(ctx, old_text="a", new_text="b")
+        assert result.startswith("Error:")
+
+    async def test_update_memory_surfaces_write_result_error(self):
+        """update_memory does not report success when the backend rejects the write."""
+        backend = _WriteDenyBackend()
+        path = get_memory_path(DEFAULT_MEMORY_DIR, "main")
+        # Seed readable content via the parent StateBackend write (bypassing the override).
+        StateBackend.write(backend, path, b"hello world")
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=DEFAULT_MEMORY_DIR)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        result = await toolset.tools["update_memory"].function(
+            ctx, old_text="hello", new_text="bye"
+        )
+        assert result.startswith("Error:")
+        assert "disk quota exceeded" in result
+
+    async def test_get_instructions_skips_denied_memory(self, tmp_path):
+        """A denied memory path must not abort the run; instructions are skipped."""
+        backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        toolset = AgentMemoryToolset(agent_name="main", memory_dir=memory_dir)
+        ctx = _make_ctx(backend)  # type: ignore[arg-type]
+        assert await toolset.get_instructions(ctx) is None
+
+    def test_memory_access_error_exported(self):
+        """MemoryAccessError is importable from the package root."""
+        from pydantic_deep import MemoryAccessError
+        from pydantic_deep.toolsets.memory import MemoryAccessError as direct
+
+        assert MemoryAccessError is direct

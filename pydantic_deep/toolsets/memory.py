@@ -19,6 +19,17 @@ from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import BackendProtocol
 
+
+class MemoryAccessError(Exception):
+    """The backend denied access to the memory path.
+
+    Raised by `load_memory` when a read fails for a reason other than the
+    file being missing or empty (e.g. the memory directory is outside the
+    backend's allowed directories). This keeps a genuine permission/backend
+    failure distinguishable from "no memory saved yet" — see issue #135.
+    """
+
+
 DEFAULT_MEMORY_DIR: str = "/.deep/memory"
 """Default base directory for memory files in the backend."""
 
@@ -89,7 +100,10 @@ def load_memory(
 ) -> MemoryFile | None:
     """Load memory file from backend.
 
-    Returns None if the file doesn't exist.
+    Returns None when the file is genuinely missing or empty. Raises
+    `MemoryAccessError` when the backend denies access to the path, so a
+    misconfigured memory directory is not silently reported as empty memory
+    (issue #135).
 
     Args:
         backend: Backend to read from.
@@ -97,13 +111,24 @@ def load_memory(
         agent_name: Name of the agent owning this memory.
 
     Returns:
-        MemoryFile if found, None otherwise.
+        MemoryFile if found, None if missing or empty.
+
+    Raises:
+        MemoryAccessError: If the backend denied access to the path.
     """
     raw = backend.read_bytes(path)
-    if not raw:
-        return None
-    content = raw.decode("utf-8", errors="replace")
-    return MemoryFile(agent_name=agent_name, path=path, content=content)
+    if raw:
+        content = raw.decode("utf-8", errors="replace")
+        return MemoryFile(agent_name=agent_name, path=path, content=content)
+
+    # `read_bytes` returns empty for missing, empty, AND denied paths — they
+    # are indistinguishable there. Probe via `read`, which surfaces access
+    # errors as an "Error: ..." string while reporting a missing file as
+    # "Error: ... not found". Anything else (or empty) is missing/empty memory.
+    probe = backend.read(path)
+    if probe.startswith("Error:") and "not found" not in probe.lower():
+        raise MemoryAccessError(probe.removeprefix("Error:").strip() or "access denied")
+    return None
 
 
 def format_memory_prompt(memory: MemoryFile, max_lines: int) -> str:
@@ -175,7 +200,10 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         async def read_memory(ctx: RunContext[Any]) -> str:
             """Read your persistent memory."""
             backend: BackendProtocol = ctx.deps.backend
-            mem = load_memory(backend, self._path, self._agent_name)
+            try:
+                mem = load_memory(backend, self._path, self._agent_name)
+            except MemoryAccessError as exc:
+                return f"Error: cannot read memory at '{self._path}': {exc}"
             if mem is None:
                 return "No memory saved yet."
             return mem.content
@@ -188,9 +216,14 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 content: Text to append to memory (markdown recommended).
             """
             backend: BackendProtocol = ctx.deps.backend
-            existing = load_memory(backend, self._path, self._agent_name)
+            try:
+                existing = load_memory(backend, self._path, self._agent_name)
+            except MemoryAccessError as exc:
+                return f"Error: cannot access memory at '{self._path}': {exc}"
             new_content = existing.content.rstrip("\n") + "\n\n" + content if existing else content
-            backend.write(self._path, new_content.encode("utf-8"))
+            result = backend.write(self._path, new_content.encode("utf-8"))
+            if result.error:
+                return f"Error: failed to save memory to '{self._path}': {result.error}"
             line_count = len(new_content.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
@@ -211,7 +244,10 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 new_text: The text to replace it with.
             """
             backend: BackendProtocol = ctx.deps.backend
-            mem = load_memory(backend, self._path, self._agent_name)
+            try:
+                mem = load_memory(backend, self._path, self._agent_name)
+            except MemoryAccessError as exc:
+                return f"Error: cannot access memory at '{self._path}': {exc}"
             if mem is None:
                 return "No memory exists yet. Use write_memory to create it."
             count = mem.content.count(old_text)
@@ -224,7 +260,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                     "so it matches exactly once."
                 )
             updated = mem.content.replace(old_text, new_text, 1)
-            backend.write(self._path, updated.encode("utf-8"))
+            result = backend.write(self._path, updated.encode("utf-8"))
+            if result.error:
+                return f"Error: failed to save memory to '{self._path}': {result.error}"
             line_count = len(updated.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
@@ -238,7 +276,13 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             Formatted memory prompt, or None if no memory exists.
         """
         backend: BackendProtocol = ctx.deps.backend
-        mem = load_memory(backend, self._path, self._agent_name)
+        try:
+            mem = load_memory(backend, self._path, self._agent_name)
+        except MemoryAccessError:
+            # Prompt injection runs on every request; a denied path must not
+            # abort the run. Skip injection here — the failure is surfaced
+            # loudly through the read_memory/write_memory tool results instead.
+            return None
         if mem is None:
             return None
         result = format_memory_prompt(mem, self._max_lines)

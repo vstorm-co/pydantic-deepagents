@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.26] - 2026-06-07
+
+### Fixed
+
+- **Memory tools now surface backend write and permission failures** ([#135](https://github.com/vstorm-co/pydantic-deepagents/issues/135)) (`pydantic_deep/toolsets/memory.py`). `AgentMemoryToolset` could report a successful persistent-memory write even when the backend rejected it, and could turn a *denied* memory read into the same `No memory saved yet.` result as a genuinely empty file — making a misconfigured memory directory (e.g. one outside the backend's `allowed_directories`) look like normal empty memory, with traces showing only successful tool calls.
+  - **Write path:** `write_memory` and `update_memory` now inspect `WriteResult.error` and return an explicit `Error: failed to save memory ...` instead of a phantom `Memory updated (...)`.
+  - **Read path:** new `MemoryAccessError` (exported from the package root) lets `load_memory` distinguish *denied* from *missing/empty*. Because `backend.read_bytes()` collapses missing, empty, and denied paths to empty bytes, `load_memory` now disambiguates via `backend.read()` (which reports access errors as `Error: ...` but a missing file as `... not found`), raising `MemoryAccessError` only on a real access failure. `read_memory`/`update_memory` surface it as an error string; `get_instructions` swallows it (prompt injection must not abort a run). Genuinely missing memory still returns `No memory saved yet.`.
+
 ## [0.3.24] - 2026-06-01
 
 ### Fixed

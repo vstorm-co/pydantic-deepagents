@@ -12,11 +12,17 @@ if TYPE_CHECKING:
 
 import chardet
 from pydantic_ai.usage import UsageLimits
-from pydantic_ai_backends import BackendProtocol, StateBackend, ensure_async
+from pydantic_ai_backends import StateBackend, ensure_async
 from pydantic_ai_backends.adapter import AsyncBackendAdapter
 from pydantic_ai_backends.protocol import AsyncBackendProtocol
 
 from pydantic_deep.types import FileData, Todo, UploadedFile
+
+
+def unwrap_backend(backend: Any) -> Any:
+    """Return the raw sync backend, unwrapping ``AsyncBackendAdapter`` if needed."""
+    return getattr(backend, "unwrap", lambda: backend)()
+
 
 #: pydantic-ai's default `request_limit=50` is too low for autonomous agents
 #: that routinely need 50-200+ requests on complex tasks.
@@ -62,11 +68,13 @@ class DeepAgentDeps:
         # Auto-wrap sync backends so consumer code can always `await backend.X()`
         if not isinstance(self.backend, AsyncBackendAdapter):
             wrapped = ensure_async(self.backend)
-            if wrapped is not self.backend:
+            if (
+                wrapped is not self.backend
+            ):  # pragma: no cover - only when backend is already async-native
                 object.__setattr__(self, "backend", wrapped)
 
         # Cache wiring via unwrap() for StateBackend's shared files dict
-        raw = getattr(self.backend, "unwrap", lambda: self.backend)()
+        raw = unwrap_backend(self.backend)
         if isinstance(raw, StateBackend):
             if self.files:
                 raw._files = self.files

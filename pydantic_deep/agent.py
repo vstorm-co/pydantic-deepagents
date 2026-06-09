@@ -22,6 +22,7 @@ from pydantic_ai_backends import (
     SandboxProtocol,
     StateBackend,
     create_console_toolset,
+    ensure_async,
     get_console_system_prompt,
 )
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
@@ -1194,7 +1195,7 @@ def create_deep_agent(  # noqa: C901
 
         all_capabilities.append(
             EvictionCapability(
-                backend=backend,
+                backend=ensure_async(backend),
                 token_limit=_eviction_token_limit,
                 max_binary_content=_max_binary_content,
                 on_eviction=_on_eviction,

@@ -50,9 +50,14 @@ logger = logging.getLogger(__name__)
 
 
 def _read_backend_bytes(backend: Any, path: str) -> bytes:
-    """Read bytes from a sync backend, preferring ``_read_bytes`` over ``read_bytes``."""
-    reader: Any = getattr(backend, "_read_bytes", None) or backend.read_bytes
+    """Read bytes from a sync backend.
+
+    Uses ``read_bytes`` when available, falls back to ``_read_bytes``
+    (some backends like ``LocalBackend`` only expose the private method).
+    """
+    reader: Any = getattr(backend, "read_bytes", None) or backend._read_bytes
     return bytes(reader(path))
+
 
 #: Heavy/ephemeral dirs - skipped to keep snapshot creation fast.
 _SNAP_SKIP_DIRS: frozenset[str] = frozenset(
@@ -470,7 +475,7 @@ class BranchOverlay:
         """
         if self._is_deleted(path):
             return False
-        return bool(self._overlay.exists(path) or self._parent.exists(path))
+        return bool(self._overlay.exists(path) or self._parent.exists(path))  # type: ignore[union-attr]
 
     def read(self, path: str, offset: int = 0, limit: int = 2000) -> str:
         if self._is_deleted(path):
@@ -997,13 +1002,13 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
     reference by default.
     """
 
+    from pydantic_deep.deps import unwrap_backend
+
     # Unwrap async adapter — BranchOverlay operates synchronously on the
     # raw sync backend; the adapter is only needed for async callers.
-    raw_backend: Any = getattr(deps.backend, "unwrap", lambda: deps.backend)()
+    raw_backend: Any = unwrap_backend(deps.backend)
 
-    new_backend: Any = (
-        BranchOverlay(raw_backend) if isolation.backend == "copy" else deps.backend
-    )
+    new_backend: Any = BranchOverlay(raw_backend) if isolation.backend == "copy" else deps.backend
 
     # "copy" → independent copy so branch todo edits stay local; "share" → same list.
     new_todos = list(deps.todos) if isolation.todos == "copy" else deps.todos

@@ -463,6 +463,7 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         read_counts: dict[str, int] = {}
+        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
         original_read = backend._read_bytes
 
         def _counting_read(path: str) -> bytes:

@@ -371,7 +371,9 @@ class TestExecuteCommandHook:
         assert "execute" in cmd  # tool_name in JSON
 
     async def test_command_deny(self):
-        raw_backend = FakeSandboxBackend({"blocker": ExecuteResponse(output="Blocked!", exit_code=2)})
+        raw_backend = FakeSandboxBackend(
+            {"blocker": ExecuteResponse(output="Blocked!", exit_code=2)}
+        )
         backend = ensure_async(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="blocker")
         hook_input = HookInput(

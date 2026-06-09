@@ -15,7 +15,7 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
-from pydantic_ai_backends import AsyncBackendProtocol, BackendProtocol
+from pydantic_ai_backends import AsyncBackendProtocol
 
 DEFAULT_CONTEXT_FILENAMES: list[str] = [
     "AGENTS.md",

@@ -261,7 +261,9 @@ class TestEvictionProcessor:
     async def test_large_content_evicted(self):
         """Content above threshold is evicted to backend."""
         backend = StateBackend()
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10)  # 40 chars threshold
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10
+        )  # 40 chars threshold
         ctx = _make_ctx(backend)
 
         large_content = _make_large_content(20)
@@ -279,6 +281,7 @@ class TestEvictionProcessor:
         assert "read_file" in str(tool_part.content)
 
         # File should be written to backend
+        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
         evicted_content = backend._read_bytes("/large_tool_results/call_123")
         assert evicted_content == large_content.encode()
 
@@ -289,7 +292,9 @@ class TestEvictionProcessor:
         from pydantic_ai.messages import BinaryContent
 
         backend = StateBackend()
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10)  # 40-char threshold
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10
+        )  # 40-char threshold
         ctx = _make_ctx(backend)
 
         image = BinaryContent(data=b"\x89PNG" + b"\x00" * 100_000, media_type="image/png")
@@ -530,7 +535,9 @@ class TestEvictionProcessor:
     async def test_custom_head_tail_lines(self):
         """Custom head_lines and tail_lines are used in preview."""
         backend = StateBackend()
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10, head_lines=2, tail_lines=2)
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10, head_lines=2, tail_lines=2
+        )
         ctx = _make_ctx(backend)
 
         large_content = _make_large_content(20)
@@ -698,7 +705,7 @@ class TestCreateEvictionProcessor:
         backend = StateBackend()
         processor = create_eviction_processor(backend)
         assert isinstance(processor, EvictionProcessor)
-        assert processor.backend is backend
+        assert processor.backend.unwrap() is backend
         assert processor.token_limit == DEFAULT_TOKEN_LIMIT
         assert processor.eviction_path == DEFAULT_EVICTION_PATH
 
@@ -737,7 +744,9 @@ class TestOnEvictionCallback:
         def on_eviction(tool_name: str, file_path: str, orig: int, preview: int) -> None:
             calls.append((tool_name, file_path, orig, preview))
 
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10, on_eviction=on_eviction)
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10, on_eviction=on_eviction
+        )
         ctx = _make_ctx(backend)
 
         large_content = _make_large_content(20)
@@ -759,7 +768,9 @@ class TestOnEvictionCallback:
         async def on_eviction(tool_name: str, file_path: str, orig: int, preview: int) -> None:
             calls.append(tool_name)
 
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10, on_eviction=on_eviction)
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10, on_eviction=on_eviction
+        )
         ctx = _make_ctx(backend)
 
         large_content = _make_large_content(20)
@@ -774,7 +785,9 @@ class TestOnEvictionCallback:
         """on_eviction is NOT called when content is small."""
         backend = StateBackend()
         cb = MagicMock()
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=100, on_eviction=cb)
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=100, on_eviction=cb
+        )
         ctx = _make_ctx(backend)
 
         messages: list[ModelMessage] = [_make_request_with_tool_return("small")]
@@ -872,7 +885,9 @@ class TestEvictionPreviewFormat:
     async def test_preview_contains_head_and_tail(self):
         """Eviction preview shows head and tail lines of original content."""
         backend = StateBackend()
-        processor = EvictionProcessor(backend=ensure_async(backend), token_limit=10, head_lines=3, tail_lines=3)
+        processor = EvictionProcessor(
+            backend=ensure_async(backend), token_limit=10, head_lines=3, tail_lines=3
+        )
         ctx = _make_ctx(backend)
 
         lines = [f"line_{i}" for i in range(20)]
@@ -1105,7 +1120,9 @@ class TestEvictionCapability:
         """on_eviction callback is invoked on eviction."""
         backend = StateBackend()
         callback = MagicMock()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10, on_eviction=callback)
+        cap = EvictionCapability(
+            backend=ensure_async(backend), token_limit=10, on_eviction=callback
+        )
         ctx = _make_ctx(backend)
 
         await cap.after_tool_execute(
@@ -1153,7 +1170,9 @@ class TestEvictionCapability:
         async def async_cb(tool_name: str, file_path: str, orig: int, preview: int) -> None:
             called_with.append((tool_name, file_path, orig, preview))
 
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10, on_eviction=async_cb)
+        cap = EvictionCapability(
+            backend=ensure_async(backend), token_limit=10, on_eviction=async_cb
+        )
         ctx = _make_ctx(backend)
 
         await cap.after_tool_execute(

@@ -21,7 +21,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelRequest as _ModelRequest
 from pydantic_ai.toolsets import FunctionToolset
 
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.toolsets.forking.coordinator import (
     BranchRuntime,
     ForkBranchLimitError,
@@ -339,7 +339,7 @@ def create_fork_toolset(  # noqa: C901
             branch.
         """
         backend = ctx.deps.backend
-        raw = getattr(backend, "unwrap", lambda: backend)()
+        raw = unwrap_backend(backend)
         if not isinstance(raw, BranchOverlay):
             return "delete_file is only available inside a fork branch."
         if not raw.exists(path):

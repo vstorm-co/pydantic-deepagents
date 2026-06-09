@@ -30,8 +30,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.tools import RunContext
-from pydantic_ai_backends import AsyncBackendProtocol, BackendProtocol
-from pydantic_ai_backends.adapter import AsyncBackendAdapter
+from pydantic_ai_backends import AsyncBackendProtocol, BackendProtocol, ensure_async
 
 NUM_CHARS_PER_TOKEN = 4
 """Approximate number of characters per token.
@@ -283,7 +282,7 @@ class EvictionProcessor:
         ```
     """
 
-    backend: BackendProtocol
+    backend: AsyncBackendProtocol
     """Fallback backend used when RunContext is not available or deps has no backend."""
 
     token_limit: int = DEFAULT_TOKEN_LIMIT
@@ -316,7 +315,7 @@ class EvictionProcessor:
         while len(self._evicted_ids) > self.max_evicted_ids:
             self._evicted_ids.popitem(last=False)
 
-    def _resolve_backend(self, ctx: RunContext[Any]) -> AsyncBackendProtocol | AsyncBackendAdapter:
+    def _resolve_backend(self, ctx: RunContext[Any]) -> AsyncBackendProtocol:
         """Resolve the backend to use for writing evicted content.
 
         Prefers the runtime backend from ``ctx.deps.backend`` to ensure
@@ -330,9 +329,9 @@ class EvictionProcessor:
             The async backend to use for writing.
         """
         deps_backend = getattr(ctx.deps, "backend", None)
-        if deps_backend is not None and isinstance(deps_backend, (AsyncBackendProtocol, AsyncBackendAdapter)):
+        if deps_backend is not None and isinstance(deps_backend, AsyncBackendProtocol):
             return deps_backend
-        return self.backend  # type: ignore[return-value,unused-ignore]
+        return self.backend
 
     async def __call__(
         self, ctx: RunContext[Any], messages: list[ModelMessage]
@@ -477,7 +476,7 @@ def create_eviction_processor(
         ```
     """
     return EvictionProcessor(
-        backend=backend,
+        backend=ensure_async(backend),
         token_limit=token_limit,
         eviction_path=eviction_path,
         head_lines=head_lines,
@@ -526,7 +525,7 @@ class EvictionCapability(AbstractCapability[Any]):
         on_eviction: Optional callback `(tool_name, file_path, original_chars, preview_chars)`.
     """
 
-    backend: BackendProtocol | None = None
+    backend: AsyncBackendProtocol | None = None
     token_limit: int = DEFAULT_TOKEN_LIMIT
     eviction_path: str = DEFAULT_EVICTION_PATH
     head_lines: int = DEFAULT_HEAD_LINES
@@ -534,12 +533,12 @@ class EvictionCapability(AbstractCapability[Any]):
     max_binary_content: int | None = DEFAULT_MAX_BINARY_CONTENT
     on_eviction: Callable[[str, str, int, int], Any] | None = None
 
-    def _resolve_backend(self, ctx: RunContext[Any]) -> AsyncBackendProtocol | AsyncBackendAdapter | None:
+    def _resolve_backend(self, ctx: RunContext[Any]) -> AsyncBackendProtocol | None:
         """Resolve backend from deps or fallback."""
         deps_backend = getattr(ctx.deps, "backend", None)
-        if deps_backend is not None and isinstance(deps_backend, (AsyncBackendProtocol, AsyncBackendAdapter)):
+        if deps_backend is not None and isinstance(deps_backend, AsyncBackendProtocol):
             return deps_backend
-        return self.backend  # type: ignore[return-value,unused-ignore]
+        return self.backend
 
     async def after_tool_execute(
         self,
@@ -659,7 +658,7 @@ async def _prune_binaries_in_messages(
     messages: list[ModelMessage],
     *,
     max_binary_content: int,
-    backend: AsyncBackendProtocol | AsyncBackendAdapter,
+    backend: AsyncBackendProtocol,
     eviction_path: str,
 ) -> list[ModelMessage]:
     """Return `messages` with older binary parts pruned and stored in `backend`."""
@@ -725,7 +724,7 @@ async def _prune_user_content(
     *,
     kept: int,
     max_binary_content: int,
-    backend: AsyncBackendProtocol | AsyncBackendAdapter,
+    backend: AsyncBackendProtocol,
     eviction_path: str,
 ) -> tuple[str | list[Any], int, bool]:
     """Prune binaries from a `UserPromptPart.content` value.
@@ -747,7 +746,9 @@ async def _prune_user_content(
         if kept < max_binary_content:
             kept += 1
             continue
-        replacement = await _store_and_replace_binary(item, backend=backend, eviction_path=eviction_path)
+        replacement = await _store_and_replace_binary(
+            item, backend=backend, eviction_path=eviction_path
+        )
         if replacement is None:
             kept += 1
             continue
@@ -762,7 +763,7 @@ async def _prune_tool_return_content(
     *,
     kept: int,
     max_binary_content: int,
-    backend: AsyncBackendProtocol | AsyncBackendAdapter,
+    backend: AsyncBackendProtocol,
     eviction_path: str,
 ) -> tuple[Any, int, bool]:
     """Prune binaries from a `ToolReturnPart.content` value.
@@ -812,7 +813,7 @@ async def _prune_tool_return_content(
 async def _store_and_replace_binary(
     binary: BinaryContent,
     *,
-    backend: AsyncBackendProtocol | AsyncBackendAdapter,
+    backend: AsyncBackendProtocol,
     eviction_path: str,
 ) -> str | None:
     """Persist `binary` to the backend and return a text replacement.

@@ -30,7 +30,7 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai_shields import CostInfo, CostTracking
 
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
@@ -580,10 +580,8 @@ class ForkCoordinator:
                 cloned_deps = clone_for_branch(self.parent_deps, effective_isolation)
                 # Unwrap async adapter — BranchOverlay is a sync backend that
                 # gets auto-wrapped by DeepAgentDeps.__post_init__.
-                raw_cloned = getattr(cloned_deps.backend, "unwrap", lambda: cloned_deps.backend)()
-                overlay = (
-                    raw_cloned if isinstance(raw_cloned, BranchOverlay) else None
-                )
+                raw_cloned = unwrap_backend(cloned_deps.backend)
+                overlay = raw_cloned if isinstance(raw_cloned, BranchOverlay) else None
                 if overlay is not None and self.materializer is not None:
                     overlay.attach_materializer(self.materializer, spec.label)
 
@@ -970,9 +968,7 @@ class ForkCoordinator:
                     else None
                 )
                 # Unwrap adapter — flush_to is sync and expects a raw BackendProtocol.
-                raw_parent: Any = getattr(
-                    self.parent_deps.backend, "unwrap", lambda: self.parent_deps.backend
-                )()
+                raw_parent: Any = unwrap_backend(self.parent_deps.backend)
                 report = winner_overlay.flush_to(raw_parent, snapshot)
                 applied_paths = list(report.applied_paths)
                 applied_changes = report.applied_changes
@@ -1083,7 +1079,7 @@ class ForkCoordinator:
         if self.test_command is None:
             return None
         # Unwrap adapter — root_dir is an attribute on the raw backend (e.g. LocalBackend).
-        raw_parent = getattr(self.parent_deps.backend, "unwrap", lambda: self.parent_deps.backend)()
+        raw_parent = unwrap_backend(self.parent_deps.backend)
         parent_root_obj: Any = getattr(raw_parent, "root_dir", None)
         if not isinstance(parent_root_obj, (str, Path)):
             return None

@@ -189,6 +189,7 @@ class TestBackendSkillResource:
 
     async def test_load_backend_error_raises(self):
         """If read_bytes raises, SkillResourceLoadError is raised."""
+        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
         failing_backend = MagicMock()
         failing_backend._read_bytes.side_effect = OSError("disk error")
 

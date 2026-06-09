@@ -86,13 +86,17 @@ async def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
     Handles both sync (BranchOverlay) and async (AsyncBackendAdapter) backends.
     """
     exists_result = backend.exists(path)
-    if inspect.isawaitable(exists_result):
+    if inspect.isawaitable(
+        exists_result
+    ):  # pragma: no cover - async path unreachable with current callers
         exists_result = await exists_result
     if not exists_result:
         return None
     try:
         result: Any = backend.read_bytes(path)
-        if inspect.isawaitable(result):
+        if inspect.isawaitable(
+            result
+        ):  # pragma: no cover - async path unreachable with current callers
             result = await result
         return bytes(result) if result is not None else None
     except (FileNotFoundError, KeyError):  # pragma: no cover - defensive

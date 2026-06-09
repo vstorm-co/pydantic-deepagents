@@ -18,8 +18,16 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
-from pydantic_ai_backends import AsyncBackendProtocol, AsyncSandboxProtocol, BackendProtocol, SandboxProtocol, ensure_async
+from pydantic_ai_backends import (
+    AsyncBackendProtocol,
+    AsyncSandboxProtocol,
+    BackendProtocol,
+    SandboxProtocol,
+    ensure_async,
+)
 from pydantic_ai_backends.types import ExecuteResponse
+
+from pydantic_deep.deps import unwrap_backend
 
 from .directory import _parse_skill_md, _validate_skill_metadata
 from .exceptions import (
@@ -441,7 +449,7 @@ class BackendSkillsDirectory:
         """
         # Unwrap adapter if needed — discovery calls sync backend methods
         # directly because __init__ cannot be async.
-        raw = getattr(backend, "unwrap", lambda: backend)()
+        raw = unwrap_backend(backend)
         self._backend = raw
         self._path = path
         self._validate = validate
@@ -504,7 +512,7 @@ class BackendSkillsDirectory:
         Returns:
             Loaded Skill object, or None if skill should be skipped.
         """
-        content_bytes = self._backend._read_bytes(skill_file_path)
+        content_bytes = self._backend.read_bytes(skill_file_path)
         content = content_bytes.decode("utf-8")
 
         frontmatter, instructions = _parse_skill_md(content)
@@ -543,8 +551,9 @@ class BackendSkillsDirectory:
         # Discover scripts (only if backend supports execution)
         scripts: list[BackendSkillScript] = []
         if isinstance(self._backend, SandboxProtocol):
+            sandbox_async = ensure_async(self._backend)
             executor = BackendSkillScriptExecutor(
-                backend=async_backend,
+                backend=sandbox_async,  # type: ignore[arg-type]
                 timeout=self._script_timeout,
             )
             scripts = _discover_backend_scripts(self._backend, skill_dir, name, executor)

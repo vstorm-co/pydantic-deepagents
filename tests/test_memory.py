@@ -273,6 +273,7 @@ class TestMemoryTools:
 
         assert "Memory updated" in result
         # Verify file was created
+        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
         raw = backend._read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"First entry" in raw

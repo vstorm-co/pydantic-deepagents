@@ -217,8 +217,10 @@ async def _run_hook(
     backend: AsyncSandboxProtocol | None,
 ) -> HookResult:
     """Run a single hook (command or handler)."""
+    from pydantic_deep.deps import unwrap_backend
+
     if hook.command is not None:
-        if backend is None or not hasattr(backend, "execute"):
+        if backend is None or not isinstance(unwrap_backend(backend), SandboxProtocol):
             msg = (
                 "Command hooks require a AsyncSandboxProtocol backend "
                 "(LocalBackend or DockerSandbox). "
@@ -245,8 +247,10 @@ def _get_sandbox_backend(deps: DeepAgentDeps | None) -> AsyncSandboxProtocol | N
     """Extract sandbox-capable backend from deps, if available."""
     if deps is None:
         return None
+    from pydantic_deep.deps import unwrap_backend
+
     backend = deps.backend
-    raw = getattr(backend, "unwrap", lambda: backend)()
+    raw = unwrap_backend(backend)
     if isinstance(raw, SandboxProtocol):
         return backend  # type: ignore[return-value,unused-ignore]
     return None

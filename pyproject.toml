@@ -244,6 +244,3 @@ disable_error_code = ["arg-type", "list-item", "abstract"]
 # Codespell configuration
 [tool.codespell]
 skip = ".git,.venv*,uv.lock,site,htmlcov,.coverage"
-
-[tool.uv.sources]
-pydantic-ai-backend = { path = "../pydantic-ai-backend", editable = true }

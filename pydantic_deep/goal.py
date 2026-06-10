@@ -35,6 +35,7 @@ Example:
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field, replace
@@ -76,20 +77,36 @@ _VERDICT_RE = re.compile(
 )
 
 GOAL_EVALUATOR_SYSTEM_PROMPT = (
-    "You are a strict goal-completion evaluator. You judge ONLY from the "
-    "conversation transcript provided — you cannot run commands or read files. "
-    "Decide whether the stated goal condition is fully satisfied by evidence "
-    "that is already present in the transcript. If the evidence is missing, "
-    "partial, or unverified, the goal is NOT met. "
-    "Respond with a single line that starts with YES or NO, followed by a brief "
-    "one-sentence reason. Example: 'NO - the tests have not been run yet.'"
+    "You are a strict goal-completion evaluator for an autonomous coding agent. "
+    "Judge whether the user's completion condition is satisfied using ONLY "
+    "evidence already present in the conversation transcript — you cannot run "
+    "commands or read files.\n\n"
+    "Respond with a single JSON object, exactly one of:\n"
+    '- {"ok": true, "reason": "<quote the transcript evidence that satisfies it>"}\n'
+    '- {"ok": false, "reason": "<quote what is missing or blocking>"}\n'
+    '- {"ok": false, "impossible": true, "reason": "<why it can never be satisfied '
+    'here>"}\n\n'
+    "Rules:\n"
+    '- Quote specific transcript text in "reason" whenever possible.\n'
+    "- Missing, partial, or unverified evidence means ok=false. With no clear "
+    'evidence, return {"ok": false, "reason": "insufficient evidence in '
+    'transcript"}.\n'
+    "- The agent's own claim of success is evidence, not proof. Require the actual "
+    "artifact (command output, exit code, test summary, file state). Be alert to "
+    "the agent weakening a check to pass it — editing assertions, skipping or "
+    "deleting tests, or narrowing scope does NOT satisfy the condition.\n"
+    '- Use "impossible": true only when the condition is genuinely unachievable '
+    "this session: self-contradictory, dependent on an unavailable resource or "
+    "capability, or the agent has exhausted reasonable approaches and shown it "
+    "cannot be done. Independently confirm this — do not defer to the agent's "
+    'self-assessment. When in doubt, omit "impossible".'
 )
 
 GOAL_EVALUATOR_PROMPT = (
     "Goal condition:\n{condition}\n\n"
     "Conversation transcript (most recent last):\n{transcript}\n\n"
-    "Is the goal condition fully satisfied by evidence in the transcript? "
-    "Answer YES or NO with a one-sentence reason."
+    "Decide whether the goal condition is fully satisfied by evidence in the "
+    "transcript, and reply with the JSON object described in your instructions."
 )
 
 
@@ -101,12 +118,18 @@ class GoalEvaluation:
         met: Whether the evaluator judged the condition satisfied.
         reason: One-sentence explanation, surfaced to the user and fed back to
             the agent as guidance for the next turn when ``met`` is ``False``.
+        impossible: Whether the evaluator judged the condition genuinely
+            unachievable this session (self-contradictory, needs an unavailable
+            resource, or the agent exhausted reasonable approaches). Always
+            implies ``met is False``; the host stops the loop instead of
+            grinding to the turn cap. Never ``True`` when ``met`` is ``True``.
         input_tokens: Prompt tokens spent by the evaluator (0 if unknown).
         output_tokens: Completion tokens spent by the evaluator (0 if unknown).
     """
 
     met: bool
     reason: str
+    impossible: bool = False
     input_tokens: int = 0
     output_tokens: int = 0
 
@@ -185,17 +208,56 @@ def _extract_reason(head: str, rest: str) -> str:
     return remainder
 
 
-def parse_verdict(text: str) -> GoalEvaluation:
-    """Parse a free-text evaluator reply into a :class:`GoalEvaluation`.
+def _parse_json_verdict(raw: str) -> GoalEvaluation | None:
+    """Parse a structured ``{"ok", "impossible", "reason"}`` verdict.
 
-    The evaluator is asked to start its reply with ``YES`` or ``NO`` followed by
-    a one-sentence reason. Parsing is lenient: only the first non-empty line's
-    leading word decides the verdict, and an ambiguous reply is treated as
-    *not met* so the loop keeps working rather than declaring premature success.
+    Returns ``None`` when ``raw`` has no usable JSON object (so the caller falls
+    back to lenient free-text parsing). Tolerates prose or code fences around
+    the object by extracting the first ``{...}`` block. ``impossible`` only ever
+    survives alongside ``ok is False``.
+    """
+    block = re.search(r"\{.*\}", raw, re.DOTALL)
+    if block is None:
+        return None
+    try:
+        data = json.loads(block.group(0))
+    except ValueError:
+        return None
+    # A ``{...}``-anchored match always decodes to a JSON object (dict); guard
+    # only against the object lacking the required verdict key.
+    if "ok" not in data:
+        return None
+
+    ok = bool(data.get("ok"))
+    impossible = (not ok) and bool(data.get("impossible", False))
+    reason = str(data.get("reason", "")).strip()
+    if not reason:
+        if ok:
+            reason = "Condition met."
+        elif impossible:
+            reason = "Condition cannot be satisfied this session."
+        else:
+            reason = "Condition not yet met."
+    return GoalEvaluation(met=ok, reason=reason, impossible=impossible)
+
+
+def parse_verdict(text: str) -> GoalEvaluation:
+    """Parse an evaluator reply into a :class:`GoalEvaluation`.
+
+    Prefers a structured JSON verdict (``{"ok": ..., "impossible": ...,
+    "reason": ...}``) — the shape the evaluator is prompted to emit — and falls
+    back to lenient free-text parsing (a leading ``YES``/``NO`` word) for models
+    that ignore the JSON instruction. Parsing is fail-safe: an empty or
+    ambiguous reply is treated as *not met* so the loop keeps working rather
+    than declaring premature success.
     """
     raw = text.strip()
     if not raw:
         return GoalEvaluation(met=False, reason="Evaluator returned no output.")
+
+    structured = _parse_json_verdict(raw)
+    if structured is not None:
+        return structured
 
     first, _, rest = raw.partition("\n")
     head = first.strip()
@@ -275,13 +337,17 @@ def build_goal_transcript(
 def goal_continue_directive(condition: str, reason: str) -> str:
     """Build the synthetic prompt that drives the next goal turn."""
     return (
-        "You are working toward a goal that is not yet satisfied.\n"
+        "You are working toward a goal an independent evaluator judged NOT yet "
+        "met.\n"
         f"Goal: {condition}\n"
         f"Evaluator feedback: {reason}\n\n"
-        "Continue working to satisfy the goal. Surface concrete evidence "
-        "(command output, test results, file state) in your reply so completion "
-        "can be verified. If the goal is in fact already satisfied, say so "
-        "explicitly and show the evidence."
+        "Keep working to actually satisfy the goal. Surface concrete evidence "
+        "(command output, exit codes, test results, file state) in your reply so "
+        "completion can be verified from the transcript. Do not weaken the check "
+        "to pass it — editing assertions, skipping or deleting tests, or "
+        "narrowing scope does not count. If the goal is genuinely already "
+        "satisfied, say so and show the evidence; if it truly cannot be done, "
+        "explain why."
     )
 
 

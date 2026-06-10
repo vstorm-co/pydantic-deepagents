@@ -308,3 +308,78 @@ class TestGoalEvaluator:
     def test_default_model_constant(self) -> None:
         assert isinstance(DEFAULT_GOAL_MODEL, str)
         assert GoalEvaluator().model == DEFAULT_GOAL_MODEL
+
+
+class TestJsonVerdict:
+    """parse_verdict prefers a structured JSON verdict (with `impossible`)."""
+
+    def test_json_ok_true(self) -> None:
+        v = parse_verdict('{"ok": true, "reason": "all tests pass"}')
+        assert v.met is True
+        assert v.impossible is False
+        assert v.reason == "all tests pass"
+
+    def test_json_ok_false(self) -> None:
+        v = parse_verdict('{"ok": false, "reason": "still failing"}')
+        assert v.met is False
+        assert v.impossible is False
+        assert v.reason == "still failing"
+
+    def test_json_impossible(self) -> None:
+        v = parse_verdict('{"ok": false, "impossible": true, "reason": "needs network access"}')
+        assert v.met is False
+        assert v.impossible is True
+        assert "network" in v.reason
+
+    def test_json_impossible_dropped_when_ok(self) -> None:
+        # Contradictory input: a met goal can't also be impossible.
+        v = parse_verdict('{"ok": true, "impossible": true, "reason": "done"}')
+        assert v.met is True
+        assert v.impossible is False
+
+    def test_json_default_reason_met(self) -> None:
+        v = parse_verdict('{"ok": true}')
+        assert v.met is True
+        assert v.reason == "Condition met."
+
+    def test_json_default_reason_not_met(self) -> None:
+        v = parse_verdict('{"ok": false}')
+        assert v.met is False
+        assert v.impossible is False
+        assert v.reason == "Condition not yet met."
+
+    def test_json_default_reason_impossible(self) -> None:
+        v = parse_verdict('{"ok": false, "impossible": true}')
+        assert v.impossible is True
+        assert "cannot be satisfied" in v.reason
+
+    def test_json_wrapped_in_prose(self) -> None:
+        v = parse_verdict('Verdict: {"ok": true, "reason": "green"}. Done.')
+        assert v.met is True
+        assert v.reason == "green"
+
+    def test_invalid_json_in_braces_falls_back(self) -> None:
+        # Braces present but not decodable → lenient free-text fallback.
+        v = parse_verdict("NO {not valid json}")
+        assert v.met is False
+        assert "not valid json" in v.reason
+
+    def test_empty_json_object_falls_back(self) -> None:
+        # Decodes, but lacks the required "ok" key → free-text fallback.
+        v = parse_verdict("NO {}")
+        assert v.met is False
+
+
+class TestGoalEvaluationImpossible:
+    def test_default_false(self) -> None:
+        assert GoalEvaluation(met=False, reason="x").impossible is False
+
+
+class TestEvaluatorImpossible:
+    async def test_evaluate_propagates_impossible(self) -> None:
+        model = _reply_model('{"ok": false, "impossible": true, "reason": "needs a GPU"}')
+        evaluator = GoalEvaluator(model=model)
+        result = await evaluator.evaluate("train on GPU", [])
+        assert result.met is False
+        assert result.impossible is True
+        assert "GPU" in result.reason

@@ -1357,6 +1357,15 @@ class ChatScreen(Screen):
             clear_goal(app, notify=False)
             app.notify(f"✓ Goal achieved — {evaluation.reason}", timeout=10)
             return
+        if evaluation.impossible:
+            set_goal_indicator(app, False)
+            app._goal = None
+            app.notify(
+                f"Goal stopped — unachievable: {evaluation.reason}",
+                severity="warning",
+                timeout=12,
+            )
+            return
         if goal.exhausted:
             set_goal_indicator(app, False)
             app._goal = None

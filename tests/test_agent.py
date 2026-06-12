@@ -748,3 +748,43 @@ class TestTodoProxyBinder:
             eviction_token_limit=None,
         )
         assert agent is not None
+
+
+class TestInjectSubagentExtraToolsets:
+    """Tests for _inject_subagent_extra_toolsets helper."""
+
+    def test_noop_when_empty(self):
+        """Empty extra_toolsets should be a no-op."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        sa_config: dict[str, Any] = {"name": "test", "instructions": "test"}
+        _inject_subagent_extra_toolsets(sa_config, ())
+        assert sa_config.get("toolsets") is None
+
+    def test_injects_into_config_without_toolsets(self):
+        """Extra toolsets should be added even when config has no toolsets key."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        class _FakeToolset:
+            pass
+
+        sa_config: dict[str, Any] = {"name": "test", "instructions": "test"}
+        toolset = _FakeToolset()
+        _inject_subagent_extra_toolsets(sa_config, (toolset,))
+        assert sa_config["toolsets"] == [toolset]
+
+    def test_extends_existing_toolsets(self):
+        """Extra toolsets should be appended to existing ones."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        class _FakeToolset:
+            pass
+
+        sa_config: dict[str, Any] = {
+            "name": "test",
+            "instructions": "test",
+            "toolsets": ["existing"],
+        }
+        toolset = _FakeToolset()
+        _inject_subagent_extra_toolsets(sa_config, (toolset,))
+        assert sa_config["toolsets"] == ["existing", toolset]

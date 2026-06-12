@@ -61,10 +61,25 @@ def clear_goal(app: DeepApp, *, notify: bool = True) -> None:
         app.notify("Goal cleared" if had_goal else "No active goal to clear")
 
 
+def _prompt_for_goal(app: DeepApp) -> None:
+    """Open a modal to type a goal condition, then set it on submit.
+
+    Used when ``/goal`` is invoked with no condition and none is active, so the
+    user can enter the goal interactively instead of getting a dead-end notice.
+    """
+    from apps.cli.modals.goal_modal import GoalModal
+
+    async def _on_result(condition: str | None) -> None:
+        if condition:
+            _set_goal(app, condition)
+
+    app.push_screen(GoalModal(), _on_result)
+
+
 def _show_status(app: DeepApp) -> None:
     goal = app._goal
     if goal is None:
-        app.notify("No active goal. Use /goal <condition> to set one.")
+        _prompt_for_goal(app)
         return
     elapsed = None
     if goal.started_monotonic is not None:

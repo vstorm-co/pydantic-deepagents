@@ -55,6 +55,58 @@ async def test_set_clear_status(app: DeepApp, monkeypatch: pytest.MonkeyPatch) -
         assert msgs[-1] == "Goal cleared"
 
 
+async def test_goal_no_arg_opens_modal_then_sets(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`/goal` with no condition and no active goal opens the input modal;
+    submitting a condition sets the goal."""
+    from apps.cli.modals.goal_modal import GoalModal
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+
+        captured: dict[str, Any] = {}
+
+        def fake_push(screen: Any, callback: Any = None) -> None:
+            captured["screen"] = screen
+            captured["callback"] = callback
+
+        monkeypatch.setattr(app, "push_screen", fake_push)
+
+        await dispatch_command(app, "/goal")
+        await pilot.pause()
+
+        # No dead-end notice — an input modal is offered instead.
+        assert isinstance(captured["screen"], GoalModal)
+        assert app._goal is None
+
+        # The user types a condition and submits it.
+        await captured["callback"]("all tests pass")
+        await pilot.pause()
+        assert app._goal is not None
+        assert app._goal.condition == "all tests pass"
+        assert app.screen.query_one(StatusBar).goal_active is True
+
+
+async def test_goal_modal_cancel_leaves_no_goal(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dismissing the goal modal without a condition sets nothing."""
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            app, "push_screen", lambda screen, callback=None: captured.update(callback=callback)
+        )
+
+        await dispatch_command(app, "/goal")
+        await pilot.pause()
+        await captured["callback"](None)
+        await pilot.pause()
+        assert app._goal is None
+
+
 async def test_clear_via_slash_clear(app: DeepApp) -> None:
     async with app.run_test(size=(120, 35)) as pilot:
         await pilot.pause()

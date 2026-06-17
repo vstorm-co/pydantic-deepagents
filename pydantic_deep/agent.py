@@ -39,6 +39,10 @@ from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
 from pydantic_deep.types import SubAgentConfig
 
 if TYPE_CHECKING:
+    from pydantic_ai import RunContext
+    from pydantic_ai.capabilities.abstract import ValidatedToolArgs
+    from pydantic_ai.messages import ToolCallPart
+    from pydantic_ai.tools import ToolDefinition
     from pydantic_ai.toolsets import AbstractToolset
 
     from pydantic_deep.capabilities.forking import LiveForkCapability
@@ -186,6 +190,33 @@ class _DepsTodoProxy:
         deps = self._deps_var.get()
         if deps is not None:
             deps.todos = list(value)
+
+
+class _TodoProxyBinder(AbstractCapability[DeepAgentDeps]):
+    """Bind the shared todo proxy to the running deps in the tool's own context.
+
+    The todo tools are ``tool_plain`` (no ``RunContext``), so the shared
+    :class:`_DepsTodoProxy` is their only channel to the per-run deps.
+    pydantic-ai runs each tool in its own ``contextvars`` context, so a binding
+    done in ``dynamic_instructions`` lands in a different context and never
+    reaches the tools. Binding here — right before each tool runs, in the tool's
+    own context — keeps the proxy's per-run isolation while ensuring todo writes
+    actually land on ``deps.todos``.
+    """
+
+    def __init__(self, proxy: _DepsTodoProxy) -> None:
+        self._proxy = proxy
+
+    async def before_tool_execute(
+        self,
+        ctx: RunContext[DeepAgentDeps],
+        *,
+        call: ToolCallPart,
+        tool_def: ToolDefinition,
+        args: ValidatedToolArgs,
+    ) -> ValidatedToolArgs:
+        self._proxy._deps = ctx.deps
+        return args
 
 
 def _make_default_deep_agent_factory(
@@ -1183,6 +1214,9 @@ def create_deep_agent(  # noqa: C901
         agent_create_kwargs["instrument"] = instrument
 
     all_capabilities: list[Any] = []
+
+    if _todo_proxy is not None:
+        all_capabilities.append(_TodoProxyBinder(_todo_proxy))
 
     if _patch_tool_calls:
         from pydantic_deep.processors.patch import PatchToolCallsCapability

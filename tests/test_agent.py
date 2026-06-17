@@ -13,7 +13,7 @@ from pydantic_deep import (
     create_default_deps,
     run_with_files,
 )
-from pydantic_deep.agent import _DepsTodoProxy
+from pydantic_deep.agent import _DepsTodoProxy, _TodoProxyBinder
 from pydantic_deep.deps import _format_size
 from pydantic_deep.types import SubAgentConfig, Todo
 
@@ -651,3 +651,84 @@ class TestDepsTodoProxy:
         assert result_b == [todo_b]
         assert deps_a.todos == [todo_a]
         assert deps_b.todos == [todo_b]
+
+
+class TestTodoProxyBinder:
+    """Tests for _TodoProxyBinder (issue #148)."""
+
+    async def test_binds_proxy_to_ctx_deps(self):
+        """before_tool_execute binds the proxy to the run's deps and passes args through."""
+        proxy = _DepsTodoProxy()
+        deps = DeepAgentDeps(backend=StateBackend())
+        binder = _TodoProxyBinder(proxy)
+
+        class _Ctx:
+            pass
+
+        ctx = _Ctx()
+        ctx.deps = deps  # type: ignore[attr-defined]
+        sentinel = {"todos": []}
+        result = await binder.before_tool_execute(
+            ctx,  # type: ignore[arg-type]
+            call=None,  # type: ignore[arg-type]
+            tool_def=None,  # type: ignore[arg-type]
+            args=sentinel,  # type: ignore[arg-type]
+        )
+        assert proxy._deps is deps
+        assert result is sentinel
+
+    async def test_write_todos_persists_to_deps_end_to_end(self):
+        """write_todos must land on deps.todos through a real run.
+
+        The todo tools are ``tool_plain`` and pydantic-ai runs each tool in its
+        own ``contextvars`` context, so binding the proxy only in instructions
+        never reached the tools — writes were silently dropped. The binder
+        re-binds the proxy in each tool's own context.
+        """
+        from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
+        from pydantic_ai.models.function import FunctionModel
+
+        def model(messages: list[Any], info: Any) -> ModelResponse:
+            returns = [
+                p for m in messages for p in getattr(m, "parts", []) if hasattr(p, "tool_name")
+            ]
+            if not returns:
+                return ModelResponse(
+                    parts=[
+                        ToolCallPart(
+                            tool_name="write_todos",
+                            args={
+                                "todos": [
+                                    {
+                                        "content": "Task A",
+                                        "status": "pending",
+                                        "active_form": "Doing A",
+                                    },
+                                    {
+                                        "content": "Task B",
+                                        "status": "in_progress",
+                                        "active_form": "Doing B",
+                                    },
+                                ]
+                            },
+                        )
+                    ]
+                )
+            return ModelResponse(parts=[TextPart("done")])
+
+        agent = create_deep_agent(
+            model=FunctionModel(model),
+            include_todo=True,
+            include_filesystem=False,
+            include_execute=False,
+            include_subagents=False,
+            include_skills=False,
+            include_plan=False,
+            include_builtin_subagents=False,
+            include_memory=False,
+            context_manager=False,
+            cost_tracking=False,
+        )
+        deps = DeepAgentDeps(backend=StateBackend())
+        await agent.run("make todos", deps=deps)
+        assert [t.content for t in deps.todos] == ["Task A", "Task B"]

@@ -79,7 +79,6 @@ class TestCreateDeepAgent:
         defaults = dict(
             model=TEST_MODEL,
             edit_format=None,
-            subagent_extra_toolsets=None,
             context_files=None,
             context_discovery=False,
             include_memory=False,

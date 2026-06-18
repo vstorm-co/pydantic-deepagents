@@ -223,7 +223,6 @@ def _make_default_deep_agent_factory(
     *,
     model: str | Model | None,
     edit_format: Any,
-    subagent_extra_toolsets: Any,
     context_files: Any,
     context_discovery: Any,
     include_memory: bool,
@@ -268,7 +267,7 @@ def _make_default_deep_agent_factory(
             context_files=context_files,
             context_discovery=context_discovery,
             edit_format=edit_format,
-            subagent_extra_toolsets=subagent_extra_toolsets,
+            extra_toolsets=tuple(cfg.get("toolsets") or []),
         )
 
     return _factory
@@ -316,6 +315,20 @@ def _inject_subagent_memory_toolset(sa_config: SubAgentConfig, memory_dir: str |
     sa_config["toolsets"] = existing
 
 
+def _inject_subagent_extra_toolsets(
+    sa_config: SubAgentConfig, extra_toolsets: Sequence[Any]
+) -> None:
+    """Append `subagent_extra_toolsets` to a subagent's `toolsets` list.
+
+    Mutates `sa_config` in place (a shallow copy by the time it is called).
+    """
+    if not extra_toolsets:
+        return
+    existing = list(sa_config.get("toolsets", []))
+    existing.extend(extra_toolsets)
+    sa_config["toolsets"] = existing
+
+
 @overload
 def create_deep_agent(
     model: str | Model | None = None,
@@ -328,6 +341,7 @@ def create_deep_agent(
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     mcp_servers: Sequence[AbstractToolset[Any]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
@@ -405,6 +419,7 @@ def create_deep_agent(
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     mcp_servers: Sequence[AbstractToolset[Any]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
@@ -482,6 +497,7 @@ def create_deep_agent(  # noqa: C901
     styles_dir: str | list[str] | None = None,
     tools: Sequence[Tool[DeepAgentDeps] | Any] | None = None,
     toolsets: Sequence[AbstractToolset[DeepAgentDeps]] | None = None,
+    extra_toolsets: Sequence[AbstractToolset[Any]] | None = None,
     mcp_servers: Sequence[AbstractToolset[Any]] | None = None,
     capabilities: Sequence[AbstractCapability[Any]] | None = None,
     subagents: list[SubAgentConfig] | None = None,
@@ -918,7 +934,6 @@ def create_deep_agent(  # noqa: C901
         _default_deep_agent_factory = _make_default_deep_agent_factory(
             model=subagent_model,
             edit_format=edit_format,
-            subagent_extra_toolsets=_sub_extra or None,
             context_files=context_files,
             context_discovery=context_discovery,
             include_memory=include_memory,
@@ -927,7 +942,7 @@ def create_deep_agent(  # noqa: C901
             web_fetch=web_fetch,
         )
 
-        # Inject agent_factory + per-subagent context/memory toolsets. These
+        # Inject agent_factory + per-subagent context/memory/extra toolsets. These
         # operate on the shallow copies built above, never the caller's dicts.
         for sa_config in effective_subagents:
             if (
@@ -937,6 +952,7 @@ def create_deep_agent(  # noqa: C901
             _inject_subagent_context_toolset(sa_config)
             if include_memory:
                 _inject_subagent_memory_toolset(sa_config, memory_dir)
+            _inject_subagent_extra_toolsets(sa_config, _sub_extra)
 
         subagent_toolset = create_subagent_toolset(
             id="deep-subagents",
@@ -998,6 +1014,10 @@ def create_deep_agent(  # noqa: C901
     # Add user-provided toolsets
     if toolsets:
         all_toolsets.extend(toolsets)
+
+    # Extra toolsets from subagent configs (injected via config["toolsets"])
+    if extra_toolsets:
+        all_toolsets.extend(extra_toolsets)
 
     # MCP servers (each is an AbstractToolset connecting to an MCP server).
     if mcp_servers:

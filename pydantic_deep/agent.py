@@ -112,9 +112,12 @@ def _wrap_with_fallback_and_hooks(
     exhausted) without emitting a spurious event.
     """
 
+    from pydantic_ai_backends import ensure_async
+
     from pydantic_deep.capabilities.hooks import HooksCapability
 
     hooks_cap = HooksCapability(hooks=fallback_hooks)
+    async_backend = ensure_async(backend)
     # Build a flat list of model names for accurate from/to reporting.
     model_chain: list[str] = [primary if isinstance(primary, str) else str(primary)] + [
         f if isinstance(f, str) else str(f) for f in fallbacks
@@ -138,7 +141,7 @@ def _wrap_with_fallback_and_hooks(
         # Only fire the hook when there is actually a next model to fall back to.
         if hop < len(fallbacks):
             await hooks_cap.dispatch_model_fallback(
-                model_chain[hop], model_chain[hop + 1], exc, backend
+                model_chain[hop], model_chain[hop + 1], exc, async_backend
             )
         return True
 

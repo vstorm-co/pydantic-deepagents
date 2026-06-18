@@ -698,6 +698,44 @@ class TestFallbackModel:
         pairs = {(r.tool_input["primary"], r.tool_input["fallback"]) for r in received}
         assert len(pairs) == 1, f"primary→fallback pair drifted across requests: {pairs}"
 
+    async def test_model_fallback_command_hook_wraps_sync_sandbox_backend(self) -> None:
+        """Regression: fallback command hooks receive the factory's sync backend.
+
+        The async migration made command hook dispatch require an async sandbox;
+        the fallback wrapper must normalize the sync sandbox before dispatching.
+        """
+        from pydantic_ai_backends import ExecuteResponse
+
+        from pydantic_deep.agent import _wrap_with_fallback_and_hooks
+        from pydantic_deep.capabilities.hooks import Hook, HookEvent
+
+        class _CommandBackend(StateBackend):
+            id = "command-backend"
+
+            def __init__(self) -> None:
+                super().__init__()
+                self.executed: list[str] = []
+
+            def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse:
+                self.executed.append(command)
+                return ExecuteResponse(output="", exit_code=0)
+
+        backend = _CommandBackend()
+        model = _wrap_with_fallback_and_hooks(
+            TestModel(),
+            [TestModel()],
+            [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
+            backend,
+        )
+
+        _fallback_on = cast(
+            "Awaitable[bool]",
+            model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
+        )
+        assert await _fallback_on is True
+        assert len(backend.executed) == 1
+        assert "model_fallback_triggered" in backend.executed[0]
+
     async def test_request_stream_resets_hop_counter(self) -> None:
         """`request_stream` must also zero the per-context hop counter."""
         from pydantic_ai.messages import ModelRequest, UserPromptPart

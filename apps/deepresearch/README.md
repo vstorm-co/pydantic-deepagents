@@ -65,7 +65,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 | Feature | Description |
 |---------|-------------|
-| **Web Search** | Tavily, Brave Search, Jina URL reader, Firecrawl |
+| **Web Search** | Tavily, Brave Search, Jina URL reader, Firecrawl, Sofya |
 | **Browser Automation** | Playwright MCP for JS-heavy pages |
 | **File Operations** | Read, write, edit, glob, grep in isolated Docker sandbox |
 | **Code Execution** | Python with pandas, numpy, matplotlib, scikit-learn pre-installed |
@@ -89,6 +89,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 | `TAVILY_API_KEY` | Recommended | Tavily AI search |
 | `BRAVE_API_KEY` | No | Brave Search |
 | `JINA_API_KEY` | No | Jina URL reader |
+| `SOFYA_API_KEY` | No | Sofya web search, fetch, extract, research |
 | `FIRECRAWL_API_KEY` | No | Firecrawl web scraper |
 | `PLAYWRIGHT_MCP` | No | Set to `1` to enable Playwright browser |
 | `EXCALIDRAW_ENABLED` | No | Set to `0` to disable Excalidraw (default: `1`) |
@@ -117,6 +118,10 @@ BRAVE_API_KEY=BSAxxxxx
 # Jina AI Reader (converts any URL to clean markdown)
 # Sign up at https://jina.ai — free tier available
 JINA_API_KEY=jina_xxxxx
+
+# Sofya (all-in-one: web search, fetch, extract, deep research)
+# Sign up with GitHub at https://sofya.co for free monthly credits
+SOFYA_API_KEY=ay_live_xxxxx
 ```
 
 ### Web Scraping — Firecrawl

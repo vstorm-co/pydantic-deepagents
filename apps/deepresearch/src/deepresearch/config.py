@@ -90,6 +90,19 @@ def create_mcp_servers() -> list[AbstractToolset]:
             )
         )
 
+    # Sofya: all-in-one web tools (search, fetch, AI extract, deep research)
+    # Requires SOFYA_API_KEY (free monthly credits at https://sofya.co)
+    sofya_key = os.getenv("SOFYA_API_KEY")
+    if sofya_key:
+        servers.append(
+            MCPServerStreamableHTTP(
+                url="https://mcp.sofya.co/mcp",
+                headers={"Authorization": f"Bearer {sofya_key}"},
+                tool_prefix="sofya",
+                max_retries=3,
+            )
+        )
+
     # Excalidraw — live canvas with real-time sync via mcp-excalidraw-server
     excalidraw_server_url = os.getenv("EXCALIDRAW_SERVER_URL", "http://host.docker.internal:3000")
     if os.getenv("EXCALIDRAW_ENABLED", "1") == "1" and _docker_available():

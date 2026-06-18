@@ -463,15 +463,15 @@ class TestContextToolset:
         ctx = _make_ctx(backend)
 
         read_counts: dict[str, int] = {}
-        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
-        original_read = backend._read_bytes
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
+        original_read = backend.read_bytes
 
         def _counting_read(path: str) -> bytes:
             read_counts[path] = read_counts.get(path, 0) + 1
             data: bytes = original_read(path)
             return data
 
-        monkeypatch.setattr(backend, "_read_bytes", _counting_read)
+        monkeypatch.setattr(backend, "read_bytes", _counting_read)
 
         toolset = ContextToolset(context_discovery=True)
         result = await toolset.get_instructions(ctx)

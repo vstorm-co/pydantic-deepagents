@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import difflib
 import hashlib
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic_deep.processors.eviction import create_content_preview
 from pydantic_deep.types import (

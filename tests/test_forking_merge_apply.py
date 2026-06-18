@@ -204,18 +204,18 @@ async def test_conflict_surfaced_when_parent_path_deleted_between_fork_and_merge
     )
     await asyncio.gather(*[rt.task for rt in coord.branches.values()])
 
-    # Simulate a third-actor deletion: monkey-patch _read_bytes to raise for
+    # Simulate a third-actor deletion: monkey-patch read_bytes to raise for
     # this one path. flush_to should detect the conflict (snapshot had bytes,
     # parent now lacks the file) and NOT replay the branch's write over it.
-    real_read_bytes = parent._read_bytes
+    real_read_bytes = parent.read_bytes
 
-    def _read_bytes_with_deletion(path: str) -> bytes:
+    def read_bytes_with_deletion(path: str) -> bytes:
         if path == "cat.md":
             raise FileNotFoundError(path)
         result: bytes = real_read_bytes(path)
         return result
 
-    with patch.object(parent, "_read_bytes", side_effect=_read_bytes_with_deletion):
+    with patch.object(parent, "read_bytes", side_effect=read_bytes_with_deletion):
         result = await coord.merge_or_select(f"pick:{handle.branches[0]}")
 
     assert "cat.md" in result.conflicts
@@ -492,7 +492,7 @@ def test_overlay_snapshot_records_none_when_parent_read_raises(tmp_path: Path) -
     overlay = BranchOverlay(parent)
     overlay.attach_materializer(materializer, "approach_a")
 
-    real_read_bytes = parent._read_bytes
+    real_read_bytes = parent.read_bytes
 
     def _raising_read_bytes(path: str) -> bytes:
         if path == "brand_new.py":
@@ -500,7 +500,7 @@ def test_overlay_snapshot_records_none_when_parent_read_raises(tmp_path: Path) -
         result: bytes = real_read_bytes(path)
         return result
 
-    with patch.object(parent, "_read_bytes", side_effect=_raising_read_bytes):
+    with patch.object(parent, "read_bytes", side_effect=_raising_read_bytes):
         overlay.write("brand_new.py", "content")
 
     assert materializer.pre_flush_snapshot() == {"brand_new.py": None}
@@ -516,7 +516,7 @@ def test_overlay_snapshot_records_none_on_keyerror(tmp_path: Path) -> None:
     overlay = BranchOverlay(parent)
     overlay.attach_materializer(materializer, "approach_a")
 
-    real_read_bytes = parent._read_bytes
+    real_read_bytes = parent.read_bytes
 
     def _raising_read_bytes(path: str) -> bytes:
         if path == "missing.py":
@@ -524,7 +524,7 @@ def test_overlay_snapshot_records_none_on_keyerror(tmp_path: Path) -> None:
         result: bytes = real_read_bytes(path)
         return result
 
-    with patch.object(parent, "_read_bytes", side_effect=_raising_read_bytes):
+    with patch.object(parent, "read_bytes", side_effect=_raising_read_bytes):
         overlay.write("missing.py", "content")
 
     assert materializer.pre_flush_snapshot() == {"missing.py": None}
@@ -552,7 +552,7 @@ def test_detect_conflicts_handles_keyerror_in_parent_read_bytes(tmp_path: Path) 
     overlay = BranchOverlay(parent)
     overlay.write("foo.py", "branch_v1")
 
-    real_read_bytes = parent._read_bytes
+    real_read_bytes = parent.read_bytes
 
     def _raise_keyerror(path: str) -> bytes:
         if path == "foo.py":
@@ -560,7 +560,7 @@ def test_detect_conflicts_handles_keyerror_in_parent_read_bytes(tmp_path: Path) 
         result: bytes = real_read_bytes(path)
         return result
 
-    with patch.object(parent, "_read_bytes", side_effect=_raise_keyerror):
+    with patch.object(parent, "read_bytes", side_effect=_raise_keyerror):
         report = overlay.flush_to(parent, pre_flush_snapshot={"foo.py": b"v1"})
 
     # Snapshot bytes (b"v1") vs current parent (KeyError → treated as None) differs → conflict.

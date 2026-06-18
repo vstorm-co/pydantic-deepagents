@@ -273,8 +273,8 @@ class TestMemoryTools:
 
         assert "Memory updated" in result
         # Verify file was created
-        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
-        raw = backend._read_bytes("/.deep/memory/main/MEMORY.md")
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
+        raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"First entry" in raw
 
@@ -288,7 +288,7 @@ class TestMemoryTools:
         result = await toolset.tools["write_memory"].function(ctx, "New entry")
 
         assert "Memory updated" in result
-        raw = backend._read_bytes("/.deep/memory/main/MEMORY.md")
+        raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         content = raw.decode("utf-8")
         assert "Existing" in content
@@ -306,7 +306,7 @@ class TestMemoryTools:
         result = await toolset.tools["update_memory"].function(ctx, "Python 3.11", "Python 3.12")
 
         assert "Memory updated" in result
-        raw = backend._read_bytes("/.deep/memory/main/MEMORY.md")
+        raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"Python 3.12" in raw
         assert b"Python 3.11" not in raw
@@ -341,7 +341,7 @@ class TestMemoryTools:
         assert "appears 2 times" in result
         assert "must be" in result
         # Memory is left unchanged.
-        raw = backend._read_bytes("/.deep/memory/main/MEMORY.md")
+        raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw == b"foo\nfoo\nbar"
 
     async def test_write_memory_custom_path(self):
@@ -355,7 +355,7 @@ class TestMemoryTools:
         )
         await toolset.tools["write_memory"].function(ctx, "Review notes")
 
-        raw = backend._read_bytes("/custom/reviewer/MEMORY.md")
+        raw = backend.read_bytes("/custom/reviewer/MEMORY.md")
         assert raw is not None
         assert b"Review notes" in raw
 

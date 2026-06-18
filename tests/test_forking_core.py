@@ -33,6 +33,7 @@ from pydantic_deep import (
 from pydantic_deep.capabilities.message_queue import MessageQueue
 from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
+from pydantic_deep.toolsets.forking.isolation import _read_backend_bytes
 
 
 def _make_test_agent() -> Agent[DeepAgentDeps, str]:
@@ -246,6 +247,15 @@ def test_branch_overlay_read_bytes_overlay_and_parent():
 
     overlay.write("/a.py", "from-overlay")
     assert overlay.read_bytes("/a.py") == b"from-overlay"
+
+
+def test_read_backend_bytes_falls_back_to_private_reader():
+    class LegacyBackend:
+        def _read_bytes(self, path: str) -> bytes:
+            assert path == "/legacy.txt"
+            return b"legacy"
+
+    assert _read_backend_bytes(LegacyBackend(), "/legacy.txt") == b"legacy"
 
 
 def test_branch_overlay_parent_property():

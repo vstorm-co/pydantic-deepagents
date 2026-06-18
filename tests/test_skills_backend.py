@@ -189,9 +189,9 @@ class TestBackendSkillResource:
 
     async def test_load_backend_error_raises(self):
         """If read_bytes raises, SkillResourceLoadError is raised."""
-        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
         failing_backend = MagicMock()
-        failing_backend._read_bytes.side_effect = OSError("disk error")
+        failing_backend.read_bytes.side_effect = OSError("disk error")
 
         resource = BackendSkillResource(
             name="missing.txt",
@@ -633,18 +633,18 @@ class TestBackendSkillsDirectory:
 
     def test_unexpected_error_wraps_in_validation_error(self):
         backend = StateBackend()
-        # Write a valid-looking SKILL.md but make _read_bytes fail
+        # Write a valid-looking SKILL.md but make read_bytes fail
         backend.write("/skills/test/SKILL.md", "---\nname: test\n---\nContent")
 
-        # Patch _read_bytes to fail after glob succeeds
-        original_read = backend._read_bytes
+        # Patch read_bytes to fail after glob succeeds
+        original_read = backend.read_bytes
 
         def failing_read(path: str) -> bytes:
             if "SKILL.md" in path:
                 raise OSError("disk error")
             return original_read(path)  # type: ignore[no-any-return]
 
-        backend._read_bytes = failing_read
+        backend.read_bytes = failing_read
 
         with pytest.raises(SkillValidationError, match="Failed to load skill"):
             BackendSkillsDirectory(backend=backend, path="/skills")

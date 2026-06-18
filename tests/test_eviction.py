@@ -281,8 +281,8 @@ class TestEvictionProcessor:
         assert "read_file" in str(tool_part.content)
 
         # File should be written to backend
-        # _read_bytes is the sync read that AsyncBackendAdapter delegates to.
-        evicted_content = backend._read_bytes("/large_tool_results/call_123")
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
+        evicted_content = backend.read_bytes("/large_tool_results/call_123")
         assert evicted_content == large_content.encode()
 
     @pytest.mark.anyio
@@ -308,7 +308,7 @@ class TestEvictionProcessor:
         assert isinstance(out_part, ToolReturnPart)
         # Content is the original BinaryContent, untouched.
         assert out_part.content is image
-        assert backend._read_bytes("/large_tool_results/call_bin") in (None, b"")
+        assert backend.read_bytes("/large_tool_results/call_bin") in (None, b"")
 
     async def test_evicted_ids_bounded_fifo(self):
         """The evicted-id tracking set is bounded: oldest IDs drop past the cap."""
@@ -528,7 +528,7 @@ class TestEvictionProcessor:
         assert "/custom/evicted/" in str(tool_part.content)
 
         # Check file was written to custom path
-        evicted = backend._read_bytes("/custom/evicted/call_custom")
+        evicted = backend.read_bytes("/custom/evicted/call_custom")
         assert evicted == large_content.encode()
 
     @pytest.mark.anyio
@@ -672,11 +672,11 @@ class TestResolveBackend:
         await processor(ctx, messages)
 
         # File should be in RUNTIME backend, not creation backend
-        evicted = runtime_backend._read_bytes("/large_tool_results/call_rt")
+        evicted = runtime_backend.read_bytes("/large_tool_results/call_rt")
         assert evicted == large_content.encode()
 
         # Creation backend should NOT have the file
-        assert creation_backend._read_bytes("/large_tool_results/call_rt") == b""
+        assert creation_backend.read_bytes("/large_tool_results/call_rt") == b""
 
     @pytest.mark.anyio
     async def test_falls_back_to_self_backend(self):
@@ -693,7 +693,7 @@ class TestResolveBackend:
         await processor(ctx, messages)
 
         # File should be in creation (fallback) backend
-        evicted = creation_backend._read_bytes("/large_tool_results/call_fb")
+        evicted = creation_backend.read_bytes("/large_tool_results/call_fb")
         assert evicted == large_content.encode()
 
 
@@ -927,7 +927,7 @@ class TestEvictionPreviewFormat:
         await processor(ctx, messages)
 
         # Read back from backend
-        stored = backend._read_bytes("/large_tool_results/call_read")
+        stored = backend.read_bytes("/large_tool_results/call_read")
         assert stored.decode() == original_content
 
 
@@ -1075,7 +1075,7 @@ class TestEvictionCapability:
         assert "Tool result too large" in result
         assert "/large_tool_results/call_big" in result
         # File was written
-        evicted = backend._read_bytes("/large_tool_results/call_big")
+        evicted = backend.read_bytes("/large_tool_results/call_big")
         assert evicted == large.encode()
 
     @pytest.mark.anyio
@@ -1096,8 +1096,8 @@ class TestEvictionCapability:
         )
 
         # Written to deps_backend, not fallback
-        assert deps_backend._read_bytes("/large_tool_results/call_deps") not in (None, b"")
-        assert fallback._read_bytes("/large_tool_results/call_deps") in (None, b"")
+        assert deps_backend.read_bytes("/large_tool_results/call_deps") not in (None, b"")
+        assert fallback.read_bytes("/large_tool_results/call_deps") in (None, b"")
 
     @pytest.mark.anyio
     async def test_no_backend_passes_through(self):
@@ -1249,7 +1249,7 @@ class TestEvictionCapabilityToolReturn:
         # content (with the BinaryContent) is preserved as-is
         assert result.content == original.content
         # Backend was not asked to store anything (no eviction)
-        assert backend._read_bytes("/large_tool_results/call_screenshot") in (None, b"")
+        assert backend.read_bytes("/large_tool_results/call_screenshot") in (None, b"")
 
     @pytest.mark.anyio
     async def test_toolreturn_evicts_only_return_value(self):
@@ -1285,7 +1285,7 @@ class TestEvictionCapabilityToolReturn:
         # metadata is preserved
         assert result.metadata == {"trace_id": "abc"}
         # The text value was actually written to the backend
-        assert backend._read_bytes("/large_tool_results/call_big_tr") == large_text.encode()
+        assert backend.read_bytes("/large_tool_results/call_big_tr") == large_text.encode()
 
     @pytest.mark.anyio
     async def test_toolreturn_small_passes_through(self):
@@ -1332,7 +1332,7 @@ class TestEvictionCapabilityToolReturn:
         assert result is image
         assert isinstance(result, BinaryContent)
         # Nothing was written to the eviction path.
-        assert backend._read_bytes("/large_tool_results/call_bare_img") in (None, b"")
+        assert backend.read_bytes("/large_tool_results/call_bare_img") in (None, b"")
 
     @pytest.mark.anyio
     async def test_list_with_binary_content_returned_unchanged(self):
@@ -1355,7 +1355,7 @@ class TestEvictionCapabilityToolReturn:
         )
 
         assert result is original
-        assert backend._read_bytes("/large_tool_results/call_list_img") in (None, b"")
+        assert backend.read_bytes("/large_tool_results/call_list_img") in (None, b"")
 
 
 # ---------------------------------------------------------------------------
@@ -1454,7 +1454,7 @@ class TestBinaryContentRetention:
         # Pruned binaries were stored to backend with deterministic paths
         first_bin = BinaryContent(data=b"image-0-bytes" * 8, media_type="image/jpeg")
         path = f"/large_tool_results/binary_{first_bin.identifier}.jpg"
-        assert backend._read_bytes(path) == b"image-0-bytes" * 8
+        assert backend.read_bytes(path) == b"image-0-bytes" * 8
 
         # Older messages now contain the text reference
         first_part = new_messages[0].parts[0]
@@ -1545,7 +1545,7 @@ class TestBinaryContentRetention:
         # Stored bytes match the original BinaryContent.data
         old_bin = BinaryContent(data=old_bytes, media_type="image/jpeg")
         path = f"/large_tool_results/binary_{old_bin.identifier}.jpg"
-        assert backend._read_bytes(path) == old_bytes
+        assert backend.read_bytes(path) == old_bytes
 
         # ToolReturnPart metadata is preserved
         assert old_part.tool_name == "browser_screenshot"
@@ -1740,7 +1740,7 @@ class TestBinaryRetentionEdgeCases:
         # Stored bytes match the original
         old_bin = BinaryContent(data=old_bytes, media_type="image/png")
         path = f"/large_tool_results/binary_{old_bin.identifier}.png"
-        assert backend._read_bytes(path) == old_bytes
+        assert backend.read_bytes(path) == old_bytes
 
     @pytest.mark.anyio
     async def test_bare_binary_under_limit_unchanged(self):

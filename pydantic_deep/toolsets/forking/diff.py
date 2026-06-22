@@ -38,11 +38,11 @@ if TYPE_CHECKING:
 
 
 class _BytesReadable(Protocol):
-    """Minimal read surface needed by the diff builder.
+    """Minimal sync read surface needed by the diff builder.
 
-    Both `BackendProtocol` and `BranchOverlay` satisfy this - using a
+    Both ``BackendProtocol`` and ``BranchOverlay`` satisfy this. Using a
     narrow local protocol keeps strict typing happy without depending on
-    backend-level method signature quirks (e.g. `grep_raw` arity).
+    backend-level method signature quirks.
     """
 
     def exists(self, path: str) -> bool: ...
@@ -78,13 +78,11 @@ def _binary_placeholder(data: bytes, *, digest: str | None = None) -> str:
     return f"[binary · {len(data)} · sha256:{full[:_BINARY_HASH_PREFIX_HEX_LEN]}]"
 
 
-def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
+async def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
     """Read `path` from `backend` as raw bytes, or `None` if absent.
 
-    Uses `exists()` first because some backends (notably `StateBackend`)
-    silently return `b""` for missing paths instead of raising - we need
-    to distinguish "empty file" from "no file" for the `operation`
-    classification (created vs modified).
+    Uses ``exists()`` first because some backends (notably ``StateBackend``)
+    silently return ``b""`` for missing paths instead of raising.
     """
     if not backend.exists(path):
         return None
@@ -167,7 +165,7 @@ def _classify_agreement(branches: dict[str, BranchChange]) -> BranchDiffAgreemen
     return "unanimous_change"
 
 
-def _resolve_parent_content(
+async def _resolve_parent_content(
     parent_backend: _BytesReadable,
     path: str,
 ) -> tuple[str | None, bytes | None]:
@@ -177,7 +175,7 @@ def _resolve_parent_content(
     still detect binary status without exposing undecodable bytes through
     the text field of :class:`PathDiff`.
     """
-    raw = _read_path_bytes(parent_backend, path)
+    raw = await _read_path_bytes(parent_backend, path)
     if raw is None:
         return None, None
     if _is_binary_bytes(raw):
@@ -185,7 +183,7 @@ def _resolve_parent_content(
     return _decode_text(raw), raw
 
 
-def _build_branch_change(
+async def _build_branch_change(
     *,
     runtime: BranchRuntime,
     path: str,
@@ -230,7 +228,7 @@ def _build_branch_change(
         )
 
     # raise > assert so the invariant guard survives python -O.
-    raw = _read_path_bytes(overlay, path)
+    raw = await _read_path_bytes(overlay, path)
     if raw is None:  # pragma: no cover - invariant guard; see comment above
         raise RuntimeError(
             f"overlay recorded a change for {path!r} but its content is missing — "
@@ -269,7 +267,7 @@ def _build_branch_change(
     )
 
 
-def build_diff_report(
+async def build_diff_report(
     fork_id: str,
     runtimes: list[BranchRuntime],
     *,
@@ -334,11 +332,11 @@ def build_diff_report(
         if parent_backend is None:
             parent_text, parent_raw = None, None
         else:
-            parent_text, parent_raw = _resolve_parent_content(parent_backend, path)
+            parent_text, parent_raw = await _resolve_parent_content(parent_backend, path)
 
         branches_for_path: dict[str, BranchChange] = {}
         for runtime in runtimes:
-            change = _build_branch_change(
+            change = await _build_branch_change(
                 runtime=runtime,
                 path=path,
                 touched_paths=touched_per_branch[runtime.status.id],

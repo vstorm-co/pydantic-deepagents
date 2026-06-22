@@ -15,7 +15,7 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
-from pydantic_ai_backends import BackendProtocol
+from pydantic_ai_backends import AsyncBackendProtocol
 
 DEFAULT_CONTEXT_FILENAMES: list[str] = [
     "AGENTS.md",
@@ -70,8 +70,8 @@ class ContextFile:
     """File content."""
 
 
-def load_context_files(
-    backend: BackendProtocol,
+async def load_context_files(
+    backend: AsyncBackendProtocol,
     paths: list[str],
 ) -> list[ContextFile]:
     """Load context files from backend.
@@ -79,7 +79,7 @@ def load_context_files(
     Missing files are silently skipped.
 
     Args:
-        backend: Backend to read files from.
+        backend: Async backend to read files from.
         paths: List of file paths to load.
 
     Returns:
@@ -87,7 +87,7 @@ def load_context_files(
     """
     result: list[ContextFile] = []
     for path in paths:
-        raw = backend.read_bytes(path)
+        raw = await backend.read_bytes(path)
         if not raw:
             continue
         content = raw.decode("utf-8", errors="replace")
@@ -96,15 +96,15 @@ def load_context_files(
     return result
 
 
-def discover_context_files(
-    backend: BackendProtocol,
+async def discover_context_files(
+    backend: AsyncBackendProtocol,
     search_path: str = "/",
     filenames: list[str] | None = None,
 ) -> list[str]:
     """Auto-discover context files in backend root.
 
     Args:
-        backend: Backend to search in.
+        backend: Async backend to search in.
         search_path: Root path to search (default: "/").
         filenames: Filenames to look for (default: DEFAULT_CONTEXT_FILENAMES).
 
@@ -115,14 +115,14 @@ def discover_context_files(
     found: list[str] = []
     for name in filenames:
         path = f"{search_path.rstrip('/')}/{name}"
-        raw = backend.read_bytes(path)
+        raw = await backend.read_bytes(path)
         if raw:
             found.append(path)
     return found
 
 
-def _discover_and_load(
-    backend: BackendProtocol,
+async def _discover_and_load(
+    backend: AsyncBackendProtocol,
     search_path: str = "/",
     filenames: list[str] | None = None,
 ) -> list[ContextFile]:
@@ -132,7 +132,7 @@ def _discover_and_load(
     this reads each file's bytes only once. Missing files are silently skipped.
 
     Args:
-        backend: Backend to search and read from.
+        backend: Async backend to search and read from.
         search_path: Root path to search (default: "/").
         filenames: Filenames to look for (default: DEFAULT_CONTEXT_FILENAMES).
 
@@ -143,7 +143,7 @@ def _discover_and_load(
     result: list[ContextFile] = []
     for name in filenames:
         path = f"{search_path.rstrip('/')}/{name}"
-        raw = backend.read_bytes(path)
+        raw = await backend.read_bytes(path)
         if not raw:
             continue
         content = raw.decode("utf-8", errors="replace")
@@ -243,14 +243,14 @@ class ContextToolset(FunctionToolset[Any]):
         Returns:
             Formatted context prompt, or None if no files found.
         """
-        backend: BackendProtocol | None = getattr(ctx.deps, "backend", None)
+        backend: AsyncBackendProtocol | None = getattr(ctx.deps, "backend", None)
         if backend is None:
             return None
 
         if self._context_discovery:
-            loaded = _discover_and_load(backend)
+            loaded = await _discover_and_load(backend)
         elif self._context_files:
-            loaded = load_context_files(backend, self._context_files)
+            loaded = await load_context_files(backend, self._context_files)
         else:
             return None
 

@@ -99,7 +99,7 @@ async def test_diff_split_when_branches_modify_same_path_differently() -> None:
     runtime_a = await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)
     runtime_b = await _make_runtime(branch_id="b", label="beta", overlay=overlay_b)
 
-    report = build_diff_report("fork-1", [runtime_a, runtime_b])
+    report = await build_diff_report("fork-1", [runtime_a, runtime_b])
 
     assert len(report.paths) == 1
     pd = report.paths[0]
@@ -127,7 +127,7 @@ async def test_diff_unanimous_change_when_branches_modify_identically() -> None:
     overlay_a = await _overlay_with_writes(parent, {"shared.py": "v2\n"})
     overlay_b = await _overlay_with_writes(parent, {"shared.py": "v2\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-2",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -153,7 +153,7 @@ async def test_diff_unique_when_only_one_branch_touches_path() -> None:
     overlay_a = await _overlay_with_writes(parent, {"only-a.py": "hello\n"})
     overlay_b = BranchOverlay(parent)  # b touched nothing
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-3",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -181,7 +181,7 @@ async def test_diff_binary_file_returns_placeholder() -> None:
     binary_payload = b"\x00\x01\x02\x03" * 64
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": binary_payload})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-4",
         [await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)],
     )
@@ -205,7 +205,7 @@ async def test_diff_divergent_binary_writes_are_split() -> None:
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": b"\x00\x01\x02" * 64})
     overlay_b = await _overlay_with_writes(parent, {"asset.bin": b"\x00\x09\x09" * 64})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-bin",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -226,7 +226,7 @@ async def test_diff_identical_binary_writes_are_unanimous() -> None:
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": payload})
     overlay_b = await _overlay_with_writes(parent, {"asset.bin": payload})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-bin2",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -303,7 +303,7 @@ async def test_build_diff_report_rejects_duplicate_status_ids() -> None:
     runtime_a = await _make_runtime(branch_id="dup", label="alpha", overlay=overlay_a)
     runtime_b = await _make_runtime(branch_id="dup", label="beta", overlay=overlay_b)
     with pytest.raises(ValueError, match="unique runtime status ids"):
-        build_diff_report("fork-dup", [runtime_a, runtime_b])
+        await build_diff_report("fork-dup", [runtime_a, runtime_b])
 
 
 def test_decode_text_returns_none_for_invalid_utf8() -> None:
@@ -335,7 +335,7 @@ async def test_diff_large_file_truncated() -> None:
     big_content = "\n".join(f"line {i}" for i in range(700)) + "\n"
     overlay_a = await _overlay_with_writes(parent, {"big.py": big_content})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-5",
         [await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)],
     )
@@ -353,7 +353,7 @@ async def test_diff_respects_paths_filter() -> None:
     parent = StateBackend()
     overlay_a = await _overlay_with_writes(parent, {"keep.py": "x\n", "ignore.py": "y\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-6",
         [await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)],
         paths_filter=["keep.py"],
@@ -367,7 +367,7 @@ async def test_diff_paths_filter_keeps_untouched_paths_for_transparency() -> Non
     parent = StateBackend()
     overlay_a = await _overlay_with_writes(parent, {"touched.py": "y\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-6b",
         [await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)],
         paths_filter=["never-touched.py"],
@@ -391,7 +391,7 @@ async def test_diff_agreement_score_not_falsely_perfect_when_split_filtered_out(
     overlay_a = await _overlay_with_writes(parent, {"conflict.py": "alpha\n"})
     overlay_b = await _overlay_with_writes(parent, {"conflict.py": "beta\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-6c",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -421,7 +421,7 @@ async def test_diff_agreement_score_all_split() -> None:
     overlay_a = await _overlay_with_writes(parent, {"p1.py": "a1\n", "p2.py": "a2\n"})
     overlay_b = await _overlay_with_writes(parent, {"p1.py": "b1\n", "p2.py": "b2\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-7a",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -438,7 +438,7 @@ async def test_diff_agreement_score_all_unanimous() -> None:
     overlay_a = await _overlay_with_writes(parent, {"p1.py": "same\n"})
     overlay_b = await _overlay_with_writes(parent, {"p1.py": "same\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-7b",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -461,7 +461,7 @@ async def test_diff_agreement_score_mixed() -> None:
         parent, {"p1.py": "same\n", "p2.py": "same\n", "p3.py": "b3\n"}
     )
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-7c",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -525,7 +525,7 @@ async def test_diff_untouched_paths_excluded() -> None:
     overlay_a = await _overlay_with_writes(parent, {"changed.py": "new\n"})
     overlay_b = BranchOverlay(parent)
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-9",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -547,7 +547,7 @@ async def test_diff_branch_with_no_overlay_marked_untouched() -> None:
     parent = StateBackend()
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "a-content\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-share",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -572,7 +572,7 @@ async def test_diff_all_branches_no_overlay_with_filter() -> None:
     loop — only reachable when a `paths_filter` forces at least one
     iteration even though no branch has an overlay.
     """
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-noparent",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=None),
@@ -597,7 +597,7 @@ async def test_diff_unique_when_first_branch_is_untouched() -> None:
     overlay_b = await _overlay_with_writes(parent, {"owned.py": "b!\n"})
 
     # Insert the untouched runtime FIRST so the unique-tally loop must skip it.
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-unique-order",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=None),
@@ -614,7 +614,7 @@ async def test_diff_no_branches_touched_anything() -> None:
     overlay_a = BranchOverlay(parent)
     overlay_b = BranchOverlay(parent)
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-empty",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -632,8 +632,8 @@ async def test_diff_no_branches_touched_anything() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_diff_empty_runtimes_list() -> None:
-    report = build_diff_report("fork-noop", [])
+async def test_diff_empty_runtimes_list() -> None:
+    report = await build_diff_report("fork-noop", [])
     assert report.paths == []
     assert report.summary.total_paths_touched == 0
     assert report.summary.agreement_score == 1.0
@@ -654,7 +654,7 @@ async def test_diff_branch_with_delete_produces_deleted_operation() -> None:
     overlay_modifier = BranchOverlay(parent)
     overlay_modifier.write("/x.py", "modified\n")
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-delete",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_deleter),
@@ -686,7 +686,7 @@ async def test_diff_lone_deleter_branch_classified_unique() -> None:
 
     overlay_untouched = BranchOverlay(parent)
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-lone-delete",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_deleter),
@@ -708,7 +708,7 @@ async def test_diff_unanimous_delete_classified_as_unanimous_change() -> None:
     overlay_b = BranchOverlay(parent)
     overlay_b.delete("/x.py")
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-unanimous-delete",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),
@@ -730,7 +730,7 @@ async def test_diff_binary_parent_content() -> None:
     parent.write("img.bin", b"\x00\x01" * 32)
     overlay_a = await _overlay_with_writes(parent, {"img.bin": b"\x00\x02" * 32})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-binparent",
         [await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a)],
     )
@@ -886,7 +886,7 @@ async def test_public_build_diff_report_entry_point() -> None:
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "a\n"})
     overlay_b = await _overlay_with_writes(parent, {"foo.py": "b\n"})
 
-    report = build_diff_report(
+    report = await build_diff_report(
         "fork-public",
         [
             await _make_runtime(branch_id="a", label="alpha", overlay=overlay_a),

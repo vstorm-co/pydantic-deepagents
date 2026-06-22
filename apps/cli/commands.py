@@ -745,7 +745,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
     if session is None:
         app.notify("No active fork — type /fork to start one", severity="warning")
         return
-    report = session.build_diff()
+    report = await session.build_diff()
     if report is None:  # pragma: no cover - defensive: session implies a live fork
         app.notify("Cannot build diff report", severity="error")
         return
@@ -785,7 +785,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
             return
         await _commit_pick(picked.branch_id)
 
-    def _on_open_in_editor(branch_id: str) -> None:
+    async def _on_open_in_editor(branch_id: str) -> None:
         """Bridge the merge picker's `o` binding into the diff picker.
 
         The merge picker passes the currently-highlighted branch id; we
@@ -802,7 +802,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
                 severity="warning",
             )
             return
-        _open_diff_picker(app, kind=kind, initial_branch_id=branch_id)
+        await _open_diff_picker(app, kind=kind, initial_branch_id=branch_id)
 
     def _push_picker(
         *,
@@ -1083,7 +1083,7 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
 
     kind = EditorDetector.detect()
     if kind == "tui":
-        report = session.build_diff()
+        report = await session.build_diff()
         if report is None:  # pragma: no cover - defensive
             app.notify("Cannot build diff report", severity="error")
             return
@@ -1093,7 +1093,7 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
         app.push_screen(MergePickerModal(report, statuses, session.label_to_id, view_only=True))
         return
 
-    _open_diff_picker(app, kind=kind, initial_branch_id=None)
+    await _open_diff_picker(app, kind=kind, initial_branch_id=None)
 
 
 def _labeled_symlinks(
@@ -1128,7 +1128,7 @@ def _labeled_symlinks(
     return None, sym_branches
 
 
-def _open_diff_picker(
+async def _open_diff_picker(
     app: DeepApp,
     *,
     kind: str,
@@ -1145,7 +1145,7 @@ def _open_diff_picker(
     session = app.active_fork
     if session is None:  # pragma: no cover - defensive: caller already checked
         return
-    report = session.build_diff()
+    report = await session.build_diff()
     if report is None:  # pragma: no cover - defensive
         app.notify("Cannot build diff report", severity="error")
         return

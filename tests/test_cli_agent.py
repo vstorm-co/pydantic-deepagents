@@ -165,7 +165,7 @@ class TestCreateCliAgent:
         # Local sandbox — workspace ignored when Docker is not active
         from pydantic_ai_backends import LocalBackend
 
-        assert isinstance(deps.backend, LocalBackend)
+        assert isinstance(deps.backend.unwrap(), LocalBackend)
 
     def test_sandbox_local_is_default(self, tmp_path: Path) -> None:
         """Default sandbox is local (no Docker)."""
@@ -175,7 +175,7 @@ class TestCreateCliAgent:
         )
         from pydantic_ai_backends import LocalBackend
 
-        assert isinstance(deps.backend, LocalBackend)
+        assert isinstance(deps.backend.unwrap(), LocalBackend)
 
 
 class TestShellAllowListHook:

@@ -42,7 +42,7 @@ classifiers = [
 dependencies = [
     "pydantic-ai-slim[web-fetch]>=1.97.0",
     "pydantic-ai-todo>=0.2.6",
-    "pydantic-ai-backend[console]>=0.2.13",
+    "pydantic-ai-backend[console]>=0.2.14",
     "summarization-pydantic-ai>=0.1.8",
     "subagents-pydantic-ai>=0.2.7",
     "pydantic-ai-shields>=0.3.4",
@@ -52,7 +52,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.13"]
+sandbox = ["pydantic-ai-backend[docker]>=0.2.14"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)

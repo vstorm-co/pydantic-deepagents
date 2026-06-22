@@ -224,7 +224,7 @@ def create_plan_toolset(
         path = f"{plans_dir}/{filename}"
 
         # Write to backend
-        result = ctx.deps.backend.write(path, content.encode("utf-8"))
+        result = await ctx.deps.backend.write(path, content.encode("utf-8"))
         if hasattr(result, "error") and result.error:
             return f"Error saving plan: {result.error}"
 

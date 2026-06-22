@@ -171,12 +171,12 @@ class CLIForkSession:
         """Return a snapshot of every branch's current status."""
         return self.coordinator.inspect_branches()
 
-    def build_diff(self) -> BranchDiffReport | None:
+    async def build_diff(self) -> BranchDiffReport | None:
         """Build a :class:`BranchDiffReport` over the active fork, or `None` if not yet forked."""
         fork_id = self.coordinator.fork_id
         if fork_id is None:  # pragma: no cover - defensive: a CLIForkSession only exists post-fork
             return None
-        return build_diff_report(fork_id, list(self.coordinator.branches.values()))
+        return await build_diff_report(fork_id, list(self.coordinator.branches.values()))
 
 
 async def start_fork_from_cli(

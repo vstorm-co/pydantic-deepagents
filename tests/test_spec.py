@@ -188,7 +188,7 @@ class TestDeepAgentFromSpec:
             backend=backend,
             cost_tracking=False,
         )
-        assert deps.backend is backend
+        assert deps.backend.unwrap() is backend
 
     def test_from_spec_empty_dict(self) -> None:
         """Empty dict uses all defaults."""
@@ -218,7 +218,7 @@ class TestDeepAgentFromSpec:
             },
         )
         assert agent is not None
-        assert deps.backend is backend
+        assert deps.backend.unwrap() is backend
 
 
 class TestDeepAgentFromFile:

@@ -17,7 +17,7 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
-from pydantic_ai_backends import BackendProtocol
+from pydantic_ai_backends import AsyncBackendProtocol
 
 
 class MemoryAccessError(Exception):
@@ -93,8 +93,8 @@ def get_memory_path(memory_dir: str, agent_name: str) -> str:
     return f"{memory_dir.rstrip('/')}/{agent_name}/{DEFAULT_MEMORY_FILENAME}"
 
 
-def load_memory(
-    backend: BackendProtocol,
+async def load_memory(
+    backend: AsyncBackendProtocol,
     path: str,
     agent_name: str = "main",
 ) -> MemoryFile | None:
@@ -106,7 +106,7 @@ def load_memory(
     (issue #135).
 
     Args:
-        backend: Backend to read from.
+        backend: Async backend to read from.
         path: Full path to the memory file.
         agent_name: Name of the agent owning this memory.
 
@@ -116,7 +116,7 @@ def load_memory(
     Raises:
         MemoryAccessError: If the backend denied access to the path.
     """
-    raw = backend.read_bytes(path)
+    raw = await backend.read_bytes(path)
     if raw:
         content = raw.decode("utf-8", errors="replace")
         return MemoryFile(agent_name=agent_name, path=path, content=content)
@@ -125,7 +125,7 @@ def load_memory(
     # are indistinguishable there. Probe via `read`, which surfaces access
     # errors as an "Error: ..." string while reporting a missing file as
     # "Error: ... not found". Anything else (or empty) is missing/empty memory.
-    probe = backend.read(path)
+    probe = await backend.read(path)
     if probe.startswith("Error:") and "not found" not in probe.lower():
         raise MemoryAccessError(probe.removeprefix("Error:").strip() or "access denied")
     return None
@@ -199,9 +199,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         @self.tool(description=self._descs.get("read_memory", READ_MEMORY_DESCRIPTION))
         async def read_memory(ctx: RunContext[Any]) -> str:
             """Read your persistent memory."""
-            backend: BackendProtocol = ctx.deps.backend
+            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                mem = load_memory(backend, self._path, self._agent_name)
+                mem = await load_memory(backend, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot read memory at '{self._path}': {exc}"
             if mem is None:
@@ -215,13 +215,13 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             Args:
                 content: Text to append to memory (markdown recommended).
             """
-            backend: BackendProtocol = ctx.deps.backend
+            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                existing = load_memory(backend, self._path, self._agent_name)
+                existing = await load_memory(backend, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot access memory at '{self._path}': {exc}"
             new_content = existing.content.rstrip("\n") + "\n\n" + content if existing else content
-            result = backend.write(self._path, new_content.encode("utf-8"))
+            result = await backend.write(self._path, new_content.encode("utf-8"))
             if result.error:
                 return f"Error: failed to save memory to '{self._path}': {result.error}"
             line_count = len(new_content.splitlines())
@@ -243,9 +243,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 old_text: The exact text to find in memory (must be unique).
                 new_text: The text to replace it with.
             """
-            backend: BackendProtocol = ctx.deps.backend
+            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                mem = load_memory(backend, self._path, self._agent_name)
+                mem = await load_memory(backend, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot access memory at '{self._path}': {exc}"
             if mem is None:
@@ -260,7 +260,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                     "so it matches exactly once."
                 )
             updated = mem.content.replace(old_text, new_text, 1)
-            result = backend.write(self._path, updated.encode("utf-8"))
+            result = await backend.write(self._path, updated.encode("utf-8"))
             if result.error:
                 return f"Error: failed to save memory to '{self._path}': {result.error}"
             line_count = len(updated.splitlines())
@@ -275,9 +275,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         Returns:
             Formatted memory prompt, or None if no memory exists.
         """
-        backend: BackendProtocol = ctx.deps.backend
+        backend: AsyncBackendProtocol = ctx.deps.backend
         try:
-            mem = load_memory(backend, self._path, self._agent_name)
+            mem = await load_memory(backend, self._path, self._agent_name)
         except MemoryAccessError:
             # Prompt injection runs on every request; a denied path must not
             # abort the run. Skip injection here — the failure is surfaced

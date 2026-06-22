@@ -6,7 +6,7 @@ from typing import Any
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend, WriteResult
+from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -86,38 +86,38 @@ class TestGetMemoryPath:
 class TestLoadMemory:
     """Tests for load_memory function."""
 
-    def test_load_existing(self):
+    async def test_load_existing(self):
         """Test loading an existing memory file."""
         backend = StateBackend()
         backend.write("/.deep/memory/main/MEMORY.md", "# Memory\n- item 1")
 
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert mem.agent_name == "main"
         assert mem.path == "/.deep/memory/main/MEMORY.md"
         assert "item 1" in mem.content
 
-    def test_load_missing(self):
+    async def test_load_missing(self):
         """Test loading a missing memory file returns None."""
         backend = StateBackend()
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is None
 
-    def test_load_utf8(self):
+    async def test_load_utf8(self):
         """Test loading memory with non-ASCII content."""
         backend = StateBackend()
         backend.write("/.deep/memory/main/MEMORY.md", "Polskie znaki: ąęćżź")
 
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert "ąęćżź" in mem.content
 
-    def test_load_default_agent_name(self):
+    async def test_load_default_agent_name(self):
         """Test load_memory with default agent_name."""
         backend = StateBackend()
         backend.write("/mem/MEMORY.md", "content")
 
-        mem = load_memory(backend, "/mem/MEMORY.md")
+        mem = await load_memory(ensure_async(backend), "/mem/MEMORY.md")
         assert mem is not None
         assert mem.agent_name == "main"
 
@@ -273,6 +273,7 @@ class TestMemoryTools:
 
         assert "Memory updated" in result
         # Verify file was created
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
         raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"First entry" in raw
@@ -594,24 +595,25 @@ def _denied_backend_and_dir(tmp_path: Path) -> tuple[Any, str]:
 class TestMemoryFailureSurfacing:
     """Issue #135 — backend write/permission failures must be visible."""
 
-    def test_load_memory_raises_on_denied_path(self, tmp_path):
+    async def test_load_memory_raises_on_denied_path(self, tmp_path):
         """A denied path raises MemoryAccessError, not a silent None."""
         from pydantic_deep import MemoryAccessError
 
         backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        async_backend = ensure_async(backend)
         path = get_memory_path(memory_dir, "main")
         try:
-            load_memory(backend, path, "main")
+            await load_memory(async_backend, path, "main")
             raise AssertionError("expected MemoryAccessError")
         except MemoryAccessError as exc:
             assert "denied" in str(exc).lower() or "outside" in str(exc).lower()
 
-    def test_load_memory_empty_existing_file_returns_none(self):
+    async def test_load_memory_empty_existing_file_returns_none(self):
         """An empty (but accessible) file is missing/empty memory, not an error."""
         backend = StateBackend()
         path = get_memory_path(DEFAULT_MEMORY_DIR, "main")
         backend.write(path, b"")
-        assert load_memory(backend, path, "main") is None
+        assert await load_memory(ensure_async(backend), path, "main") is None
 
     async def test_read_memory_surfaces_denied_access(self, tmp_path):
         """read_memory reports an error instead of 'No memory saved yet.'."""

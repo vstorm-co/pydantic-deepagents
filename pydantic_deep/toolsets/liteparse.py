@@ -143,7 +143,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
             backend = ctx.deps.backend
-            file_bytes: bytes | None = backend.read_bytes(path)
+            file_bytes: bytes | None = await backend.read_bytes(path)
             if not file_bytes:
                 return f"File not found: {path}"
             try:
@@ -179,7 +179,7 @@ class LiteparseToolset(FunctionToolset[Any]):
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
             backend = ctx.deps.backend
-            file_bytes = backend.read_bytes(path)
+            file_bytes = await backend.read_bytes(path)
             if not file_bytes:
                 return f"File not found: {path}"
             try:
@@ -204,7 +204,7 @@ class LiteparseToolset(FunctionToolset[Any]):
                     for screenshot in ss_result:
                         if screenshot.image_bytes:
                             out_path = f"{output_dir.rstrip('/')}/page_{screenshot.page_num}.png"
-                            backend.write(out_path, screenshot.image_bytes)
+                            await backend.write(out_path, screenshot.image_bytes)
                             saved.append(out_path)
 
                     if not saved:

@@ -12,9 +12,17 @@ if TYPE_CHECKING:
 
 import chardet
 from pydantic_ai.usage import UsageLimits
-from pydantic_ai_backends import BackendProtocol, StateBackend
+from pydantic_ai_backends import StateBackend, ensure_async
+from pydantic_ai_backends.adapter import AsyncBackendAdapter
+from pydantic_ai_backends.protocol import AsyncBackendProtocol
 
 from pydantic_deep.types import FileData, Todo, UploadedFile
+
+
+def unwrap_backend(backend: Any) -> Any:
+    """Return the raw sync backend, unwrapping ``AsyncBackendAdapter`` if needed."""
+    return getattr(backend, "unwrap", lambda: backend)()
+
 
 #: pydantic-ai's default `request_limit=50` is too low for autonomous agents
 #: that routinely need 50-200+ requests on complex tasks.
@@ -37,7 +45,7 @@ class DeepAgentDeps:
             When set, overrides the global store passed to `create_deep_agent()`.
     """
 
-    backend: BackendProtocol = field(default_factory=StateBackend)
+    backend: AsyncBackendProtocol | Any = field(default_factory=StateBackend)
     files: dict[str, FileData] = field(default_factory=dict)
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
@@ -56,14 +64,22 @@ class DeepAgentDeps:
     _parent_fork_coordinator: Any = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
-        """Initialize backend with files if using StateBackend."""
-        if isinstance(self.backend, StateBackend):
+        """Auto-wrap sync backends and wire StateBackend cache."""
+        # Auto-wrap sync backends so consumer code can always `await backend.X()`
+        if not isinstance(self.backend, AsyncBackendAdapter):
+            wrapped = ensure_async(self.backend)
+            if (
+                wrapped is not self.backend
+            ):  # pragma: no cover - only when backend is already async-native
+                object.__setattr__(self, "backend", wrapped)
+
+        # Cache wiring via unwrap() for StateBackend's shared files dict
+        raw = unwrap_backend(self.backend)
+        if isinstance(raw, StateBackend):
             if self.files:
-                # Sync files to state backend
-                self.backend._files = self.files
+                raw._files = self.files
             else:
-                # Use backend's files dict as the shared reference
-                object.__setattr__(self, "files", self.backend._files)
+                object.__setattr__(self, "files", raw._files)
 
     def get_todo_prompt(self) -> str:
         """Generate system prompt section for todos."""
@@ -105,7 +121,7 @@ class DeepAgentDeps:
 
         return "\n".join(lines)
 
-    def upload_file(
+    async def upload_file(
         self,
         name: str,
         content: bytes,
@@ -128,14 +144,14 @@ class DeepAgentDeps:
         Example:
             ```python
             deps = DeepAgentDeps(backend=StateBackend())
-            path = deps.upload_file("data.csv", csv_bytes)
+            path = await deps.upload_file("data.csv", csv_bytes)
             # Agent can now access the file at /uploads/data.csv
             ```
         """
         path = f"{upload_dir}/{name}"
 
         # Write raw bytes to storage
-        res = self.backend.write(path, content)
+        res = await self.backend.write(path, content)
 
         if res.error:  # pragma: no cover
             raise RuntimeError(f"Failed to upload file: {res.error}")
@@ -167,7 +183,7 @@ class DeepAgentDeps:
 
         return path
 
-    def upload_files(
+    async def upload_files(
         self,
         files: list[tuple[str, bytes]],
         *,
@@ -188,7 +204,7 @@ class DeepAgentDeps:
         Example:
             ```python
             deps = DeepAgentDeps(backend=StateBackend())
-            paths = deps.upload_files([
+            paths = await deps.upload_files([
                 ("data.csv", csv_bytes),
                 ("config.json", json_bytes),
             ])
@@ -197,7 +213,7 @@ class DeepAgentDeps:
         paths: list[str] = []
         for name, content in files:
             try:
-                path = self.upload_file(name, content, upload_dir=upload_dir)
+                path = await self.upload_file(name, content, upload_dir=upload_dir)
                 paths.append(path)
             except Exception:
                 # Skip failed uploads so one bad file doesn't abort the batch.

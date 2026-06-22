@@ -32,7 +32,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai_backends import SandboxProtocol
+from pydantic_ai_backends import AsyncSandboxProtocol, SandboxProtocol
 
 if TYPE_CHECKING:
     from pydantic_ai_backends import ExecuteResponse
@@ -191,14 +191,14 @@ def _parse_command_result(response: ExecuteResponse) -> HookResult:
 async def _execute_command_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: SandboxProtocol,
+    backend: AsyncSandboxProtocol,
 ) -> HookResult:
-    """Execute a command hook via SandboxProtocol.execute()."""
+    """Execute a command hook via AsyncSandboxProtocol.execute()."""
     json_str = json.dumps(asdict(hook_input))
     # Escape single quotes for shell safety
     escaped = json_str.replace("'", "'\\''")
     full_command = f"printf '%s' '{escaped}' | {hook.command}"
-    response: ExecuteResponse = await asyncio.to_thread(backend.execute, full_command, hook.timeout)
+    response: ExecuteResponse = await backend.execute(full_command, hook.timeout)
     return _parse_command_result(response)
 
 
@@ -214,13 +214,15 @@ async def _execute_handler_hook(
 async def _run_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: SandboxProtocol | None,
+    backend: AsyncSandboxProtocol | None,
 ) -> HookResult:
     """Run a single hook (command or handler)."""
+    from pydantic_deep.deps import unwrap_backend
+
     if hook.command is not None:
-        if backend is None or not isinstance(backend, SandboxProtocol):
+        if backend is None or not isinstance(unwrap_backend(backend), SandboxProtocol):
             msg = (
-                "Command hooks require a SandboxProtocol backend "
+                "Command hooks require a AsyncSandboxProtocol backend "
                 "(LocalBackend or DockerSandbox). "
                 "Current backend does not support execute()."
             )
@@ -232,7 +234,7 @@ async def _run_hook(
 async def _run_background_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: SandboxProtocol | None,
+    backend: AsyncSandboxProtocol | None,
 ) -> None:
     """Run a background hook, logging errors without propagating."""
     try:
@@ -241,13 +243,16 @@ async def _run_background_hook(
         logger.exception("Background hook failed: %s", hook.command or hook.handler)
 
 
-def _get_sandbox_backend(deps: DeepAgentDeps | None) -> SandboxProtocol | None:
-    """Extract SandboxProtocol backend from deps, if available."""
+def _get_sandbox_backend(deps: DeepAgentDeps | None) -> AsyncSandboxProtocol | None:
+    """Extract sandbox-capable backend from deps, if available."""
     if deps is None:
         return None
+    from pydantic_deep.deps import unwrap_backend
+
     backend = deps.backend
-    if isinstance(backend, SandboxProtocol):
-        return backend
+    raw = unwrap_backend(backend)
+    if isinstance(raw, SandboxProtocol):
+        return backend  # type: ignore[return-value,unused-ignore]
     return None
 
 
@@ -277,7 +282,7 @@ class HooksCapability(AbstractCapability[Any]):
         self,
         hook: Hook,
         hook_input: HookInput,
-        backend: SandboxProtocol | None,
+        backend: AsyncSandboxProtocol | None,
     ) -> None:
         """Launch a background hook, retaining a strong reference to its task.
 
@@ -494,7 +499,7 @@ class HooksCapability(AbstractCapability[Any]):
         matched = [h for h in self.hooks if h.event == HookEvent.MODEL_FALLBACK_TRIGGERED]
         if not matched:
             return
-        sandbox = backend if isinstance(backend, SandboxProtocol) else None
+        sandbox = backend if isinstance(backend, AsyncSandboxProtocol) else None
         hook_input = _build_hook_input(
             HookEvent.MODEL_FALLBACK_TRIGGERED,
             "",

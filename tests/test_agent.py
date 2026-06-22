@@ -257,7 +257,7 @@ class TestCreateDefaultDeps:
         deps = create_default_deps()
 
         assert deps is not None
-        assert isinstance(deps.backend, StateBackend)
+        assert isinstance(deps.backend.unwrap(), StateBackend)
         assert deps.todos == []
         assert deps.subagents == {}
 
@@ -266,7 +266,7 @@ class TestCreateDefaultDeps:
         backend = StateBackend()
         deps = create_default_deps(backend=backend)
 
-        assert deps.backend is backend
+        assert deps.backend.unwrap() is backend
 
 
 class TestDeepAgentDeps:
@@ -355,18 +355,18 @@ class TestDeepAgentDeps:
         cloned = original.clone_for_subagent()
         assert cloned.checkpoint_store is store
 
-    def test_upload_file(self):
+    async def test_upload_file(self):
         """Test uploading a file."""
         deps = DeepAgentDeps(backend=StateBackend())
 
         content = b"id,name,value\n1,foo,100\n2,bar,200\n"
-        path = deps.upload_file("data.csv", content)
+        path = await deps.upload_file("data.csv", content)
 
         # Check path is correct
         assert path == "/uploads/data.csv"
 
         # Check file is in backend
-        file_data = deps.backend.read(path)
+        file_data = await deps.backend.read(path)
         assert file_data is not None
         assert "id,name,value" in file_data
 
@@ -376,17 +376,17 @@ class TestDeepAgentDeps:
         assert deps.uploads[path]["size"] == len(content)
         assert deps.uploads[path]["line_count"] == 3
 
-    def test_upload_file_custom_dir(self):
+    async def test_upload_file_custom_dir(self):
         """Test uploading a file to a custom directory."""
         deps = DeepAgentDeps(backend=StateBackend())
 
         content = b"test content"
-        path = deps.upload_file("test.txt", content, upload_dir="/custom/dir")
+        path = await deps.upload_file("test.txt", content, upload_dir="/custom/dir")
 
         assert path == "/custom/dir/test.txt"
         assert path in deps.uploads
 
-    def test_upload_file_binary(self):
+    async def test_upload_file_binary(self):
         """Test uploading a binary file (non-UTF-8)."""
         from unittest.mock import patch
 
@@ -395,13 +395,13 @@ class TestDeepAgentDeps:
         # Binary content - mock chardet to return no encoding (platform-dependent)
         content = bytes([0x80, 0x81, 0x82, 0xFF])
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
-            path = deps.upload_file("binary.dat", content)
+            path = await deps.upload_file("binary.dat", content)
 
         assert path == "/uploads/binary.dat"
         # Binary files should have line_count = None
         assert deps.uploads[path]["line_count"] is None
 
-    def test_upload_files_skips_failures(self):
+    async def test_upload_files_skips_failures(self):
         """A failing file should not abort the rest of the batch."""
         from unittest.mock import patch
 
@@ -409,15 +409,15 @@ class TestDeepAgentDeps:
 
         real_upload_file = deps.upload_file
 
-        def flaky_upload_file(name, content, *, upload_dir="/uploads"):
+        async def flaky_upload_file(name, content, *, upload_dir="/uploads"):
             # Simulate a non-RuntimeError failure mid-batch (e.g. an
             # encoding/metadata error or a backend that raises directly).
             if name == "bad.bin":
                 raise ValueError("boom")
-            return real_upload_file(name, content, upload_dir=upload_dir)
+            return await real_upload_file(name, content, upload_dir=upload_dir)
 
         with patch.object(deps, "upload_file", side_effect=flaky_upload_file):
-            paths = deps.upload_files(
+            paths = await deps.upload_files(
                 [
                     ("good1.csv", b"a,b\n1,2\n"),
                     ("bad.bin", b"\x00\x01"),
@@ -435,12 +435,12 @@ class TestDeepAgentDeps:
 
         assert summary == ""
 
-    def test_get_uploads_summary_with_files(self):
+    async def test_get_uploads_summary_with_files(self):
         """Test uploads summary with uploaded files."""
         deps = DeepAgentDeps(backend=StateBackend())
 
-        deps.upload_file("data.csv", b"a,b,c\n1,2,3\n")
-        deps.upload_file("config.json", b'{"key": "value"}')
+        await deps.upload_file("data.csv", b"a,b,c\n1,2,3\n")
+        await deps.upload_file("config.json", b'{"key": "value"}')
 
         summary = deps.get_uploads_summary()
 
@@ -450,7 +450,7 @@ class TestDeepAgentDeps:
         assert "2 lines" in summary  # data.csv has 2 lines
         assert "read_file" in summary  # instruction about how to use files
 
-    def test_get_uploads_summary_with_binary_files(self):
+    async def test_get_uploads_summary_with_binary_files(self):
         """Test uploads summary with binary files (no line count)."""
         from unittest.mock import patch
 
@@ -458,7 +458,7 @@ class TestDeepAgentDeps:
 
         # Binary file - mock chardet to return no encoding (platform-dependent)
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
-            deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
+            await deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
 
         summary = deps.get_uploads_summary()
 

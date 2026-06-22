@@ -16,10 +16,18 @@ import json
 import shlex
 import warnings
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
-from pydantic_ai_backends import BackendProtocol, SandboxProtocol
+from pydantic_ai_backends import (
+    AsyncBackendProtocol,
+    AsyncSandboxProtocol,
+    BackendProtocol,
+    SandboxProtocol,
+    ensure_async,
+)
 from pydantic_ai_backends.types import ExecuteResponse
+
+from pydantic_deep.deps import unwrap_backend
 
 from .directory import _parse_skill_md, _validate_skill_metadata
 from .exceptions import (
@@ -54,7 +62,7 @@ class BackendSkillResource(SkillResource):
         backend: Backend instance used for reading the resource.
     """
 
-    backend: BackendProtocol = field(default=None, repr=False)  # pyright: ignore[reportAssignmentType]
+    backend: AsyncBackendProtocol = field(default=None, repr=False)  # pyright: ignore[reportAssignmentType]
 
     async def load(self, ctx: Any, args: dict[str, Any] | None = None) -> Any:
         """Load resource content from the backend.
@@ -79,7 +87,7 @@ class BackendSkillResource(SkillResource):
             raise SkillResourceLoadError(f"Resource '{self.name}' has no backend configured")
 
         try:
-            content_bytes = self.backend.read_bytes(self.uri)
+            content_bytes = await self.backend.read_bytes(self.uri)
             content = content_bytes.decode("utf-8")
         except Exception as e:
             raise SkillResourceLoadError(
@@ -118,13 +126,13 @@ class BackendSkillScriptExecutor:
 
     def __init__(
         self,
-        backend: SandboxProtocol,
+        backend: AsyncSandboxProtocol,
         timeout: int = 30,
     ) -> None:
         """Initialize the backend script executor.
 
         Args:
-            backend: Sandbox backend with execute() support.
+            backend: Async sandbox backend with execute() support.
             timeout: Execution timeout in seconds (default: 30).
         """
         self._backend = backend
@@ -172,7 +180,7 @@ class BackendSkillScriptExecutor:
         command = " ".join(cmd_parts)
 
         try:
-            result: ExecuteResponse = self._backend.execute(command, self.timeout)
+            result: ExecuteResponse = await self._backend.execute(command, self.timeout)
         except Exception as e:
             raise SkillScriptExecutionError(
                 f"Failed to execute script '{script.name}' via backend: {e}"
@@ -228,7 +236,7 @@ class BackendSkillScript(SkillScript):
 def create_backend_resource(
     name: str,
     uri: str,
-    backend: BackendProtocol,
+    backend: AsyncBackendProtocol,
     description: str | None = None,
 ) -> BackendSkillResource:
     """Create a backend-based resource.
@@ -236,7 +244,7 @@ def create_backend_resource(
     Args:
         name: Resource name (e.g., "FORMS.md", "data.json").
         uri: Path to the resource file within the backend.
-        backend: Backend instance for reading the resource.
+        backend: Async backend instance for reading the resource.
         description: Optional resource description.
 
     Returns:
@@ -311,13 +319,15 @@ def _get_relative_path(file_path: str, base_dir: str) -> str:
 
 
 def _discover_backend_resources(
-    backend: BackendProtocol,
+    sync_backend: BackendProtocol,
+    async_backend: AsyncBackendProtocol,
     skill_dir: str,
 ) -> list[BackendSkillResource]:
     """Discover resource files in a skill directory via backend.
 
     Args:
-        backend: Backend to read from.
+        sync_backend: Raw sync backend used for ``glob_info`` discovery.
+        async_backend: Async-wrapped backend stored on resources for ``read_bytes`` at load time.
         skill_dir: Skill directory path in the backend.
 
     Returns:
@@ -327,7 +337,7 @@ def _discover_backend_resources(
 
     for ext in sorted(_SUPPORTED_EXTENSIONS):
         try:
-            matches = backend.glob_info(f"**/*{ext}", skill_dir)
+            matches = sync_backend.glob_info(f"**/*{ext}", skill_dir)
         except Exception:
             continue
 
@@ -341,7 +351,7 @@ def _discover_backend_resources(
                 create_backend_resource(
                     name=rel_path,
                     uri=file_info["path"],
-                    backend=backend,
+                    backend=async_backend,
                 )
             )
 
@@ -437,27 +447,25 @@ class BackendSkillsDirectory:
             max_depth: Maximum depth for skill discovery (None for unlimited).
             script_timeout: Timeout for script execution in seconds.
         """
-        self._backend = backend
+        # Unwrap adapter if needed — discovery calls sync backend methods
+        # directly because __init__ cannot be async.
+        raw = unwrap_backend(backend)
+        self._backend = raw
         self._path = path
         self._validate = validate
         self._max_depth = max_depth
         self._script_timeout = script_timeout
 
-        # Discover skills from backend
+        # Discover skills from backend (sync — raw backend is always sync)
         self._skills: dict[str, Skill] = self.get_skills()
 
     def get_skills(self) -> dict[str, Skill]:
-        """Discover and load all skills from the backend.
-
-        Returns:
-            Dictionary mapping skill name to Skill objects.
-        """
+        """Discover and load all skills from the backend."""
         skills: dict[str, Skill] = {}
 
         # Find all SKILL.md files
         try:
             if self._max_depth is not None:
-                # Build depth-limited patterns
                 skill_files = []
                 for depth in range(self._max_depth + 1):
                     pattern = "SKILL.md" if depth == 0 else "/".join(["*"] * depth) + "/SKILL.md"
@@ -520,7 +528,6 @@ class BackendSkillsDirectory:
                     stacklevel=3,
                 )
                 return None
-            # Use last directory component as name
             skill_dir = _get_skill_dir(skill_file_path)
             name = skill_dir.rsplit("/", 1)[-1]
 
@@ -537,14 +544,15 @@ class BackendSkillsDirectory:
 
         skill_dir = _get_skill_dir(skill_file_path)
 
-        # Discover resources
-        resources = _discover_backend_resources(self._backend, skill_dir)
+        # Discover resources — sync backend for glob_info, async for resource loading
+        async_backend = ensure_async(self._backend)
+        resources = _discover_backend_resources(self._backend, async_backend, skill_dir)
 
         # Discover scripts (only if backend supports execution)
         scripts: list[BackendSkillScript] = []
         if isinstance(self._backend, SandboxProtocol):
             executor = BackendSkillScriptExecutor(
-                backend=self._backend,
+                backend=cast("AsyncSandboxProtocol", async_backend),
                 timeout=self._script_timeout,
             )
             scripts = _discover_backend_scripts(self._backend, skill_dir, name, executor)

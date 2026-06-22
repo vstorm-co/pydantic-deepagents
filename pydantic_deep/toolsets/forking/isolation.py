@@ -48,6 +48,19 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def _read_backend_bytes(backend: Any, path: str) -> bytes:
+    """Read bytes from a sync backend.
+
+    Uses ``read_bytes`` when available, falls back to ``_read_bytes``
+    (some backends like ``LocalBackend`` only expose the private method).
+    """
+    reader: Any = getattr(backend, "read_bytes", None)
+    if reader is None:
+        reader = backend._read_bytes
+    return bytes(reader(path))
+
+
 #: Heavy/ephemeral dirs - skipped to keep snapshot creation fast.
 _SNAP_SKIP_DIRS: frozenset[str] = frozenset(
     {
@@ -480,7 +493,7 @@ class BranchOverlay:
         if self._has(path):
             data: bytes = self._overlay.read_bytes(path)
             return data
-        parent_data: bytes = self._parent.read_bytes(path)
+        parent_data: bytes = _read_backend_bytes(self._parent, path)
         return parent_data
 
     def _undelete(self, path: str) -> None:
@@ -511,7 +524,7 @@ class BranchOverlay:
         # first so edits don't leak back to the parent.
         if not self._has(path):
             try:
-                parent_bytes = self._parent.read_bytes(path)
+                parent_bytes = _read_backend_bytes(self._parent, path)
             except (FileNotFoundError, KeyError):  # pragma: no cover - defensive
                 # File doesn't exist in parent either - let overlay.edit surface
                 # the not-found error to the caller via EditResult.error.
@@ -675,7 +688,7 @@ class BranchOverlay:
         if materializer is None:
             return
         try:
-            parent_bytes: bytes | None = self._parent.read_bytes(path)
+            parent_bytes: bytes | None = _read_backend_bytes(self._parent, path)
         except (FileNotFoundError, KeyError):
             parent_bytes = None
         materializer.snapshot_parent_path(path, parent_bytes)
@@ -971,7 +984,7 @@ class BranchOverlay:
                 continue
             snapshot_bytes = pre_flush_snapshot[path]
             try:
-                current_bytes: bytes | None = parent.read_bytes(path)
+                current_bytes: bytes | None = _read_backend_bytes(parent, path)
             except (FileNotFoundError, KeyError):
                 current_bytes = None
             if current_bytes != snapshot_bytes:
@@ -991,9 +1004,13 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
     reference by default.
     """
 
-    new_backend: BackendProtocol = (
-        BranchOverlay(deps.backend) if isolation.backend == "copy" else deps.backend
-    )
+    from pydantic_deep.deps import unwrap_backend
+
+    # Unwrap async adapter — BranchOverlay operates synchronously on the
+    # raw sync backend; the adapter is only needed for async callers.
+    raw_backend: Any = unwrap_backend(deps.backend)
+
+    new_backend: Any = BranchOverlay(raw_backend) if isolation.backend == "copy" else deps.backend
 
     # "copy" → independent copy so branch todo edits stay local; "share" → same list.
     new_todos = list(deps.todos) if isolation.todos == "copy" else deps.todos

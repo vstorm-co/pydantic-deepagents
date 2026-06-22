@@ -1145,7 +1145,7 @@ class TestForkOpenDiffAllowList:
 class TestMergePickerOpenInEditor:
     """Test M - `MergePickerModal` exposes an Open-in-editor delegation point."""
 
-    def test_open_in_editor_delegates_to_callback(self, fork_app: DeepApp) -> None:
+    async def test_open_in_editor_delegates_to_callback(self, fork_app: DeepApp) -> None:
         from datetime import datetime, timezone
 
         from pydantic_deep.toolsets.forking.diff import build_diff_report
@@ -1165,12 +1165,12 @@ class TestMergePickerOpenInEditor:
                 last_activity_at=datetime.now(timezone.utc),
             )
         ]
-        report = build_diff_report("fork-x", [])
+        report = await build_diff_report("fork-x", [])
         modal = MergePickerModal(report, statuses, {"a": "id-a"}, on_open_in_editor=callback)
         modal.action_open_in_editor()
         assert seen == ["id-a"]
 
-    def test_open_in_editor_noop_without_callback(self, fork_app: DeepApp) -> None:
+    async def test_open_in_editor_noop_without_callback(self, fork_app: DeepApp) -> None:
         from datetime import datetime, timezone
 
         from pydantic_deep.toolsets.forking.diff import build_diff_report
@@ -1185,7 +1185,7 @@ class TestMergePickerOpenInEditor:
                 last_activity_at=datetime.now(timezone.utc),
             )
         ]
-        report = build_diff_report("fork-x", [])
+        report = await build_diff_report("fork-x", [])
         modal = MergePickerModal(report, statuses, {"a": "id-a"})
         # No callback set → action is a no-op, must not raise.
         modal.action_open_in_editor()

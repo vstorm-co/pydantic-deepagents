@@ -14,6 +14,7 @@ Returns the chosen branch id or `None` on cancel.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -257,7 +258,9 @@ class MergePickerModal(ModalScreen["MergePickerResult | None"]):
             return
         branch_id = self._ordered_ids[self._selected_index]
         with contextlib.suppress(Exception):  # pragma: no cover - defensive
-            callback(branch_id)
+            result = callback(branch_id)
+            if asyncio.isfuture(result) or asyncio.iscoroutine(result):
+                asyncio.ensure_future(result)
 
     def action_move_prev(self) -> None:
         if not self._ordered_ids:

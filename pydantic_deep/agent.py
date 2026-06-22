@@ -22,6 +22,7 @@ from pydantic_ai_backends import (
     SandboxProtocol,
     StateBackend,
     create_console_toolset,
+    ensure_async,
     get_console_system_prompt,
 )
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
@@ -115,9 +116,12 @@ def _wrap_with_fallback_and_hooks(
     exhausted) without emitting a spurious event.
     """
 
+    from pydantic_ai_backends import ensure_async
+
     from pydantic_deep.capabilities.hooks import HooksCapability
 
     hooks_cap = HooksCapability(hooks=fallback_hooks)
+    async_backend = ensure_async(backend)
     # Build a flat list of model names for accurate from/to reporting.
     model_chain: list[str] = [primary if isinstance(primary, str) else str(primary)] + [
         f if isinstance(f, str) else str(f) for f in fallbacks
@@ -141,7 +145,7 @@ def _wrap_with_fallback_and_hooks(
         # Only fire the hook when there is actually a next model to fall back to.
         if hop < len(fallbacks):
             await hooks_cap.dispatch_model_fallback(
-                model_chain[hop], model_chain[hop + 1], exc, backend
+                model_chain[hop], model_chain[hop + 1], exc, async_backend
             )
         return True
 
@@ -920,8 +924,8 @@ def create_deep_agent(  # noqa: C901
             image_support=True,
             edit_format=edit_format,  # type: ignore[arg-type,unused-ignore]
         )
-        _set_toolset_retries(console_toolset, retries)
-        all_toolsets.append(console_toolset)
+        _set_toolset_retries(console_toolset, retries)  # type: ignore[arg-type,unused-ignore]
+        all_toolsets.append(console_toolset)  # type: ignore[arg-type,unused-ignore]
 
     _subagent_task_manager: Any | None = None
     subagent_toolset: Any | None = None
@@ -1248,7 +1252,7 @@ def create_deep_agent(  # noqa: C901
 
         all_capabilities.append(
             EvictionCapability(
-                backend=backend,
+                backend=ensure_async(backend),
                 token_limit=_eviction_token_limit,
                 max_binary_content=_max_binary_content,
                 on_eviction=_on_eviction,
@@ -1479,7 +1483,7 @@ async def run_with_files(
     """
     # Upload files (batch)
     if files:
-        deps.upload_files(files, upload_dir=upload_dir)
+        await deps.upload_files(files, upload_dir=upload_dir)
 
     # Run agent
     result = await agent.run(query, deps=deps)

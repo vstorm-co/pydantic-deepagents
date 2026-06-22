@@ -30,7 +30,7 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai_shields import CostInfo, CostTracking
 
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch
@@ -578,9 +578,10 @@ class ForkCoordinator:
             for spec in specs:
                 branch_id = str(uuid.uuid4())
                 cloned_deps = clone_for_branch(self.parent_deps, effective_isolation)
-                overlay = (
-                    cloned_deps.backend if isinstance(cloned_deps.backend, BranchOverlay) else None
-                )
+                # Unwrap async adapter — BranchOverlay is a sync backend that
+                # gets auto-wrapped by DeepAgentDeps.__post_init__.
+                raw_cloned = unwrap_backend(cloned_deps.backend)
+                overlay = raw_cloned if isinstance(raw_cloned, BranchOverlay) else None
                 if overlay is not None and self.materializer is not None:
                     overlay.attach_materializer(self.materializer, spec.label)
 
@@ -966,7 +967,9 @@ class ForkCoordinator:
                     if self.materializer is not None
                     else None
                 )
-                report = winner_overlay.flush_to(self.parent_deps.backend, snapshot)
+                # Unwrap adapter — flush_to is sync and expects a raw BackendProtocol.
+                raw_parent: Any = unwrap_backend(self.parent_deps.backend)
+                report = winner_overlay.flush_to(raw_parent, snapshot)
                 applied_paths = list(report.applied_paths)
                 applied_changes = report.applied_changes
                 conflicts = list(report.conflicts)
@@ -1075,8 +1078,9 @@ class ForkCoordinator:
         """
         if self.test_command is None:
             return None
-        parent = self.parent_deps.backend
-        parent_root_obj: Any = getattr(parent, "root_dir", None)
+        # Unwrap adapter — root_dir is an attribute on the raw backend (e.g. LocalBackend).
+        raw_parent = unwrap_backend(self.parent_deps.backend)
+        parent_root_obj: Any = getattr(raw_parent, "root_dir", None)
         if not isinstance(parent_root_obj, (str, Path)):
             return None
         overlay = rt.overlay
@@ -1297,7 +1301,7 @@ class ForkCoordinator:
             return self._cached_outcome
 
         outcomes, goal = await self._build_branch_outcomes()
-        diff_report = build_diff_report(self._handle.fork_id, list(self.branches.values()))
+        diff_report = await build_diff_report(self._handle.fork_id, list(self.branches.values()))
 
         verdict, judge_usage = await self._run_judges(
             effective_strategy, goal, diff_report, outcomes

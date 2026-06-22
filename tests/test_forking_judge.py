@@ -1749,7 +1749,7 @@ async def test_run_tests_materializes_overlay_writes_as_real_file(tmp_path: Any)
     overlay = BranchOverlay(backend)
     overlay.write("marker.txt", "branch\n")
 
-    with overlay.snapshot(_Path(deps.backend.root_dir)) as snap:
+    with overlay.snapshot(_Path(deps.backend.unwrap().root_dir)) as snap:
         target = _Path(snap) / "marker.txt"
         assert target.exists()
         assert target.is_file()

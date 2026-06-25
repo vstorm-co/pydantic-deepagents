@@ -218,6 +218,7 @@ from pydantic_deep.toolsets.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
     DEFAULT_MEMORY_FILENAME,
+    DEFAULT_PIN_END_MARKER,
     AgentMemoryToolset,
     MemoryAccessError,
     MemoryFile,
@@ -412,6 +413,7 @@ __all__ = [
     "DEFAULT_MEMORY_DIR",
     "DEFAULT_MEMORY_FILENAME",
     "DEFAULT_MAX_MEMORY_LINES",
+    "DEFAULT_PIN_END_MARKER",
     # Eviction
     "EvictionCapability",
     "EvictionProcessor",

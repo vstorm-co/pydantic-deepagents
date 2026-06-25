@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.33] - 2026-06-26
+
+### Fixed
+
+- **Agent memory injection now keeps the most recent lines, not the oldest** ([#157](https://github.com/vstorm-co/pydantic-deepagents/issues/157)) (`pydantic_deep/toolsets/memory.py`). `format_memory_prompt` truncated an over-budget `MEMORY.md` by keeping the first `max_lines`, but `write_memory` appends new content to the end of the file, so the newest observations were the first to drop out. Truncation now keeps the recency tail (the dropped-line marker moves above the kept tail). Two additions from the same report: authors can pin a foundational head with a `<!-- deep:pin-end -->` marker (`DEFAULT_PIN_END_MARKER`), which is always injected in full so it survives truncation; and injection can be budgeted in approximate tokens via a new `max_tokens` that takes precedence over `max_lines` (reusing the `NUM_CHARS_PER_TOKEN` heuristic). `AgentMemoryToolset` and `MemoryCapability` gain `max_tokens` / `pin_marker`; subagents accept `extra.memory_max_tokens` / `extra.memory_pin_marker`.
+- **Subagent delegation no longer fails with a `read_memory` tool name collision** ([#155](https://github.com/vstorm-co/pydantic-deepagents/issues/155)) (`pydantic_deep/agent.py`). With `include_memory=True` and `include_subagents=True` (both default), the default subagent factory passed `include_memory=True` into each subagent's own `create_deep_agent`, which registered a second `AgentMemoryToolset` ('deep-memory', under the wrong "main" namespace) on top of the one `_inject_subagent_memory_toolset` already injects — a regression since 0.3.30 that made every delegation fail with `AgentMemoryToolset 'deep-memory' defines a tool whose name conflicts ...: 'read_memory'`. The factory no longer creates its own memory toolset; the injected one, correctly namespaced to the subagent, is the single source.
+
 ## [0.3.32] - 2026-06-26
 
 ### Changed

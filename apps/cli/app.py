@@ -8,6 +8,8 @@ import os
 import subprocess
 from pathlib import Path
 from typing import Any
+import time
+import sys
 
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
@@ -48,11 +50,12 @@ def _detect_git_branch(working_dir: str) -> str:
 class DeepApp(App):
     """pydantic-deep TUI - Textual-based interactive AI coding assistant."""
 
+    DOUBLE_PRESS_THRESHOLD = 0.5
     TITLE = "pydantic-deep"
     CSS_PATH = "styles/app.tcss"
 
     BINDINGS = [
-        Binding("ctrl+c", "interrupt", "Interrupt", show=False),
+        Binding("ctrl+c", "handle_ctrl_c", "Copy or Interrupt", show=False),
         Binding("escape", "escape_key", "Interrupt/Focus", show=False),
         Binding("ctrl+d", "quit", "Quit", show=False),
         Binding("ctrl+v", "paste_image", "Paste image", show=False),
@@ -101,6 +104,7 @@ class DeepApp(App):
         self.working_dir = str(working_dir)
         self._model = model
         self._version = version
+        self._last_ctrl_c_time = 0
         self._branch = _detect_git_branch(str(working_dir))
         self.message_history: list[ModelMessage] = message_history or []
         self.last_response: str = ""

@@ -252,7 +252,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 Supported keys: `read_memory`, `write_memory`, `update_memory`.
                 Any key not present falls back to the built-in description constant.
         """
-        super().__init__(id="deep-memory")
+        super().__init__(id=f"deep-memory-{agent_name}")
         self._agent_name = agent_name
         self._memory_dir = memory_dir
         self._max_lines = max_lines

@@ -261,7 +261,12 @@ class TestAgentMemoryToolset:
     def test_id(self):
         """Test toolset ID."""
         toolset = AgentMemoryToolset()
-        assert toolset.id == "deep-memory"
+        assert toolset.id == "deep-memory-main"
+
+    def test_custom_id(self):
+        """Test toolset ID with custom agent name."""
+        toolset = AgentMemoryToolset(agent_name="reviewer")
+        assert toolset.id == "deep-memory-reviewer"
 
     def test_default_params(self):
         """Test default constructor parameters."""

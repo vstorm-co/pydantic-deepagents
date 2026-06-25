@@ -19,6 +19,8 @@ from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import AsyncBackendProtocol
 
+from pydantic_deep.processors.eviction import NUM_CHARS_PER_TOKEN
+
 
 class MemoryAccessError(Exception):
     """The backend denied access to the memory path.
@@ -38,6 +40,15 @@ DEFAULT_MEMORY_FILENAME: str = "MEMORY.md"
 
 DEFAULT_MAX_MEMORY_LINES: int = 200
 """Default max lines to inject into system prompt."""
+
+DEFAULT_PIN_END_MARKER: str = "<!-- deep:pin-end -->"
+"""Marker delimiting the pinned memory head from the truncatable body.
+
+Everything above the first occurrence is always injected verbatim, so
+foundational notes survive truncation; everything below it is the
+recency-truncated body. The default is an HTML comment, invisible in rendered
+markdown.
+"""
 
 # Tool description constants
 
@@ -131,26 +142,72 @@ async def load_memory(
     return None
 
 
-def format_memory_prompt(memory: MemoryFile, max_lines: int) -> str:
+def _select_recent_lines(lines: list[str], max_lines: int, max_tokens: int | None) -> int:
+    """Return how many trailing lines fit the budget (>=1 when `lines` is non-empty).
+
+    The *most recent* lines are the ones kept, since `write_memory` appends new
+    content to the end of the file. `max_tokens` (approximate, via
+    `NUM_CHARS_PER_TOKEN`) takes precedence over `max_lines` when provided.
+    """
+    if not lines:
+        return 0
+    if max_tokens is None:
+        return min(len(lines), max_lines)
+
+    char_budget = max_tokens * NUM_CHARS_PER_TOKEN
+    used = 0
+    kept = 0
+    for line in reversed(lines):
+        used += len(line) + 1  # +1 approximates the joining newline
+        if used > char_budget and kept >= 1:
+            break
+        kept += 1
+    return kept
+
+
+def format_memory_prompt(
+    memory: MemoryFile,
+    max_lines: int,
+    *,
+    max_tokens: int | None = None,
+    pin_marker: str = DEFAULT_PIN_END_MARKER,
+) -> str:
     """Format memory content for system prompt injection.
 
-    Only the first `max_lines` lines are included to stay within
-    token budget. If truncated, a marker is added.
+    `write_memory` appends new content, so the newest observations live at the
+    end of the file. When memory exceeds the budget, the *most recent* lines are
+    kept (the tail), not the oldest. Content above the first `pin_marker` is a
+    pinned head that is always injected in full, so foundational notes survive
+    truncation. If the body is truncated, a marker noting the dropped lines is
+    inserted above the kept tail.
 
     Args:
         memory: Loaded memory file.
-        max_lines: Maximum number of lines to include.
+        max_lines: Maximum number of body lines to include.
+        max_tokens: Optional approximate token budget for the body. When set it
+            takes precedence over `max_lines`, using the `NUM_CHARS_PER_TOKEN`
+            heuristic used elsewhere in the library.
+        pin_marker: Marker whose first occurrence ends the always-injected head.
 
     Returns:
         Formatted system prompt section.
     """
-    lines = memory.content.splitlines()
-    if len(lines) > max_lines:
-        truncated_count = len(lines) - max_lines
-        content = "\n".join(lines[:max_lines])
-        content += f"\n\n... [{truncated_count} more lines in memory] ..."
-    else:
-        content = memory.content
+    pinned = ""
+    body = memory.content
+    marker_idx = memory.content.find(pin_marker)
+    if marker_idx != -1:
+        pinned = memory.content[:marker_idx].rstrip("\n")
+        body = memory.content[marker_idx + len(pin_marker) :].lstrip("\n")
+
+    body_lines = body.splitlines()
+    keep = _select_recent_lines(body_lines, max_lines, max_tokens)
+    if keep < len(body_lines):
+        dropped = len(body_lines) - keep
+        body = f"... [{dropped} more lines in memory] ..."
+        if keep:
+            body += "\n\n" + "\n".join(body_lines[-keep:])
+
+    content = f"{pinned}\n\n{body}" if pinned and body else pinned or body
 
     return f"## Agent Memory ({memory.agent_name})\n\n{content}"
 
@@ -176,6 +233,8 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         agent_name: str = "main",
         memory_dir: str = DEFAULT_MEMORY_DIR,
         max_lines: int = DEFAULT_MAX_MEMORY_LINES,
+        max_tokens: int | None = None,
+        pin_marker: str = DEFAULT_PIN_END_MARKER,
         descriptions: dict[str, str] | None = None,
     ) -> None:
         """Initialize the memory toolset.
@@ -183,7 +242,12 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         Args:
             agent_name: Name of the agent (used for path and prompt label).
             memory_dir: Base directory for memory files in the backend.
-            max_lines: Max lines to inject into system prompt.
+            max_lines: Max body lines to inject into the system prompt. The most
+                recent lines are kept (`write_memory` appends to the end).
+            max_tokens: Optional approximate token budget for injection. When set
+                it takes precedence over `max_lines`.
+            pin_marker: Marker whose first occurrence ends the always-injected
+                pinned head, so foundational notes survive truncation.
             descriptions: Optional mapping of tool name to custom description.
                 Supported keys: `read_memory`, `write_memory`, `update_memory`.
                 Any key not present falls back to the built-in description constant.
@@ -192,6 +256,8 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         self._agent_name = agent_name
         self._memory_dir = memory_dir
         self._max_lines = max_lines
+        self._max_tokens = max_tokens
+        self._pin_marker = pin_marker
         self._descs = descriptions or {}
         self._path = get_memory_path(memory_dir, agent_name)
 
@@ -285,5 +351,10 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             return None
         if mem is None:
             return None
-        result = format_memory_prompt(mem, self._max_lines)
+        result = format_memory_prompt(
+            mem,
+            self._max_lines,
+            max_tokens=self._max_tokens,
+            pin_marker=self._pin_marker,
+        )
         return [InstructionPart(content=result, dynamic=True)] if result else None

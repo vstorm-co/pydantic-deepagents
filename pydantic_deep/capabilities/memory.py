@@ -9,7 +9,11 @@ from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.toolsets import AbstractToolset
 
-from pydantic_deep.toolsets.memory import DEFAULT_MEMORY_DIR, AgentMemoryToolset
+from pydantic_deep.toolsets.memory import (
+    DEFAULT_MEMORY_DIR,
+    DEFAULT_PIN_END_MARKER,
+    AgentMemoryToolset,
+)
 
 
 @dataclass
@@ -31,6 +35,8 @@ class MemoryCapability(AbstractCapability[Any]):
     agent_name: str = "main"
     memory_dir: str = DEFAULT_MEMORY_DIR
     max_lines: int = 200
+    max_tokens: int | None = None
+    pin_marker: str = DEFAULT_PIN_END_MARKER
     _toolset: AgentMemoryToolset | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -38,6 +44,8 @@ class MemoryCapability(AbstractCapability[Any]):
             agent_name=self.agent_name,
             memory_dir=self.memory_dir,
             max_lines=self.max_lines,
+            max_tokens=self.max_tokens,
+            pin_marker=self.pin_marker,
         )
 
     def get_toolset(self) -> AbstractToolset[Any] | None:

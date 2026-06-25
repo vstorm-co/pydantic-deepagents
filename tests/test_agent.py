@@ -81,7 +81,6 @@ class TestCreateDeepAgent:
             edit_format=None,
             context_files=None,
             context_discovery=False,
-            include_memory=False,
             memory_dir=None,
             web_search=False,
             web_fetch=False,
@@ -146,6 +145,46 @@ class TestCreateDeepAgent:
             # Caller's dict stays pristine across calls.
             assert "agent_factory" not in cfg
             assert cfg["toolsets"] == []
+
+    def test_subagent_factory_single_memory_toolset(self):
+        """Regression for #155: the default subagent factory must not register a
+        second AgentMemoryToolset.
+
+        `_inject_subagent_memory_toolset` adds one memory toolset under the
+        subagent's own name; the factory previously also passed
+        `include_memory=True`, so `create_deep_agent` added a second 'deep-memory'
+        toolset (under the wrong "main" name), causing a `read_memory` collision.
+        """
+        from pydantic_deep.agent import _inject_subagent_memory_toolset
+        from pydantic_deep.toolsets.memory import AgentMemoryToolset
+
+        cfg: SubAgentConfig = SubAgentConfig(
+            name="researcher", description="explores", instructions="explore", toolsets=[]
+        )
+        _inject_subagent_memory_toolset(cfg, None)
+
+        sub_agent = self._default_factory()(cfg)
+
+        seen: set[int] = set()
+        found: list[Any] = []
+
+        def _walk(toolsets: Any) -> None:
+            for ts in toolsets:
+                if id(ts) in seen:
+                    continue
+                seen.add(id(ts))
+                found.append(ts)
+                for attr in ("toolsets", "_toolsets", "wrapped"):
+                    inner = getattr(ts, attr, None)
+                    if isinstance(inner, (list, tuple)):
+                        _walk(inner)
+                    elif inner is not None and inner is not ts:
+                        _walk([inner])
+
+        _walk(list(getattr(sub_agent, "toolsets", []) or []))
+        memory_toolsets = [t for t in found if isinstance(t, AgentMemoryToolset)]
+        assert len(memory_toolsets) == 1
+        assert memory_toolsets[0]._agent_name == "researcher"
 
     def test_create_with_interrupt_on(self):
         """Test creating an agent with interrupt_on config."""

@@ -87,6 +87,12 @@ class TestMemoryCapability:
         cap = MemoryCapability(agent_name="worker")
         assert cap.agent_name == "worker"
 
+    def test_max_tokens_passed_to_toolset(self):
+        """`max_tokens` is forwarded to the underlying AgentMemoryToolset (#157)."""
+        cap = MemoryCapability(max_tokens=1500)
+        assert cap._toolset is not None
+        assert cap._toolset._max_tokens == 1500
+
     def test_get_toolset(self):
         cap = MemoryCapability()
         assert cap.get_toolset() is not None

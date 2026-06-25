@@ -136,17 +136,93 @@ class TestFormatMemoryPrompt:
         assert "line3" in result
         assert "more lines" not in result
 
-    def test_truncation(self):
-        """Test that long memory is truncated."""
+    def test_truncation_keeps_most_recent_lines(self):
+        """Long memory keeps the most recent lines (the tail), not the oldest.
+
+        Regression for #157: `write_memory` appends, so the newest entries are
+        at the bottom of the file and must survive truncation.
+        """
         lines = [f"line {i}" for i in range(300)]
         content = "\n".join(lines)
         mem = MemoryFile(agent_name="main", path="/m", content=content)
         result = format_memory_prompt(mem, max_lines=100)
 
         assert "## Agent Memory (main)" in result
-        assert "line 0" in result
-        assert "line 99" in result
+        assert "line 299" in result  # newest kept
+        assert "line 200" in result  # start of the kept tail (last 100 lines)
+        assert "line 0" not in result  # oldest dropped
+        assert "line 199" not in result  # just before the tail, dropped
         assert "200 more lines in memory" in result
+
+    def test_pinned_head_survives_truncation(self):
+        """Content above the pin marker is always injected; the body is tailed."""
+        from pydantic_deep.toolsets.memory import DEFAULT_PIN_END_MARKER
+
+        head = f"# Identity\nfoundational note\n{DEFAULT_PIN_END_MARKER}\n"
+        body = "\n".join(f"obs {i}" for i in range(50))
+        mem = MemoryFile(agent_name="main", path="/m", content=head + body)
+        result = format_memory_prompt(mem, max_lines=3)
+
+        assert "# Identity" in result  # pinned head kept
+        assert "foundational note" in result
+        assert "obs 49" in result  # newest body line kept
+        assert "obs 0" not in result  # oldest body line dropped
+        assert DEFAULT_PIN_END_MARKER not in result  # marker itself not injected
+        assert "47 more lines in memory" in result
+
+    def test_pinned_head_only_empty_body(self):
+        """A file that is only a pinned head injects the head with no marker."""
+        from pydantic_deep.toolsets.memory import DEFAULT_PIN_END_MARKER
+
+        mem = MemoryFile(
+            agent_name="main",
+            path="/m",
+            content=f"# Identity\nonly head here\n{DEFAULT_PIN_END_MARKER}",
+        )
+        result = format_memory_prompt(mem, max_lines=3)
+
+        assert "# Identity" in result
+        assert "only head here" in result
+        assert "more lines in memory" not in result
+
+    def test_max_tokens_takes_precedence(self):
+        """`max_tokens` budgets the body and overrides `max_lines`."""
+        lines = [f"line {i}" for i in range(300)]
+        mem = MemoryFile(agent_name="main", path="/m", content="\n".join(lines))
+        # ~7 chars/line, NUM_CHARS_PER_TOKEN=4 → 10 tokens ≈ 40 chars ≈ 5 lines.
+        result = format_memory_prompt(mem, max_lines=300, max_tokens=10)
+
+        assert "line 299" in result  # newest kept
+        assert "line 0" not in result  # oldest dropped despite max_lines=300
+        assert "more lines in memory" in result
+
+    def test_max_tokens_large_budget_keeps_all(self):
+        """A generous `max_tokens` keeps the whole body untruncated."""
+        mem = MemoryFile(agent_name="main", path="/m", content="a\nb\nc")
+        result = format_memory_prompt(mem, max_lines=2, max_tokens=10_000)
+
+        assert "a" in result and "b" in result and "c" in result
+        assert "more lines in memory" not in result
+
+    def test_max_tokens_keeps_at_least_one_line(self):
+        """A single line larger than the token budget is still kept."""
+        mem = MemoryFile(
+            agent_name="main",
+            path="/m",
+            content="old\n" + "x" * 1000,
+        )
+        result = format_memory_prompt(mem, max_lines=200, max_tokens=1)
+
+        assert "x" * 1000 in result  # newest line kept even though it overflows
+        assert "1 more lines in memory" in result
+
+    def test_zero_max_lines_drops_all_body(self):
+        """`max_lines=0` keeps no body lines, only the dropped-count marker."""
+        mem = MemoryFile(agent_name="main", path="/m", content="a\nb\nc")
+        result = format_memory_prompt(mem, max_lines=0)
+
+        assert "3 more lines in memory" in result
+        assert "## Agent Memory (main)" in result
 
     def test_exact_limit(self):
         """Test content at exactly max_lines."""

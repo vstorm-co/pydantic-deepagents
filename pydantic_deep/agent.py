@@ -229,7 +229,6 @@ def _make_default_deep_agent_factory(
     edit_format: Any,
     context_files: Any,
     context_discovery: Any,
-    include_memory: bool,
     memory_dir: Any,
     web_search: bool,
     web_fetch: bool,
@@ -266,7 +265,7 @@ def _make_default_deep_agent_factory(
             include_builtin_subagents=False,
             context_manager=False,
             cost_tracking=False,
-            include_memory=include_memory,
+            include_memory=False,
             memory_dir=memory_dir,
             context_files=context_files,
             context_discovery=context_discovery,
@@ -305,14 +304,16 @@ def _inject_subagent_memory_toolset(sa_config: SubAgentConfig, memory_dir: str |
     from pydantic_deep.toolsets.memory import (
         DEFAULT_MAX_MEMORY_LINES,
         DEFAULT_MEMORY_DIR,
+        DEFAULT_PIN_END_MARKER,
         AgentMemoryToolset,
     )
 
-    max_lines = extra.get("memory_max_lines", DEFAULT_MAX_MEMORY_LINES)
     mem = AgentMemoryToolset(
         agent_name=sa_config["name"],
         memory_dir=memory_dir or DEFAULT_MEMORY_DIR,
-        max_lines=max_lines,
+        max_lines=extra.get("memory_max_lines", DEFAULT_MAX_MEMORY_LINES),
+        max_tokens=extra.get("memory_max_tokens"),
+        pin_marker=extra.get("memory_pin_marker", DEFAULT_PIN_END_MARKER),
     )
     existing = list(sa_config.get("toolsets", []))
     existing.append(mem)
@@ -940,7 +941,6 @@ def create_deep_agent(  # noqa: C901
             edit_format=edit_format,
             context_files=context_files,
             context_discovery=context_discovery,
-            include_memory=include_memory,
             memory_dir=memory_dir,
             web_search=web_search,
             web_fetch=web_fetch,

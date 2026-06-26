@@ -266,7 +266,7 @@ This exception propagates out of `agent.run()` because pydantic-ai only catches 
 
 ### 7. ContextToolset
 
-**Source:** `pydantic_deep/toolsets/context.py`
+**Source:** `pydantic_deep/features/context/`
 
 **Tools:** None — instruction injection only
 
@@ -403,7 +403,7 @@ class XxxCapability(AbstractCapability[Any]):
 
 ### 1. ContextFilesCapability
 
-**Source:** `pydantic_deep/capabilities/context.py`
+**Source:** `pydantic_deep/features/context/capability.py`
 
 Wraps `ContextToolset` as a capability with automatic instruction injection.
 

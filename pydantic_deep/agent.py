@@ -50,6 +50,7 @@ from pydantic_deep.capabilities.periodic_reminder import (
 )
 from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.context import ContextToolset
 from pydantic_deep.features.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
@@ -74,7 +75,6 @@ from pydantic_deep.toolsets.checkpointing import (
     CheckpointToolset,
     InMemoryCheckpointStore,
 )
-from pydantic_deep.toolsets.context import ContextToolset
 from pydantic_deep.toolsets.forking import create_fork_toolset
 from pydantic_deep.toolsets.forking.coordinator import _PerBranchCostTracking
 from pydantic_deep.toolsets.improve import ImproveToolset

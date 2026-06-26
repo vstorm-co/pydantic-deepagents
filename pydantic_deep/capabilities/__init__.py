@@ -5,7 +5,6 @@ enabling clean composition via `Agent(capabilities=[...])`.
 """
 
 from pydantic_deep.capabilities.browser import BrowserCapability
-from pydantic_deep.capabilities.context import ContextFilesCapability
 from pydantic_deep.capabilities.hooks import HooksCapability
 from pydantic_deep.capabilities.message_queue import (
     MessageQueue,
@@ -24,6 +23,7 @@ from pydantic_deep.capabilities.periodic_reminder import (
 )
 from pydantic_deep.capabilities.skills import SkillsCapability
 from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection, StuckLoopError
+from pydantic_deep.features.context import ContextFilesCapability
 from pydantic_deep.features.memory import MemoryCapability
 
 __all__ = [

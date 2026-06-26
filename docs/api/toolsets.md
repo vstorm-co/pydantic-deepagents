@@ -533,7 +533,7 @@ Injects project context files into system prompt. See [Context Files](../advance
 ### Constructor
 
 ```python
-from pydantic_deep.toolsets.context import ContextToolset
+from pydantic_deep.features.context import ContextToolset
 
 toolset = ContextToolset(
     context_files=["/AGENTS.md", "/SOUL.md"],

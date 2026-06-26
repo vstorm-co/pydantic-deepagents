@@ -119,6 +119,16 @@ from pydantic_deep.capabilities.hooks import (
 )
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
+from pydantic_deep.features.context import (
+    DEFAULT_CONTEXT_FILENAMES,
+    DEFAULT_MAX_CONTEXT_CHARS,
+    SUBAGENT_CONTEXT_ALLOWLIST,
+    ContextFile,
+    ContextToolset,
+    discover_context_files,
+    format_context_prompt,
+    load_context_files,
+)
 from pydantic_deep.features.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
@@ -189,16 +199,6 @@ from pydantic_deep.toolsets.checkpointing import (
     InMemoryCheckpointStore,
     RewindRequested,
     fork_from_checkpoint,
-)
-from pydantic_deep.toolsets.context import (
-    DEFAULT_CONTEXT_FILENAMES,
-    DEFAULT_MAX_CONTEXT_CHARS,
-    SUBAGENT_CONTEXT_ALLOWLIST,
-    ContextFile,
-    ContextToolset,
-    discover_context_files,
-    format_context_prompt,
-    load_context_files,
 )
 from pydantic_deep.toolsets.forking import (
     JUDGE_SYSTEM_PROMPT,

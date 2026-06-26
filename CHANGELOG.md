@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Reorganized features into vertical-slice packages under `pydantic_deep/features/`.** Each feature now lives in one folder (`capability.py` + `toolset.py` + `service.py`/`types.py`) instead of being smeared across `toolsets/` and `capabilities/`. Top-level imports (`from pydantic_deep import …`) are unchanged. The old deep import paths remain as deprecation shims (emitting `DeprecationWarning`) and will be removed in the next minor release.
   - `memory`: `pydantic_deep.toolsets.memory` / `pydantic_deep.capabilities.memory` → `pydantic_deep.features.memory`.
+  - `context`: `pydantic_deep.toolsets.context` / `pydantic_deep.capabilities.context` → `pydantic_deep.features.context`.
 
 ## [0.3.33] - 2026-06-26
 

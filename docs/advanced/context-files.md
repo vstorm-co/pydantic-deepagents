@@ -98,7 +98,7 @@ Agent personality and user preferences. Only the main agent sees this file — s
 
 ### Loading
 
-The [`ContextToolset`][pydantic_deep.toolsets.context.ContextToolset] uses `get_instructions()` to load files from the runtime backend (`ctx.deps.backend`) and format them for the system prompt:
+The [`ContextToolset`][pydantic_deep.features.context.ContextToolset] uses `get_instructions()` to load files from the runtime backend (`ctx.deps.backend`) and format them for the system prompt:
 
 ```
 ## Project Context
@@ -156,11 +156,11 @@ agent = create_deep_agent(
 
 | Component | Description |
 |-----------|-------------|
-| [`ContextToolset`][pydantic_deep.toolsets.context.ContextToolset] | Toolset that injects context into system prompt |
-| [`ContextFile`][pydantic_deep.toolsets.context.ContextFile] | Loaded context file (name, path, content) |
-| [`discover_context_files`][pydantic_deep.toolsets.context.discover_context_files] | Auto-discover context files in backend |
-| [`load_context_files`][pydantic_deep.toolsets.context.load_context_files] | Load context files from backend |
-| [`format_context_prompt`][pydantic_deep.toolsets.context.format_context_prompt] | Format files for system prompt |
+| [`ContextToolset`][pydantic_deep.features.context.ContextToolset] | Toolset that injects context into system prompt |
+| [`ContextFile`][pydantic_deep.features.context.ContextFile] | Loaded context file (name, path, content) |
+| [`discover_context_files`][pydantic_deep.features.context.discover_context_files] | Auto-discover context files in backend |
+| [`load_context_files`][pydantic_deep.features.context.load_context_files] | Load context files from backend |
+| [`format_context_prompt`][pydantic_deep.features.context.format_context_prompt] | Format files for system prompt |
 | `DEFAULT_CONTEXT_FILENAMES` | Default filenames: AGENTS.md, CLAUDE.md, SOUL.md, .cursorrules, .github/copilot-instructions.md, CONVENTIONS.md, CODING_GUIDELINES.md |
 | `SUBAGENT_CONTEXT_ALLOWLIST` | Files allowed for subagents: AGENTS.md, CLAUDE.md |
 

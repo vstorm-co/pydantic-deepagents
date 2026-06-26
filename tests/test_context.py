@@ -18,7 +18,7 @@ from pydantic_deep import (
     format_context_prompt,
     load_context_files,
 )
-from pydantic_deep.toolsets.context import _discover_and_load
+from pydantic_deep.features.context.service import _discover_and_load
 
 TEST_MODEL = TestModel()
 

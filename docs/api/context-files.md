@@ -7,30 +7,30 @@ on [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
 
 ## ContextFile
 
-::: pydantic_deep.toolsets.context.ContextFile
+::: pydantic_deep.features.context.ContextFile
     options:
       show_source: false
 
 ## ContextToolset
 
-::: pydantic_deep.toolsets.context.ContextToolset
+::: pydantic_deep.features.context.ContextToolset
     options:
       show_source: false
 
 ## discover_context_files
 
-::: pydantic_deep.toolsets.context.discover_context_files
+::: pydantic_deep.features.context.discover_context_files
     options:
       show_source: false
 
 ## load_context_files
 
-::: pydantic_deep.toolsets.context.load_context_files
+::: pydantic_deep.features.context.load_context_files
     options:
       show_source: false
 
 ## format_context_prompt
 
-::: pydantic_deep.toolsets.context.format_context_prompt
+::: pydantic_deep.features.context.format_context_prompt
     options:
       show_source: false

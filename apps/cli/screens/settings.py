@@ -72,9 +72,7 @@ class SettingsScreen(Screen):
             yield Static("Features", classes="section-title")
             yield Checkbox("Skills", value=config.include_skills, id="cfg-include_skills")
             yield Checkbox("Memory", value=config.include_memory, id="cfg-include_memory")
-            yield Checkbox(
-                "Subagents", value=config.include_subagents, id="cfg-include_subagents"
-            )
+            yield Checkbox("Subagents", value=config.include_subagents, id="cfg-include_subagents")
             yield Checkbox("Todo list", value=config.include_todo, id="cfg-include_todo")
             yield Checkbox("Plan mode", value=config.include_plan, id="cfg-include_plan")
             yield Checkbox("Web search", value=config.web_search, id="cfg-web_search")

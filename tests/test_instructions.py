@@ -46,9 +46,7 @@ class TestSections:
         assert provider(_ctx()) == ""
 
     def test_subagent_section_lists_specialists(self) -> None:
-        configs: list[SubAgentConfig] = [
-            {"name": "researcher", "description": "Researches things"}
-        ]
+        configs: list[SubAgentConfig] = [{"name": "researcher", "description": "Researches things"}]
         provider = make_subagent_section(configs)
         assert "researcher" in provider(_ctx())
 

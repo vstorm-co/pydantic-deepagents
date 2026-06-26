@@ -71,9 +71,7 @@ def web_tools_section(*, web_search: bool, web_fetch: bool) -> str:
     """Render the web-tools availability prompt for the enabled web tools."""
     lines = ["## Web Tools\n\nYou have access to the web:"]
     if web_search:
-        lines.append(
-            "- **web search** - search the internet for current information, news, docs"
-        )
+        lines.append("- **web search** - search the internet for current information, news, docs")
     if web_fetch:
         lines.append("- **web fetch** - fetch and read any URL as Markdown")
     lines.append(

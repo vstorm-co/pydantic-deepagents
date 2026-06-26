@@ -288,8 +288,7 @@ async def _cmd_cost(app: DeepApp, arg: str) -> None:
         est_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
         cost_label = f"~${est_cost:.4f}"
     app.notify(
-        f"Cost: {cost_label}  ·  "
-        f"Input: {total_input:,} tokens  ·  Output: {total_output:,} tokens"
+        f"Cost: {cost_label}  ·  Input: {total_input:,} tokens  ·  Output: {total_output:,} tokens"
     )
 
 
@@ -542,9 +541,7 @@ async def _cmd_improve(app: DeepApp, arg: str) -> None:  # noqa: C901
             if report.failed_sessions > 0:
                 err_msg = f"{report.failed_sessions} session(s) failed extraction"
                 if report.extraction_errors:
-                    details = "; ".join(
-                        f"{sid}: {exc}" for sid, exc in report.extraction_errors
-                    )
+                    details = "; ".join(f"{sid}: {exc}" for sid, exc in report.extraction_errors)
                     err_msg += f" ({details})"
                 elif report.last_error:
                     err_msg += f": {report.last_error}"

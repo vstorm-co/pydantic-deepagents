@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pydantic_ai_summarization import ContextManagerCapability
+
     from pydantic_deep.capabilities.message_queue import MessageQueue
+    from pydantic_deep.toolsets.checkpointing import CheckpointStore
     from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
 
 import chardet
@@ -51,17 +54,15 @@ class DeepAgentDeps:
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
     ask_user: Any = field(default=None, repr=False)  # Callback for interactive questions
-    context_middleware: Any = field(default=None, repr=False)  # ContextManagerCapability | None
+    context_middleware: ContextManagerCapability | None = field(default=None, repr=False)
     share_todos: bool = False  # When True, subagents share parent's todo list
-    checkpoint_store: Any = field(default=None, repr=False)  # Per-session CheckpointStore
-    message_queue: MessageQueue | None = field(
-        default=None, repr=False
-    )  # Shared queue for mid-run message delivery
+    checkpoint_store: CheckpointStore | None = field(default=None, repr=False)
+    message_queue: MessageQueue | None = field(default=None, repr=False)
     fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
     _fork_depth: int = field(default=0, repr=False)
     _branch_cost_tracking: Any = field(default=None, repr=False)
     _branch_id: str | None = field(default=None, repr=False)
-    _parent_fork_coordinator: Any = field(default=None, repr=False)
+    _parent_fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Auto-wrap sync backends and wire StateBackend cache."""

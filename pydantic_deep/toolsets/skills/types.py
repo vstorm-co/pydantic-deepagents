@@ -27,6 +27,11 @@ from .exceptions import SkillValidationError
 # Skill name pattern: lowercase letters, numbers, and hyphens (no consecutive hyphens)
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
+#: Text file extensions discovered as skill resources (besides SKILL.md itself).
+SKILL_RESOURCE_EXTENSIONS: frozenset[str] = frozenset(
+    {".md", ".json", ".yaml", ".yml", ".csv", ".xml", ".txt"}
+)
+
 # Generic type variable for dependencies
 DepsT = TypeVar("DepsT")
 

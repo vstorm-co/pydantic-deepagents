@@ -76,6 +76,12 @@ logger = logging.getLogger(__name__)
 
 _CANCEL_CLEANUP_TIMEOUT_S: float = 1.0
 
+#: Branch states where a cancelled winner may legitimately have no partial
+#: history yet, so the merge falls back to the pre-fork parent history.
+_EXHAUSTED_BRANCH_STATES: frozenset[str] = frozenset(
+    {"terminated", "budget_exhausted", "aggregate_budget_exhausted"}
+)
+
 
 async def _reap_process(proc: asyncio.subprocess.Process) -> None:
     """Terminate (then kill) `proc` if it is still running, reaping it.
@@ -865,12 +871,7 @@ class ForkCoordinator:
             result = await winner.task
             history_after_merge = list(result.all_messages())
         except asyncio.CancelledError:
-            _exhausted_states = {
-                "terminated",
-                "budget_exhausted",
-                "aggregate_budget_exhausted",
-            }
-            if winner.status.state in _exhausted_states:
+            if winner.status.state in _EXHAUSTED_BRANCH_STATES:
                 # A winner cancelled in a valid exhausted state may have no
                 # partial history yet (e.g. cancelled before its first
                 # before_model_request hook fired). Fall back to the pre-fork

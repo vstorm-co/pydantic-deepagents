@@ -25,7 +25,13 @@ from .local import (
     create_file_based_resource,
     create_file_based_script,
 )
-from .types import SKILL_NAME_PATTERN, Skill, SkillResource, SkillScript
+from .types import (
+    SKILL_NAME_PATTERN,
+    SKILL_RESOURCE_EXTENSIONS,
+    Skill,
+    SkillResource,
+    SkillScript,
+)
 
 try:
     import yaml
@@ -36,7 +42,7 @@ except ImportError:
 
 __all__ = ["SkillsDirectory"]
 
-RESERVED_WORDS = {"anthropic", "claude"}
+RESERVED_WORDS: frozenset[str] = frozenset({"anthropic", "claude"})
 
 
 def _validate_skill_metadata(
@@ -279,10 +285,9 @@ def _discover_resources(skill_folder: Path) -> list[SkillResource]:
         List of discovered SkillResource objects.
     """
     resources: list[SkillResource] = []
-    supported_extensions = [".md", ".json", ".yaml", ".yml", ".csv", ".xml", ".txt"]
     skill_folder_resolved = skill_folder.resolve()
 
-    for extension in supported_extensions:
+    for extension in SKILL_RESOURCE_EXTENSIONS:
         for resource_file in skill_folder.rglob(f"*{extension}"):
             if resource_file.name.upper() != "SKILL.MD":
                 resolved_path = resource_file.resolve()

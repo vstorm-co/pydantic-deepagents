@@ -33,7 +33,7 @@ from .exceptions import (
     SkillScriptExecutionError,
     SkillValidationError,
 )
-from .types import Skill, SkillResource, SkillScript
+from .types import SKILL_RESOURCE_EXTENSIONS, Skill, SkillResource, SkillScript
 
 try:
     import yaml
@@ -41,12 +41,6 @@ try:
     _HAS_YAML = True
 except ImportError:
     _HAS_YAML = False
-
-# Supported resource file extensions (same as local discovery)
-_SUPPORTED_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".csv", ".xml", ".txt"}
-
-# Script extensions
-_SCRIPT_EXTENSIONS = {".py"}
 
 
 @dataclass
@@ -333,7 +327,7 @@ def _discover_backend_resources(
     """
     resources: list[BackendSkillResource] = []
 
-    for ext in sorted(_SUPPORTED_EXTENSIONS):
+    for ext in sorted(SKILL_RESOURCE_EXTENSIONS):
         try:
             matches = sync_backend.glob_info(f"**/*{ext}", skill_dir)
         except Exception:

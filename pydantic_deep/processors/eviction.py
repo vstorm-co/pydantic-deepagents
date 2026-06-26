@@ -9,8 +9,10 @@ number of multimodal `BinaryContent` parts kept in history.
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
+import logging
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -146,8 +148,21 @@ def _content_to_str(content: Any) -> str:
 
 
 def _sanitize_id(tool_call_id: str) -> str:
-    """Sanitize a tool call ID for use as a filename."""
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", tool_call_id)
+    """Sanitize a tool call ID for use as a filename.
+
+    When sanitization is lossy (the id had filename-unsafe characters), distinct
+    ids could collapse to the same name and overwrite each other's evicted file.
+    Append a short hash of the raw id in that case so they stay distinct (B8).
+    Clean ids (the common alphanumeric case) are returned unchanged.
+    """
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", tool_call_id)
+    if safe != tool_call_id:
+        suffix = hashlib.sha256(tool_call_id.encode()).hexdigest()[:8]
+        return f"{safe}-{suffix}"
+    return safe
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -181,6 +196,10 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
     tail_lines: int = DEFAULT_TAIL_LINES
     max_binary_content: int | None = DEFAULT_MAX_BINARY_CONTENT
     on_eviction: Callable[[str, str, int, int], Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.token_limit <= 0:
+            raise ValueError(f"token_limit must be positive, got {self.token_limit}")
 
     def _resolve_backend(self, ctx: RunContext[DeepAgentDeps]) -> AsyncBackendProtocol | None:
         """Prefer the runtime backend from deps; fall back to `self.backend`."""
@@ -234,30 +253,43 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
         if backend is None:
             return None
 
-        sanitized_id = _sanitize_id(call.tool_call_id)
-        file_path = f"{self.eviction_path}/{sanitized_id}"
-        write_result = await backend.write(file_path, content_str)
-
-        if write_result.error:
-            return None
-
         preview = create_content_preview(
             content_str,
             head_lines=self.head_lines,
             tail_lines=self.tail_lines,
             max_chars=DEFAULT_PREVIEW_MAX_CHARS,
         )
+
+        sanitized_id = _sanitize_id(call.tool_call_id)
+        file_path = f"{self.eviction_path}/{sanitized_id}"
+        write_result = await backend.write(file_path, content_str)
+
+        if write_result.error:
+            # The write failed, so the agent can't read the file back. Returning
+            # the original (oversized) content would silently defeat eviction and
+            # blow the context, so return the truncated preview instead (B4).
+            logger.warning(
+                "Eviction write to %s failed (%s); returning truncated preview",
+                file_path,
+                write_result.error,
+            )
+            return preview
+
         replacement = EVICTION_MESSAGE_TEMPLATE.format(
             file_path=file_path,
             content_sample=preview,
         )
 
         if self.on_eviction is not None:
-            _cb_result = self.on_eviction(
-                call.tool_name, file_path, len(content_str), len(replacement)
-            )
-            if inspect.isawaitable(_cb_result):
-                await _cb_result
+            # A notification side-channel must never abort the run (B10).
+            try:
+                _cb_result = self.on_eviction(
+                    call.tool_name, file_path, len(content_str), len(replacement)
+                )
+                if inspect.isawaitable(_cb_result):
+                    await _cb_result
+            except Exception:
+                logger.warning("on_eviction callback raised; continuing", exc_info=True)
 
         return replacement
 

@@ -211,8 +211,16 @@ class TestSanitizeId:
         assert _sanitize_id("call_abc123") == "call_abc123"
 
     def test_special_chars_replaced(self):
-        """Special characters are replaced with underscores."""
-        assert _sanitize_id("call/abc.123!@#") == "call_abc_123___"
+        """Lossy sanitization gets a disambiguating hash suffix (B8)."""
+        out = _sanitize_id("call/abc.123!@#")
+        assert out.startswith("call_abc_123___-")
+
+    def test_lossy_ids_do_not_collide(self):
+        """Distinct ids that sanitize to the same prefix stay distinct files (B8)."""
+        a = _sanitize_id("a/b")
+        b = _sanitize_id("a:b")
+        assert a != b
+        assert a.startswith("a_b-") and b.startswith("a_b-")
 
     def test_hyphens_preserved(self):
         """Hyphens are preserved in the sanitized ID."""
@@ -419,10 +427,9 @@ class TestEvictionCapability:
         assert "call_cb" in args[1]  # file_path
 
     @pytest.mark.anyio
-    async def test_write_failure_returns_original(self):
-        """When backend write fails, original result is returned unchanged."""
+    async def test_write_failure_returns_truncated_preview(self):
+        """B4: when the backend write fails, return a truncated preview, not the full blob."""
         backend = StateBackend()
-        # Monkey-patch write to return an error
 
         def failing_write(path: str, content: str | bytes) -> WriteResult:
             return WriteResult(path=path, error="disk full")
@@ -431,7 +438,7 @@ class TestEvictionCapability:
         cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)
         ctx = _make_ctx(backend)
 
-        large = "x" * 500
+        large = _make_large_content(100)  # well over the 2 000-char preview cap
         result = await cap.after_tool_execute(
             ctx,
             call=_cap_call(call_id="call_fail"),
@@ -439,7 +446,34 @@ class TestEvictionCapability:
             args={},
             result=large,
         )
-        assert result == large
+        assert result != large  # full oversized payload not re-admitted
+        assert len(result) < len(large)
+
+    def test_non_positive_token_limit_rejected(self):
+        """B10: token_limit <= 0 would evict everything; reject it at construction."""
+        with pytest.raises(ValueError, match="token_limit must be positive"):
+            EvictionCapability(token_limit=0)
+        with pytest.raises(ValueError, match="token_limit must be positive"):
+            EvictionCapability(token_limit=-5)
+
+    @pytest.mark.anyio
+    async def test_on_eviction_exception_does_not_abort(self):
+        """B10: a raising on_eviction callback is swallowed, eviction still completes."""
+        backend = StateBackend()
+
+        def boom(tool_name: str, file_path: str, original: int, preview: int) -> None:
+            raise RuntimeError("callback blew up")
+
+        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10, on_eviction=boom)
+        ctx = _make_ctx(backend)
+        result = await cap.after_tool_execute(
+            ctx,
+            call=_cap_call(call_id="call_cbboom"),
+            tool_def=_cap_td(),
+            args={},
+            result=_make_large_content(20),
+        )
+        assert "Tool result too large" in result  # eviction still happened
 
     @pytest.mark.anyio
     async def test_async_on_eviction_callback(self):

@@ -23,7 +23,6 @@ from pydantic_deep.toolsets.browser import (
     _check_allowed_domain,
     _html_to_markdown,
     _require_browser,
-    _truncate_content,
 )
 from pydantic_deep.types import BrowseResult
 
@@ -106,53 +105,6 @@ class TestAutoInstallChromium:
             result = await _auto_install_chromium()
 
         assert result is False
-
-
-# ── _truncate_content ─────────────────────────────────────────────────────────
-
-
-class TestTruncateContent:
-    def test_no_truncation_when_short(self) -> None:
-        text = "hello world"
-        assert _truncate_content(text, max_tokens=100) == text
-
-    def test_exact_limit_not_truncated(self) -> None:
-        text = "x" * 400  # 400 chars == 100 tokens exactly
-        result = _truncate_content(text, max_tokens=100)
-        assert result == text
-
-    def test_truncation_inserts_marker(self) -> None:
-        text = "a" * 10_000
-        result = _truncate_content(text, max_tokens=100)
-        assert "truncated" in result
-        assert len(result) < len(text)
-
-    def test_head_is_70_percent(self) -> None:
-        text = "A" * 800 + "B" * 800  # 1600 chars
-        # max_tokens=100 → max_chars=400, head=280, tail=120
-        result = _truncate_content(text, max_tokens=100)
-        head_part = result.split("...")[0]
-        assert "A" in head_part
-        assert "B" not in head_part.replace(" ", "").replace("\n", "")
-
-    def test_tail_contains_end_of_text(self) -> None:
-        text = "A" * 2000 + "ZEND"
-        result = _truncate_content(text, max_tokens=10)
-        assert result.endswith("ZEND")
-
-    def test_zero_budget_truncates_to_marker_only(self) -> None:
-        # max_tokens=0 → max_chars=0, head and tail must be empty (not the
-        # whole string via content[-0:]).
-        text = "abcdef" * 100
-        result = _truncate_content(text, max_tokens=0)
-        assert "truncated" in result
-        assert "abcdef" not in result
-
-    @pytest.mark.parametrize("direction", ["up", "down", "left", "right"])
-    def test_scroll_directions_accepted(self, direction: str) -> None:
-        # Smoke test that the direction string itself doesn't affect truncation logic
-        text = "x" * 5
-        assert _truncate_content(text, 100) == text
 
 
 # ── _html_to_markdown ─────────────────────────────────────────────────────────

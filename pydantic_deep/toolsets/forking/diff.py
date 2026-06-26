@@ -23,7 +23,7 @@ import difflib
 import hashlib
 from typing import TYPE_CHECKING, Protocol
 
-from pydantic_deep.processors.eviction import create_content_preview
+from pydantic_deep._text import create_content_preview
 from pydantic_deep.types import (
     BranchChange,
     BranchDiffAgreement,

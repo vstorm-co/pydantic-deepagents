@@ -38,6 +38,8 @@ from urllib.parse import urlparse
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets import FunctionToolset
 
+from pydantic_deep._text import NUM_CHARS_PER_TOKEN, truncate_text
+
 try:
     import playwright  # noqa: F401
 
@@ -61,9 +63,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_CONTENT_TOKENS: int = 4000
 """Default max page content tokens injected into the agent context."""
-
-NUM_CHARS_PER_TOKEN: int = 4
-"""Approximate characters per token (matches eviction.py convention)."""
 
 DEFAULT_TIMEOUT_MS: int = 30_000
 """Default Playwright navigation timeout in milliseconds."""
@@ -156,31 +155,6 @@ def _require_browser() -> None:
             "Install it with: pip install 'pydantic-deep[browser]'\n"
             "Then run: playwright install chromium"
         )
-
-
-def _truncate_content(content: str, max_tokens: int) -> str:
-    """Truncate content to approximately max_tokens.
-
-    Keeps the first 70 % of the budget as head and the last 30 % as tail,
-    inserting a truncation marker in the middle.
-
-    Args:
-        content: Text to truncate.
-        max_tokens: Estimated token budget (1 token ≈ 4 chars).
-
-    Returns:
-        Original content when short enough, otherwise head + marker + tail.
-    """
-    max_chars = max_tokens * NUM_CHARS_PER_TOKEN
-    if len(content) <= max_chars:
-        return content
-    head_chars = int(max_chars * 0.7)
-    tail_chars = max_chars - head_chars
-    omitted = len(content) - max_chars
-    marker = f"\n\n... [{omitted} chars truncated] ...\n\n"
-    head = content[:head_chars] if head_chars > 0 else ""
-    tail = content[-tail_chars:] if tail_chars > 0 else ""
-    return head + marker + tail
 
 
 def _html_to_markdown(html: str) -> str:
@@ -369,7 +343,7 @@ class BrowserToolset(FunctionToolset[Any]):
         page = self._get_page()
         html: str = await page.content()
         md = _html_to_markdown(html)
-        return _truncate_content(md, self._max_content_tokens)
+        return truncate_text(md, self._max_content_tokens * NUM_CHARS_PER_TOKEN)
 
     async def _enforce_allowed_domain(self, action: str) -> str | None:
         """Re-check the current page URL against the allowlist after an action.

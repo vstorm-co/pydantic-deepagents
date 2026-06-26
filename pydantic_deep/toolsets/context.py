@@ -17,6 +17,8 @@ from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import AsyncBackendProtocol
 
+from pydantic_deep._text import truncate_text
+
 DEFAULT_CONTEXT_FILENAMES: list[str] = [
     "AGENTS.md",
     "CLAUDE.md",
@@ -151,26 +153,6 @@ async def _discover_and_load(
     return result
 
 
-def _truncate_content(content: str, max_chars: int) -> str:
-    """Truncate content preserving head (70%) and tail (30%).
-
-    Args:
-        content: Content to truncate.
-        max_chars: Maximum character count.
-
-    Returns:
-        Original content if within limit, otherwise truncated with marker.
-    """
-    if len(content) <= max_chars:
-        return content
-    head_len = int(max_chars * 0.7)
-    tail_len = max_chars - head_len
-    truncated = len(content) - max_chars
-    head = content[:head_len]
-    tail = content[-tail_len:] if tail_len > 0 else ""
-    return head + f"\n\n... [{truncated} chars truncated] ...\n\n" + tail
-
-
 def format_context_prompt(
     files: list[ContextFile],
     *,
@@ -197,7 +179,7 @@ def format_context_prompt(
 
     parts = ["## Project Context"]
     for f in files:
-        content = _truncate_content(f.content, max_chars)
+        content = truncate_text(f.content, max_chars)
         parts.append(f"### {f.name}\n\n{content}")
 
     return "\n\n".join(parts)

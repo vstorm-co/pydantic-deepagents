@@ -87,6 +87,7 @@ from pydantic_ai_summarization import (
     create_summarization_processor,
 )
 
+from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.capabilities import (
     BrowserCapability,
@@ -150,11 +151,7 @@ from pydantic_deep.processors.eviction import (
     DEFAULT_MAX_BINARY_CONTENT,
     DEFAULT_TOKEN_LIMIT,
     EVICTION_MESSAGE_TEMPLATE,
-    NUM_CHARS_PER_TOKEN,
     EvictionCapability,
-    EvictionProcessor,
-    create_content_preview,
-    create_eviction_processor,
 )
 from pydantic_deep.processors.patch import (
     CANCELLED_MESSAGE,
@@ -416,8 +413,6 @@ __all__ = [
     "DEFAULT_PIN_END_MARKER",
     # Eviction
     "EvictionCapability",
-    "EvictionProcessor",
-    "create_eviction_processor",
     "create_content_preview",
     "NUM_CHARS_PER_TOKEN",
     "DEFAULT_TOKEN_LIMIT",

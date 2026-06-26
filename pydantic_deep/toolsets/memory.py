@@ -19,7 +19,7 @@ from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import AsyncBackendProtocol
 
-from pydantic_deep.processors.eviction import NUM_CHARS_PER_TOKEN
+from pydantic_deep._text import NUM_CHARS_PER_TOKEN
 
 
 class MemoryAccessError(Exception):

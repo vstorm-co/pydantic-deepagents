@@ -221,9 +221,7 @@ class DeepAgentDeps:
                 # Skip failed uploads so one bad file doesn't abort the batch
                 # (backend write errors, encoding/metadata failures) — but log
                 # which file was dropped so it isn't silently lost (B9).
-                logging.getLogger(__name__).warning(
-                    "Skipping upload of %r", name, exc_info=True
-                )
+                logging.getLogger(__name__).warning("Skipping upload of %r", name, exc_info=True)
                 continue
         return paths
 

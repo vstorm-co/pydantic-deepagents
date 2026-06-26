@@ -246,13 +246,13 @@ class SessionExtractor:
         if len(content) <= max_chars:
             return content
         head_size = int(max_chars * 0.7)
-        tail_size = max_chars - head_size - 50
+        # For tiny budgets `max_chars - head_size - 50` goes negative, and
+        # `content[-negative:]` is a forward slice that returns *more* than the
+        # input — floor it at 0 (and drop the tail entirely) (B7).
+        tail_size = max(0, max_chars - head_size - 50)
         truncated_count = len(content) - head_size - tail_size
-        return (
-            content[:head_size]
-            + f"\n\n... ({truncated_count} chars truncated) ...\n\n"
-            + content[-tail_size:]
-        )
+        tail = content[-tail_size:] if tail_size > 0 else ""
+        return content[:head_size] + f"\n\n... ({truncated_count} chars truncated) ...\n\n" + tail
 
     def _load_tool_log(self, session_path: Path) -> str:
         """Load tool_log.jsonl and format as a compact tool call sequence.
@@ -268,21 +268,29 @@ class SessionExtractor:
             return ""
 
         try:
-            lines: list[str] = []
-            for raw_line in log_file.read_text(encoding="utf-8").splitlines():
-                if not raw_line.strip():
-                    continue
+            raw_lines = log_file.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return ""
+
+        lines: list[str] = []
+        for raw_line in raw_lines:
+            if not raw_line.strip():
+                continue
+            # Per-line guard: one malformed record (bad JSON, non-numeric
+            # `elapsed`) must not discard the whole log (B12).
+            try:
                 record = json.loads(raw_line)
                 tool = record.get("tool", "?")
-                elapsed = record.get("elapsed", 0)
+                elapsed = float(record.get("elapsed", 0) or 0)
                 error = record.get("error", False)
                 result_len = record.get("result_length", 0)
                 args = record.get("args", {})
 
-                # Compact one-line summary per tool call
                 status = "ERROR" if error else "ok"
                 args_brief = (
-                    ", ".join(f"{k}={str(v)[:80]}" for k, v in args.items()) if args else ""
+                    ", ".join(f"{k}={str(v)[:80]}" for k, v in args.items())
+                    if isinstance(args, dict) and args
+                    else ""
                 )
                 lines.append(
                     f"  {tool}({args_brief}) -> [{status}, {elapsed:.1f}s, {result_len} chars]"
@@ -290,13 +298,13 @@ class SessionExtractor:
 
                 # Include result preview for errors (most diagnostic value)
                 if error:
-                    preview = record.get("result_preview", "")[:500]
+                    preview = str(record.get("result_preview", ""))[:500]
                     if preview:
                         lines.append(f"    error: {preview}")
+            except Exception:
+                continue
 
-            return "\n".join(lines) if lines else ""
-        except Exception:
-            return ""
+        return "\n".join(lines) if lines else ""
 
     def _prepare_chunk_text(self, messages: list[dict[str, Any]]) -> str:
         """Format messages as readable text for the extraction agent.
@@ -321,7 +329,11 @@ class SessionExtractor:
                     content = part.get("content", "")
                     ts = part.get("timestamp", "")
                     ts_str = f" [{ts}]" if ts else ""
-                    lines.append(f"[User{ts_str}]: {content}")
+                    # Truncate: a huge pasted prompt sent verbatim would blow the
+                    # chunk budget and fail the whole session's extraction (B5).
+                    lines.append(
+                        f"[User{ts_str}]: {self._truncate_tool_output(str(content), 5000)}"
+                    )
 
                 elif part_kind == "system-prompt":
                     # Skip system prompts - not useful for insight extraction
@@ -349,7 +361,7 @@ class SessionExtractor:
 
                 elif part_kind == "retry-prompt":
                     content = part.get("content", "")
-                    lines.append(f"[Retry]: {content}")
+                    lines.append(f"[Retry]: {self._truncate_tool_output(str(content), 5000)}")
 
         return "\n".join(lines)
 

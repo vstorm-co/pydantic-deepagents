@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from pydantic_deep.improve.analyzer import DEFAULT_CONTEXT_FILES, ImprovementAnalyzer
 from pydantic_deep.improve.extractor import (
     SessionExtractor,
@@ -371,6 +373,50 @@ class TestSessionExtractor:
         assert "line=42" in result
         assert "force=True" in result
         assert "value=None" in result
+
+    def test_load_tool_log_unreadable_returns_empty(self, tmp_path: Path) -> None:
+        """A read error (e.g. the path is a directory) yields "", not a crash (B12)."""
+        ext = SessionExtractor(model="test")
+        (tmp_path / "tool_log.jsonl").mkdir()  # exists() is True, read_text raises OSError
+        assert ext._load_tool_log(tmp_path) == ""
+
+    def test_load_tool_log_skips_malformed_lines(self, tmp_path: Path) -> None:
+        """A bad-JSON or non-numeric-`elapsed` line must not discard the rest (B12)."""
+        ext = SessionExtractor(model="test")
+        good_a = {"tool": "read", "elapsed": 0.1, "error": False, "result_length": 10}
+        bad_elapsed = {"tool": "ls", "elapsed": "soon", "error": False}
+        good_b = {"tool": "grep", "elapsed": 0.2, "error": False, "result_length": 5}
+        (tmp_path / "tool_log.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(good_a),
+                    "this is not json",
+                    json.dumps(bad_elapsed),
+                    json.dumps(good_b),
+                ]
+            )
+        )
+        result = ext._load_tool_log(tmp_path)
+        # Both well-formed records survive the malformed lines between them.
+        assert "read(" in result
+        assert "grep(" in result
+        assert "ls(" not in result
+
+    def test_truncate_tiny_budget_no_overflow(self) -> None:
+        """A tiny `max_chars` must not produce output longer than the input (B7)."""
+        ext = SessionExtractor(model="test")
+        content = "x" * 1000
+        result = ext._truncate_tool_output(content, max_chars=40)
+        assert "truncated" in result
+        assert len(result) < len(content)
+
+    def test_prepare_chunk_text_truncates_huge_user_prompt(self) -> None:
+        """An oversized user prompt is truncated so one message can't blow the budget (B5)."""
+        ext = SessionExtractor(model="test")
+        messages = [{"parts": [{"part_kind": "user-prompt", "content": "U" * 20000}]}]
+        text = ext._prepare_chunk_text(messages)
+        assert "truncated" in text
+        assert len(text) < 20000
 
     def test_load_tool_log_error_no_preview(self, tmp_path: Path) -> None:
         ext = SessionExtractor(model="test")
@@ -855,6 +901,26 @@ class TestImprovementAnalyzer:
         content = (tmp_path / "SOUL.md").read_text()
         assert "appended" in content
         assert "content" in content  # Original preserved
+
+    async def test_apply_changes_update_no_section_match_warns(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Falling back from update to append is logged, not silent (B16)."""
+        (tmp_path / "SOUL.md").write_text("# Existing\n\ncontent")
+        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
+        changes = [
+            ProposedChange(
+                target_file="SOUL.md",
+                change_type="update",
+                section="# Nonexistent",
+                content="appended",
+                reason="test",
+                confidence=0.9,
+            )
+        ]
+        with caplog.at_level("WARNING"):
+            await a.apply_changes(changes)
+        assert any("not found" in r.getMessage() for r in caplog.records)
 
     async def test_apply_changes_update_trailing_section(self, tmp_path: Path) -> None:
         # Section is the LAST heading in the file (no following heading). Its body

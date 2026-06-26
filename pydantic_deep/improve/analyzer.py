@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -359,7 +360,14 @@ class ImprovementAnalyzer:
                     new_lines.extend(lines[end_index:])
                     filepath.write_text("".join(new_lines), encoding="utf-8")
                 else:
-                    # No section match, append instead
+                    # No section match — append instead, but log it so repeated
+                    # improve runs that keep appending (rather than updating in
+                    # place) are visible rather than silently duplicating (B16).
+                    logging.getLogger(__name__).warning(
+                        "improve: section %r not found in %s; appending instead of updating",
+                        change.section,
+                        target,
+                    )
                     separator = "\n\n" if existing.strip() else ""
                     filepath.write_text(
                         existing.rstrip("\n") + separator + change.content + "\n",

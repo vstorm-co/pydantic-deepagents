@@ -9,7 +9,7 @@ a caller-supplied resolver (the CLI backs this with its keystore).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 __all__ = [
@@ -79,15 +79,7 @@ class MCPAuth:
         return self.value_template.format(token=token)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "secret_key": self.secret_key,
-            "kind": self.kind,
-            "header": self.header,
-            "env_var": self.env_var,
-            "value_template": self.value_template,
-            "instructions": self.instructions,
-            "client_name": self.client_name,
-        }
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MCPAuth:
@@ -147,21 +139,7 @@ class MCPServerConfig:
         return self.auth is not None and self.auth.kind in _SECRET_AUTH_KINDS
 
     def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "name": self.name,
-            "transport": self.transport,
-            "command": self.command,
-            "args": list(self.args),
-            "env": dict(self.env),
-            "url": self.url,
-            "headers": dict(self.headers),
-            "tool_prefix": self.tool_prefix,
-            "enabled": self.enabled,
-            "description": self.description,
-            "builtin": self.builtin,
-            "auth": self.auth.to_dict() if self.auth is not None else None,
-        }
-        return data
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MCPServerConfig:

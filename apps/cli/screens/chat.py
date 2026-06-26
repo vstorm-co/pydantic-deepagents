@@ -67,6 +67,7 @@ from apps.cli.widgets.input_area import InputArea
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.notification import notify_error, notify_success, notify_warning
 from apps.cli.widgets.queued_panel import QueuedWidget
+from apps.cli.widgets.session_sidebar import SessionSidebar
 from apps.cli.widgets.side_panel import SidePanel
 from apps.cli.widgets.status_bar import StatusBar
 from apps.cli.widgets.subagents_panel import SubagentsWidget
@@ -273,6 +274,7 @@ class ChatScreen(Screen):
     def compose(self) -> ComposeResult:
         yield DeepHeader()
         with Horizontal(id="main-layout"):
+            yield SessionSidebar()
             with Vertical(id="messages-pane"):
                 yield MessageList()
                 yield ForkTabsWidget()
@@ -291,8 +293,13 @@ class ChatScreen(Screen):
         self.query_one(InputArea).focus_input()
 
     def on_resize(self, event: Any) -> None:
-        """Keep side panel responsive to terminal width changes."""
-        self.query_one(SidePanel).update_for_width(self.app.size.width)
+        """Keep panels responsive to terminal width changes."""
+        width = self.app.size.width
+        self.query_one(SidePanel).update_for_width(width)
+        # Hide the session sidebar on narrow terminals so the conversation keeps room.
+        sidebar = self.query_one(SessionSidebar)
+        sidebar.set_class(width < 90, "hidden")
+        sidebar.refresh_session()
 
     def _init_side_panel(self) -> None:
         """Show side panel and populate with default subagents."""
@@ -529,6 +536,10 @@ class ChatScreen(Screen):
                 status.context_current = total_input
                 status.context_max = max_tokens
                 status.context_pct = total_input / max_tokens
+
+            # Keep the session sidebar (model/thinking/context) current.
+            with contextlib.suppress(Exception):
+                self.query_one(SessionSidebar).refresh_session()
         except Exception:
             from apps.cli.debug_log import get_logger
 

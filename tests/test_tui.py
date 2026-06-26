@@ -77,6 +77,19 @@ class TestTUIWidgets:
             visible = cell_len(markup.sub("", str(content.render())))
             assert visible <= 72
 
+    async def test_session_sidebar_shows_session_info(self, app):
+        async with app.run_test(size=(110, 32)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from textual.widgets import Static
+
+            from apps.cli.widgets.session_sidebar import SessionSidebar
+
+            sidebar = app.screen.query_one(SessionSidebar)
+            text = str(sidebar.query_one("#sidebar-content", Static).render())
+            assert "pydantic-deep" in text
+            assert "session" in text
+
     async def test_prompt_has_single_row_and_gen_squares(self, app):
         async with app.run_test(size=(100, 32)) as pilot:
             await pilot.pause()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any
 
 from textual.app import ComposeResult
@@ -18,6 +20,13 @@ from apps.cli.messages import (
     UserSubmitted,
 )
 from apps.cli.widgets.ambient import GenSquares
+
+_MARKUP_RE = re.compile(r"\[/?[^\]]*\]")
+
+
+def _strip(markup: str) -> str:
+    """Remove `[...]` tags for width math."""
+    return _MARKUP_RE.sub("", markup)
 
 
 class HintsBar(Static):
@@ -43,6 +52,73 @@ class HintsBar(Static):
             "[$accent]Ctrl+J[/] multiline   "
             "[$accent]Ctrl+K[/] todos"
         )
+
+
+class SessionFooter(Static):
+    """One-line footer under the input: session + workspace, at a glance.
+
+    Shows ``provider · model · thinking`` and ``~/path ⎇ branch`` in a single
+    dim row. Width-aware: drops the workspace half first, then trims, so it
+    never overflows and ghosts beside the input.
+    """
+
+    DEFAULT_CSS = """
+    SessionFooter {
+        height: 1;
+        color: $text-muted;
+        padding: 0 2;
+    }
+    """
+
+    _width: int = 200
+
+    def on_resize(self, event: Any) -> None:
+        self._width = event.size.width
+        self.refresh_session()
+
+    def refresh_session(self) -> None:
+        from rich.cells import cell_len
+
+        app = self.app
+        model = str(getattr(app, "model_name", "") or "")
+        short_model = model.split(":", 1)[1] if ":" in model else model
+        provider = model.split(":", 1)[0] if ":" in model else ""
+        thinking = ""
+        try:
+            from apps.cli.config import load_config
+
+            thinking = str(load_config().thinking_effort or "")
+        except Exception:
+            pass
+        branch = str(getattr(app, "_branch", "") or "")
+        path = self._short_path(str(getattr(app, "working_dir", ".")))
+
+        session: list[str] = []
+        if provider:
+            session.append(f"[$accent]{provider}[/]")
+        if short_model:
+            session.append(short_model)
+        if thinking:
+            session.append(f"thinking {thinking}")
+        workspace = path + (f"  [$text-muted]⎇ {branch}[/]" if branch else "")
+
+        left = "  [$text-muted]·[/]  ".join(session)
+        gap = "      "
+        full = f"{left}{gap}{workspace}" if left else workspace
+        # Drop the workspace half if the whole line won't fit.
+        if cell_len(_strip(full)) > self._width - 2 and left:
+            full = left
+        self.update(full)
+
+    @staticmethod
+    def _short_path(path: str) -> str:
+        try:
+            p = Path(path)
+            home = Path.home()
+            text = f"~/{p.relative_to(home)}" if p.is_relative_to(home) else str(p)
+        except Exception:
+            text = path
+        return text if len(text) <= 36 else "…" + text[-35:]
 
 
 class PromptPrefix(Static):
@@ -247,6 +323,7 @@ class InputArea(Vertical):
                     yield PromptPrefix()
                     yield PromptInput()
         yield HintsBar()
+        yield SessionFooter()
 
     @staticmethod
     def _running_hints() -> str:

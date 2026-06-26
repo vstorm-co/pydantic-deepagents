@@ -1,8 +1,12 @@
-"""Left session sidebar — a calm, Tau-style at-a-glance panel.
+"""Left sidebar — what the system wires into the agent.
 
-Shows the wordmark and a few labelled sections (session, context, workspace)
-drawn from the live app state. Borderless except for a faint right rule that
-separates it from the conversation. Purely informational; no input.
+Lists the live capability surface: the model-callable tools, the higher-level
+extensions (memory, skills, plan, …), the storage backend, any MCP servers,
+and the project context docs. Read from the CLI config and the runtime deps,
+so it reflects what is actually plugged in. Purely informational.
+
+Session (provider · model · thinking) and workspace (path · branch) live in
+the footer under the input, not here — see `SessionFooter`.
 """
 
 from __future__ import annotations
@@ -16,20 +20,24 @@ from textual.widgets import Static
 # Project docs surfaced under "context", in priority order.
 _CONTEXT_FILES = ("DEEP.md", "AGENTS.md", "CLAUDE.md", "SOUL.md")
 
-_LABEL_W = 9  # label column width for the key/value rows
-
-
-def _row(label: str, value: str) -> str:
-    """A dim label + value row, label padded to a fixed column."""
-    return f"[$text-muted]{label.ljust(_LABEL_W)}[/][$foreground]{value}[/]"
+_BACKEND_LABELS = {
+    "LocalBackend": "local filesystem",
+    "StateBackend": "in-memory",
+    "DockerSandbox": "docker sandbox",
+    "CompositeBackend": "composite",
+}
 
 
 def _header(text: str) -> str:
     return f"[$text-muted b]{text}[/]"
 
 
+def _bullet(text: str) -> str:
+    return f"[$accent]•[/] [$foreground]{text}[/]"
+
+
 class SessionSidebar(Widget):
-    """Left-docked session/context panel."""
+    """Left-docked panel listing the agent's wired capabilities."""
 
     DEFAULT_CSS = """
     SessionSidebar {
@@ -50,57 +58,118 @@ class SessionSidebar(Widget):
         self.refresh_session()
 
     def refresh_session(self) -> None:
-        """Re-read app state and repaint the sidebar."""
+        """Re-read config + deps and repaint the capability list."""
         try:
             content = self.query_one("#sidebar-content", Static)
         except Exception:
             return
 
-        app = self.app
-        model = str(getattr(app, "model_name", "") or "")
-        provider = model.split(":", 1)[0] if ":" in model else ""
-        short_model = model.split(":", 1)[1] if ":" in model else model
-        fallback = str(getattr(app, "fallback_model_name", "") or "")
-        thinking = self._thinking_level()
-        working_dir = str(getattr(app, "working_dir", "."))
-        branch = str(getattr(app, "_branch", "") or "")
+        cfg = self._config()
+        lines: list[str] = []
 
-        lines: list[str] = ["[$accent b]◆[/] [$foreground b]pydantic-deep[/]", ""]
+        lines.append(_header("tools"))
+        lines += [_bullet(t) for t in self._tools(cfg)]
 
-        lines.append(_header("session"))
-        if provider:
-            lines.append(_row("provider", provider))
-        if short_model:
-            lines.append(_row("model", short_model))
-        if thinking:
-            lines.append(_row("thinking", thinking))
-        if fallback:
-            fb = fallback.split(":", 1)[1] if ":" in fallback else fallback
-            lines.append(_row("fallback", fb))
+        extensions = self._extensions(cfg)
+        if extensions:
+            lines += ["", _header("extensions")]
+            lines += [_bullet(e) for e in extensions]
 
-        context = self._context_files(Path(working_dir))
+        backend = self._backend_label() or self._backend_from_config(cfg)
+        if backend:
+            lines += ["", _header("backend"), f"[$foreground]{backend}[/]"]
+
+        mcp = self._mcp_servers()
+        if mcp:
+            lines += ["", _header("mcp")]
+            lines += [_bullet(name) for name in mcp]
+
+        context = self._context_files()
         if context:
             lines += ["", _header("context")]
-            lines += [f"[$accent]•[/] [$foreground]{name}[/]" for name in context]
-
-        lines += ["", _header("workspace")]
-        lines.append(f"[$foreground]{self._short_path(working_dir)}[/]")
-        if branch:
-            lines.append(f"[$text-muted]⎇ {branch}[/]")
+            lines += [_bullet(name) for name in context]
 
         content.update("\n".join(lines))
 
+    # ── data sources ────────────────────────────────────────────────
+
     @staticmethod
-    def _thinking_level() -> str:
+    def _config() -> object | None:
         try:
             from apps.cli.config import load_config
 
-            return str(load_config().thinking_effort or "")
+            return load_config()
+        except Exception:
+            return None
+
+    @staticmethod
+    def _tools(cfg: object | None) -> list[str]:
+        # Filesystem + exec tools are always wired in the CLI.
+        tools = ["read", "write", "edit", "grep", "glob", "bash"]
+        if getattr(cfg, "web_search", True):
+            tools.append("web_search")
+        if getattr(cfg, "web_fetch", True):
+            tools.append("web_fetch")
+        if getattr(cfg, "include_todo", True):
+            tools.append("todos")
+        if getattr(cfg, "include_subagents", True):
+            tools.append("task")
+        if getattr(cfg, "include_liteparse", True):
+            tools.append("parse_document")
+        return tools
+
+    @staticmethod
+    def _extensions(cfg: object | None) -> list[str]:
+        ext: list[str] = []
+        if getattr(cfg, "include_memory", True):
+            ext.append("memory")
+        if getattr(cfg, "include_skills", True):
+            ext.append("skills")
+        if getattr(cfg, "include_plan", True):
+            ext.append("plan")
+        if getattr(cfg, "include_subagents", True):
+            ext.append("subagents")
+        if getattr(cfg, "include_teams", False):
+            ext.append("teams")
+        if getattr(cfg, "include_browser", True):
+            ext.append("browser")
+        # Always-on context engine features.
+        ext += ["checkpoints", "history search"]
+        return ext
+
+    def _backend_label(self) -> str:
+        deps = getattr(self.app, "deps", None)
+        if deps is None:
+            return ""
+        try:
+            from pydantic_deep.deps import unwrap_backend
+
+            name = type(unwrap_backend(deps.backend)).__name__
+            return _BACKEND_LABELS.get(name, name)
         except Exception:
             return ""
 
     @staticmethod
-    def _context_files(root: Path) -> list[str]:
+    def _backend_from_config(cfg: object | None) -> str:
+        sandbox = str(getattr(cfg, "sandbox", "") or "")
+        return {"local": "local filesystem", "docker": "docker sandbox"}.get(sandbox, sandbox)
+
+    @staticmethod
+    def _mcp_servers() -> list[str]:
+        try:
+            from apps.cli.mcp_store import load_mcp_registry
+
+            registry = load_mcp_registry()
+            servers = registry.list_servers()
+            names = [
+                s.name for s in servers if getattr(s, "enabled", True) and getattr(s, "name", None)
+            ]
+            return names[:6]
+        except Exception:
+            return []
+
+    def _context_files(self) -> list[str]:
+        root = Path(str(getattr(self.app, "working_dir", ".")))
         found: list[str] = []
         for name in _CONTEXT_FILES:
             try:
@@ -109,17 +178,6 @@ class SessionSidebar(Widget):
             except Exception:
                 pass
         return found
-
-    @staticmethod
-    def _short_path(path: str) -> str:
-        """Render a path with ~ for home, truncated to fit the sidebar."""
-        try:
-            p = Path(path)
-            home = Path.home()
-            text = f"~/{p.relative_to(home)}" if p.is_relative_to(home) else str(p)
-        except Exception:
-            text = path
-        return text if len(text) <= 24 else "…" + text[-23:]
 
 
 __all__ = ["SessionSidebar"]

@@ -300,6 +300,13 @@ class ChatScreen(Screen):
         sidebar = self.query_one(SessionSidebar)
         sidebar.set_class(width < 90, "hidden")
         sidebar.refresh_session()
+        self._refresh_session_footer()
+
+    def _refresh_session_footer(self) -> None:
+        from apps.cli.widgets.input_area import SessionFooter
+
+        with contextlib.suppress(Exception):
+            self.query_one(SessionFooter).refresh_session()
 
     def _init_side_panel(self) -> None:
         """Show side panel and populate with default subagents."""
@@ -537,9 +544,10 @@ class ChatScreen(Screen):
                 status.context_max = max_tokens
                 status.context_pct = total_input / max_tokens
 
-            # Keep the session sidebar (model/thinking/context) current.
+            # Keep the sidebar (tools/extensions) and footer (session/workspace) current.
             with contextlib.suppress(Exception):
                 self.query_one(SessionSidebar).refresh_session()
+            self._refresh_session_footer()
         except Exception:
             from apps.cli.debug_log import get_logger
 
@@ -605,6 +613,11 @@ class ChatScreen(Screen):
         version = getattr(self.app, "app_version", "") or ""
         msg_list.mount(HeroBanner(version=str(version), context_lines=context_lines))
         msg_list.scroll_end(animate=False)
+
+        # Populate the capability sidebar + session footer now that deps are wired.
+        with contextlib.suppress(Exception):
+            self.query_one(SessionSidebar).refresh_session()
+        self._refresh_session_footer()
 
     # User input handling
 

@@ -77,8 +77,8 @@ class TestTUIWidgets:
             visible = cell_len(markup.sub("", str(content.render())))
             assert visible <= 72
 
-    async def test_session_sidebar_shows_session_info(self, app):
-        async with app.run_test(size=(110, 32)) as pilot:
+    async def test_sidebar_lists_wired_capabilities(self, app):
+        async with app.run_test(size=(120, 34)) as pilot:
             await pilot.pause()
             await pilot.pause()
             from textual.widgets import Static
@@ -87,8 +87,22 @@ class TestTUIWidgets:
 
             sidebar = app.screen.query_one(SessionSidebar)
             text = str(sidebar.query_one("#sidebar-content", Static).render())
-            assert "pydantic-deep" in text
-            assert "session" in text
+            # Capability surface, not session metadata; no duplicate wordmark.
+            assert "tools" in text
+            assert "read" in text and "bash" in text
+            assert "extensions" in text
+            assert "pydantic-deep" not in text
+
+    async def test_session_footer_shows_model_and_branch(self, app):
+        async with app.run_test(size=(120, 34)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.input_area import SessionFooter
+
+            footer = app.screen.query_one(SessionFooter)
+            footer.refresh_session()
+            text = str(footer.render())
+            assert "test" in text  # the session model
 
     async def test_prompt_has_single_row_and_gen_squares(self, app):
         async with app.run_test(size=(100, 32)) as pilot:

@@ -7,11 +7,52 @@ from rich.syntax import Syntax
 
 from apps.cli.widgets.tool_call import (
     _diff_lines,
+    _discovered_tool_names,
     _format_args_preview,
     _highlight,
     _lang_for_path,
     _tool_icon,
 )
+
+
+def test_discovered_tool_names_json_and_repr() -> None:
+    json_form = '{"discovered_tools": [{"name": "task"}, {"name": "check_task"}]}'
+    repr_form = "{'discovered_tools': [{'name': 'task'}, {'name': 'fork_run'}]}"
+    assert _discovered_tool_names(json_form) == ["task", "check_task"]
+    assert _discovered_tool_names(repr_form) == ["task", "fork_run"]
+    assert _discovered_tool_names("not a discovery result") == []
+
+
+def test_search_tools_args_preview_shows_queries() -> None:
+    out = _format_args_preview("search_tools", {"queries": ["subagent delegation"]})
+    assert out == '"subagent delegation"'
+    assert _format_args_preview("search_tools", {}) == ""
+
+
+async def test_search_tools_preview_renders_chips_not_json() -> None:
+    from textual.app import App, ComposeResult
+
+    from apps.cli.widgets.tool_call import ToolCallWidget
+
+    captured: dict[str, ToolCallWidget] = {}
+
+    class _Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            w = ToolCallWidget("search_tools", {"queries": ["x"]}, "s1")
+            captured["w"] = w
+            yield w
+
+    app = _Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        w = captured["w"]
+        w.complete("{'discovered_tools': [{'name': 'task'}, {'name': 'check_task'}]}", 0.0)
+        await pilot.pause()
+        preview = w.result_preview
+        assert isinstance(preview, str)
+        assert "discovered 2 tools" in preview
+        assert "task" in preview and "check_task" in preview
+        assert "discovered_tools" not in preview  # raw JSON not shown
 
 
 def test_tool_icon_known_and_default() -> None:

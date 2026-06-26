@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import os
+import re
 from typing import Any
 
 from rich.console import Group, RenderableType
@@ -139,6 +140,16 @@ def _diff_lines(
     return rendered, added, removed
 
 
+_DISCOVERED_NAME_RE = re.compile(r"""['"]name['"]\s*:\s*['"]([^'"]+)['"]""")
+
+
+def _discovered_tool_names(result: str) -> list[str]:
+    """Names from a `search_tools` result (handles JSON or Python dict-repr)."""
+    if "discovered_tools" not in result:
+        return []
+    return _DISCOVERED_NAME_RE.findall(result)
+
+
 def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
     """Format tool call arguments as a compact one-liner.
 
@@ -183,6 +194,11 @@ def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
     elif tool_name in ("web_search", "web_fetch"):
         query = args.get("query") or args.get("url", "?")
         return f'"{query[:50]}"'
+    elif tool_name == "search_tools":
+        queries = args.get("queries") or []
+        if isinstance(queries, list) and queries:
+            return ", ".join(f'"{q}"' for q in queries[:3])
+        return ""
     elif tool_name in (
         "read_todos",
         "write_todos",
@@ -411,6 +427,24 @@ class ToolCallWidget(Widget):
                     f"[dim]{prefix}    ⎿  ... ({len(out_lines) - _PREVIEW_LIMIT} more lines)[/dim]"
                 )
             return "\n".join([*cmd_lines, *body])
+
+        # Tool search: show the discovered tool names as accent chips, not raw JSON.
+        if self.tool_name == "search_tools":
+            names = _discovered_tool_names(result)
+            if names:
+                count = len(names)
+                head = (
+                    f"[dim]{prefix}    ⎿  discovered {count} "
+                    f"tool{'s' if count != 1 else ''}[/dim]"
+                )
+                shown = names[:_PREVIEW_LIMIT]
+                chips = "  ".join(f"[$accent]{_rich_escape(n)}[/]" for n in shown)
+                more = (
+                    f"  [dim]+{count - _PREVIEW_LIMIT} more[/dim]"
+                    if count > _PREVIEW_LIMIT
+                    else ""
+                )
+                return f"{head}\n{prefix}       {chips}{more}"
 
         # Default: first lines of the result
         lines = result.strip().splitlines()

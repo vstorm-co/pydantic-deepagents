@@ -87,6 +87,9 @@ from pydantic_ai_summarization import (
     create_summarization_processor,
 )
 
+# `_compat` applies pydantic-ai 2.0 shims on import (e.g. makes RunUsage
+# callable so subagents-pydantic-ai's `result.usage()` capture keeps working).
+from pydantic_deep import _compat as _compat
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.capabilities import (

@@ -1104,10 +1104,10 @@ class ChatScreen(Screen):
 
             if result is not None:
                 try:
-                    usage = result.usage()
+                    usage = result.usage
                     assistant.set_usage(
-                        input_tokens=usage.request_tokens or 0,
-                        output_tokens=usage.response_tokens or 0,
+                        input_tokens=usage.input_tokens or 0,
+                        output_tokens=usage.output_tokens or 0,
                         requests=usage.requests or 0,
                     )
                 except Exception:

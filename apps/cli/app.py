@@ -286,10 +286,22 @@ class DeepApp(App):
         effective_fallback = config.fallback_model or None
 
         log.info("Reconfiguring agent", model=effective, fallback=effective_fallback)
+        self.notify(f"Configuring {effective}…", severity="information")
+        # create_cli_agent does heavy blocking work (config loads, MCP server
+        # construction, DockerSandbox startup, git subprocesses). Run it off the
+        # event loop so the TUI stays responsive, then apply on the main thread (C2).
+        self.run_worker(
+            lambda: self._reconfigure_worker(effective, effective_fallback),
+            thread=True,
+            exclusive=True,
+            group="reconfigure-agent",
+        )
+
+    def _reconfigure_worker(self, effective: str, effective_fallback: str | None) -> None:
+        """Build the agent in a worker thread; hand results back to the main thread (C2)."""
+        from apps.cli.agent import create_cli_agent
 
         try:
-            from apps.cli.agent import create_cli_agent
-
             agent, deps = create_cli_agent(
                 model=effective,
                 fallback_model=effective_fallback,
@@ -298,31 +310,41 @@ class DeepApp(App):
                 on_context_update=self._on_context_update,
                 on_reminder=self._on_reminder,
             )
-            self.agent = agent
-            self.deps = deps
-            self.queue = getattr(deps, "message_queue", None)
-            self._startup_error = None
-            self.model_name = effective
-            self.fallback_model_name = effective_fallback or ""
-
-            # Save the working model to config
-            try:
-                from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
-
-                set_config_value(DEFAULT_CONFIG_PATH, "model", effective)
-            except Exception:
-                pass
-
-            msg = f"Agent ready! Model: {effective}"
-            if effective_fallback:
-                msg += f" → fallback: {effective_fallback}"
-            log.info(
-                "Agent reconfigured successfully", model=effective, fallback=effective_fallback
-            )
-            self.notify(msg, severity="information")
         except Exception as exc:
-            log.error("Agent reconfiguration failed", exc_info=True, model=effective)
-            self.notify(f"Still failing: {exc}", severity="error", timeout=10)
+            get_logger().error("Agent reconfiguration failed", exc_info=True, model=effective)
+            self.call_from_thread(
+                self.notify, f"Still failing: {exc}", severity="error", timeout=10
+            )
+            return
+        self.call_from_thread(
+            self._apply_reconfigured_agent, agent, deps, effective, effective_fallback
+        )
+
+    def _apply_reconfigured_agent(
+        self, agent: Any, deps: Any, effective: str, effective_fallback: str | None
+    ) -> None:
+        """Assign the freshly-built agent and persist the model (main thread, C2)."""
+        self.agent = agent
+        self.deps = deps
+        self.queue = getattr(deps, "message_queue", None)
+        self._startup_error = None
+        self.model_name = effective
+        self.fallback_model_name = effective_fallback or ""
+
+        try:
+            from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+
+            set_config_value(DEFAULT_CONFIG_PATH, "model", effective)
+        except Exception:
+            pass
+
+        msg = f"Agent ready! Model: {effective}"
+        if effective_fallback:
+            msg += f" → fallback: {effective_fallback}"
+        get_logger().info(
+            "Agent reconfigured successfully", model=effective, fallback=effective_fallback
+        )
+        self.notify(msg, severity="information")
 
     def set_fallback_and_reconfigure(self, model: str, fallback: str | None) -> None:
         """Persist `fallback` to config (empty string clears it), then reconfigure

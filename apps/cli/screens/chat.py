@@ -9,9 +9,11 @@ if TYPE_CHECKING:
     from apps.cli.app import DeepApp
 
 import asyncio
+import json
 import re
 import time as _time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -235,6 +237,12 @@ def _format_turn_summary(counts: dict[str, int], elapsed: float) -> str:
     return "✓ " + " · ".join(parts) + f" · {elapsed:.1f}s"
 
 
+#: Single-threaded writer for session/tool-log IO so disk writes never block
+#: the Textual event loop or stutter streaming. max_workers=1 preserves append
+#: order across submissions (C12).
+_SESSION_IO_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-session-io")
+
+
 class ChatScreen(Screen):
     """The main chat interface with header, messages, status bar, and input."""
 
@@ -419,20 +427,29 @@ class ChatScreen(Screen):
             self._session_dir = None
 
     def _save_session(self) -> None:
-        """Save current message history to session directory."""
+        """Save current message history to the session directory.
+
+        Snapshots the history on the event loop (cheap list copy), then
+        serializes + writes off-loop on the shared writer thread so a large
+        history can't stutter streaming (C12).
+        """
         if not self._session_dir:
             return
-        try:
-            from pydantic_ai.messages import ModelMessagesTypeAdapter
+        history = list(self.app.message_history)
+        if not history:
+            return
+        messages_file = self._session_dir / "messages.json"
 
-            history = self.app.message_history
-            if not history:
-                return
-            data = ModelMessagesTypeAdapter.dump_json(history, indent=2)
-            messages_file = self._session_dir / "messages.json"
-            messages_file.write_bytes(data)
-        except Exception:
-            pass  # Don't crash on save failure
+        def _write() -> None:
+            try:
+                from pydantic_ai.messages import ModelMessagesTypeAdapter
+
+                data = ModelMessagesTypeAdapter.dump_json(history, indent=2)
+                messages_file.write_bytes(data)
+            except Exception:
+                pass  # Don't crash on save failure
+
+        _SESSION_IO_EXECUTOR.submit(_write)
 
     def _append_tool_log(
         self,
@@ -449,27 +466,29 @@ class ChatScreen(Screen):
         """
         if not self._session_dir:
             return
-        try:
-            import json
-            from datetime import datetime, timezone
+        # Build the record on the loop (cheap), append off-loop so a JSONL write
+        # on every tool result can't stutter streaming (C12).
+        is_subagent = tool_name == "task"  # subagent outputs get full content
+        max_result = 20_000 if is_subagent else 2000
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "tool": tool_name,
+            "args": {k: str(v)[:500] for k, v in args.items()},
+            "result_preview": result[:max_result],
+            "result_length": len(result),
+            "elapsed": round(elapsed, 3),
+            "error": is_error,
+        }
+        log_file = self._session_dir / "tool_log.jsonl"
 
-            # Subagent outputs get full content; other tools get preview
-            is_subagent = tool_name == "task"
-            max_result = 20_000 if is_subagent else 2000
-            record = {
-                "ts": datetime.now(timezone.utc).isoformat(),
-                "tool": tool_name,
-                "args": {k: str(v)[:500] for k, v in args.items()},
-                "result_preview": result[:max_result],
-                "result_length": len(result),
-                "elapsed": round(elapsed, 3),
-                "error": is_error,
-            }
-            log_file = self._session_dir / "tool_log.jsonl"
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        except Exception:
-            pass
+        def _append() -> None:
+            try:
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+
+        _SESSION_IO_EXECUTOR.submit(_append)
 
     def _sync_status_from_history(self) -> None:
         """Calculate cost and token usage from message_history and update status bar."""
@@ -1779,7 +1798,7 @@ class ChatScreen(Screen):
             partial = list(getattr(runtime, "partial_history", None) or [])
             if partial:
                 with contextlib.suppress(Exception):  # pragma: no cover - defensive
-                    panel.replay_messages(partial)
+                    panel.replay_final(partial)
 
         def _on_done(t: asyncio.Task[Any]) -> None:
             def _apply() -> None:
@@ -1815,7 +1834,7 @@ class ChatScreen(Screen):
                 result = t.result()
                 panel.mark_status("done")
                 with contextlib.suppress(Exception):  # pragma: no cover - defensive
-                    panel.replay_messages(list(result.all_messages()))
+                    panel.replay_final(list(result.all_messages()))
 
             try:
                 app.call_from_thread(_apply)
@@ -1884,7 +1903,7 @@ class ChatScreen(Screen):
                             panel.mark_status("failed")
                         else:
                             with contextlib.suppress(Exception):
-                                panel.replay_messages(list(result.all_messages()))
+                                panel.replay_final(list(result.all_messages()))
                 if not panel.streaming:
                     with contextlib.suppress(Exception):
                         if runtime.partial_history:

@@ -115,6 +115,11 @@ class BranchPanelWidget(Vertical):
         # flushed the freshly-mounted message yet, leaving the spinner stuck.
         self._rendered_call_msgs: dict[str, AssistantMessage] = {}
         self.streaming: bool = False
+        # True once the terminal transcript has been rendered. Both the task
+        # done-callback and the poll tick race to render a finished branch;
+        # this makes the second a no-op so the panel isn't cleared + re-rendered
+        # twice (C8).
+        self._final_replayed: bool = False
 
     def compose(self) -> ComposeResult:
         yield Static(self._render_header(), classes="branch-header")
@@ -175,10 +180,24 @@ class BranchPanelWidget(Vertical):
             self._last_replayed_len = 0
             self._rendered_call_ids = set()
             self._rendered_call_msgs = {}
+            self._final_replayed = False
             with contextlib.suppress(NoMatches):
                 self.query_one(MessageList).clear_messages()
         self.reason = reason
         self.status = state
+
+    def replay_final(self, messages: list[Any]) -> None:
+        """Idempotent terminal replay — render a finished branch's transcript once.
+
+        The single entry point for both branch-completion renderers (the task
+        done-callback and the poll tick). Whichever fires first renders; the
+        other is a no-op, so the panel isn't cleared and re-rendered twice (C8).
+        Reset by `mark_status("running")` for a continued turn.
+        """
+        if self._final_replayed:
+            return
+        self._final_replayed = True
+        self.replay_messages(messages)
 
     def replay_messages(self, messages: list[Any]) -> None:
         """Replay a completed branch's `all_messages()` into the panel.

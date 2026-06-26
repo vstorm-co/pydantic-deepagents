@@ -154,6 +154,9 @@ class TestReconfigureAgent:
             await pilot.pause()
             # Explicit model skips key-based model picking; deterministic.
             app.reconfigure_agent(model="anthropic:claude-sonnet-4-6")
+            # Agent is now built in a worker thread (C2); wait for it, then let
+            # the main-thread apply callback run.
+            await app.workers.wait_for_complete()
             await pilot.pause()
 
         assert captured["on_cost_update"] is sentinel_cost

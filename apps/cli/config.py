@@ -243,7 +243,7 @@ def validate_config(config: CliConfig) -> list[str]:
 
         if not _Path(config.working_dir).exists():
             warnings.append(f"Working directory '{config.working_dir}' does not exist")
-    known_themes = {"default", "minimal", "ocean", "rose"}
+    known_themes = {"default", "emerald", "minimal", "ocean", "rose"}
     if config.theme not in known_themes:
         warnings.append(
             f"Unknown theme '{config.theme}'. Known themes: {', '.join(sorted(known_themes))}"

@@ -14,8 +14,21 @@ from typing import Any
 
 #: Full palettes. Keys map 1:1 onto Textual ``Theme`` constructor arguments.
 THEMES: dict[str, dict[str, str]] = {
-    # Brand: deep emerald/teal on near-black green-tinted ink.
+    # Brand: warm amber on near-black, warm-tinted ink (Tau-inspired).
     "default": {
+        "primary": "#d98e48",
+        "secondary": "#c2703a",
+        "accent": "#f0b072",
+        "foreground": "#e9e1d4",
+        "background": "#0c0a07",
+        "surface": "#15110c",
+        "panel": "#211a12",
+        "success": "#6fcf97",
+        "warning": "#fbbf24",
+        "error": "#ef4444",
+    },
+    # Cool emerald/teal — the previous brand, kept as an option.
+    "emerald": {
         "primary": "#10b981",
         "secondary": "#14b8a6",
         "accent": "#5eead4",

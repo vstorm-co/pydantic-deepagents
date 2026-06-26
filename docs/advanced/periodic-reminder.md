@@ -21,7 +21,7 @@ first user message verbatim and wraps it in a `<system-reminder>` tag.
 
 ```python
 from pydantic_deep import create_deep_agent
-from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+from pydantic_deep.features.periodic_reminder import PeriodicReminderConfig
 
 agent = create_deep_agent(
     periodic_reminder=PeriodicReminderConfig(
@@ -40,7 +40,7 @@ When `generator=None`, the capability extracts the first user message and
 formats it as a goal-check nudge:
 
 ```python
-from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+from pydantic_deep.features.periodic_reminder import PeriodicReminderConfig
 
 cfg = PeriodicReminderConfig(generator=None)  # default
 ```
@@ -59,7 +59,7 @@ already satisfied, produce the final answer instead of calling more tools.
 Pass a fixed string when the goal is always the same:
 
 ```python
-from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+from pydantic_deep.features.periodic_reminder import PeriodicReminderConfig
 
 cfg = PeriodicReminderConfig(
     every_n_turns=8,
@@ -72,7 +72,7 @@ cfg = PeriodicReminderConfig(
 Supply any `async def(ctx, turn, messages) -> str` for dynamic content:
 
 ```python
-from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+from pydantic_deep.features.periodic_reminder import PeriodicReminderConfig
 
 async def my_reminder(ctx, turn, messages):
     return f"Turn {turn}: stay focused on the original objective."
@@ -86,7 +86,7 @@ Use `build_compact_transcript` to inject a summarized view of the conversation
 without making any LLM calls:
 
 ```python
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.features.periodic_reminder import (
     PeriodicReminderConfig,
     build_compact_transcript,
 )
@@ -108,7 +108,7 @@ The model defaults to the main agent's model; set `reminder_model` in config
 to use a different one:
 
 ```python
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.features.periodic_reminder import (
     LLMReminderGenerator,
     PeriodicReminderConfig,
 )
@@ -153,7 +153,7 @@ cfg = PeriodicReminderConfig(render_style="developer_note")
 
 ```python
 from pydantic_ai import Agent
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.features.periodic_reminder import (
     PeriodicReminderCapability,
     PeriodicReminderConfig,
 )

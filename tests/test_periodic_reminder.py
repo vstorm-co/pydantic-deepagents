@@ -21,7 +21,8 @@ from pydantic_ai.usage import RunUsage
 from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import create_deep_agent
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.periodic_reminder.capability import (
     LLMReminderGenerator,
     PeriodicReminderCapability,
     PeriodicReminderConfig,
@@ -31,7 +32,6 @@ from pydantic_deep.capabilities.periodic_reminder import (
     build_compact_transcript,
     make_config_for_mode,
 )
-from pydantic_deep.deps import DeepAgentDeps
 
 _MODEL = TestModel()
 
@@ -405,7 +405,7 @@ class TestLLMReminderGenerator:
         mock_result = MagicMock()
         mock_result.output = "Focus on building the rocket."
 
-        with patch("pydantic_deep.capabilities.periodic_reminder.Agent") as MockAgent:
+        with patch("pydantic_deep.features.periodic_reminder.capability.Agent") as MockAgent:
             mock_agent_instance = MagicMock()
             mock_agent_instance.run = AsyncMock(return_value=mock_result)
             MockAgent.return_value = mock_agent_instance
@@ -432,7 +432,7 @@ class TestLLMReminderGenerator:
         mock_result = MagicMock()
         mock_result.output = "reminder text"
 
-        with patch("pydantic_deep.capabilities.periodic_reminder.Agent") as MockAgent:
+        with patch("pydantic_deep.features.periodic_reminder.capability.Agent") as MockAgent:
             mock_instance = MagicMock()
             mock_instance.run = AsyncMock(return_value=mock_result)
             MockAgent.return_value = mock_instance
@@ -448,7 +448,7 @@ class TestLLMReminderGenerator:
         mock_result = MagicMock()
         mock_result.output = "reminder"
 
-        with patch("pydantic_deep.capabilities.periodic_reminder.Agent") as MockAgent:
+        with patch("pydantic_deep.features.periodic_reminder.capability.Agent") as MockAgent:
             mock_instance = MagicMock()
             mock_instance.run = AsyncMock(return_value=mock_result)
             MockAgent.return_value = mock_instance
@@ -465,7 +465,7 @@ class TestLLMReminderGenerator:
         gen = LLMReminderGenerator(model="anthropic:claude-haiku-4-5-20251001")
         msgs = _make_messages("Do the thing")
 
-        with patch("pydantic_deep.capabilities.periodic_reminder.Agent") as MockAgent:
+        with patch("pydantic_deep.features.periodic_reminder.capability.Agent") as MockAgent:
             mock_instance = MagicMock()
             mock_instance.run = AsyncMock(side_effect=RuntimeError("network fail"))
             MockAgent.return_value = mock_instance

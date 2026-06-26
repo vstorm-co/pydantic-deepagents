@@ -13,17 +13,17 @@ from pydantic_deep.capabilities.message_queue import (
     format_steering,
     run_with_queue,
 )
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.capabilities.skills import SkillsCapability
+from pydantic_deep.features.browser import BrowserCapability
+from pydantic_deep.features.context import ContextFilesCapability
+from pydantic_deep.features.memory import MemoryCapability
+from pydantic_deep.features.periodic_reminder import (
     LLMReminderGenerator,
     PeriodicReminderCapability,
     PeriodicReminderConfig,
     ReminderGenerator,
     make_config_for_mode,
 )
-from pydantic_deep.capabilities.skills import SkillsCapability
-from pydantic_deep.features.browser import BrowserCapability
-from pydantic_deep.features.context import ContextFilesCapability
-from pydantic_deep.features.memory import MemoryCapability
 from pydantic_deep.features.stuck_loop import StuckLoopDetection, StuckLoopError
 
 __all__ = [

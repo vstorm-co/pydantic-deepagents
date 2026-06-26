@@ -18,6 +18,7 @@ from pydantic_deep.features import eviction as eviction_feature
 from pydantic_deep.features import history_archive as history_archive_feature
 from pydantic_deep.features import memory as memory_feature
 from pydantic_deep.features import patch as patch_feature
+from pydantic_deep.features import periodic_reminder as periodic_reminder_feature
 from pydantic_deep.features import stuck_loop as stuck_loop_feature
 
 
@@ -168,3 +169,23 @@ class TestStuckLoopShim:
     def test_top_level_exports_stable(self) -> None:
         assert pydantic_deep.StuckLoopDetection is stuck_loop_feature.StuckLoopDetection
         assert pydantic_deep.StuckLoopError is stuck_loop_feature.StuckLoopError
+
+
+class TestPeriodicReminderShim:
+    def test_capabilities_periodic_reminder_reexports_and_warns(self) -> None:
+        import pydantic_deep.capabilities.periodic_reminder as shim
+
+        with pytest.warns(DeprecationWarning, match="features.periodic_reminder"):
+            importlib.reload(shim)
+
+        assert (
+            shim.PeriodicReminderCapability is periodic_reminder_feature.PeriodicReminderCapability
+        )
+        assert shim.make_config_for_mode is periodic_reminder_feature.make_config_for_mode
+        assert callable(shim._should_fire)
+
+    def test_top_level_exports_stable(self) -> None:
+        assert (
+            pydantic_deep.PeriodicReminderCapability
+            is periodic_reminder_feature.PeriodicReminderCapability
+        )

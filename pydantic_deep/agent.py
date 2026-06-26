@@ -44,10 +44,6 @@ from subagents_pydantic_ai import (
 from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.capabilities.hooks import HookEvent, HooksCapability
 from pydantic_deep.capabilities.message_queue import MessageQueueCapability
-from pydantic_deep.capabilities.periodic_reminder import (
-    PeriodicReminderCapability,
-    PeriodicReminderConfig,
-)
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.context import ContextToolset
 from pydantic_deep.features.eviction import EvictionCapability
@@ -59,6 +55,10 @@ from pydantic_deep.features.memory import (
     AgentMemoryToolset,
 )
 from pydantic_deep.features.patch import PatchToolCallsCapability
+from pydantic_deep.features.periodic_reminder import (
+    PeriodicReminderCapability,
+    PeriodicReminderConfig,
+)
 from pydantic_deep.features.stuck_loop import StuckLoopDetection
 from pydantic_deep.instructions import build_instruction_providers, render_instructions
 from pydantic_deep.models import (

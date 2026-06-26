@@ -25,14 +25,8 @@ class MessageList(VerticalScroll):
 
     _current_assistant: AssistantMessage | None = None
 
-    def _dismiss_welcome(self) -> None:
-        """Remove the centered welcome hero once a conversation starts."""
-        for hero in self.query("#welcome-hero"):
-            hero.remove()
-
     def append_user_message(self, text: str) -> UserMessage:
         """Add a user message and scroll to bottom."""
-        self._dismiss_welcome()
         msg = UserMessage(text)
         self.mount(msg)
         self.scroll_end(animate=False)
@@ -40,7 +34,6 @@ class MessageList(VerticalScroll):
 
     def begin_assistant_message(self) -> AssistantMessage:
         """Start a new assistant message turn."""
-        self._dismiss_welcome()
         msg = AssistantMessage()
         self._current_assistant = msg
         self.mount(msg)

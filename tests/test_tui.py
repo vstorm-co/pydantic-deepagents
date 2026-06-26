@@ -46,9 +46,8 @@ class TestTUIWidgets:
             band._advance()
             assert band._phase > phase_before
 
-    async def test_welcome_hero_dismissed_when_conversation_starts(self, app):
-        """The centered landing hero is removed once the first message arrives,
-        so it never eats vertical space in the conversation."""
+    async def test_welcome_hero_persists_with_messages_below(self, app):
+        """The welcome hero stays at the top; messages mount underneath it."""
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
             await pilot.pause()
@@ -59,7 +58,9 @@ class TestTUIWidgets:
             assert len(msg_list.query(HeroBanner)) == 1
             msg_list.append_user_message("hello")
             await pilot.pause()
-            assert len(msg_list.query(HeroBanner)) == 0
+            # Hero remains; the message is added below it.
+            assert len(msg_list.query(HeroBanner)) == 1
+            assert isinstance(msg_list.children[0], HeroBanner)
 
     def test_quiet_console_logging_strips_terminal_handlers(self):
         """fastmcp/mcp must not log to the terminal under the TUI (it paints over
@@ -177,8 +178,8 @@ class TestTUIWidgets:
             msg_list = app.screen.query_one(MessageList)
             msg_list.append_user_message("test")
             await pilot.pause()
-            # Welcome hero is dismissed on first message, leaving just the message.
-            assert len(msg_list.children) >= 1
+            # welcome hero + user message
+            assert len(msg_list.children) >= 2
 
     async def test_shell_command(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
@@ -189,8 +190,8 @@ class TestTUIWidgets:
             from apps.cli.widgets.message_list import MessageList
 
             msg_list = app.screen.query_one(MessageList)
-            # Hero dismissed; user "!echo hello" + assistant result = 2+
-            assert len(msg_list.children) >= 2
+            # welcome + user "!echo hello" + assistant result = 3+
+            assert len(msg_list.children) >= 3
 
     async def test_header_state(self, app):
         async with app.run_test(size=(120, 35)) as pilot:

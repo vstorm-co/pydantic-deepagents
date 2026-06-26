@@ -24,9 +24,8 @@ class HeroBanner(Widget):
 
     DEFAULT_CSS = """
     HeroBanner {
-        height: 1fr;
+        height: auto;
         padding: 1 2 1 2;
-        align: left middle;
     }
     HeroBanner > Vertical {
         height: auto;

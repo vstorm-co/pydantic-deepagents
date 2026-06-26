@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, Literal
 
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability
@@ -18,6 +18,9 @@ from pydantic_deep.toolsets.checkpointing.store import (
     _make_checkpoint,
     _save_and_prune,
 )
+
+CheckpointFrequency = Literal["every_turn", "every_tool", "manual_only"]
+"""When `CheckpointMiddleware` auto-saves: per model request, per tool call, or never."""
 
 
 @dataclass
@@ -41,7 +44,7 @@ class CheckpointMiddleware(AbstractCapability[Any]):
     """
 
     store: CheckpointStore | None = None
-    frequency: str = "every_tool"
+    frequency: CheckpointFrequency = "every_tool"
     max_checkpoints: int = 20
     _turn_counter: int = field(default=0, init=False, repr=False)
 

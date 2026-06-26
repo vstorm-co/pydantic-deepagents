@@ -46,6 +46,7 @@ from pydantic_ai_backends import StateBackend
 
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.toolsets.checkpointing import CheckpointFrequency
 
 
 class DeepAgentSpec(BaseModel):
@@ -96,7 +97,7 @@ class DeepAgentSpec(BaseModel):
     context_files: list[str] | None = None
     context_discovery: bool = False
     memory_dir: str | None = None
-    checkpoint_frequency: str = "every_tool"
+    checkpoint_frequency: CheckpointFrequency = "every_tool"
     max_checkpoints: int = 20
     history_messages_path: str = ".pydantic-deep/messages.json"
     cost_tracking: bool = True

@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from pydantic_deep.capabilities.forking import LiveForkCapability
     from pydantic_deep.capabilities.message_queue import MessageQueue
     from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderConfig
+    from pydantic_deep.toolsets.checkpointing import CheckpointFrequency
 
 OutputDataT = TypeVar("OutputDataT")
 
@@ -386,7 +387,7 @@ def create_deep_agent(
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
-    checkpoint_frequency: str = "every_tool",
+    checkpoint_frequency: CheckpointFrequency = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
@@ -464,7 +465,7 @@ def create_deep_agent(
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
-    checkpoint_frequency: str = "every_tool",
+    checkpoint_frequency: CheckpointFrequency = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,
@@ -540,7 +541,7 @@ def create_deep_agent(  # noqa: C901
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
     include_checkpoints: bool = False,
-    checkpoint_frequency: str = "every_tool",
+    checkpoint_frequency: CheckpointFrequency = "every_tool",
     max_checkpoints: int = 20,
     checkpoint_store: Any | None = None,
     include_teams: bool = False,

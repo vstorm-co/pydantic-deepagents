@@ -15,6 +15,7 @@ from pydantic_deep.toolsets.checkpointing.store import (
     fork_from_checkpoint,
 )
 from pydantic_deep.toolsets.checkpointing.toolset import (
+    CheckpointFrequency,
     CheckpointMiddleware,
     CheckpointToolset,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "InMemoryCheckpointStore",
     "RewindRequested",
     "fork_from_checkpoint",
+    "CheckpointFrequency",
     "CheckpointMiddleware",
     "CheckpointToolset",
 ]

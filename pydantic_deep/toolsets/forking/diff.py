@@ -24,7 +24,7 @@ import hashlib
 from typing import TYPE_CHECKING, Protocol
 
 from pydantic_deep._text import create_content_preview
-from pydantic_deep.types import (
+from pydantic_deep.toolsets.forking.types import (
     BranchChange,
     BranchDiffAgreement,
     BranchDiffOperation,

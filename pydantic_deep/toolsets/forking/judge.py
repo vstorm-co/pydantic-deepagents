@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, RetryPromptPart
 
-from pydantic_deep.types import (
+from pydantic_deep.toolsets.forking.types import (
     BranchDiffReport,
     BranchOutcome,
     ConfidenceSignals,

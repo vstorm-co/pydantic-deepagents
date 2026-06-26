@@ -2108,7 +2108,7 @@ def test_flush_mkdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
     from unittest.mock import MagicMock
 
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
-    from pydantic_deep.types import FileChange
+    from pydantic_deep.toolsets.forking.types import FileChange
 
     parent = MagicMock()
     parent.execute_enabled = True
@@ -2131,7 +2131,7 @@ def test_flush_rmdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
     from unittest.mock import MagicMock
 
     from pydantic_deep.toolsets.forking.isolation import BranchOverlay
-    from pydantic_deep.types import FileChange
+    from pydantic_deep.toolsets.forking.types import FileChange
 
     parent = MagicMock()
     parent.execute_enabled = True
@@ -3258,7 +3258,7 @@ async def test_merge_tool_action_auto_committed_without_verdict():
     from unittest.mock import AsyncMock, patch
 
     from pydantic_deep import MergeResult
-    from pydantic_deep.types import ResolveOutcome
+    from pydantic_deep.toolsets.forking.types import ResolveOutcome
 
     deps = DeepAgentDeps(backend=StateBackend())
     _build_capability_with_coordinator(deps)
@@ -3303,7 +3303,7 @@ async def test_merge_tool_action_auto_not_committed_with_verdict_picks_winner():
     from unittest.mock import AsyncMock, patch
 
     from pydantic_deep import JudgeVerdict
-    from pydantic_deep.types import ResolveOutcome
+    from pydantic_deep.toolsets.forking.types import ResolveOutcome
 
     deps = DeepAgentDeps(backend=StateBackend())
     _build_capability_with_coordinator(deps)

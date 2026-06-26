@@ -20,7 +20,7 @@ from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
 from pydantic_deep.toolsets.forking.diff import build_diff_report
-from pydantic_deep.types import (
+from pydantic_deep.toolsets.forking.types import (
     BranchDiffReport,
     BranchIsolation,
     BranchSpec,

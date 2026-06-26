@@ -42,7 +42,7 @@ from pydantic_deep.toolsets.forking.judge import (
     count_retry_parts,
     count_stuck_loop_hits,
 )
-from pydantic_deep.types import (
+from pydantic_deep.toolsets.forking.types import (
     BranchChange,
     BranchDiffReport,
     BranchOutcome,
@@ -56,7 +56,7 @@ def test_judge_verdict_confidence_must_be_in_unit_interval() -> None:
     """JudgeVerdict.confidence is bounded to [0, 1] - out-of-range is rejected."""
     import pydantic
 
-    from pydantic_deep.types import JudgeVerdict
+    from pydantic_deep.toolsets.forking.types import JudgeVerdict
 
     # Valid endpoints are accepted.
     assert JudgeVerdict(winner_branch_id="a", confidence=0.0, reasoning="r").confidence == 0.0
@@ -178,7 +178,7 @@ async def test_run_judges_vote_sums_per_judge_usages():
 
     from pydantic_ai.usage import RunUsage
 
-    from pydantic_deep.types import JudgeVerdict as _JV
+    from pydantic_deep.toolsets.forking.types import JudgeVerdict as _JV
 
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
@@ -213,7 +213,7 @@ async def test_run_judges_vote_all_none_usage_is_none():
     """A panel where every judge reports no usage yields None (not [None, ...])."""
     from unittest.mock import patch
 
-    from pydantic_deep.types import JudgeVerdict as _JV
+    from pydantic_deep.toolsets.forking.types import JudgeVerdict as _JV
 
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
@@ -983,7 +983,7 @@ async def test_messages_for_falls_back_to_partial_when_task_cancelled():
     `TestModel` finishes synchronously.
     """
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchStatus
 
     # Task that will never complete; cancel it.
     async def _hang() -> Any:
@@ -1023,7 +1023,7 @@ async def test_messages_for_falls_back_to_partial_when_task_cancelled():
 async def test_messages_for_falls_back_when_result_lacks_all_messages():
     """Task completed but result object has no `all_messages` callable."""
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchStatus
 
     async def _return_object() -> Any:
         return object()  # no `all_messages` method
@@ -1070,7 +1070,7 @@ async def test_build_branch_outcomes_skips_non_request_messages_in_goal_scan():
     later :class:`ModelRequest` carrying the user prompt.
     """
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchStatus
 
     deps = DeepAgentDeps(backend=StateBackend())
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
@@ -1118,7 +1118,7 @@ async def test_build_branch_outcomes_skips_non_request_messages_in_goal_scan():
 async def test_build_branch_outcomes_with_synthetic_runtimes():
     """Compact construction exercising each missing goal-extraction branch."""
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchStatus
 
     deps = DeepAgentDeps(backend=StateBackend())
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
@@ -1182,7 +1182,7 @@ async def test_messages_for_logs_and_falls_back_when_task_result_raises(
     import logging
 
     from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchStatus
 
     async def _explode() -> Any:
         raise RuntimeError("branch blew up after the fact")

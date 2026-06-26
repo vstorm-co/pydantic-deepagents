@@ -44,7 +44,7 @@ from pydantic_deep.toolsets.forking.judge import (
 )
 from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
 from pydantic_deep.toolsets.forking.store import ForkStateStore
-from pydantic_deep.types import (
+from pydantic_deep.toolsets.forking.types import (
     BranchCost,
     BranchIsolation,
     BranchOutcome,

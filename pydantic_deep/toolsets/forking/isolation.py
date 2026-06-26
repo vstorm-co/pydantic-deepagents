@@ -39,7 +39,12 @@ from pydantic_ai_backends import (
 )
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.types import BranchIsolation, FileChange, FlushError, FlushReport
+from pydantic_deep.toolsets.forking.types import (
+    BranchIsolation,
+    FileChange,
+    FlushError,
+    FlushReport,
+)
 
 if TYPE_CHECKING:
     from pydantic_deep.capabilities.message_queue import MessageQueue

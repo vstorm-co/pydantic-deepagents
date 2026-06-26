@@ -34,7 +34,7 @@ from apps.cli.widgets.fork_badge import ForkBadgeWidget
 from apps.cli.widgets.fork_overview import ForkOverviewWidget
 from apps.cli.widgets.fork_tabs import OVERVIEW_TAB_ID, ForkTabsWidget
 from pydantic_deep import DeepAgentDeps, LiveForkCapability, create_deep_agent
-from pydantic_deep.types import BranchSpec
+from pydantic_deep.toolsets.forking.types import BranchSpec
 
 
 def _make_fork_agent() -> Agent[DeepAgentDeps, str]:
@@ -362,7 +362,7 @@ class TestMergeFlow:
 
     async def test_merge_picker_invokes_coordinator(self, fork_app: DeepApp) -> None:
         from apps.cli.commands import dispatch_command
-        from pydantic_deep.types import MergeStrategy
+        from pydantic_deep.toolsets.forking.types import MergeStrategy
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
@@ -456,7 +456,7 @@ class TestForkTabsCostRender:
     async def test_cost_renders_when_set_same_tick_as_statuses(self, fork_app: DeepApp) -> None:
         from textual.widgets import Static
 
-        from pydantic_deep.types import BranchCost
+        from pydantic_deep.toolsets.forking.types import BranchCost
 
         async with fork_app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
@@ -697,7 +697,7 @@ class TestMergePickerModalRendering:
         """A branch that never wrote should render the 'no changes' placeholder."""
         from datetime import datetime, timezone
 
-        from pydantic_deep.types import (
+        from pydantic_deep.toolsets.forking.types import (
             BranchDiffReport,
             BranchStatus,
             DiffSummary,
@@ -1149,7 +1149,7 @@ class TestMergePickerOpenInEditor:
         from datetime import datetime, timezone
 
         from pydantic_deep.toolsets.forking.diff import build_diff_report
-        from pydantic_deep.types import BranchStatus
+        from pydantic_deep.toolsets.forking.types import BranchStatus
 
         seen: list[str] = []
 
@@ -1174,7 +1174,7 @@ class TestMergePickerOpenInEditor:
         from datetime import datetime, timezone
 
         from pydantic_deep.toolsets.forking.diff import build_diff_report
-        from pydantic_deep.types import BranchStatus
+        from pydantic_deep.toolsets.forking.types import BranchStatus
 
         statuses = [
             BranchStatus(
@@ -1196,7 +1196,7 @@ class TestMergeNotification:
 
     def test_notification_default_apply_includes_count(self) -> None:
         from apps.cli.commands import _format_merge_notification
-        from pydantic_deep.types import MergeResult
+        from pydantic_deep.toolsets.forking.types import MergeResult
 
         result = MergeResult(
             fork_id="x",
@@ -1212,7 +1212,7 @@ class TestMergeNotification:
 
     def test_notification_includes_conflicts(self) -> None:
         from apps.cli.commands import _format_merge_notification
-        from pydantic_deep.types import MergeResult
+        from pydantic_deep.toolsets.forking.types import MergeResult
 
         result = MergeResult(
             fork_id="x",
@@ -1228,7 +1228,7 @@ class TestMergeNotification:
 
     def test_notification_includes_errors(self) -> None:
         from apps.cli.commands import _format_merge_notification
-        from pydantic_deep.types import FlushError, MergeResult
+        from pydantic_deep.toolsets.forking.types import FlushError, MergeResult
 
         result = MergeResult(
             fork_id="x",
@@ -1243,7 +1243,7 @@ class TestMergeNotification:
     def test_notification_includes_deleted_paths(self) -> None:
         """The deleted-paths count surfaces as `N deleted` in the merge notification."""
         from apps.cli.commands import _format_merge_notification
-        from pydantic_deep.types import MergeResult
+        from pydantic_deep.toolsets.forking.types import MergeResult
 
         result = MergeResult(
             fork_id="x",
@@ -1261,7 +1261,7 @@ class TestMergeNotification:
     def test_notification_includes_blocked_commands(self) -> None:
         """User-denied tool calls surface as `denied: N` in the merge notification."""
         from apps.cli.commands import _format_merge_notification
-        from pydantic_deep.types import MergeResult
+        from pydantic_deep.toolsets.forking.types import MergeResult
 
         result = MergeResult(
             fork_id="x",
@@ -1948,7 +1948,7 @@ class TestBranchStreamRunner:
         from pydantic_deep import DeepAgentDeps
         from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
         from pydantic_deep.toolsets.forking.store import InMemoryForkStateStore
-        from pydantic_deep.types import BranchSpec
+        from pydantic_deep.toolsets.forking.types import BranchSpec
 
         agent = _make_fork_agent()
         deps = DeepAgentDeps(backend=StateBackend())

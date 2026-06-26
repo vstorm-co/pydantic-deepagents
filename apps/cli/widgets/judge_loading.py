@@ -28,7 +28,7 @@ from apps.cli.widgets.spinner import Spinner
 
 if TYPE_CHECKING:
     from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
-    from pydantic_deep.types import MergeStrategy
+    from pydantic_deep.toolsets.forking.types import MergeStrategy
 
 
 logger = logging.getLogger(__name__)

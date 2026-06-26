@@ -72,7 +72,7 @@ from apps.cli.widgets.side_panel import SidePanel
 from apps.cli.widgets.status_bar import StatusBar
 from apps.cli.widgets.subagents_panel import SubagentsWidget
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
-from pydantic_deep.types import PendingApprovalRequest
+from pydantic_deep.toolsets.forking.types import PendingApprovalRequest
 
 _FORK_POLL_INTERVAL_S: float = 0.5
 

@@ -22,7 +22,7 @@ from pydantic_ai_backends import BackendProtocol, StateBackend, WriteResult
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
 from pydantic_deep.toolsets.forking.store import InMemoryForkStateStore
-from pydantic_deep.types import BranchIsolation, BranchSpec, FlushError
+from pydantic_deep.toolsets.forking.types import BranchIsolation, BranchSpec, FlushError
 
 
 class _StubResult:

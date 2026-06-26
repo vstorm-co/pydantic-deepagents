@@ -30,7 +30,7 @@ from textual.widgets import Static
 from apps.cli.modals.merge_picker import MergePickerModal
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchDiffReport, BranchStatus
+    from pydantic_deep.toolsets.forking.types import BranchDiffReport, BranchStatus
 
 
 @dataclass(frozen=True)

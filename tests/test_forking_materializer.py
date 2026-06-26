@@ -22,7 +22,7 @@ from pydantic_deep import (
 )
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay
 from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
-from pydantic_deep.types import BranchStatus, FileChange
+from pydantic_deep.toolsets.forking.types import BranchStatus, FileChange
 
 
 def _seed_history(text: str) -> list[Any]:

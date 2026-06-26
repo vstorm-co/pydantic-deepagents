@@ -34,7 +34,7 @@ from pydantic_deep.toolsets.forking.diff import (
     _is_binary_bytes,
     build_diff_report,
 )
-from pydantic_deep.types import BranchStatus
+from pydantic_deep.toolsets.forking.types import BranchStatus
 
 
 def _make_status(branch_id: str, label: str) -> BranchStatus:

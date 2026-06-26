@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from pydantic_deep.types import ForkHandle
+from pydantic_deep.toolsets.forking.types import ForkHandle
 
 
 @runtime_checkable

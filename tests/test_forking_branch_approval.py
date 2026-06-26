@@ -33,7 +33,7 @@ from pydantic_deep.toolsets.forking.coordinator import (
     _describe_blocked_call,
 )
 from pydantic_deep.toolsets.forking.store import InMemoryForkStateStore
-from pydantic_deep.types import BranchIsolation, BranchSpec
+from pydantic_deep.toolsets.forking.types import BranchIsolation, BranchSpec
 
 
 class _NormalResult:

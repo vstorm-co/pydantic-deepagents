@@ -38,7 +38,7 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchStatus, FileChange
+    from pydantic_deep.toolsets.forking.types import BranchStatus, FileChange
 
 
 @dataclass

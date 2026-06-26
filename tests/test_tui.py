@@ -60,6 +60,12 @@ class TestTUIWidgets:
         assert all(isinstance(h, logging.NullHandler) for h in lg.handlers)
         assert lg.propagate is False
 
+        # fastmcp re-runs configure_logging on client connect; it must stay quiet.
+        from fastmcp.utilities.logging import configure_logging
+
+        configure_logging(level="INFO")
+        assert all(isinstance(h, logging.NullHandler) for h in lg.handlers)
+
     async def test_brand_theme_is_active_by_default(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()

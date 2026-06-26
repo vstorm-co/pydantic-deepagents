@@ -43,6 +43,15 @@ def quiet_console_logging() -> None:
     route to a NullHandler, stop propagation, and raise the level so even a
     stray record never reaches the console. Idempotent and exception-safe.
     """
+    # fastmcp re-runs ``configure_logging`` (re-adding a stderr RichHandler) when
+    # a client connects — mid-generation, painting "tools/list" over the screen.
+    # Disabling its logging makes that reconfigure an early-return no-op for good.
+    with contextlib.suppress(Exception):
+        import fastmcp
+
+        fastmcp.settings.log_enabled = False
+        fastmcp.settings.enable_rich_logging = False
+
     for name in _NOISY_CONSOLE_LOGGERS:
         with contextlib.suppress(Exception):
             lg = logging.getLogger(name)

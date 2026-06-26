@@ -135,10 +135,8 @@ class MessageQueueCapability(AbstractCapability[Any]):
 
             steering_part = UserPromptPart(content=format_steering(queued))
 
-            # Build a fresh list and reassign rather than mutating
-            # request_context.messages in place. The latter is the shared run
-            # history; mutating it would corrupt state seen by later
-            # capabilities. This mirrors PeriodicReminderCapability.
+            # Reassign a fresh list rather than mutating request_context.messages
+            # in place - it is the shared run history seen by later capabilities.
             msgs = list(request_context.messages)
             for i in range(len(msgs) - 1, -1, -1):
                 if isinstance(msgs[i], ModelRequest):

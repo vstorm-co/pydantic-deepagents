@@ -24,7 +24,7 @@ import warnings
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
@@ -67,8 +67,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-BranchRunnerFunc = Any
 
 _CANCEL_CLEANUP_TIMEOUT_S: float = 1.0
 
@@ -286,6 +284,24 @@ class BranchRuntime:
     partial_history: list[Any] = field(default_factory=list)
     pending_approval: PendingApprovalRequest | None = None
     blocked_commands: list[str] = field(default_factory=list)
+
+
+class BranchRunnerFunc(Protocol):
+    """Runs one branch turn, letting the host (e.g. the TUI) stream output.
+
+    When set on `ForkCoordinator.branch_runner`, it replaces the plain
+    `agent.run(...)` call so the host can observe tokens and tool events.
+    """
+
+    async def __call__(
+        self,
+        agent: Any,
+        steer: str | None,
+        message_history: list[Any],
+        deps: DeepAgentDeps,
+        deferred_results: DeferredToolResults | None,
+        runtime: BranchRuntime,
+    ) -> Any: ...
 
 
 class ForkCoordinator:
@@ -629,17 +645,7 @@ class ForkCoordinator:
         """
 
         runtime = self.branches.get(branch_id)
-        runner = self.branch_runner
-        if runner is not None and runtime is not None:
-            result = await runner(
-                self.agent, spec.steer, list(parent_history), cloned_deps, None, runtime
-            )
-        else:
-            result = await self.agent.run(
-                spec.steer,
-                message_history=list(parent_history),
-                deps=cloned_deps,
-            )
+        result = await self._invoke(spec.steer, parent_history, cloned_deps, runtime, None)
         while isinstance(getattr(result, "output", None), DeferredToolRequests):
             approvals: dict[str, Any] = {}
             runtime = self.branches.get(branch_id)
@@ -665,23 +671,29 @@ class ForkCoordinator:
                         description,
                     )
                     approvals[call.tool_call_id] = False
-            if runner is not None and runtime is not None:  # pragma: no cover - deferred + runner
-                result = await runner(
-                    self.agent,
-                    None,
-                    result.all_messages(),
-                    cloned_deps,
-                    DeferredToolResults(approvals=approvals),
-                    runtime,
-                )
-            else:
-                result = await self.agent.run(
-                    None,
-                    message_history=result.all_messages(),
-                    deps=cloned_deps,
-                    deferred_tool_results=DeferredToolResults(approvals=approvals),
-                )
+            result = await self._invoke(
+                None,
+                result.all_messages(),
+                cloned_deps,
+                runtime,
+                DeferredToolResults(approvals=approvals),
+            )
         return result
+
+    async def _invoke(
+        self,
+        steer: str | None,
+        history: list[Any],
+        deps: DeepAgentDeps,
+        runtime: BranchRuntime | None,
+        deferred: DeferredToolResults | None,
+    ) -> Any:
+        """Run one branch turn via the host runner if set, else `agent.run`."""
+        runner = self.branch_runner
+        if runner is not None and runtime is not None:
+            return await runner(self.agent, steer, list(history), deps, deferred, runtime)
+        kwargs: dict[str, Any] = {} if deferred is None else {"deferred_tool_results": deferred}
+        return await self.agent.run(steer, message_history=list(history), deps=deps, **kwargs)
 
     async def run_on_branch(self, branch_id: str, user_message: str) -> asyncio.Task[Any]:
         """Start a new turn on a finished branch with `user_message`.
@@ -832,6 +844,21 @@ class ForkCoordinator:
             if rt.pending_approval is not None
         ]
 
+    async def _cancel_branch_task(self, rt: BranchRuntime, log_label: str) -> None:
+        """Cancel a branch task and await its cleanup, swallowing cleanup errors.
+
+        No-op when the task is already done. Shared by the merge, abort, and
+        close paths so the cancel-await-with-timeout dance lives in one place.
+        """
+        if rt.task.done():
+            return
+        rt.task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
+            try:
+                await asyncio.wait_for(rt.task, timeout=_CANCEL_CLEANUP_TIMEOUT_S)
+            except Exception:  # pragma: no cover - defensive
+                logger.warning("%s cleanup raised", log_label, exc_info=True)
+
     async def merge_or_select(self, action: str) -> MergeResult:
         """Resolve the fork by picking a winner.
 
@@ -887,13 +914,7 @@ class ForkCoordinator:
             for bid, rt in list(self.branches.items()):
                 if bid == target_id:
                     continue
-                if not rt.task.done():
-                    rt.task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
-                        try:
-                            await asyncio.wait_for(rt.task, timeout=_CANCEL_CLEANUP_TIMEOUT_S)
-                        except Exception:  # pragma: no cover - defensive
-                            logger.warning("discarded branch %s cleanup raised", bid, exc_info=True)
+                await self._cancel_branch_task(rt, f"discarded branch {bid}")
                 rt.overlay = None
                 discarded.append(bid)
 
@@ -965,13 +986,7 @@ class ForkCoordinator:
         async with self._lock:
             aborted: list[str] = []
             for bid, rt in list(self.branches.items()):
-                if not rt.task.done():
-                    rt.task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
-                        try:
-                            await asyncio.wait_for(rt.task, timeout=_CANCEL_CLEANUP_TIMEOUT_S)
-                        except Exception:  # pragma: no cover - defensive
-                            logger.warning("aborted branch %s cleanup raised", bid, exc_info=True)
+                await self._cancel_branch_task(rt, f"aborted branch {bid}")
                 rt.overlay = None
                 aborted.append(bid)
 
@@ -1430,17 +1445,9 @@ class ForkCoordinator:
         is removed on abort (unless `keep_artifacts` is set), mirroring
         the merge-resolution cleanup. Safe to call multiple times.
         """
+        # Await before cleanup so a mid-write branch can't recreate the fork dir.
         for rt in self.branches.values():
-            if not rt.task.done():
-                rt.task.cancel()
-                # Await before cleanup so a mid-write branch can't recreate the fork dir.
-                with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
-                    try:
-                        await asyncio.wait_for(rt.task, timeout=_CANCEL_CLEANUP_TIMEOUT_S)
-                    except Exception:  # pragma: no cover - defensive
-                        logger.warning(
-                            "aclose: branch %s cleanup raised", rt.status.id, exc_info=True
-                        )
+            await self._cancel_branch_task(rt, f"aclose: branch {rt.status.id}")
         if self.materializer is not None:  # pragma: no branch - fork() always allocates one
             self.materializer.cleanup()
 

@@ -19,6 +19,7 @@ import hashlib
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -850,8 +851,6 @@ class BranchOverlay:
         """
         try:
             if getattr(parent, "execute_enabled", False):
-                import shlex
-
                 response = parent.execute(  # pyright: ignore[reportAttributeAccessIssue]
                     f"rm -f {shlex.quote(change.path)}"
                 )
@@ -896,8 +895,6 @@ class BranchOverlay:
         """Replay a `mkdir` op onto `parent`; return `True` on success."""
         try:
             if getattr(parent, "execute_enabled", False):
-                import shlex
-
                 response = parent.execute(  # pyright: ignore[reportAttributeAccessIssue]
                     f"mkdir -p {shlex.quote(change.path)}"
                 )
@@ -936,8 +933,6 @@ class BranchOverlay:
         """Replay an `rmdir` op onto `parent`; return `True` on success."""
         try:
             if getattr(parent, "execute_enabled", False):
-                import shlex
-
                 response = parent.execute(  # pyright: ignore[reportAttributeAccessIssue]
                     f"rm -rf {shlex.quote(change.path)}"
                 )

@@ -14,6 +14,7 @@ from textual.reactive import reactive
 from textual.widgets import Input, Static, TextArea
 
 from apps.cli.messages import (
+    AttachFileRequested,
     CommandSelected,
     FileSelected,
     PasteImageRequested,
@@ -27,6 +28,32 @@ _MARKUP_RE = re.compile(r"\[/?[^\]]*\]")
 def _strip(markup: str) -> str:
     """Remove `[...]` tags for width math."""
     return _MARKUP_RE.sub("", markup)
+
+
+def _escape_markup(text: str) -> str:
+    """Escape `[` so literal text isn't parsed as a Textual content-markup tag."""
+    return text.replace("[", r"\[")
+
+
+def _dropped_file_path(pasted: str) -> str | None:
+    """If `pasted` is a single existing file path (as produced by dragging a
+    file onto the terminal), return it normalized — else None.
+
+    Terminals paste a dropped path with a trailing space, surrounding quotes,
+    and/or backslash-escaped spaces; normalize those before the `is_file` check.
+    """
+    from pathlib import Path
+
+    text = pasted.strip().strip("'\"")
+    text = text.replace("\\ ", " ")  # macOS escapes spaces in dropped paths
+    if not text or "\n" in text:
+        return None
+    try:
+        if Path(text).expanduser().is_file():
+            return str(Path(text).expanduser())
+    except OSError:
+        return None
+    return None
 
 
 class HintsBar(Static):
@@ -198,6 +225,20 @@ class PromptInput(Input):
         self._history: list[str] = _load_history()
         self._history_index: int = -1
 
+    def _on_paste(self, event: Any) -> None:
+        """Intercept a dropped file path before it's inserted as raw text.
+
+        Dragging a file onto the terminal arrives as a bracketed paste. If the
+        pasted text is an existing file, attach it instead of typing the path;
+        otherwise fall back to the normal paste-inserts-text behavior.
+        """
+        path = _dropped_file_path(event.text)
+        if path is not None:
+            self.post_message(AttachFileRequested(path))
+            event.stop()
+            return
+        super()._on_paste(event)
+
     def on_key(self, event: Any) -> None:
         """Handle special keys for history and triggers."""
         if event.key == "ctrl+v":
@@ -307,6 +348,15 @@ class InputArea(Vertical):
     InputArea #prompt-box:focus-within {
         border: round $accent;
     }
+    InputArea #attachments-bar {
+        height: 1;
+        color: $accent;
+        padding: 0 2;
+        display: none;
+    }
+    InputArea #attachments-bar.visible {
+        display: block;
+    }
     """
 
     is_multiline: reactive[bool] = reactive(False)
@@ -316,6 +366,7 @@ class InputArea(Vertical):
         """Request to exit multiline mode."""
 
     def compose(self) -> ComposeResult:
+        yield Static(id="attachments-bar")
         with Horizontal(id="prompt-shell"):
             yield GenSquares(id="gen-squares")
             with Vertical(id="prompt-box"):  # noqa: SIM117 - distinct nesting levels
@@ -324,6 +375,18 @@ class InputArea(Vertical):
                     yield PromptInput()
         yield HintsBar()
         yield SessionFooter()
+
+    def set_attachments(self, labels: list[str]) -> None:
+        """Show pending attachment chips above the prompt (hide when empty)."""
+        try:
+            bar = self.query_one("#attachments-bar", Static)
+        except NoMatches:
+            return
+        bar.set_class(bool(labels), "visible")
+        if labels:
+            # Escape `[` so a bracketed label like [Image #1] isn't parsed as markup.
+            chips = "  ".join(f"[$accent]{_escape_markup(label)}[/]" for label in labels)
+            bar.update(f"{chips}   [$text-muted]esc to clear[/]")
 
     @staticmethod
     def _running_hints() -> str:

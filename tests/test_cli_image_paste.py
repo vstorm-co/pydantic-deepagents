@@ -32,6 +32,90 @@ async def test_attach_clipboard_image_no_image(
         assert screen._pending_images == []
 
 
+def test_dropped_file_path_detection(tmp_path: Path) -> None:
+    from apps.cli.widgets.input_area import _dropped_file_path
+
+    f = tmp_path / "report.html"
+    f.write_text("<html>")
+    assert _dropped_file_path(f"'{f}' ") == str(f)  # quoted + trailing space
+    assert _dropped_file_path(str(f)) == str(f)
+    assert _dropped_file_path("just some pasted text") is None
+    assert _dropped_file_path(f"{f}\nmore") is None  # multiline paste, not a drop
+    assert _dropped_file_path(str(tmp_path)) is None  # a directory, not a file
+
+
+def test_escape_markup_brackets() -> None:
+    from apps.cli.widgets.input_area import _escape_markup
+
+    assert _escape_markup("[Image #1]") == r"\[Image #1]"
+
+
+async def test_clipboard_image_shows_chip(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        monkeypatch.setattr(ci, "grab_clipboard_image", lambda: (_PNG, "image/png"))
+        screen = cast(ChatScreen, app.screen)
+        screen.attach_clipboard_image()
+        await pilot.pause()
+        assert screen._attachment_labels == ["[Image #1]"]
+        from textual.widgets import Static
+
+        bar = app.screen.query_one("#attachments-bar", Static)
+        assert bar.has_class("visible")
+        assert "Image #1" in str(bar.render())
+
+
+async def test_dropped_image_attaches_as_chip(app: DeepApp, tmp_path: Path) -> None:
+    from apps.cli.messages import AttachFileRequested
+
+    img = tmp_path / "shot.png"
+    img.write_bytes(_PNG)
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        screen = cast(ChatScreen, app.screen)
+        screen.on_attach_file_requested(AttachFileRequested(str(img)))
+        await pilot.pause()
+        assert len(screen._pending_images) == 1
+        assert screen._attachment_labels == ["[shot.png]"]
+
+
+async def test_dropped_non_image_becomes_at_reference(app: DeepApp, tmp_path: Path) -> None:
+    from apps.cli.messages import AttachFileRequested
+    from apps.cli.widgets.input_area import PromptInput
+
+    doc = tmp_path / "notes.md"
+    doc.write_text("# notes")
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        screen = cast(ChatScreen, app.screen)
+        screen.on_attach_file_requested(AttachFileRequested(str(doc)))
+        await pilot.pause()
+        assert screen._pending_images == []  # not an image
+        assert f"@{doc}" in app.screen.query_one(PromptInput).value
+
+
+async def test_clear_attachments(app: DeepApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        monkeypatch.setattr(ci, "grab_clipboard_image", lambda: (_PNG, "image/png"))
+        screen = cast(ChatScreen, app.screen)
+        screen.attach_clipboard_image()
+        await pilot.pause()
+        screen.clear_attachments()
+        await pilot.pause()
+        assert screen._pending_images == []
+        assert screen._attachment_labels == []
+        from textual.widgets import Static
+
+        assert not app.screen.query_one("#attachments-bar", Static).has_class("visible")
+
+
 async def test_attach_and_submit_builds_multimodal_prompt(
     app: DeepApp, monkeypatch: pytest.MonkeyPatch
 ) -> None:

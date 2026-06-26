@@ -146,3 +146,11 @@ class FileSelected(Message):
 
 class PasteImageRequested(Message):
     """User asked to paste an image from the clipboard (Ctrl+V)."""
+
+
+class AttachFileRequested(Message):
+    """A file path was dropped onto the input — attach it to the next prompt."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__()
+        self.path = path

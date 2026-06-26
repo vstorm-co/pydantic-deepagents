@@ -262,6 +262,9 @@ class ChatScreen(Screen):
     _approval_in_flight: bool = False
     # Images grabbed from the clipboard, attached to the next submitted prompt.
     _pending_images: list[tuple[bytes, str]]
+    # Chip labels shown in the input's attachments bar (kept in step with the
+    # clipboard/dropped images so the user sees what will be sent).
+    _attachment_labels: list[str]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Initialise here, not in on_mount: the ctrl+v / @file-ref bindings can
@@ -269,6 +272,7 @@ class ChatScreen(Screen):
         # exist for the whole screen lifetime (C6).
         super().__init__(*args, **kwargs)
         self._pending_images = []
+        self._attachment_labels = []
 
     def compose(self) -> ComposeResult:
         yield DeepHeader()
@@ -744,6 +748,8 @@ class ChatScreen(Screen):
             from pydantic_ai.messages import BinaryContent
 
             self._pending_images = []
+            self._attachment_labels = []
+            self._refresh_attachments_bar()
             # Omit an empty text block — providers reject empty text content.
             prompt: Any = ([text] if text else []) + [
                 BinaryContent(data=data, media_type=mt) for data, mt in images
@@ -762,6 +768,20 @@ class ChatScreen(Screen):
         """Ctrl+V in the input: attach a clipboard image to the next prompt."""
         self.attach_clipboard_image()
 
+    def _refresh_attachments_bar(self) -> None:
+        """Push the current attachment chip labels to the input's bar."""
+        with contextlib.suppress(Exception):
+            self.query_one(InputArea).set_attachments(self._attachment_labels)
+
+    def clear_attachments(self) -> None:
+        """Drop all pending attachments (Esc on an empty prompt)."""
+        if not self._pending_images and not self._attachment_labels:
+            return
+        self._pending_images = []
+        self._attachment_labels = []
+        self._refresh_attachments_bar()
+        self.app.notify("Attachments cleared")
+
     def attach_clipboard_image(self) -> None:
         """Grab an image from the clipboard and attach it to the next prompt."""
         from apps.cli.clipboard_image import grab_clipboard_image
@@ -776,10 +796,32 @@ class ChatScreen(Screen):
             )
             return
         self._pending_images.append(result)
-        data, _mt = result
-        kb = max(1, len(data) // 1024)
-        n = len(self._pending_images)
-        app.notify(f"🖼 Image attached ({kb} KB) - {n} pending. Send a message to include it.")
+        self._attachment_labels.append(f"[Image #{len(self._pending_images)}]")
+        self._refresh_attachments_bar()
+        with contextlib.suppress(Exception):
+            self.query_one(InputArea).focus_input()
+
+    def on_attach_file_requested(self, event: Any) -> None:
+        """A file was dropped on the input — attach an image as a chip, or add a
+        non-image as an `@path` reference the prompt expansion picks up."""
+        path = Path(event.path)
+        ext = path.suffix.lower()
+        if ext in self._IMAGE_EXTS and path.is_file():
+            try:
+                self._pending_images.append((path.read_bytes(), self._IMAGE_EXTS[ext]))
+            except OSError:
+                self.app.notify(f"Could not read {path.name}", severity="warning")
+                return
+            self._attachment_labels.append(f"[{path.name}]")
+            self._refresh_attachments_bar()
+        else:
+            # Reuse the @file machinery: drop a reference into the input so the
+            # file's content is expanded on submit, and it's visible to the user.
+            with contextlib.suppress(Exception):
+                prompt = self.query_one(InputArea).query_one("PromptInput")
+                sep = "" if not prompt.value or prompt.value.endswith(" ") else " "
+                prompt.value = f"{prompt.value}{sep}@{path} "
+                prompt.cursor_position = len(prompt.value)
         with contextlib.suppress(Exception):
             self.query_one(InputArea).focus_input()
 

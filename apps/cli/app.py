@@ -556,6 +556,15 @@ class DeepApp(App):
             self.agent_task.cancel()
             self.notify("Agent interrupted", severity="warning")
         else:
+            # Idle Esc clears pending attachments first, if any.
+            clear = getattr(self.screen, "clear_attachments", None)
+            pending = bool(getattr(self.screen, "_pending_images", None)) or bool(
+                getattr(self.screen, "_attachment_labels", None)
+            )
+            if clear is not None and pending:
+                clear()
+                return
+
             from apps.cli.widgets.input_area import InputArea
 
             with contextlib.suppress(NoMatches):

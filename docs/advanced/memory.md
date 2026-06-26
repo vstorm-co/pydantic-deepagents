@@ -1,6 +1,10 @@
 # Persistent Memory
 
-Persistent memory gives agents a `MEMORY.md` file stored in the backend that survives across sessions. Memory is auto-loaded into the system prompt and writable via tools.
+By default an agent forgets everything the moment a run ends. **Persistent
+memory** changes that: a `MEMORY.md` file, stored in the backend, that survives
+across sessions. The agent reads it automatically at the start of every run and
+can update it with tools — so facts you'd otherwise repeat ("I prefer pytest",
+"the staging URL is…") stick.
 
 ## Quick Start
 

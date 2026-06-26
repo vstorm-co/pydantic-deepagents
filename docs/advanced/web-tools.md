@@ -1,6 +1,10 @@
 # Web Tools
 
-Web tools give agents the ability to search the web and fetch pages. pydantic-deep uses pydantic-ai's built-in `WebSearch` and `WebFetch` capabilities, which leverage model-native web tools when available and fall back to local implementations otherwise.
+A model's training data has a cutoff; the world doesn't. **Web tools** let your
+agent look things up *now* — search the web and fetch live pages. pydantic-deep
+uses pydantic-ai's built-in `WebSearch` and `WebFetch` capabilities, preferring
+the model's native web tools when available and falling back to local
+implementations otherwise, so it just works across providers.
 
 ## Quick Start
 

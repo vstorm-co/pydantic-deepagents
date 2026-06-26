@@ -1,6 +1,10 @@
 # Plan Mode
 
-Plan mode provides a Claude Code-style planning subagent that analyzes the codebase, asks clarifying questions, and creates step-by-step implementation plans — without making any changes.
+Sometimes you want a plan *before* the agent touches anything. **Plan mode** is a
+Claude Code-style planning sub-agent that reads the codebase, asks you clarifying
+questions, and writes a step-by-step implementation plan — all without changing a
+single file. Approve the plan, then let the agent execute it. Look before you
+leap.
 
 ## Quick Start
 

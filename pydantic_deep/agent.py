@@ -1406,6 +1406,7 @@ def create_deep_agent(  # noqa: C901
         subagents=effective_subagents,
         web_search=web_search,
         web_fetch=web_fetch,
+        tool_search=tool_search,
     )
 
     @agent.instructions

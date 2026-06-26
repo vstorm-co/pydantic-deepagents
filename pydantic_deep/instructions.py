@@ -67,6 +67,42 @@ def make_subagent_section(configs: Sequence[SubAgentConfig]) -> InstructionProvi
     return provider
 
 
+def lean_todo_section(_ctx: RunContext[DeepAgentDeps]) -> str:
+    """Behavioral todo guidance without re-listing the self-describing tools.
+
+    Used when tool search is on: the todo tools carry their own schemas, so the
+    prompt only needs the *policy* for using them, not an inventory.
+    """
+    return (
+        "## Task Tracking\n\n"
+        "For work spanning several steps, track it with the todo tools: keep exactly "
+        "one task `in_progress`, mark each `completed` as soon as it's done, and "
+        "re-check the list before picking the next step. Skip todos for trivial, "
+        "one-shot tasks."
+    )
+
+
+def make_lean_subagent_section(configs: Sequence[SubAgentConfig]) -> InstructionProvider:
+    """Behavioral delegation guidance plus the roster — but not the full tool
+    schema, which the model gets when it discovers the `task` tool."""
+    names = [str(c.get("name", "")) for c in configs if c.get("name")]
+    roster = ", ".join(names)
+
+    def provider(ctx: RunContext[DeepAgentDeps]) -> str:
+        if not roster:
+            return ""
+        return (
+            "## Subagents\n\n"
+            "Specialist subagents are available via the `task` tool. Delegate "
+            "self-contained or parallel subtasks, giving each a complete brief — "
+            "they don't share your context. Work directly for simple, sequential, "
+            "or single-file work.\n\n"
+            f"Available: {roster}."
+        )
+
+    return provider
+
+
 def web_tools_section(*, web_search: bool, web_fetch: bool) -> str:
     """Render the web-tools availability prompt for the enabled web tools."""
     lines = ["## Web Tools\n\nYou have access to the web:"]
@@ -91,15 +127,27 @@ def build_instruction_providers(
     subagents: Sequence[SubAgentConfig],
     web_search: bool,
     web_fetch: bool,
+    tool_search: bool = False,
 ) -> list[InstructionProvider]:
-    """Assemble the ordered instruction providers for the enabled features."""
+    """Assemble the ordered instruction providers for the enabled features.
+
+    With `tool_search` on, the self-describing tools are deferred/discovered, so
+    the verbose per-tool enumerations are replaced with lean *behavioral*
+    sections — the prompt describes how to use the tools, not what they are.
+    The console section is kept verbatim either way: it carries the hashline
+    edit-format spec the model needs to call `edit_file` correctly.
+    """
     providers: list[InstructionProvider] = [uploads_section]
     if include_todo and todo_proxy is not None:
-        providers.append(make_todo_section(todo_proxy))
+        providers.append(lean_todo_section if tool_search else make_todo_section(todo_proxy))
     if include_filesystem:
         providers.append(make_console_section(edit_format))
     if include_subagents:
-        providers.append(make_subagent_section(subagents))
+        providers.append(
+            make_lean_subagent_section(subagents)
+            if tool_search
+            else make_subagent_section(subagents)
+        )
     if web_search or web_fetch:
         web = web_tools_section(web_search=web_search, web_fetch=web_fetch)
         providers.append(lambda _ctx: web)

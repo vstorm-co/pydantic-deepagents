@@ -32,8 +32,13 @@ def run_tui(
 
     # Stop fastmcp/mcp/httpx from logging to the terminal — under the TUI their
     # Rich/console handlers paint over the live screen (e.g. MCP `tools/list`).
+    # captureWarnings routes warnings.warn() to the (nulled) py.warnings logger
+    # instead of its default stderr print.
+    import logging as _logging
+
     from apps.cli.debug_log import quiet_console_logging
 
+    _logging.captureWarnings(True)
     quiet_console_logging()
 
     # Load saved API keys from keys.toml → os.environ

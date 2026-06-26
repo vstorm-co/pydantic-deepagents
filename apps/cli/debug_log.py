@@ -32,7 +32,14 @@ _MAX_LOG_FILES = 20
 # Third-party loggers that attach console/Rich handlers writing to the real
 # terminal. Under the Textual TUI those paint over the live screen (e.g.
 # fastmcp logging MCP `tools/list` traffic). Silenced at TUI launch.
-_NOISY_CONSOLE_LOGGERS = ("fastmcp", "mcp", "httpx", "httpcore", "fastmcp.client")
+_NOISY_CONSOLE_LOGGERS = (
+    "fastmcp",
+    "mcp",
+    "httpx",
+    "httpcore",
+    "fastmcp.client",
+    "py.warnings",  # warnings.warn() output, routed here via captureWarnings(True)
+)
 
 
 def quiet_console_logging() -> None:

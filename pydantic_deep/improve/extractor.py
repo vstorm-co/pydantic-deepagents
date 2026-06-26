@@ -14,16 +14,7 @@ from typing import Any
 from pydantic_ai import Agent
 
 from pydantic_deep.improve.prompts import CHUNK_MERGE_PROMPT, EXTRACTION_PROMPT
-from pydantic_deep.improve.types import (
-    AgentLearningInsight,
-    ContextInsight,
-    DecisionInsight,
-    FailureInsight,
-    PatternInsight,
-    PreferenceInsight,
-    SessionInsights,
-    UserFactInsight,
-)
+from pydantic_deep.improve.types import SessionInsights
 
 DEFAULT_MAX_TOKENS_PER_CHUNK: int = 140_000
 """Default maximum tokens per chunk (leaves room for system prompt)."""
@@ -119,13 +110,12 @@ class SessionExtractor:
             chunk_text = self._prepare_chunk_text(messages)
             if tool_sequence:
                 chunk_text += "\n\n--- TOOL CALL SEQUENCE ---\n\n" + tool_sequence
-            raw_insights = await self._extract_chunk(chunk_text, session_id, timestamp)
-            insights = _dict_to_session_insights(raw_insights)
+            insights = await self._extract_chunk(chunk_text, session_id, timestamp)
             chunk_count = 1
         else:
             # Multi-chunk extraction with merge
             chunks = self._chunk_messages(messages)
-            chunk_results: list[dict[str, Any]] = []
+            chunk_results: list[SessionInsights] = []
             for chunk in chunks:
                 chunk_text = self._prepare_chunk_text(chunk)
                 result = await self._extract_chunk(chunk_text, session_id, timestamp)
@@ -133,7 +123,10 @@ class SessionExtractor:
             insights = await self._merge_chunk_insights(chunk_results)
             chunk_count = len(chunks)
 
-        # Override the model-reported counts with the exact values.
+        # Identifiers and counts come from the messages, never the model: LLMs are
+        # unreliable at counting and have no reason to echo these back accurately.
+        insights.session_id = session_id
+        insights.timestamp = timestamp
         insights.message_count = message_count
         insights.tool_calls_count = tool_calls_count
         return insights, chunk_count
@@ -365,16 +358,16 @@ class SessionExtractor:
         chunk_text: str,
         session_id: str,
         timestamp: str,
-    ) -> dict[str, Any]:
+    ) -> SessionInsights:
         """Run the extraction agent on a single chunk.
 
         Args:
             chunk_text: Formatted text of the chunk.
-            session_id: Session identifier to include in output.
-            timestamp: Session timestamp to include in output.
+            session_id: Session identifier included in the prompt context.
+            timestamp: Session timestamp included in the prompt context.
 
         Returns:
-            Parsed insights dict matching SessionInsights fields.
+            The validated `SessionInsights` produced by the model.
         """
         user_prompt = (
             f"Session ID: {session_id}\n"
@@ -383,48 +376,42 @@ class SessionExtractor:
             f"{chunk_text}"
         )
 
-        agent: Agent[None, str] = Agent(
+        agent = Agent(
             model=self._model,
             system_prompt=EXTRACTION_PROMPT,
+            output_type=SessionInsights,
         )
         result = await agent.run(user_prompt)
-        return _parse_json_response(result.output, session_id, timestamp)
+        return result.output
 
-    async def _merge_chunk_insights(self, chunks: list[dict[str, Any]]) -> SessionInsights:
+    async def _merge_chunk_insights(self, chunks: list[SessionInsights]) -> SessionInsights:
         """Merge insights from multiple chunks, deduplicating overlaps.
 
         Uses an LLM to intelligently merge and deduplicate insights
         from overlapping chunks of the same session.
 
         Args:
-            chunks: List of raw insight dicts, one per chunk.
+            chunks: Per-chunk insights to merge.
 
         Returns:
             Merged SessionInsights for the full session.
         """
         if len(chunks) == 1:
-            return _dict_to_session_insights(chunks[0])
+            return chunks[0]
 
-        chunks_json = json.dumps(chunks, indent=2, ensure_ascii=False)
+        chunks_json = json.dumps([c.model_dump() for c in chunks], indent=2, ensure_ascii=False)
         prompt = CHUNK_MERGE_PROMPT.format(chunks_json=chunks_json)
 
-        agent: Agent[None, str] = Agent(
+        agent = Agent(
             model=self._model,
             system_prompt=prompt,
+            output_type=SessionInsights,
         )
-
-        first = chunks[0]
         user_prompt = (
-            f"Merge these {len(chunks)} chunk insights for session "
-            f"{first.get('session_id', 'unknown')}."
+            f"Merge these {len(chunks)} chunk insights for session {chunks[0].session_id}."
         )
         result = await agent.run(user_prompt)
-        merged = _parse_json_response(
-            result.output,
-            first.get("session_id", ""),
-            first.get("timestamp", ""),
-        )
-        return _dict_to_session_insights(merged)
+        return result.output
 
 
 def _extract_timestamp(messages: list[dict[str, Any]]) -> str:
@@ -442,139 +429,3 @@ def _extract_timestamp(messages: list[dict[str, Any]]) -> str:
             if ts:
                 return str(ts)
     return ""
-
-
-def _parse_json_response(
-    text: str,
-    fallback_session_id: str,
-    fallback_timestamp: str,
-) -> dict[str, Any]:
-    """Parse a JSON response from the extraction agent.
-
-    Handles responses that may include markdown code fences.
-
-    Args:
-        text: Raw text response from the agent.
-        fallback_session_id: Session ID to use if not in response.
-        fallback_timestamp: Timestamp to use if not in response.
-
-    Returns:
-        Parsed dict with SessionInsights fields.
-    """
-    # Strip markdown code fences if present
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        first_newline = cleaned.find("\n")
-        cleaned = cleaned[first_newline + 1 :] if first_newline != -1 else cleaned[3:]
-    if cleaned.endswith("```"):
-        cleaned = cleaned[:-3]
-    cleaned = cleaned.strip()
-
-    try:
-        data: dict[str, Any] = json.loads(cleaned)
-    except json.JSONDecodeError:
-        # If parsing fails, return minimal insights
-        data = {}
-
-    data.setdefault("session_id", fallback_session_id)
-    data.setdefault("timestamp", fallback_timestamp)
-    data.setdefault("message_count", 0)
-    data.setdefault("tool_calls_count", 0)
-    data.setdefault("user_facts", [])
-    data.setdefault("agent_learnings", [])
-    data.setdefault("failures", [])
-    data.setdefault("patterns", [])
-    data.setdefault("preferences", [])
-    data.setdefault("project_context", [])
-    data.setdefault("decisions", [])
-    return data
-
-
-def _dict_to_session_insights(data: dict[str, Any]) -> SessionInsights:
-    """Convert a raw dict to a SessionInsights dataclass.
-
-    Handles nested dicts by converting them to the appropriate
-    insight dataclasses.
-
-    Args:
-        data: Dict with SessionInsights fields.
-
-    Returns:
-        SessionInsights instance.
-    """
-    return SessionInsights(
-        session_id=data.get("session_id", ""),
-        timestamp=data.get("timestamp", ""),
-        message_count=data.get("message_count", 0),
-        tool_calls_count=data.get("tool_calls_count", 0),
-        user_facts=[
-            UserFactInsight(
-                fact=uf.get("fact", ""),
-                category=uf.get("category", "other"),
-                confidence=uf.get("confidence", 0.8),
-            )
-            if isinstance(uf, dict)
-            else uf
-            for uf in data.get("user_facts", [])
-        ],
-        agent_learnings=[
-            AgentLearningInsight(
-                learning=al.get("learning", ""),
-                category=al.get("category", "other"),
-                evidence=al.get("evidence", ""),
-                confidence=al.get("confidence", 0.7),
-            )
-            if isinstance(al, dict)
-            else al
-            for al in data.get("agent_learnings", [])
-        ],
-        failures=[
-            FailureInsight(
-                description=f.get("description", ""),
-                root_cause=f.get("root_cause", ""),
-                resolution=f.get("resolution", ""),
-                tool_calls=f.get("tool_calls", []),
-            )
-            if isinstance(f, dict)
-            else f
-            for f in data.get("failures", [])
-        ],
-        patterns=[
-            PatternInsight(
-                pattern=p.get("pattern", ""),
-                frequency=p.get("frequency", 1),
-                context=p.get("context", ""),
-            )
-            if isinstance(p, dict)
-            else p
-            for p in data.get("patterns", [])
-        ],
-        preferences=[
-            PreferenceInsight(
-                preference=p.get("preference", ""),
-                evidence=p.get("evidence", ""),
-            )
-            if isinstance(p, dict)
-            else p
-            for p in data.get("preferences", [])
-        ],
-        project_context=[
-            ContextInsight(
-                fact=c.get("fact", ""),
-                confidence=c.get("confidence", 0.5),
-            )
-            if isinstance(c, dict)
-            else c
-            for c in data.get("project_context", [])
-        ],
-        decisions=[
-            DecisionInsight(
-                decision=d.get("decision", ""),
-                reasoning=d.get("reasoning", ""),
-                confirmed=d.get("confirmed", False),
-            )
-            if isinstance(d, dict)
-            else d
-            for d in data.get("decisions", [])
-        ],
-    )

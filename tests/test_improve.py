@@ -10,9 +10,7 @@ from unittest.mock import AsyncMock, patch
 from pydantic_deep.improve.analyzer import DEFAULT_CONTEXT_FILES, ImprovementAnalyzer
 from pydantic_deep.improve.extractor import (
     SessionExtractor,
-    _dict_to_session_insights,
     _extract_timestamp,
-    _parse_json_response,
 )
 from pydantic_deep.improve.prompts import (
     CHUNK_MERGE_PROMPT,
@@ -158,137 +156,6 @@ class TestExtractTimestamp:
 
     def test_empty_messages(self) -> None:
         assert _extract_timestamp([]) == ""
-
-
-class TestParseJsonResponse:
-    def test_valid_json(self) -> None:
-        text = '{"session_id": "abc", "message_count": 5}'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-        assert result["message_count"] == 5
-
-    def test_json_with_code_fences(self) -> None:
-        text = '```json\n{"session_id": "abc"}\n```'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-
-    def test_fence_without_newline(self) -> None:
-        # A bare fence with no newline must not raise ValueError.
-        text = '```{"session_id": "abc"}```'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-
-    def test_bare_fence_only(self) -> None:
-        # A lone fence with no newline falls back to empty insights.
-        result = _parse_json_response("```", "fb_id", "fb_ts")
-        assert result["session_id"] == "fb_id"
-
-    def test_invalid_json_uses_fallbacks(self) -> None:
-        result = _parse_json_response("not json", "fb_id", "fb_ts")
-        assert result["session_id"] == "fb_id"
-        assert result["timestamp"] == "fb_ts"
-        assert result["user_facts"] == []
-        assert result["agent_learnings"] == []
-
-    def test_defaults_applied(self) -> None:
-        result = _parse_json_response("{}", "id", "ts")
-        assert result["failures"] == []
-        assert result["patterns"] == []
-        assert result["preferences"] == []
-        assert result["project_context"] == []
-        assert result["decisions"] == []
-
-
-class TestDictToSessionInsights:
-    def test_minimal(self) -> None:
-        data = {"session_id": "x", "timestamp": "t", "message_count": 1, "tool_calls_count": 0}
-        si = _dict_to_session_insights(data)
-        assert si.session_id == "x"
-        assert si.message_count == 1
-
-    def test_with_user_facts(self) -> None:
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "user_facts": [{"fact": "Name is Kacper", "category": "identity", "confidence": 1.0}],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.user_facts) == 1
-        assert si.user_facts[0].fact == "Name is Kacper"
-
-    def test_with_agent_learnings(self) -> None:
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "agent_learnings": [
-                {
-                    "learning": "uv run pytest",
-                    "category": "build_command",
-                    "evidence": "output",
-                    "confidence": 0.9,
-                }
-            ],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.agent_learnings) == 1
-        assert si.agent_learnings[0].learning == "uv run pytest"
-
-    def test_with_all_insight_types(self) -> None:
-        data = {
-            "session_id": "full",
-            "timestamp": "ts",
-            "message_count": 10,
-            "tool_calls_count": 5,
-            "failures": [
-                {
-                    "description": "err",
-                    "root_cause": "bug",
-                    "resolution": "fix",
-                    "tool_calls": ["execute"],
-                }
-            ],
-            "patterns": [{"pattern": "read->edit", "frequency": 2, "context": "coding"}],
-            "preferences": [{"preference": "concise", "evidence": "user said"}],
-            "project_context": [{"fact": "uses pytest", "confidence": 0.8}],
-            "decisions": [{"decision": "use uv", "reasoning": "fast", "confirmed": True}],
-            "user_facts": [{"fact": "Name", "category": "identity", "confidence": 1.0}],
-            "agent_learnings": [
-                {"learning": "test", "category": "other", "evidence": "e", "confidence": 0.7}
-            ],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.failures) == 1
-        assert len(si.patterns) == 1
-        assert len(si.preferences) == 1
-        assert len(si.project_context) == 1
-        assert len(si.decisions) == 1
-        assert len(si.user_facts) == 1
-        assert len(si.agent_learnings) == 1
-
-    def test_with_already_typed_objects(self) -> None:
-        """When values are already typed objects (not dicts), pass through."""
-        uf = UserFactInsight(fact="test", category="other", confidence=0.5)
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "user_facts": [uf],
-            "agent_learnings": [
-                AgentLearningInsight(learning="l", category="other", evidence="e", confidence=0.5)
-            ],
-            "failures": [FailureInsight(description="d", root_cause="r", resolution="")],
-            "patterns": [PatternInsight(pattern="p", frequency=1, context="c")],
-            "preferences": [PreferenceInsight(preference="p", evidence="e")],
-            "project_context": [ContextInsight(fact="f", confidence=0.5)],
-            "decisions": [DecisionInsight(decision="d", reasoning="r", confirmed=False)],
-        }
-        si = _dict_to_session_insights(data)
-        assert si.user_facts[0] is uf
 
 
 # ── SessionExtractor ─────────────────────────────────────────────
@@ -553,8 +420,8 @@ class TestSessionExtractor:
             '{"tool": "read", "elapsed": 0.1, "error": false, "result_length": 10, "args": {}}\n'
         )
 
-        mock_output = json.dumps(
-            {"session_id": "session_tl", "message_count": 1, "tool_calls_count": 0}
+        mock_output = SessionInsights(
+            session_id="session_tl", timestamp="", message_count=1, tool_calls_count=0
         )
         with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
@@ -583,13 +450,12 @@ class TestSessionExtractor:
         ]
         (session / "messages.json").write_text(json.dumps(messages))
 
-        mock_output = json.dumps(
-            {
-                "session_id": "session2",
-                "message_count": 1,
-                "tool_calls_count": 0,
-                "user_facts": [{"fact": "test", "category": "other", "confidence": 0.5}],
-            }
+        mock_output = SessionInsights(
+            session_id="session2",
+            timestamp="",
+            message_count=1,
+            tool_calls_count=0,
+            user_facts=[UserFactInsight(fact="test", category="other", confidence=0.5)],
         )
         with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
@@ -620,8 +486,8 @@ class TestSessionExtractor:
         (session / "messages.json").write_text(json.dumps(messages))
 
         # Model reports bogus counts - they must be ignored in favour of exact ones.
-        mock_output = json.dumps(
-            {"session_id": "session_counts", "message_count": 99, "tool_calls_count": 99}
+        mock_output = SessionInsights(
+            session_id="session_counts", timestamp="", message_count=99, tool_calls_count=99
         )
         with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
@@ -643,8 +509,8 @@ class TestSessionExtractor:
         ]
         (session / "messages.json").write_text(json.dumps(messages))
 
-        mock_output = json.dumps(
-            {"session_id": "session3", "message_count": 2, "tool_calls_count": 0}
+        mock_output = SessionInsights(
+            session_id="session3", timestamp="", message_count=2, tool_calls_count=0
         )
         with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
@@ -657,18 +523,18 @@ class TestSessionExtractor:
 
     async def test_merge_single_chunk(self) -> None:
         ext = SessionExtractor(model="test")
-        data = {"session_id": "x", "timestamp": "t", "message_count": 1, "tool_calls_count": 0}
+        data = SessionInsights(session_id="x", timestamp="t", message_count=1, tool_calls_count=0)
         result = await ext._merge_chunk_insights([data])
         assert result.session_id == "x"
 
     async def test_merge_multiple_chunks(self) -> None:
         ext = SessionExtractor(model="test:test")
         chunks = [
-            {"session_id": "x", "timestamp": "t", "message_count": 5, "tool_calls_count": 2},
-            {"session_id": "x", "timestamp": "t", "message_count": 5, "tool_calls_count": 3},
+            SessionInsights(session_id="x", timestamp="t", message_count=5, tool_calls_count=2),
+            SessionInsights(session_id="x", timestamp="t", message_count=5, tool_calls_count=3),
         ]
-        mock_output = json.dumps(
-            {"session_id": "x", "timestamp": "t", "message_count": 10, "tool_calls_count": 5}
+        mock_output = SessionInsights(
+            session_id="x", timestamp="t", message_count=10, tool_calls_count=5
         )
         with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value

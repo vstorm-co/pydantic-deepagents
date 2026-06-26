@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `message_queue`: `pydantic_deep.capabilities.message_queue` → `pydantic_deep.features.message_queue`.
   - `teams`: `pydantic_deep.toolsets.teams` → `pydantic_deep.features.teams`.
   - `plan`: `pydantic_deep.toolsets.plan` → `pydantic_deep.features.plan`.
+  - `checkpointing`: `pydantic_deep.toolsets.checkpointing` → `pydantic_deep.features.checkpointing`.
 
 ## [0.3.33] - 2026-06-26
 

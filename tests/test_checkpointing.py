@@ -22,7 +22,7 @@ from pydantic_ai.usage import RunUsage
 
 from pydantic_deep import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.checkpointing import (
+from pydantic_deep.features.checkpointing import (
     Checkpoint,
     CheckpointMiddleware,
     CheckpointToolset,
@@ -31,8 +31,8 @@ from pydantic_deep.toolsets.checkpointing import (
     RewindRequested,
     fork_from_checkpoint,
 )
-from pydantic_deep.toolsets.checkpointing.store import _make_checkpoint, _save_and_prune
-from pydantic_deep.toolsets.checkpointing.toolset import _resolve_toolset_store
+from pydantic_deep.features.checkpointing.store import _make_checkpoint, _save_and_prune
+from pydantic_deep.features.checkpointing.toolset import _resolve_toolset_store
 
 TEST_MODEL = TestModel()
 

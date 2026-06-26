@@ -195,7 +195,7 @@ class BackendSkillScriptExecutor:
 
 ### 6. CheckpointToolset
 
-**Source:** `pydantic_deep/toolsets/checkpointing.py`
+**Source:** `pydantic_deep/features/checkpointing.py`
 
 **Tools:**
 - `save_checkpoint` — Save a named checkpoint of conversation state

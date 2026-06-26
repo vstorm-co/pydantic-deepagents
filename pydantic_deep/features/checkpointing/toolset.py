@@ -11,7 +11,7 @@ from pydantic_ai.messages import ModelMessage, ModelRequest, ToolCallPart, ToolR
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets import FunctionToolset
 
-from pydantic_deep.toolsets.checkpointing.store import (
+from pydantic_deep.features.checkpointing.store import (
     Checkpoint,
     CheckpointStore,
     RewindRequested,

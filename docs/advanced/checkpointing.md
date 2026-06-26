@@ -95,10 +95,10 @@ Messages are serialized using pydantic-ai's `ModelMessagesTypeAdapter`, so all m
 
 ### Custom Store
 
-Implement the [`CheckpointStore`][pydantic_deep.toolsets.checkpointing.CheckpointStore] protocol:
+Implement the [`CheckpointStore`][pydantic_deep.features.checkpointing.CheckpointStore] protocol:
 
 ```python
-from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
+from pydantic_deep.features.checkpointing import Checkpoint, CheckpointStore
 
 class RedisCheckpointStore:
     async def save(self, checkpoint: Checkpoint) -> None: ...
@@ -113,7 +113,7 @@ class RedisCheckpointStore:
 
 ## Rewinding
 
-When the agent calls `rewind_to`, a [`RewindRequested`][pydantic_deep.toolsets.checkpointing.RewindRequested] exception propagates out of `agent.run()`. Your application loop catches it and restores the conversation:
+When the agent calls `rewind_to`, a [`RewindRequested`][pydantic_deep.features.checkpointing.RewindRequested] exception propagates out of `agent.run()`. Your application loop catches it and restores the conversation:
 
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps, RewindRequested
@@ -184,14 +184,14 @@ The middleware resolves the store from `deps.checkpoint_store` first, falling ba
 
 | Component | Description |
 |-----------|-------------|
-| [`Checkpoint`][pydantic_deep.toolsets.checkpointing.Checkpoint] | Immutable snapshot: id, label, turn, messages, metadata |
-| [`CheckpointStore`][pydantic_deep.toolsets.checkpointing.CheckpointStore] | Protocol for storage backends |
-| [`InMemoryCheckpointStore`][pydantic_deep.toolsets.checkpointing.InMemoryCheckpointStore] | Default in-memory store |
-| [`FileCheckpointStore`][pydantic_deep.toolsets.checkpointing.FileCheckpointStore] | Persistent JSON file store |
-| [`CheckpointMiddleware`][pydantic_deep.toolsets.checkpointing.CheckpointMiddleware] | Auto-save middleware |
-| [`CheckpointToolset`][pydantic_deep.toolsets.checkpointing.CheckpointToolset] | Agent tools (save, list, rewind) |
-| [`RewindRequested`][pydantic_deep.toolsets.checkpointing.RewindRequested] | Exception for app-level rewind |
-| [`fork_from_checkpoint`][pydantic_deep.toolsets.checkpointing.fork_from_checkpoint] | Utility for session forking |
+| [`Checkpoint`][pydantic_deep.features.checkpointing.Checkpoint] | Immutable snapshot: id, label, turn, messages, metadata |
+| [`CheckpointStore`][pydantic_deep.features.checkpointing.CheckpointStore] | Protocol for storage backends |
+| [`InMemoryCheckpointStore`][pydantic_deep.features.checkpointing.InMemoryCheckpointStore] | Default in-memory store |
+| [`FileCheckpointStore`][pydantic_deep.features.checkpointing.FileCheckpointStore] | Persistent JSON file store |
+| [`CheckpointMiddleware`][pydantic_deep.features.checkpointing.CheckpointMiddleware] | Auto-save middleware |
+| [`CheckpointToolset`][pydantic_deep.features.checkpointing.CheckpointToolset] | Agent tools (save, list, rewind) |
+| [`RewindRequested`][pydantic_deep.features.checkpointing.RewindRequested] | Exception for app-level rewind |
+| [`fork_from_checkpoint`][pydantic_deep.features.checkpointing.fork_from_checkpoint] | Utility for session forking |
 
 ## Next Steps
 

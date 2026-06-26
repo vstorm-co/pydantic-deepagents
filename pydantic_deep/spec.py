@@ -46,7 +46,7 @@ from pydantic_ai_backends import StateBackend
 
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.checkpointing import CheckpointFrequency
+from pydantic_deep.features.checkpointing import CheckpointFrequency
 
 
 class DeepAgentSpec(BaseModel):

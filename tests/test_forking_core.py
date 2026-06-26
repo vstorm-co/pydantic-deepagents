@@ -31,8 +31,8 @@ from pydantic_deep import (
     clone_for_branch,
     create_deep_agent,
 )
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.features.message_queue import MessageQueue
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
 from pydantic_deep.toolsets.forking.coordinator import _APPROVAL_POLL_INTERVAL_S
 from pydantic_deep.toolsets.forking.isolation import _read_backend_bytes

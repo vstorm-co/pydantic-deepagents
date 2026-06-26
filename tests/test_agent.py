@@ -379,7 +379,7 @@ class TestDeepAgentDeps:
 
     def test_checkpoint_store_set(self):
         """checkpoint_store can be passed to constructor."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         deps = DeepAgentDeps(checkpoint_store=store)
@@ -387,7 +387,7 @@ class TestDeepAgentDeps:
 
     def test_clone_for_subagent_propagates_checkpoint_store(self):
         """checkpoint_store is shared with subagent deps."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         original = DeepAgentDeps(checkpoint_store=store)

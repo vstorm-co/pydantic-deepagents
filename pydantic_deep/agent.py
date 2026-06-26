@@ -43,6 +43,12 @@ from subagents_pydantic_ai import (
 
 from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.checkpointing import (
+    CheckpointMiddleware,
+    CheckpointStore,
+    CheckpointToolset,
+    InMemoryCheckpointStore,
+)
 from pydantic_deep.features.context import ContextToolset
 from pydantic_deep.features.eviction import EvictionCapability
 from pydantic_deep.features.history_archive import create_history_search_toolset
@@ -75,12 +81,6 @@ from pydantic_deep.models import (
 from pydantic_deep.prompts import BASE_PROMPT
 from pydantic_deep.styles import OutputStyle, format_style_prompt, resolve_style
 from pydantic_deep.subagents import RESEARCH_SUBAGENT
-from pydantic_deep.toolsets.checkpointing import (
-    CheckpointMiddleware,
-    CheckpointStore,
-    CheckpointToolset,
-    InMemoryCheckpointStore,
-)
 from pydantic_deep.toolsets.forking import create_fork_toolset
 from pydantic_deep.toolsets.forking.coordinator import _PerBranchCostTracking
 from pydantic_deep.toolsets.improve import ImproveToolset
@@ -96,8 +96,8 @@ if TYPE_CHECKING:
     from pydantic_ai.tools import ToolDefinition
     from pydantic_ai.toolsets import AbstractToolset
 
+    from pydantic_deep.features.checkpointing import CheckpointFrequency
     from pydantic_deep.features.message_queue import MessageQueue
-    from pydantic_deep.toolsets.checkpointing import CheckpointFrequency
 
 OutputDataT = TypeVar("OutputDataT")
 

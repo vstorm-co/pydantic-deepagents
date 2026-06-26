@@ -30,7 +30,7 @@ from pydantic_deep import (
     MergeStrategy,
     compute_confidence,
 )
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.toolsets.forking.coordinator import (
     _detect_vote_models,
     _last_assistant_text,

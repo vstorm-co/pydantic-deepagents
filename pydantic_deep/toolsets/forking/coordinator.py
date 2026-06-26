@@ -33,13 +33,13 @@ from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai_shields import CostInfo, CostTracking
 
 from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
+from pydantic_deep.features.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.models import (
     GOOGLE_CHEAP_MODEL,
     GOOGLE_ENV_VARS,
     NATIVE_CHEAP_MODELS,
     OPENROUTER_CHEAP_MODELS,
 )
-from pydantic_deep.toolsets.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.toolsets.forking.budget import AggregateBudgetWatcher, BudgetWatcher
 from pydantic_deep.toolsets.forking.diff import build_diff_report
 from pydantic_deep.toolsets.forking.isolation import BranchOverlay, clone_for_branch

@@ -13,9 +13,9 @@ if TYPE_CHECKING:
     from pydantic_ai_shields import CostTracking
     from pydantic_ai_summarization import ContextManagerCapability
 
+    from pydantic_deep.features.checkpointing import CheckpointStore
     from pydantic_deep.features.message_queue import MessageQueue
     from pydantic_deep.features.plan.toolset import PlanOption
-    from pydantic_deep.toolsets.checkpointing import CheckpointStore
     from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
 
     #: Interactive-question callback used by the plan `ask_user` tool.

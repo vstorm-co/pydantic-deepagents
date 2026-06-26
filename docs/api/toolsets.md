@@ -385,7 +385,7 @@ Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
 ### Constructor
 
 ```python
-from pydantic_deep.toolsets.checkpointing import CheckpointToolset
+from pydantic_deep.features.checkpointing import CheckpointToolset
 
 toolset = CheckpointToolset(
     descriptions={

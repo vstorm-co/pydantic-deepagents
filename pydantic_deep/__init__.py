@@ -106,6 +106,16 @@ from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.features.browser import BrowserToolset
+from pydantic_deep.features.checkpointing import (
+    Checkpoint,
+    CheckpointMiddleware,
+    CheckpointStore,
+    CheckpointToolset,
+    FileCheckpointStore,
+    InMemoryCheckpointStore,
+    RewindRequested,
+    fork_from_checkpoint,
+)
 from pydantic_deep.features.context import (
     DEFAULT_CONTEXT_FILENAMES,
     DEFAULT_MAX_CONTEXT_CHARS,
@@ -202,16 +212,6 @@ from pydantic_deep.styles import (
     resolve_style,
 )
 from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
-from pydantic_deep.toolsets.checkpointing import (
-    Checkpoint,
-    CheckpointMiddleware,
-    CheckpointStore,
-    CheckpointToolset,
-    FileCheckpointStore,
-    InMemoryCheckpointStore,
-    RewindRequested,
-    fork_from_checkpoint,
-)
 from pydantic_deep.toolsets.forking import (
     JUDGE_SYSTEM_PROMPT,
     BranchOverlay,

@@ -31,7 +31,7 @@ from pydantic_deep import (
     InMemoryForkStateStore,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
 from pydantic_deep.toolsets.forking.budget import BudgetWatcher
 from pydantic_deep.toolsets.forking.coordinator import (

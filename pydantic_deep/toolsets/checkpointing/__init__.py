@@ -1,33 +1,44 @@
-"""Conversation checkpointing: snapshots, stores, auto-checkpoint capability, tools.
+"""Deprecated import location for the checkpointing feature.
 
-`Checkpoint` is an immutable snapshot of conversation state; `CheckpointStore`
-is the persistence protocol (in-memory and file-backed implementations);
-`CheckpointMiddleware` auto-saves checkpoints; `CheckpointToolset` exposes
-save/list/rewind tools; `fork_from_checkpoint` forks a session from a snapshot.
+The implementation moved to :mod:`pydantic_deep.features.checkpointing` (see the
+CHANGELOG). This module re-exports the public names for backward compatibility
+and will be removed in the next minor release. Import from
+``pydantic_deep.features.checkpointing`` or the top-level ``pydantic_deep``
+instead.
 """
 
-from pydantic_deep.toolsets.checkpointing.store import (
+from __future__ import annotations
+
+import warnings
+
+from pydantic_deep.features.checkpointing import (
     Checkpoint,
+    CheckpointFrequency,
+    CheckpointMiddleware,
     CheckpointStore,
+    CheckpointToolset,
     FileCheckpointStore,
     InMemoryCheckpointStore,
     RewindRequested,
     fork_from_checkpoint,
 )
-from pydantic_deep.toolsets.checkpointing.toolset import (
-    CheckpointFrequency,
-    CheckpointMiddleware,
-    CheckpointToolset,
-)
 
 __all__ = [
     "Checkpoint",
+    "CheckpointFrequency",
+    "CheckpointMiddleware",
     "CheckpointStore",
+    "CheckpointToolset",
     "FileCheckpointStore",
     "InMemoryCheckpointStore",
     "RewindRequested",
     "fork_from_checkpoint",
-    "CheckpointFrequency",
-    "CheckpointMiddleware",
-    "CheckpointToolset",
 ]
+
+warnings.warn(
+    "pydantic_deep.toolsets.checkpointing has moved to "
+    "pydantic_deep.features.checkpointing; update your imports "
+    "(this shim will be removed in the next minor release).",
+    DeprecationWarning,
+    stacklevel=2,
+)

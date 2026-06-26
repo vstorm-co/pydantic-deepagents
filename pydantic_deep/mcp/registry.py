@@ -16,11 +16,30 @@ import asyncio
 import contextlib
 import logging
 import os
+import re
+import tempfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic_deep.mcp.config import _SECRET_AUTH_KINDS, MCPServerConfig
+
+
+def _stdio_log_file(name: str) -> Path:
+    """Path that a stdio MCP server's stderr is redirected to.
+
+    By default fastmcp inherits the parent's ``sys.stderr``; under the TUI that
+    means the server's logs (handshake, ``tools/list`` traffic, warnings) paint
+    over the live screen. Redirecting to a per-server log file keeps the logs
+    discoverable without corrupting the terminal.
+    """
+    safe = re.sub(r"[^A-Za-z0-9._-]", "_", name) or "server"
+    log_dir = Path(tempfile.gettempdir()) / "pydantic-deep" / "mcp"
+    with contextlib.suppress(Exception):
+        log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir / f"{safe}.log"
+
 
 if TYPE_CHECKING:
     from pydantic_ai._run_context import RunContext
@@ -141,7 +160,14 @@ def build_mcp_server(
 
     if config.transport == "stdio":
         command = cast(str, config.command)
-        transport = StdioTransport(command, list(config.args), env=env or None)
+        # Redirect the subprocess's stderr to a log file — otherwise it inherits
+        # sys.stderr and the server's logs paint over the live TUI screen.
+        transport = StdioTransport(
+            command,
+            list(config.args),
+            env=env or None,
+            log_file=_stdio_log_file(config.name),
+        )
         toolset = MCPToolset(transport, id=config.name)
     elif auth is not None and auth.kind == "oauth":  # http/sse interactive OAuth
         url = cast(str, config.url)

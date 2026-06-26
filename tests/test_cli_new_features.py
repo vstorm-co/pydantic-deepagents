@@ -74,3 +74,32 @@ async def test_approval_modal_position_label() -> None:
         title = m2.query_one("#approval-title")
         rendered = str(title.render())
         assert "1 of 3" in rendered
+
+
+async def test_context_warning_fires_once_per_crossing(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The >=90% context warning must not spam on every update — only on the
+    rising edge, re-arming after usage drops below 85% (hysteresis)."""
+    from apps.cli.messages import ContextUpdated
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        screen = cast(ChatScreen, app.screen)
+        warnings: list[str] = []
+        monkeypatch.setattr(
+            app,
+            "notify",
+            lambda m, **k: warnings.append(m) if "Context at" in str(m) else None,
+        )
+
+        # Several high updates in a row → exactly one warning.
+        for pct in (0.91, 0.93, 0.95):
+            screen.on_context_updated(ContextUpdated(pct, int(pct * 200_000), 200_000))
+        assert len(warnings) == 1
+
+        # Drop below the reset threshold (e.g. after /compact) → re-armed.
+        screen.on_context_updated(ContextUpdated(0.40, 80_000, 200_000))
+        # Climb back over 90% → one more warning.
+        screen.on_context_updated(ContextUpdated(0.92, 184_000, 200_000))
+        assert len(warnings) == 2

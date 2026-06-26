@@ -277,6 +277,9 @@ class ChatScreen(Screen):
         super().__init__(*args, **kwargs)
         self._pending_images = []
         self._attachment_labels = []
+        #: True once the >=90% context warning has fired; reset below 85% so the
+        #: heads-up shows once per crossing, not on every context update.
+        self._context_warned = False
 
     def compose(self) -> ComposeResult:
         yield DeepHeader()
@@ -1643,8 +1646,16 @@ class ChatScreen(Screen):
         status.context_pct = event.pct
         status.context_current = event.current
         status.context_max = event.maximum
+        # Warn once on the rising edge past 90%, not on every update — context
+        # stays high across many requests in a turn, which would flood the UI.
+        # Reset below 85% (hysteresis) so a later spike warns again, and after
+        # /compact drops usage the user gets a fresh heads-up if it climbs back.
         if event.pct >= 0.9:
-            notify_warning(self.app, f"Context at {event.pct:.0%} - type /compact to summarize")
+            if not self._context_warned:
+                notify_warning(self.app, f"Context at {event.pct:.0%} - type /compact to summarize")
+                self._context_warned = True
+        elif event.pct < 0.85:
+            self._context_warned = False
 
     def on_todos_updated(self, event: TodosUpdated) -> None:
         status = self.query_one(StatusBar)

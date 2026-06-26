@@ -1141,7 +1141,7 @@ def create_deep_agent(  # noqa: C901
         # No custom output_type but interrupt_on is used
         agent_create_kwargs["output_type"] = [str, DeferredToolRequests]
 
-    all_processors: list[Any] = list(history_processors or [])
+    all_processors: list[HistoryProcessor[DeepAgentDeps]] = list(history_processors or [])
 
     # Resolve history_messages_path to absolute for the middleware
     abs_messages_path: str | None = None
@@ -1213,7 +1213,7 @@ def create_deep_agent(  # noqa: C901
     if instrument is not None:  # pragma: no cover
         agent_create_kwargs["instrument"] = instrument
 
-    all_capabilities: list[Any] = []
+    all_capabilities: list[AbstractCapability[Any]] = []
 
     if _todo_proxy is not None:
         all_capabilities.append(_TodoProxyBinder(_todo_proxy))

@@ -5,7 +5,14 @@
     See [pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780) for progress.
     We will migrate to use the upstream implementation once available.
 
-Skills are modular packages that extend agent capabilities through filesystem-based configuration. They enable **progressive disclosure** - only loading detailed instructions when needed.
+Sometimes you want to teach an agent *how* to do something — your team's git
+conventions, a report format, a deploy checklist — without bloating its system
+prompt with every detail up front. That's what **skills** are for.
+
+A skill is a folder of instructions the agent discovers by name and loads only
+when it's actually relevant. This is **progressive disclosure**: the agent sees
+a one-line summary of every skill, and pulls in the full instructions on demand.
+Cheap to have many; you only pay for the one in use.
 
 ## What are Skills?
 
@@ -549,6 +556,14 @@ agent = create_deep_agent(
     backend=sandbox,
 )
 ```
+
+## Recap
+
+- A skill is a `SKILL.md` folder (plus optional resources/scripts) the agent
+  loads on demand — progressive disclosure keeps the prompt lean.
+- Point `create_deep_agent(skill_directories=[…])` at a folder, or store skills
+  in any backend with `BackendSkillsDirectory`.
+- Many skills cost almost nothing until one is actually used.
 
 ## Next Steps
 

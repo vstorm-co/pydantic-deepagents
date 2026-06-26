@@ -1,19 +1,31 @@
 # Agents
 
-The [`create_deep_agent`][pydantic_deep.agent.create_deep_agent] function is the main entry point for creating deep agents.
+Almost everything you do with pydantic-deep starts at one function:
+[`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. It returns a fully
+wired agent — planning, filesystem, web, memory, sub-agents — and then gets out
+of your way. This page is the tour of what you can turn on, pass in, and read
+back out.
 
-## Basic Usage
+## Basic usage
+
+The smallest possible agent takes no arguments at all:
 
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
 
-# Create agent with defaults
+# Create an agent with all the sensible defaults.
 agent = create_deep_agent()
 
-# Run with dependencies
+# Dependencies decide *where* state lives (here: in memory).
 deps = DeepAgentDeps(backend=StateBackend())
 result = await agent.run("Hello!", deps=deps)
 ```
+
+!!! tip "Two objects, one split"
+    Keep the mental model simple: the **agent** is *what to do* (model,
+    instructions, which tools), and **`DeepAgentDeps`** is *the world it acts in*
+    (the backend, todos, uploads). The same agent can run against many different
+    deps.
 
 ## Configuration Options
 
@@ -223,9 +235,10 @@ To gate sensitive tools behind approval, use `interrupt_on` (see
 [Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/middleware.md)
 for more details.
 
-### Eviction Processor
+### Eviction
 
-Automatically save large tool outputs to files:
+Automatically save large tool outputs to files (handled by
+[`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability]):
 
 ```python
 agent = create_deep_agent(eviction_token_limit=20000)
@@ -653,6 +666,16 @@ async def run_with_fallback(agent, prompt, deps):
         logger.error(f"Agent failed: {e}")
         return f"I encountered an error: {e}. Please try again."
 ```
+
+## Recap
+
+- `create_deep_agent()` is the one entry point — call it with no arguments for a
+  capable default, or layer on features with keyword flags.
+- The agent (what to do) and `DeepAgentDeps` (the world to do it in) are separate;
+  the same agent runs against many deps.
+- Your own `async` functions become typed tools, with `ctx.deps` injected.
+- Long conversations and large outputs are managed for you (context manager +
+  eviction), so you can focus on the task, not the token budget.
 
 ## Next Steps
 

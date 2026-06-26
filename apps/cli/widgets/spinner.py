@@ -1,7 +1,8 @@
 """Shared braille spinner — one frame set, one tick rate, one tiny state machine.
 
-Widgets that need a spinner while something is "in flight":
+Three widgets need a spinner while something is "in flight":
 
+- :class:`~apps.cli.widgets.header.DeepHeader` — global streaming indicator
 - :class:`~apps.cli.widgets.tool_call.ToolCallWidget` — per-tool-call pending state
 - :class:`~apps.cli.widgets.fork_overview.ForkOverviewWidget` — per-fork running state
 

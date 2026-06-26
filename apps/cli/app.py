@@ -22,6 +22,7 @@ from apps.cli.debug_log import get_logger
 from apps.cli.forking import CLIForkSession
 from apps.cli.screens.chat import ChatScreen
 from apps.cli.styles.themes import register_themes
+from apps.cli.widgets.header import DeepHeader
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.status_bar import StatusBar
 from pydantic_deep.goal import GoalEvaluator, GoalState
@@ -207,7 +208,14 @@ class DeepApp(App):
                 self.call_later(self._show_startup_error)
 
     def _sync_widgets(self) -> None:
-        """Sync app state to the status bar widget."""
+        """Sync app state to header and status bar widgets."""
+        try:
+            header = self.screen.query_one(DeepHeader)
+            header.version = self._version
+            header.model_name = self._model
+            header.branch = self._branch
+        except NoMatches:
+            pass
         try:
             status = self.screen.query_one(StatusBar)
             status.model_name = self._model
@@ -380,13 +388,12 @@ class DeepApp(App):
         # (reactive init before mount) or the target widget not mounted. Any
         # other error is a real bug — don't bury it under bare `except` (C11).
         with contextlib.suppress(NoMatches, ScreenStackError):
+            self.screen.query_one(DeepHeader).model_name = name
             self.screen.query_one(StatusBar).model_name = name
 
     def watch_is_streaming(self, streaming: bool) -> None:
-        from apps.cli.widgets.input_area import InputArea
-
         with contextlib.suppress(NoMatches, ScreenStackError):
-            self.screen.query_one(InputArea).is_agent_running = streaming
+            self.screen.query_one(DeepHeader).is_streaming = streaming
 
     def watch_context_pct(self, pct: float) -> None:
         with contextlib.suppress(NoMatches, ScreenStackError):

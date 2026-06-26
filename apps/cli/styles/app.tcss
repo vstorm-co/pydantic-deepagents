@@ -22,6 +22,16 @@ Screen {
     width: 1fr;
 }
 
+/* ── Header ──────────────────────────────────────────── */
+
+DeepHeader {
+    dock: top;
+    height: 1;
+    background: $surface-lighten-1;
+    color: $text;
+    padding: 0 2;
+}
+
 /* ── Message area ────────────────────────────────────── */
 
 MessageList {
@@ -100,8 +110,7 @@ ToolCallWidget .tool-output-expanded.visible {
     background: $background;
 }
 
-#bottom-bar InputArea,
-#bottom-bar StatusBar {
+#bottom-bar InputArea {
     dock: none;
 }
 

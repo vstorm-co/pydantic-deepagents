@@ -159,7 +159,10 @@ class StatusBar(Widget):
         # Message count — always show
         parts.append(f"{self.message_count} msgs")
 
-        # Model name lives in the footer now — no need to repeat it here.
+        # Model name (shortened) — always show
+        if self.model_name:
+            short = self.model_name.split(":")[-1] if ":" in self.model_name else self.model_name
+            parts.append(f"[$text-muted]{short}[/]")
 
         # Drop trailing segments until the line fits the bar width — a single
         # docked row must never overflow its region (overflow ghosts to the

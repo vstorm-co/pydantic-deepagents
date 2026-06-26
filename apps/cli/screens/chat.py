@@ -62,6 +62,7 @@ from apps.cli.widgets.branch_panel import BranchPanelWidget
 from apps.cli.widgets.fork_badge import ForkBadgeWidget
 from apps.cli.widgets.fork_overview import ForkOverviewWidget
 from apps.cli.widgets.fork_tabs import OVERVIEW_TAB_ID, ForkTabsWidget
+from apps.cli.widgets.header import DeepHeader
 from apps.cli.widgets.input_area import InputArea
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.notification import notify_error, notify_success, notify_warning
@@ -270,17 +271,18 @@ class ChatScreen(Screen):
         self._pending_images = []
 
     def compose(self) -> ComposeResult:
+        yield DeepHeader()
         with Vertical(id="messages-pane"):
             yield MessageList()
             yield ForkTabsWidget()
             with Vertical(id="fork-view-body"):
                 yield ForkOverviewWidget()
+        yield StatusBar()
         # One bottom-docked column so the pieces stack instead of overlapping
         # (sibling `dock: bottom` widgets all anchor to the same edge). The
         # activity strip is pinned directly above the input: subagents sit right
         # under the conversation, then the TODO list, then any queued messages.
         # Each panel collapses when empty so the strip only shows when relevant.
-        # The status line sits at the very bottom (live cost / context / tokens).
         with Vertical(id="bottom-bar"):
             with Vertical(id="activity-dock"):
                 yield SubagentsWidget()
@@ -288,7 +290,6 @@ class ChatScreen(Screen):
                 yield TodosWidget()
                 yield QueuedWidget()
             yield InputArea()
-            yield StatusBar()
 
     def on_mount(self) -> None:
         """Show welcome banner, init session, bootstrap context files, focus input."""
@@ -847,13 +848,15 @@ class ChatScreen(Screen):
             app.notify("No agent configured - use /provider to set up", severity="error")  # type: ignore
             return
 
+        header = self.query_one(DeepHeader)
         msg_list = self.query_one(MessageList)
 
+        header.is_streaming = True
         self.query_one(InputArea).is_agent_running = True
         app.last_response = ""  # type: ignore
         assistant = msg_list.begin_assistant_message()
 
-        task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list))
+        task = asyncio.create_task(self._agent_stream_worker(text, assistant, msg_list, header))
         app.agent_task = task
 
         def _on_done(t: asyncio.Task[None]) -> None:
@@ -865,7 +868,7 @@ class ChatScreen(Screen):
         task.add_done_callback(_on_done)
 
     async def _agent_stream_worker(  # noqa: C901
-        self, text: str, assistant: Any, msg_list: Any
+        self, text: str, assistant: Any, msg_list: Any, header: Any
     ) -> None:
         """Async worker that streams agent output directly to widgets."""
 
@@ -881,7 +884,6 @@ class ChatScreen(Screen):
         _follow_up_scheduled = False
         pending: dict[str, tuple[dict[str, Any], float]] = {}
         _run_cancelled = False
-        is_thinking = False  # tracks thinking-phase transitions (was the header flag)
         _TODO_TOOLS: frozenset[str] = frozenset()  # Show all tool calls in UI
         _TEAM_TOOLS = frozenset(
             {
@@ -928,8 +930,8 @@ class ChatScreen(Screen):
                             async for event in stream:
                                 if isinstance(event, PartDeltaEvent):
                                     if isinstance(event.delta, TextPartDelta):
-                                        if is_thinking:
-                                            is_thinking = False
+                                        if header.is_thinking:
+                                            header.is_thinking = False
                                             assistant.finalize_thinking()
                                         delta = event.delta.content_delta
                                         if delta:
@@ -937,14 +939,14 @@ class ChatScreen(Screen):
                                             app.last_response += delta  # type: ignore
                                             msg_list.scroll_end(animate=False)
                                     elif isinstance(event.delta, ThinkingPartDelta):
-                                        if not is_thinking:
-                                            is_thinking = True
+                                        if not header.is_thinking:
+                                            header.is_thinking = True
                                         if event.delta.content_delta:
                                             assistant.append_thinking(event.delta.content_delta)
                                 elif isinstance(event, FinalResultEvent):
                                     final_found = True
-                                    if is_thinking:
-                                        is_thinking = False
+                                    if header.is_thinking:
+                                        header.is_thinking = False
                                         assistant.finalize_thinking()
                                     break
 
@@ -1165,6 +1167,7 @@ class ChatScreen(Screen):
                         else:
                             approvals[call.tool_call_id] = ToolApproved()
 
+                    header.is_streaming = True
                     assistant_cont = msg_list.begin_assistant_message()
 
                     async with agent.iter(
@@ -1331,6 +1334,8 @@ class ChatScreen(Screen):
             self._notify_degraded_mcp()
             self._save_session()
             app.is_streaming = False
+            header.is_streaming = False
+            header.is_thinking = False
             with contextlib.suppress(Exception):
                 self.query_one(InputArea).is_agent_running = False
             msg_list.end_assistant_message()
@@ -1549,8 +1554,8 @@ class ChatScreen(Screen):
     # Agent event handling
 
     def on_agent_run_started(self, _event: AgentRunStarted) -> None:
-        with contextlib.suppress(Exception):
-            self.query_one(InputArea).is_agent_running = True
+        header = self.query_one(DeepHeader)
+        header.is_streaming = True
         self.app.last_response = ""  # type: ignore
         msg_list = self.query_one(MessageList)
         msg_list.begin_assistant_message()
@@ -1562,15 +1567,15 @@ class ChatScreen(Screen):
             msg_list.scroll_end(animate=False)
 
     def on_agent_complete(self, _event: AgentComplete) -> None:
-        with contextlib.suppress(Exception):
-            self.query_one(InputArea).is_agent_running = False
+        header = self.query_one(DeepHeader)
+        header.is_streaming = False
         msg_list = self.query_one(MessageList)
         msg_list.end_assistant_message()
         self.query_one(InputArea).focus_input()
 
     def on_agent_error(self, event: AgentError) -> None:
-        with contextlib.suppress(Exception):
-            self.query_one(InputArea).is_agent_running = False
+        header = self.query_one(DeepHeader)
+        header.is_streaming = False
         msg_list = self.query_one(MessageList)
         msg_list.end_assistant_message()
 
@@ -1592,12 +1597,16 @@ class ChatScreen(Screen):
 
     def on_cost_updated(self, event: CostUpdated) -> None:
         status = self.query_one(StatusBar)
+        header = self.query_one(DeepHeader)
         status.current_cost = event.run_cost
         status.total_cost = event.total_cost
+        header.total_cost = event.total_cost
         if event.total_input_tokens > 0:
             status.total_input_tokens = event.total_input_tokens
+            header.total_input_tokens = event.total_input_tokens
         if event.total_output_tokens > 0:
             status.total_output_tokens = event.total_output_tokens
+            header.total_output_tokens = event.total_output_tokens
 
     def on_context_updated(self, event: ContextUpdated) -> None:
         status = self.query_one(StatusBar)

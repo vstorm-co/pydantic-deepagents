@@ -25,7 +25,7 @@ from .local import (
     create_file_based_resource,
     create_file_based_script,
 )
-from .types import Skill, SkillResource, SkillScript
+from .types import SKILL_NAME_PATTERN, Skill, SkillResource, SkillScript
 
 try:
     import yaml
@@ -36,8 +36,6 @@ except ImportError:
 
 __all__ = ["SkillsDirectory"]
 
-# agentskills.io naming convention: lowercase letters, numbers, and hyphens only
-SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 RESERVED_WORDS = {"anthropic", "claude"}
 
 

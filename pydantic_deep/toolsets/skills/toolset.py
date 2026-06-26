@@ -289,27 +289,16 @@ class SkillsToolset(FunctionToolset):
                     )
                 self._skills[skill_name] = skill
 
-    def _build_resource_xml(self, resource: SkillResource) -> str:
-        """Build XML representation of a resource."""
-        res_xml = f"<resource name={quoteattr(resource.name)}"
-        if resource.description:
-            res_xml += f" description={quoteattr(resource.description)}"
-        if resource.function and resource.function_schema:
-            params_json = json.dumps(resource.function_schema.json_schema)
-            res_xml += f" parameters={quoteattr(params_json)}"
-        res_xml += " />"
-        return res_xml
-
-    def _build_script_xml(self, script: SkillScript) -> str:
-        """Build XML representation of a script."""
-        scr_xml = f"<script name={quoteattr(script.name)}"
-        if script.description:
-            scr_xml += f" description={quoteattr(script.description)}"
-        if script.function and script.function_schema:
-            params_json = json.dumps(script.function_schema.json_schema)
-            scr_xml += f" parameters={quoteattr(params_json)}"
-        scr_xml += " />"
-        return scr_xml
+    def _build_node_xml(self, node: SkillResource | SkillScript, tag: str) -> str:
+        """Build the XML representation of a skill resource or script."""
+        xml = f"<{tag} name={quoteattr(node.name)}"
+        if node.description:
+            xml += f" description={quoteattr(node.description)}"
+        if node.function and node.function_schema:
+            params_json = json.dumps(node.function_schema.json_schema)
+            xml += f" parameters={quoteattr(params_json)}"
+        xml += " />"
+        return xml
 
     def _find_skill_resource(self, skill: Skill, resource_name: str) -> SkillResource | None:
         """Find a resource in a skill by name."""
@@ -370,20 +359,12 @@ class SkillsToolset(FunctionToolset):
 
             skill = self._skills[skill_name]
 
-            # Build resources list
-            resources_parts: list[str] = []
-            if skill.resources:
-                for res in skill.resources:
-                    resources_parts.append(self._build_resource_xml(res))
+            resources_parts = [self._build_node_xml(res, "resource") for res in skill.resources]
             resources_list = (
                 "\n".join(resources_parts) if resources_parts else "<!-- No resources -->"
             )
 
-            # Build scripts list
-            scripts_parts: list[str] = []
-            if skill.scripts:
-                for scr in skill.scripts:
-                    scripts_parts.append(self._build_script_xml(scr))
+            scripts_parts = [self._build_node_xml(scr, "script") for scr in skill.scripts]
             scripts_list = "\n".join(scripts_parts) if scripts_parts else "<!-- No scripts -->"
 
             return LOAD_SKILL_TEMPLATE.format(

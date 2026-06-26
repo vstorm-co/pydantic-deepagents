@@ -938,7 +938,7 @@ class TestToolsetCoverageEdgeCases:
             content="stuff",
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert 'description="API docs"' in xml
 
     def test_build_resource_xml_with_function_schema(self) -> None:
@@ -953,7 +953,7 @@ class TestToolsetCoverageEdgeCases:
             function_schema=mock_schema,
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert "parameters=" in xml
         assert "dynamic" in xml
 
@@ -962,7 +962,7 @@ class TestToolsetCoverageEdgeCases:
 
         script = SkillScript(name="run.py", uri="file:///run.py", description="Runs tests")
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert 'description="Runs tests"' in xml
 
     def test_build_script_xml_with_function_schema(self) -> None:
@@ -979,7 +979,7 @@ class TestToolsetCoverageEdgeCases:
             function_schema=mock_schema,
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert "parameters=" in xml
 
     def test_build_resource_xml_escapes_special_chars(self) -> None:
@@ -990,7 +990,7 @@ class TestToolsetCoverageEdgeCases:
             content="stuff",
         )
         toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert "<inject>" not in xml
         assert "&lt;inject&gt;" in xml
         # The closing of the resource tag is not broken by an injected quote.
@@ -1006,7 +1006,7 @@ class TestToolsetCoverageEdgeCases:
             description="a & b <c>",
         )
         toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert "<evil>" not in xml
         assert "&lt;evil&gt;" in xml
         assert "&amp;" in xml

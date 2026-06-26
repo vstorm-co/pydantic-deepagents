@@ -14,9 +14,9 @@ if TYPE_CHECKING:
     from pydantic_ai_summarization import ContextManagerCapability
 
     from pydantic_deep.features.checkpointing import CheckpointStore
+    from pydantic_deep.features.forking.coordinator import ForkCoordinator
     from pydantic_deep.features.message_queue import MessageQueue
     from pydantic_deep.features.plan.toolset import PlanOption
-    from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
 
     #: Interactive-question callback used by the plan `ask_user` tool.
     AskUserCallback = Callable[[str, list[PlanOption]], "str | Awaitable[str]"]

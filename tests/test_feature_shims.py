@@ -16,6 +16,7 @@ from pydantic_deep.features import browser as browser_feature
 from pydantic_deep.features import checkpointing as checkpointing_feature
 from pydantic_deep.features import context as context_feature
 from pydantic_deep.features import eviction as eviction_feature
+from pydantic_deep.features import forking as forking_feature
 from pydantic_deep.features import history_archive as history_archive_feature
 from pydantic_deep.features import hooks as hooks_feature
 from pydantic_deep.features import improve as improve_feature
@@ -178,6 +179,54 @@ class TestCheckpointingShim:
         assert (
             pydantic_deep.InMemoryCheckpointStore is checkpointing_feature.InMemoryCheckpointStore
         )
+
+
+class TestForkingShim:
+    def test_toolsets_forking_reexports_and_warns(self) -> None:
+        import pydantic_deep.toolsets.forking as shim
+
+        with pytest.warns(DeprecationWarning, match="features.forking"):
+            importlib.reload(shim)
+
+        assert shim.ForkCoordinator is forking_feature.ForkCoordinator
+        assert shim.create_fork_toolset is forking_feature.create_fork_toolset
+
+    def test_forking_submodule_shims_resolve(self) -> None:
+        # Every documented deep submodule path still resolves through its shim.
+        from pydantic_deep.features.forking import coordinator as feat_coord
+        from pydantic_deep.features.forking import types as feat_types
+        from pydantic_deep.toolsets.forking.budget import BudgetWatcher
+        from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
+        from pydantic_deep.toolsets.forking.diff import build_diff_report
+        from pydantic_deep.toolsets.forking.editor import EditorDetector
+        from pydantic_deep.toolsets.forking.isolation import clone_for_branch
+        from pydantic_deep.toolsets.forking.judge import JudgeAgent
+        from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
+        from pydantic_deep.toolsets.forking.store import InMemoryForkStateStore
+        from pydantic_deep.toolsets.forking.types import BranchSpec
+
+        assert ForkCoordinator is feat_coord.ForkCoordinator
+        assert build_diff_report is forking_feature.build_diff_report
+        assert clone_for_branch is forking_feature.clone_for_branch
+        assert JudgeAgent is forking_feature.JudgeAgent
+        # Reachable, distinct symbols from each shimmed submodule.
+        assert BudgetWatcher is not None
+        assert EditorDetector is not None
+        assert ForkMaterializer is not None
+        assert InMemoryForkStateStore is forking_feature.InMemoryForkStateStore
+        assert BranchSpec is feat_types.BranchSpec
+
+    def test_capabilities_forking_reexports_and_warns(self) -> None:
+        import pydantic_deep.capabilities.forking as shim
+
+        with pytest.warns(DeprecationWarning, match="features.forking"):
+            importlib.reload(shim)
+
+        assert shim.LiveForkCapability is forking_feature.capability.LiveForkCapability
+
+    def test_top_level_exports_stable(self) -> None:
+        assert pydantic_deep.ForkCoordinator is forking_feature.ForkCoordinator
+        assert pydantic_deep.LiveForkCapability is forking_feature.capability.LiveForkCapability
 
 
 class TestSkillsShim:

@@ -12,8 +12,8 @@ from apps.cli.config import load_config
 from apps.cli.prompts import build_cli_instructions
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
-from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.forking.capability import LiveForkCapability
 from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.features.message_queue import MessageQueue
 

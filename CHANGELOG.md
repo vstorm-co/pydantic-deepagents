@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `checkpointing`: `pydantic_deep.toolsets.checkpointing` → `pydantic_deep.features.checkpointing`.
   - `improve`: `pydantic_deep.improve` / `pydantic_deep.toolsets.improve` → `pydantic_deep.features.improve`.
   - `skills`: `pydantic_deep.toolsets.skills` / `pydantic_deep.capabilities.skills` → `pydantic_deep.features.skills`.
+  - `forking`: `pydantic_deep.toolsets.forking` / `pydantic_deep.capabilities.forking` → `pydantic_deep.features.forking`.
 
 ## [0.3.33] - 2026-06-26
 

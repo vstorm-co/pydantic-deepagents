@@ -102,7 +102,6 @@ from pydantic_deep.capabilities import (
     StuckLoopError,
     make_config_for_mode,
 )
-from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.features.browser import BrowserToolset
@@ -133,6 +132,48 @@ from pydantic_deep.features.eviction import (
     DEFAULT_TOKEN_LIMIT,
     EVICTION_MESSAGE_TEMPLATE,
     EvictionCapability,
+)
+from pydantic_deep.features.forking import (
+    JUDGE_SYSTEM_PROMPT,
+    BranchOverlay,
+    ForkBranchLimitError,
+    ForkCoordinator,
+    ForkDepthLimitError,
+    ForkStateStore,
+    InMemoryForkStateStore,
+    JudgeAgent,
+    build_diff_report,
+    clone_for_branch,
+    compute_confidence,
+    count_retry_parts,
+    count_stuck_loop_hits,
+    create_fork_toolset,
+)
+from pydantic_deep.features.forking.capability import LiveForkCapability
+from pydantic_deep.features.forking.types import (
+    BranchChange,
+    BranchCost,
+    BranchDiffAgreement,
+    BranchDiffOperation,
+    BranchDiffReport,
+    BranchIsolation,
+    BranchOutcome,
+    BranchSpec,
+    BranchState,
+    BranchStatus,
+    ConfidenceSignals,
+    DiffSummary,
+    FileChange,
+    FlushError,
+    FlushReport,
+    ForkCostSummary,
+    ForkHandle,
+    JudgeVerdict,
+    MergeResult,
+    MergeStrategy,
+    PathDiff,
+    PendingApprovalRequest,
+    ResolveOutcome,
 )
 from pydantic_deep.features.hooks import (
     DEFAULT_BLOCKED_COMMANDS,
@@ -233,47 +274,6 @@ from pydantic_deep.styles import (
     resolve_style,
 )
 from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
-from pydantic_deep.toolsets.forking import (
-    JUDGE_SYSTEM_PROMPT,
-    BranchOverlay,
-    ForkBranchLimitError,
-    ForkCoordinator,
-    ForkDepthLimitError,
-    ForkStateStore,
-    InMemoryForkStateStore,
-    JudgeAgent,
-    build_diff_report,
-    clone_for_branch,
-    compute_confidence,
-    count_retry_parts,
-    count_stuck_loop_hits,
-    create_fork_toolset,
-)
-from pydantic_deep.toolsets.forking.types import (
-    BranchChange,
-    BranchCost,
-    BranchDiffAgreement,
-    BranchDiffOperation,
-    BranchDiffReport,
-    BranchIsolation,
-    BranchOutcome,
-    BranchSpec,
-    BranchState,
-    BranchStatus,
-    ConfidenceSignals,
-    DiffSummary,
-    FileChange,
-    FlushError,
-    FlushReport,
-    ForkCostSummary,
-    ForkHandle,
-    JudgeVerdict,
-    MergeResult,
-    MergeStrategy,
-    PathDiff,
-    PendingApprovalRequest,
-    ResolveOutcome,
-)
 from pydantic_deep.toolsets.liteparse import (
     PARSE_DOCUMENT_DESCRIPTION,
     SCREENSHOT_DOCUMENT_DESCRIPTION,

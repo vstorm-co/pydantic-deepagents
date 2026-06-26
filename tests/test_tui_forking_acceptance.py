@@ -24,7 +24,7 @@ from textual.widgets import Static
 
 from apps.cli.modals.merge_picker import MergePickerModal
 from apps.cli.widgets.merge_acceptance import MergeAcceptanceWidget
-from pydantic_deep.toolsets.forking.types import (
+from pydantic_deep.features.forking.types import (
     BranchChange,
     BranchDiffReport,
     BranchStatus,

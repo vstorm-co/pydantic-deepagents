@@ -822,7 +822,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
         detect the editor kind once and open the diff picker pre-checked
         with only that branch. User can toggle more branches via Space.
         """
-        from pydantic_deep.toolsets.forking.editor import EditorDetector
+        from pydantic_deep.features.forking.editor import EditorDetector
 
         kind = EditorDetector.detect()
         if kind == "tui":
@@ -1097,7 +1097,7 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
     Falls back to the in-TUI :class:`MergePickerModal` (diff-explore
     mode) when no external editor is detected.
     """
-    from pydantic_deep.toolsets.forking.editor import EditorDetector
+    from pydantic_deep.features.forking.editor import EditorDetector
 
     session = app.active_fork
     if session is None:
@@ -1194,7 +1194,7 @@ async def _open_diff_picker(
     the same flow with `initial_branch_id` set to the merge picker's
     currently-highlighted branch.
     """
-    from pydantic_deep.toolsets.forking.editor import EditorDetector
+    from pydantic_deep.features.forking.editor import EditorDetector
 
     session = app.active_fork
     if session is None:  # pragma: no cover - defensive: caller already checked

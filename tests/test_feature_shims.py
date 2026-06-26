@@ -15,6 +15,7 @@ import pydantic_deep
 from pydantic_deep.features import browser as browser_feature
 from pydantic_deep.features import context as context_feature
 from pydantic_deep.features import eviction as eviction_feature
+from pydantic_deep.features import history_archive as history_archive_feature
 from pydantic_deep.features import memory as memory_feature
 from pydantic_deep.features import patch as patch_feature
 
@@ -135,3 +136,19 @@ class TestPatchShim:
 
     def test_top_level_exports_stable(self) -> None:
         assert pydantic_deep.PatchToolCallsCapability is patch_feature.PatchToolCallsCapability
+
+
+class TestHistoryArchiveShim:
+    def test_processors_history_archive_reexports_and_warns(self) -> None:
+        import pydantic_deep.processors.history_archive as shim
+
+        with pytest.warns(DeprecationWarning, match="features.history_archive"):
+            importlib.reload(shim)
+
+        assert (
+            shim.create_history_search_toolset
+            is history_archive_feature.create_history_search_toolset
+        )
+        assert shim.SEARCH_HISTORY_DESCRIPTION == history_archive_feature.SEARCH_HISTORY_DESCRIPTION
+        assert callable(shim._bm25_rank)
+        assert callable(shim._load_messages)

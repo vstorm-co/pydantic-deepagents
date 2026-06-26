@@ -640,7 +640,7 @@ Preview (head/tail):
 
 ### 3. `create_history_search_toolset` (toolset)
 
-**Source:** `pydantic_deep/processors/history_archive.py`
+**Source:** `pydantic_deep/features/history_archive/toolset.py`
 
 Provides the `search_conversation_history` tool for finding details in compressed-away messages.
 

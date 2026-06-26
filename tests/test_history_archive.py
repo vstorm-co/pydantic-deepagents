@@ -20,7 +20,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from pydantic_deep.processors.history_archive import (
+from pydantic_deep.features.history_archive.toolset import (
     SEARCH_HISTORY_DESCRIPTION,
     _bm25_rank,
     _compute_idf,

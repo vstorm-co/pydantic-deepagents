@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import copy
+import functools
 import logging
 import os
 import shlex
@@ -55,6 +57,7 @@ from pydantic_deep.toolsets.forking.types import (
     BranchIsolation,
     BranchOutcome,
     BranchSpec,
+    BranchState,
     BranchStatus,
     ConfidenceSignals,
     ForkCostSummary,
@@ -68,6 +71,7 @@ from pydantic_deep.toolsets.forking.types import (
 
 if TYPE_CHECKING:
     from pydantic_ai import RunContext
+    from pydantic_ai.models import Model
 
     from pydantic_deep.capabilities.forking import LiveForkCapability
 
@@ -85,6 +89,10 @@ _APPROVAL_POLL_INTERVAL_S: float = 0.05
 _EXHAUSTED_BRANCH_STATES: frozenset[str] = frozenset(
     {"terminated", "budget_exhausted", "aggregate_budget_exhausted"}
 )
+
+#: Every terminal branch state. Once a branch reaches one of these its status
+#: is frozen — `_set_branch_state` never overwrites it (A3).
+_TERMINAL_BRANCH_STATES: frozenset[str] = _EXHAUSTED_BRANCH_STATES | {"done", "failed"}
 
 
 async def _reap_process(proc: asyncio.subprocess.Process) -> None:
@@ -371,6 +379,8 @@ class ForkCoordinator:
         self._cached_outcome_key: tuple[Any, ...] | None = None
         self.branch_runner: BranchRunnerFunc | None = None
         self._closed = False
+        #: JudgeAgent reuse across vote/auto resolves, keyed by model (A8).
+        self._judge_cache: dict[Any, JudgeAgent] = {}
 
     @property
     def fork_id(self) -> str | None:
@@ -492,8 +502,20 @@ class ForkCoordinator:
         # Guarantee non-empty, unique labels so label_to_id / steering never collapse.
         specs = _ensure_unique_labels(specs)
 
+        fork_id = str(uuid.uuid4())
+        # Save the pre-fork anchor before taking the lock: it touches only the
+        # checkpoint store, not coordinator state, so a file/SQLite store's IO
+        # must not block every other coordinator op for its duration (A9).
+        parent_checkpoint_id = await self._save_anchor_checkpoint(
+            anchor="pre-fork", fork_id=fork_id, messages=parent_history
+        )
+        if parent_checkpoint_id is None:
+            warnings.warn(
+                "Forking enabled without a checkpoint store - rewind safety net unavailable.",
+                stacklevel=2,
+            )
+
         async with self._lock:
-            fork_id = str(uuid.uuid4())
             self._pre_fork_history = list(parent_history)
 
             self.materializer = ForkMaterializer(
@@ -501,15 +523,6 @@ class ForkCoordinator:
                 fork_id=fork_id,
                 keep_artifacts=self.keep_artifacts,
             )
-
-            parent_checkpoint_id = await self._save_anchor_checkpoint(
-                anchor="pre-fork", fork_id=fork_id, messages=parent_history
-            )
-            if parent_checkpoint_id is None:
-                warnings.warn(
-                    "Forking enabled without a checkpoint store - rewind safety net unavailable.",
-                    stacklevel=2,
-                )
 
             effective_isolation = isolation or BranchIsolation()
             effective_strategy = strategy or MergeStrategy()
@@ -571,27 +584,7 @@ class ForkCoordinator:
                     budget_usd=spec.budget_usd,
                 )
                 self.branches[branch_id] = runtime
-
-                def _make_done_cb(rt: BranchRuntime) -> Any:
-                    def _on_done(t: asyncio.Task[Any]) -> None:
-                        try:
-                            if t.cancelled():
-                                if rt.status.state == "running":
-                                    rt.status.state = "terminated"
-                            elif t.exception() is not None:
-                                rt.status.state = "failed"
-                                rt.status.error = str(t.exception())
-                            else:
-                                rt.status.state = "done"
-                            self._refresh_manifest()
-                        except Exception:  # pragma: no cover - defensive
-                            logger.warning(
-                                "branch %s done-callback failed", rt.status.id, exc_info=True
-                            )
-
-                    return _on_done
-
-                task.add_done_callback(_make_done_cb(runtime))
+                task.add_done_callback(functools.partial(self._on_branch_task_done, runtime))
 
             handle = ForkHandle(
                 fork_id=fork_id,
@@ -737,27 +730,56 @@ class ForkCoordinator:
                 self._run_branch_with_approval(branch_id, new_spec, effective_history, runtime.deps)
             )
             runtime.task = task
-
-            def _on_done(t: asyncio.Task[Any]) -> None:
-                try:
-                    if t.cancelled():  # pragma: no cover - cancellation race
-                        if runtime.status.state == "running":
-                            runtime.status.state = "terminated"
-                    elif t.exception() is not None:  # pragma: no cover - exception race
-                        runtime.status.state = "failed"
-                        runtime.status.error = str(t.exception())
-                    else:
-                        runtime.status.state = "done"
-                    self._refresh_manifest()
-                except Exception:  # pragma: no cover - defensive
-                    logger.warning(
-                        "run_on_branch %s done-callback failed",
-                        branch_id,
-                        exc_info=True,
-                    )
-
-            task.add_done_callback(_on_done)
+            task.add_done_callback(functools.partial(self._on_branch_task_done, runtime))
             return task
+
+    def _set_branch_state(
+        self,
+        runtime: BranchRuntime,
+        new_state: BranchState,
+        *,
+        error: str | None = None,
+    ) -> bool:
+        """Funnel for every `BranchStatus.state` write (A3).
+
+        Returns `True` if the transition was applied. A branch already in a
+        terminal state is frozen: the write is dropped and `False` returned, so
+        a racing watcher / done-callback can't clobber the first terminal state
+        that landed.
+
+        This is the single place the "don't overwrite a terminal state /
+        idempotent" guarantee lives. No lock is taken: asyncio is
+        single-threaded and every caller (sync done-callbacks included) reaches
+        this without an intervening `await`, so the read-then-write is already
+        atomic — and an async lock can't be acquired from a sync done-callback
+        anyway.
+        """
+        status = runtime.status
+        if status.state in _TERMINAL_BRANCH_STATES:
+            return False
+        status.state = new_state
+        if error is not None:
+            status.error = error
+        self._refresh_manifest()
+        return True
+
+    def _on_branch_task_done(self, runtime: BranchRuntime, task: asyncio.Task[Any]) -> None:
+        """Done-callback shared by `fork` and `run_on_branch` (A3).
+
+        Routes the task's final state through `_set_branch_state`, so a task
+        that ends cancelled *after* a watcher already recorded a terminal state
+        (`budget_exhausted` / `aggregate_budget_exhausted`) keeps that state
+        rather than overwriting it with the generic `"terminated"`.
+        """
+        try:
+            if task.cancelled():
+                self._set_branch_state(runtime, "terminated")
+            elif task.exception() is not None:
+                self._set_branch_state(runtime, "failed", error=str(task.exception()))
+            else:
+                self._set_branch_state(runtime, "done")
+        except Exception:  # pragma: no cover - defensive
+            logger.warning("branch %s done-callback failed", runtime.status.id, exc_info=True)
 
     async def terminate_branch(self, branch_id: str, *, reason: str | None = None) -> None:
         """Cancel a branch task and mark its terminal status.
@@ -784,23 +806,28 @@ class ForkCoordinator:
             return
         runtime.task.cancel()
         if reason == "budget_exhausted":
-            runtime.status.state = "budget_exhausted"
             cap = runtime.cost_tracker
             total = cap.total_cost if cap is not None else 0.0
-            runtime.status.error = f"budget exhausted: ${total:.4f} >= ${runtime.budget_usd}"
+            self._set_branch_state(
+                runtime,
+                "budget_exhausted",
+                error=f"budget exhausted: ${total:.4f} >= ${runtime.budget_usd}",
+            )
         elif reason == "aggregate_budget_exhausted":
-            runtime.status.state = "aggregate_budget_exhausted"
             agg_watcher = self._aggregate_watcher
             agg = agg_watcher.aggregate() if agg_watcher is not None else None
             cap = agg_watcher.aggregate_budget_usd if agg_watcher is not None else None
-            runtime.status.error = (
-                f"aggregate budget exhausted: ${agg:.4f} >= ${cap}"
-                if agg is not None
-                else "aggregate budget exhausted"
+            self._set_branch_state(
+                runtime,
+                "aggregate_budget_exhausted",
+                error=(
+                    f"aggregate budget exhausted: ${agg:.4f} >= ${cap}"
+                    if agg is not None
+                    else "aggregate budget exhausted"
+                ),
             )
         else:
-            runtime.status.state = "terminated"
-        self._refresh_manifest()
+            self._set_branch_state(runtime, "terminated")
 
     def _refresh_manifest(self) -> None:
         """Write a fresh `manifest.json` reflecting current branch statuses."""
@@ -903,6 +930,7 @@ class ForkCoordinator:
             raise ValueError(f"Unknown branch id: {target_id!r}")
         if self._handle is None:  # pragma: no cover - defensive
             raise RuntimeError("merge_or_select called before fork()")
+        handle = self._handle
 
         winner = self.branches[target_id]
         # Await the winner outside the lock - it may park on human approval indefinitely,
@@ -963,14 +991,8 @@ class ForkCoordinator:
 
             winner.overlay = None
 
-            await self._save_anchor_checkpoint(
-                anchor="post-fork",
-                fork_id=self._handle.fork_id,
-                messages=history_after_merge,
-            )
-
             merge_result = MergeResult(
-                fork_id=self._handle.fork_id,
+                fork_id=handle.fork_id,
                 winner_branch_id=target_id,
                 discarded_branches=discarded,
                 history_after_merge=history_after_merge,
@@ -988,7 +1010,14 @@ class ForkCoordinator:
             self._cached_outcome = None
             self._cached_outcome_key = None
 
-            return merge_result
+        # Save the post-fork anchor outside the lock (A9) — store IO only, no
+        # coordinator state, so it mustn't hold the lock against other ops.
+        await self._save_anchor_checkpoint(
+            anchor="post-fork",
+            fork_id=handle.fork_id,
+            messages=history_after_merge,
+        )
+        return merge_result
 
     async def abort_fork(self) -> list[str]:
         """Discard the entire fork without merging - releases overlays, cancels tasks.
@@ -1371,7 +1400,14 @@ class ForkCoordinator:
                 )
             else:
                 models = list(strategy.judge_models)
-            judges = [JudgeAgent(m) for m in models]
+            if len(set(models)) < 2:
+                warnings.warn(
+                    f"vote panel resolved to < 2 distinct judge models ({models}); "
+                    "the majority vote degenerates to a single deterministic judge. "
+                    "Configure more provider keys or pass explicit `judge_models`.",
+                    stacklevel=2,
+                )
+            judges = [self._judge_for(m) for m in models]
             results = await asyncio.gather(
                 *(j.evaluate(goal, diff_report, outcomes) for j in judges)
             )
@@ -1385,8 +1421,24 @@ class ForkCoordinator:
                     continue
                 summed_usage = u if summed_usage is None else summed_usage + u
             return _majority_pick(verdicts), summed_usage
-        judge = JudgeAgent(strategy.judge_model)
+        judge = self._judge_for(strategy.judge_model)
         return await judge.evaluate(goal, diff_report, outcomes)
+
+    def _judge_for(self, model: str | Model) -> JudgeAgent:
+        """Return a cached `JudgeAgent` for `model`, building one on first use (A8).
+
+        `JudgeAgent` holds no per-evaluate state, so reuse across resolves (and
+        concurrent vote judges) is safe. Unhashable `Model` instances can't be
+        cached and get a fresh agent each time.
+        """
+        try:
+            cached = self._judge_cache.get(model)
+        except TypeError:  # pragma: no cover - unhashable Model instance
+            return JudgeAgent(model)
+        if cached is None:
+            cached = JudgeAgent(model)
+            self._judge_cache[model] = cached
+        return cached
 
     def inspect_branches(self) -> list[BranchStatus]:
         """Return a snapshot of every branch's current status."""
@@ -1460,7 +1512,11 @@ class ForkCoordinator:
         runtime = self.branches.get(branch_id)
         if runtime is None:  # pragma: no cover - defensive
             return
-        runtime.partial_history = list(messages)
+        # Deep-copy, not list(): later capabilities (message queue, periodic
+        # reminder) reassign and edit message parts in place. A shallow snapshot
+        # would leak those post-snapshot edits into the history the merge
+        # replays for a budget-exhausted winner (A5).
+        runtime.partial_history = copy.deepcopy(messages)
 
     async def aclose(self) -> None:
         """Cancel every outstanding branch task - used on parent cancellation.

@@ -605,6 +605,30 @@ async def test_aggregate_watcher_second_call_skips_non_running_branches():
     await _drain_branch_tasks(coord)
 
 
+async def test_aggregate_watcher_skips_already_terminated_sibling():
+    """When the aggregate cap trips, the termination loop skips a sibling that
+    is already in a terminal state (covers the non-`running` loop branch)."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    agent = _make_test_agent()
+    coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.05)
+
+    handle = await coord.fork(
+        [BranchSpec(label="a", steer="a"), BranchSpec(label="b", steer="b")],
+        parent_history=_seed_history("p"),
+    )
+    aid, bid = handle.branches
+    await coord.terminate_branch(aid)
+    assert coord.branches[aid].status.state == "terminated"
+
+    tracker_b = coord.branches[bid].cost_tracker
+    assert tracker_b is not None
+    await tracker_b.on_cost_update(_cost_info(total=0.10))
+
+    assert coord.branches[bid].status.state == "aggregate_budget_exhausted"
+    assert coord.branches[aid].status.state == "terminated"
+    await _drain_branch_tasks(coord)
+
+
 class _StubCtx:
     def __init__(self, deps: DeepAgentDeps) -> None:
         self.deps = deps

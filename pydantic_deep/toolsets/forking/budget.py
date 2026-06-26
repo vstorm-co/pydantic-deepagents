@@ -53,10 +53,16 @@ class AggregateBudgetWatcher:
     async def update(self, branch_id: str, info: CostInfo) -> None:
         if info.total_cost_usd is None:
             return
+        # Ignore a late callback from a branch that has already terminated: its
+        # cost was captured at termination, and recording a higher straggler
+        # value would inflate aggregate() past true live spend (A6).
+        rt = self.coordinator.branches.get(branch_id)
+        if rt is not None and rt.status.state != "running":
+            return
         self._per_branch[branch_id] = info.total_cost_usd
         if self.aggregate_budget_usd is None:
             return
-        total = sum(self._per_branch.values())
+        total = sum(list(self._per_branch.values()))
         if total < self.aggregate_budget_usd:
             return
         for bid, rt in list(self.coordinator.branches.items()):
@@ -64,6 +70,7 @@ class AggregateBudgetWatcher:
                 await self.coordinator.terminate_branch(bid, reason="aggregate_budget_exhausted")
 
     def aggregate(self) -> float | None:
-        if not self._per_branch:
+        values = list(self._per_branch.values())
+        if not values:
             return None
-        return sum(self._per_branch.values())
+        return sum(values)

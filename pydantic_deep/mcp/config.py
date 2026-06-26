@@ -73,6 +73,12 @@ class MCPAuth:
     def __post_init__(self) -> None:
         if self.kind in _SECRET_AUTH_KINDS and not self.secret_key:
             raise MCPConfigError(f"{self.kind} MCP auth requires a non-empty secret_key")
+        # Fail fast on a template that would raise at `render_value` time —
+        # extra placeholders (`{foo}`) or unbalanced literal braces (B13).
+        try:
+            self.value_template.format(token="")
+        except (KeyError, IndexError, ValueError) as exc:
+            raise MCPConfigError(f"invalid value_template {self.value_template!r}: {exc}") from exc
 
     def render_value(self, token: str) -> str:
         """Format `value_template` with the resolved token."""

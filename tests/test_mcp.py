@@ -86,6 +86,20 @@ def test_mcpauth_secret_kind_requires_secret_key() -> None:
     assert MCPAuth(kind="none").secret_key == ""
 
 
+def test_mcpauth_rejects_invalid_value_template() -> None:
+    # A template with an extra placeholder or unbalanced braces would raise at
+    # render_value time; __post_init__ rejects it up front (B13).
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="none", value_template="Bearer {token} {extra}")
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="none", value_template="Bearer {token")
+    # A valid template (and a literal-brace one using `{{`) is accepted.
+    assert MCPAuth(kind="none", value_template="token={token}").render_value("x") == "token=x"
+    assert MCPAuth(kind="none", value_template="{{literal}} {token}").render_value("x") == (
+        "{literal} x"
+    )
+
+
 def test_oauth_auth_does_not_require_secret() -> None:
     cfg = MCPServerConfig(
         name="figma", transport="http", url="https://mcp.figma.com/mcp", auth=MCPAuth(kind="oauth")

@@ -72,6 +72,31 @@ def test_parse_skips_entry_that_raises() -> None:
     assert names == {"ok"}
 
 
+def test_parse_coerces_non_string_args() -> None:
+    # A numeric arg/env value must reach the `list[str]`/`dict[str, str]`
+    # contract as a string, not an int (B13).
+    servers = parse_mcp_servers(
+        {"s": {"command": "npx", "args": ["-p", 8080], "env": {"PORT": 8080}}}
+    )
+    assert servers[0].args == ["-p", "8080"]
+    assert servers[0].env == {"PORT": "8080"}
+
+
+def test_parse_logs_skipped_entries(caplog: pytest.LogCaptureFixture) -> None:
+    raw: dict[str, Any] = {
+        "notdict": "oops",
+        "ws1": {"type": "ws", "url": "wss://x/socket"},
+        "broken": {"command": "npx", "args": 123},
+    }
+    with caplog.at_level("WARNING"):
+        servers = parse_mcp_servers(raw)
+    assert servers == []
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "notdict" in messages
+    assert "ws1" in messages
+    assert "broken" in messages
+
+
 def test_parse_streamable_http_alias() -> None:
     servers = parse_mcp_servers({"s": {"type": "streamable-http", "url": "https://a/mcp"}})
     assert servers[0].transport == "http"

@@ -61,8 +61,10 @@ def _validate_skill_metadata(
         True if validation passed with no issues, False if warnings were emitted.
     """
     is_valid = True
-    name = frontmatter.get("name", "")
-    description = frontmatter.get("description", "")
+    # Coerce: YAML may parse `name: 123` to a non-str, which would blow up
+    # len()/regex below with a TypeError that aborts the whole scan (B1).
+    name = str(frontmatter.get("name") or "")
+    description = str(frontmatter.get("description") or "")
 
     # Validate name format
     if name:
@@ -81,9 +83,11 @@ def _validate_skill_metadata(
                 stacklevel=2,
             )
             is_valid = False
-        # Check for reserved words
+        # Check for reserved words as whole hyphen-segments — a substring match
+        # would flag legitimate names like `claudette-helper` (B15).
+        segments = set(name.split("-"))
         for reserved in RESERVED_WORDS:
-            if reserved in name:
+            if reserved in segments:
                 warnings.warn(
                     f"Skill name '{name}' contains reserved word '{reserved}'",
                     UserWarning,
@@ -216,9 +220,14 @@ def _parse_skill_md(content: str) -> tuple[dict[str, Any], str]:
 
     try:
         frontmatter = yaml.safe_load(frontmatter_yaml)
-        return frontmatter, instructions
     except yaml.YAMLError as e:
         raise SkillValidationError(f"Failed to parse YAML frontmatter: {e}") from e
+    # Non-mapping frontmatter (`--- just text ---`, comment-only) parses to a
+    # str/None/list; callers expect a dict, so normalise rather than letting an
+    # AttributeError abort discovery of every other skill (B1).
+    if not isinstance(frontmatter, dict):
+        return {}, instructions
+    return frontmatter, instructions
 
 
 def _extract_skill_fields(
@@ -249,6 +258,7 @@ def _extract_skill_fields(
             )
             return None
         name = name_fallback
+    name = str(name)  # frontmatter may yield a non-str (e.g. `name: 123`) (B1)
 
     if validate:
         _validate_skill_metadata(frontmatter, instructions)
@@ -261,7 +271,7 @@ def _extract_skill_fields(
 
     return {
         "name": name,
-        "description": frontmatter.get("description", ""),
+        "description": str(frontmatter.get("description") or ""),
         "content": instructions,
         "license": frontmatter.get("license"),
         "compatibility": frontmatter.get("compatibility"),

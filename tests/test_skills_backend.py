@@ -793,3 +793,31 @@ class TestCoverageEdgeCases:
 
         assert "dedup-test" in skills
         assert len(skills) == 1
+
+
+class TestBackendDiscoveryContainmentB2:
+    """B2: discovered resources/scripts that escape the skill dir are rejected."""
+
+    def test_resource_outside_skill_dir_skipped(self) -> None:
+        sync_backend = MagicMock()
+        # glob_info returns one in-dir file and one that escapes via `..`.
+        sync_backend.glob_info.return_value = [
+            {"name": "ok.md", "path": "/skills/s/ok.md"},
+            {"name": "escape.md", "path": "/skills/s/../../etc/escape.md"},
+        ]
+        async_backend = MagicMock()
+        with pytest.warns(UserWarning, match="resolves outside skill directory"):
+            resources = _discover_backend_resources(sync_backend, async_backend, "/skills/s")
+        uris = {r.uri for r in resources}
+        assert "/skills/s/ok.md" in uris
+        assert all("etc/escape.md" not in (u or "") for u in uris)
+
+    def test_script_outside_skill_dir_skipped(self) -> None:
+        backend = MagicMock()
+        backend.glob_info.side_effect = lambda pattern, base: (
+            [{"name": "run.py", "path": "/skills/s/../../evil.py"}] if pattern == "*.py" else []
+        )
+        executor = MagicMock()
+        with pytest.warns(UserWarning, match="resolves outside skill directory"):
+            scripts = _discover_backend_scripts(backend, "/skills/s", "s", executor)
+        assert scripts == []

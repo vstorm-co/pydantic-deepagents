@@ -13,6 +13,7 @@ the local filesystem implementations in `local.py`:
 from __future__ import annotations
 
 import json
+import posixpath
 import shlex
 import warnings
 from dataclasses import dataclass, field
@@ -310,6 +311,19 @@ def _get_relative_path(file_path: str, base_dir: str) -> str:
     return file_path.rsplit("/", 1)[-1]
 
 
+def _is_within(file_path: str, base_dir: str) -> bool:
+    """Logical containment check: is `file_path` inside `base_dir`?
+
+    Mirrors (at the logical-path level) the symlink-escape guard the filesystem
+    discovery enforces, so a discovered resource/script that resolves outside the
+    skill directory is rejected rather than read/executed (B2). `..` segments are
+    normalised away first.
+    """
+    base = posixpath.normpath(base_dir)
+    target = posixpath.normpath(file_path)
+    return target == base or target.startswith(base.rstrip("/") + "/")
+
+
 def _discover_backend_resources(
     sync_backend: BackendProtocol,
     async_backend: AsyncBackendProtocol,
@@ -336,6 +350,14 @@ def _discover_backend_resources(
         for file_info in matches:
             name_upper = file_info["name"].upper()
             if name_upper == "SKILL.MD":
+                continue
+            if not _is_within(file_info["path"], skill_dir):
+                warnings.warn(
+                    f"Resource '{file_info['path']}' resolves outside skill directory "
+                    f"'{skill_dir}'. Skipping.",
+                    UserWarning,
+                    stacklevel=2,
+                )
                 continue
 
             rel_path = _get_relative_path(file_info["path"], skill_dir)
@@ -385,6 +407,14 @@ def _discover_backend_scripts(
             if file_info["path"] in seen_paths:
                 continue
             seen_paths.add(file_info["path"])
+            if not _is_within(file_info["path"], skill_dir):
+                warnings.warn(
+                    f"Script '{file_info['path']}' resolves outside skill directory "
+                    f"'{skill_dir}'. Skipping.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                continue
 
             rel_path = _get_relative_path(file_info["path"], skill_dir)
             scripts.append(

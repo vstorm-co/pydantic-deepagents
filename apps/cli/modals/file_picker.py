@@ -117,8 +117,9 @@ class FilePickerModal(ModalScreen[str | None]):
             option_list.add_option(Option(f, id=f))
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        query = event.value.strip().lower()
-        filtered = [f for f in self._all_files if query in f.lower()] if query else self._all_files
+        from apps.cli.fuzzy import fuzzy_filter
+
+        filtered = fuzzy_filter(event.value, self._all_files, key=lambda f: f)
         self._update_list(filtered[:50])
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:

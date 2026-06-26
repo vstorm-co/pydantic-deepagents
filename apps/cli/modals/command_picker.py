@@ -169,21 +169,15 @@ class CommandPickerModal(ModalScreen[str | None]):
         self.query_one("#picker-filter", _FilterInput).focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        query = event.value.strip().lower()
-        if query:
-            filtered_cmds = [
-                (cmd, desc)
-                for cmd, desc in self._all_commands
-                if query in cmd.lower() or query in desc.lower()
-            ]
-            filtered_skills = [
-                (cmd, desc)
-                for cmd, desc in self._skill_commands
-                if query in cmd.lower() or query in desc.lower()
-            ]
-        else:
-            filtered_cmds = self._all_commands
-            filtered_skills = self._skill_commands
+        from apps.cli.fuzzy import fuzzy_filter
+
+        # Match against "cmd desc" so a query can hit either the command name or
+        # its description, then rank best matches first.
+        def _key(item: tuple[str, str]) -> str:
+            return f"{item[0]} {item[1]}"
+
+        filtered_cmds = fuzzy_filter(event.value, self._all_commands, key=_key)
+        filtered_skills = fuzzy_filter(event.value, self._skill_commands, key=_key)
 
         option_list = self.query_one("#picker-list", OptionList)
         option_list.clear_options()

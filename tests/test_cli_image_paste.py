@@ -99,6 +99,36 @@ async def test_dropped_non_image_becomes_at_reference(app: DeepApp, tmp_path: Pa
         assert f"@{doc}" in app.screen.query_one(PromptInput).value
 
 
+async def test_submit_renders_clean_attachment_subline(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The conversation shows attachments as a dim `└ [Image #1]` sub-line, not
+    a literal `[dim]…[/dim]` badge."""
+    from textual.widgets import Static
+
+    from apps.cli.widgets.message_list import MessageList
+    from apps.cli.widgets.user_message import UserMessage
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        monkeypatch.setattr(ci, "grab_clipboard_image", lambda: (_PNG, "image/png"))
+        screen = cast(ChatScreen, app.screen)
+        monkeypatch.setattr(app, "agent", object())
+        monkeypatch.setattr(screen, "_run_agent", lambda prompt: None)
+
+        screen.attach_clipboard_image()
+        await pilot.pause()
+        await screen.on_user_submitted(UserSubmitted("what do you see"))
+        await pilot.pause()
+
+        msg = app.screen.query_one(MessageList).query(UserMessage).last()
+        rendered = " ".join(str(s.render()) for s in msg.query(Static))
+        assert "Image #1" in rendered
+        assert "[dim]" not in rendered  # markup applied, not shown literally
+        assert "└" in rendered
+
+
 async def test_clear_attachments(app: DeepApp, monkeypatch: pytest.MonkeyPatch) -> None:
     async with app.run_test(size=(120, 35)) as pilot:
         await pilot.pause()

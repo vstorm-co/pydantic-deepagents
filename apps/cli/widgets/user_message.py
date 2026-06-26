@@ -20,10 +20,16 @@ class UserMessage(Widget):
     }
     """
 
-    def __init__(self, text: str, timestamp: datetime | None = None) -> None:
+    def __init__(
+        self,
+        text: str,
+        timestamp: datetime | None = None,
+        attachments: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self._text = text
         self._timestamp = timestamp or datetime.now()
+        self._attachments = attachments or []
 
     @property
     def text(self) -> str:
@@ -34,4 +40,10 @@ class UserMessage(Widget):
         time_str = self._timestamp.strftime("%H:%M")
         escaped = self._text.replace("[", r"\[")
         yield Static(f"[$accent b]You[/]  [$text-muted]{time_str}[/]")
-        yield Static(f"  {escaped}")
+        if escaped:
+            yield Static(f"  {escaped}")
+        for label in self._attachments:
+            # A dim tree-branch sub-line per attachment (brackets escaped so a
+            # label like [Image #1] isn't parsed as markup).
+            chip = label.replace("[", r"\[")
+            yield Static(f"  [$text-muted]└ {chip}[/]")

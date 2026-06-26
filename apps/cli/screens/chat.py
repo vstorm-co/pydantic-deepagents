@@ -747,6 +747,9 @@ class ChatScreen(Screen):
 
             from pydantic_ai.messages import BinaryContent
 
+            # Snapshot the chip labels before clearing so the conversation can
+            # show them as a clean sub-line (fall back to [Image #N] per image).
+            labels = self._attachment_labels or [f"[Image #{i + 1}]" for i in range(len(images))]
             self._pending_images = []
             self._attachment_labels = []
             self._refresh_attachments_bar()
@@ -754,10 +757,7 @@ class ChatScreen(Screen):
             prompt: Any = ([text] if text else []) + [
                 BinaryContent(data=data, media_type=mt) for data, mt in images
             ]
-            n = len(images)
-            badge = f"[dim]🖼 {n} image{'s' if n != 1 else ''} attached[/dim]"
-            display = f"{text}\n{badge}" if text else badge
-            msg_list.append_user_message(display)
+            msg_list.append_user_message(text, attachments=labels)
             self._run_agent(prompt)
             return
 

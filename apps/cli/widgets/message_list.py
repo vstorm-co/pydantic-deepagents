@@ -25,9 +25,11 @@ class MessageList(VerticalScroll):
 
     _current_assistant: AssistantMessage | None = None
 
-    def append_user_message(self, text: str) -> UserMessage:
+    def append_user_message(
+        self, text: str, attachments: list[str] | None = None
+    ) -> UserMessage:
         """Add a user message and scroll to bottom."""
-        msg = UserMessage(text)
+        msg = UserMessage(text, attachments=attachments)
         self.mount(msg)
         self.scroll_end(animate=False)
         return msg

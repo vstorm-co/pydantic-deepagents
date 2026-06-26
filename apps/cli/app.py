@@ -149,15 +149,17 @@ class DeepApp(App):
         super().notify(message, title=title, severity=severity, timeout=timeout)  # type: ignore[arg-type]
 
     def _apply_configured_theme(self) -> None:
-        """Read theme from config and apply it."""
+        """Read theme from config and apply it.
+
+        Always applies a `deep-*` theme — including `default` — so the brand
+        palette is the baseline and the TUI never shows Textual's stock theme.
+        """
         try:
             from apps.cli.config import load_config
+            from apps.cli.styles.themes import apply_theme
 
             config = load_config()
-            if config.theme and config.theme != "default":
-                from apps.cli.styles.themes import apply_theme
-
-                apply_theme(self, config.theme)
+            apply_theme(self, config.theme or "default")
         except Exception:
             pass
 

@@ -558,13 +558,14 @@ class ChatScreen(Screen):
             pass
 
     def _show_welcome(self) -> None:
-        """Display a welcome message with project context."""
+        """Mount the animated welcome hero with project context."""
+        from apps.cli.widgets.hero import HeroBanner
 
         msg_list = self.query_one(MessageList)
 
         working_dir = self.app.working_dir
         root = Path(working_dir).resolve()
-        lines: list[str] = []
+        context_lines: list[str] = []
 
         try:
             from apps.cli.local_context import (
@@ -577,27 +578,22 @@ class ChatScreen(Screen):
             pkg = detect_package_manager(root)
             test_cmd = detect_test_command(root)
             if lang:
-                info = f"**{lang}**"
+                info = lang
                 if pkg:
                     info += f" · {pkg}"
-                lines.append(info)
+                context_lines.append(info)
             if test_cmd:
-                lines.append(f"Test: `{test_cmd}`")
+                context_lines.append(f"test: {test_cmd}")
         except Exception:
             pass
 
         bootstrapped = getattr(self, "_bootstrapped_files", [])
         if bootstrapped:
-            lines.append(f"Created: {', '.join(bootstrapped)}")
+            context_lines.append(f"created: {', '.join(bootstrapped)}")
 
-        lines.append("")
-        lines.append("Ready! Type a message, `/` for commands, `@` for files.")
-
-        welcome = "\n".join(lines)
-        assistant = msg_list.begin_assistant_message()
-        assistant.append_text(welcome)
-        assistant.finalize_text()
-        msg_list.end_assistant_message()
+        version = getattr(self.app, "app_version", "") or ""
+        msg_list.mount(HeroBanner(version=str(version), context_lines=context_lines))
+        msg_list.scroll_end(animate=False)
 
     # User input handling
 

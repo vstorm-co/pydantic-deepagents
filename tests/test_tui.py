@@ -29,6 +29,28 @@ class TestTUIWidgets:
             msg_list = app.screen.query_one(MessageList)
             assert len(msg_list.children) >= 1
 
+    async def test_welcome_mounts_animated_hero(self, app):
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.ambient import AmbientBand
+            from apps.cli.widgets.hero import HeroBanner
+
+            assert len(app.screen.query(HeroBanner)) == 1
+            band = app.screen.query_one(AmbientBand)
+            # The ambient wave produces a spread of distinct colours, and a tick
+            # advances the phase without error.
+            dim, bright = band._palette()
+            assert dim.hex != bright.hex
+            phase_before = band._phase
+            band._advance()
+            assert band._phase > phase_before
+
+    async def test_brand_theme_is_active_by_default(self, app):
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            assert app.theme == "deep-default"
+
     async def test_user_message(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
@@ -266,7 +288,7 @@ class TestThemes:
 
         assert THEMES["ocean"]["primary"] == "#3b82f6"
         assert THEMES["rose"]["primary"] == "#f43f5e"
-        assert THEMES["minimal"]["primary"] == "#a0a0a0"
+        assert THEMES["minimal"]["primary"] == "#b4b4b4"
 
     async def test_register_themes(self, app):
         async with app.run_test(size=(120, 35)) as pilot:

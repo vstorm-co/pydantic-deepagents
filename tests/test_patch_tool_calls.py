@@ -513,3 +513,50 @@ class TestPatchExports:
         assert patch_tool_calls_processor is not None
         assert PatchToolCallsCapability is not None
         assert CANCELLED_MESSAGE == "Tool call was cancelled."
+
+
+class TestPatchPreservesRequestFieldsB3:
+    """B3: rebuilt ModelRequests keep instructions (and other fields), not dropped."""
+
+    def test_orphaned_call_prepend_preserves_instructions(self) -> None:
+        msgs: list[Any] = [
+            ModelResponse(parts=[ToolCallPart(tool_name="t", args={}, tool_call_id="c1")]),
+            ModelRequest(parts=[UserPromptPart(content="next")], instructions="SYSTEM"),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        reqs = [m for m in out if isinstance(m, ModelRequest)]
+        assert any(getattr(m, "instructions", None) == "SYSTEM" for m in reqs)
+
+    def test_orphaned_result_strip_preserves_instructions(self) -> None:
+        msgs: list[Any] = [
+            ModelRequest(
+                parts=[
+                    UserPromptPart(content="hi"),
+                    ToolReturnPart(tool_name="t", content="r", tool_call_id="ghost"),
+                ],
+                instructions="SYSTEM2",
+            ),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        assert len(out) == 1
+        assert isinstance(out[0], ModelRequest)
+        assert out[0].instructions == "SYSTEM2"
+        assert all(not isinstance(p, ToolReturnPart) for p in out[0].parts)
+
+
+class TestPatchBlankToolCallIdB11:
+    """B11: a blank tool_call_id isn't treated as an orphan (consistent with phase 2)."""
+
+    def test_blank_id_call_gets_no_synthetic_return(self) -> None:
+        msgs: list[Any] = [
+            ModelResponse(parts=[ToolCallPart(tool_name="t", args={}, tool_call_id="")]),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        injected = [
+            p
+            for m in out
+            if isinstance(m, ModelRequest)
+            for p in m.parts
+            if isinstance(p, ToolReturnPart)
+        ]
+        assert injected == []

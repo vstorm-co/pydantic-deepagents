@@ -24,7 +24,7 @@ Example:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from pydantic_ai import RunContext
@@ -55,7 +55,10 @@ def _find_orphaned_calls(messages: list[ModelMessage]) -> dict[int, list[ToolRet
         # Collect tool_call_ids from this response
         tool_calls: dict[str, ToolCallPart] = {}
         for part in msg.parts:
-            if isinstance(part, ToolCallPart):
+            # Skip falsy ids so phases 1 and 2 treat them consistently (B11):
+            # phase 2 filters `if part.tool_call_id`, so a blank id here would
+            # otherwise get a synthetic return phase 2 never strips.
+            if isinstance(part, ToolCallPart) and part.tool_call_id:
                 tool_calls[part.tool_call_id] = part
 
         if not tool_calls:
@@ -176,7 +179,9 @@ def patch_tool_calls_processor(
             if isinstance(next_msg, ModelRequest):
                 # Prepend synthetic parts to existing ModelRequest
                 patched_parts = list(synthetic_parts) + list(next_msg.parts)
-                patched.append(ModelRequest(parts=patched_parts))
+                # replace() preserves instructions/timestamp/run_id/etc. that a bare
+                # ModelRequest(parts=...) would silently drop (B3).
+                patched.append(replace(next_msg, parts=patched_parts))
                 skip_indices.add(next_idx)
             else:
                 # No next ModelRequest - create one with just synthetic parts
@@ -215,9 +220,9 @@ def patch_tool_calls_processor(
             ]
 
             if remaining_parts:
-                patched2.append(ModelRequest(parts=remaining_parts))
+                patched2.append(replace(msg, parts=remaining_parts))
             elif i == len(messages) - 1:
-                patched2.append(ModelRequest(parts=[]))
+                patched2.append(replace(msg, parts=[]))
             # Otherwise the request is interior; dropping it is safe.
 
         messages = patched2

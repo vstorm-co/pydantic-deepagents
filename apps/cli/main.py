@@ -370,7 +370,7 @@ def init(
     init_project(root)
 
 
-# ── Config subcommands ──────────────────────────────────────────
+# Config subcommands
 
 config_app = typer.Typer(name="config", help="Manage configuration.", no_args_is_help=True)
 app.add_typer(config_app)
@@ -416,7 +416,7 @@ def config_set(
     typer.echo(f"Set {key} = {value}")
 
 
-# ── Sandbox subcommands ────────────────────────────────────────
+# Sandbox subcommands
 
 sandbox_app = typer.Typer(
     name="sandbox", help="Manage Docker sandbox workspaces.", no_args_is_help=True
@@ -535,7 +535,7 @@ def sandbox_stop(
         typer.echo("No containers to stop.")
 
 
-# ── Skills subcommands ──────────────────────────────────────────
+# Skills subcommands
 
 skills_app = typer.Typer(name="skills", help="Manage skills.", no_args_is_help=True)
 app.add_typer(skills_app)
@@ -659,7 +659,7 @@ def skills_create(
     typer.echo(f"Created skill scaffold at {skill_dir}/")
 
 
-# ── Threads subcommands ─────────────────────────────────────────
+# Threads subcommands
 
 threads_app = typer.Typer(name="threads", help="Manage conversation threads.", no_args_is_help=True)
 app.add_typer(threads_app)

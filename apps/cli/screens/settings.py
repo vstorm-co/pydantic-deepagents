@@ -64,11 +64,11 @@ class SettingsScreen(Screen):
         with VerticalScroll(id="settings-scroll"):
             yield Static(f"[bold]Settings[/bold]  [dim]({self._config_path})[/dim]\n")
 
-            # ── Model ──
+            # Model
             yield Static("Model", classes="section-title")
             yield Input(value=config.model, id="cfg-model")
 
-            # ── Features ──
+            # Features
             yield Static("Features", classes="section-title")
             yield Checkbox("Skills", value=config.include_skills, id="cfg-include_skills")
             yield Checkbox("Memory", value=config.include_memory, id="cfg-include_memory")
@@ -86,12 +86,12 @@ class SettingsScreen(Screen):
                 id="cfg-context_discovery",
             )
 
-            # ── Display ──
+            # Display
             yield Static("Display", classes="section-title")
             yield Checkbox("Show cost", value=config.show_cost, id="cfg-show_cost")
             yield Checkbox("Show tokens", value=config.show_tokens, id="cfg-show_tokens")
 
-            # ── Advanced ──
+            # Advanced
             yield Static("Advanced", classes="section-title")
             yield Static("Approve tools (comma-separated)", classes="setting-label")
             yield Input(

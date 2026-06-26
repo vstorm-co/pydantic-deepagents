@@ -107,7 +107,7 @@ class DeepApp(App):
         self.last_response: str = ""
         self._startup_error = startup_error
         self.queue = getattr(deps, "message_queue", None)
-        # Active goal-completion loop (set via /goal). The evaluator is created
+        # Active goaql-completion loop (set via /goal). The evaluator is created
         # lazily on first use so sessions that never set a goal pay nothing.
         self._goal: GoalState | None = None
         self._goal_evaluator: GoalEvaluator | None = None
@@ -357,7 +357,7 @@ class DeepApp(App):
 
         return current  # No keys at all - return as-is, will fail with clear error
 
-    # ── Watchers - propagate to widgets ───────────────────────────
+    # Watchers - propagate to widgets
 
     def watch_model_name(self, name: str) -> None:
         try:
@@ -409,7 +409,7 @@ class DeepApp(App):
         except Exception as exc:  # pragma: no cover - defensive surfacing
             self.notify(f"Fork view error: {exc}", severity="error", timeout=10)
 
-    # ── Command handling ──────────────────────────────────────────
+    # Command handling
 
     def _spawn_tracked(self, coro: Any, *, label: str) -> asyncio.Task[Any]:
         """Schedule `coro` as a tracked background task.
@@ -437,7 +437,7 @@ class DeepApp(App):
 
         self._spawn_tracked(dispatch_command(self, command), label=f"Command {command}")
 
-    # ── Shell commands ────────────────────────────────────────────
+    # Shell commands
 
     def run_shell_command(self, command: str) -> None:
         """Execute a shell command and show output in message list + save to session."""
@@ -490,7 +490,7 @@ class DeepApp(App):
             assistant.finalize_text()
             msg_list.end_assistant_message()
 
-    # ── Actions ───────────────────────────────────────────────────
+    # Actions
 
     def _signal_cancelling(self) -> None:
         """Immediately flag in-flight tool calls as stopping for instant feedback.

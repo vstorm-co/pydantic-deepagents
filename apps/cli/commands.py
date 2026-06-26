@@ -747,7 +747,7 @@ _COMMANDS: dict[str, CommandHandler] = {
 }
 
 
-# ── Fork dispatch helpers ─────────────────────────────────────────────
+# Fork dispatch helpers
 
 
 async def _dispatch_fork(app: DeepApp) -> None:
@@ -797,7 +797,7 @@ async def _dispatch_fork(app: DeepApp) -> None:
     app.push_screen(ForkPickerModal(), _on_result)
 
 
-# ── /fork-config ───────────────────────────────────────────────────────
+# /fork-config
 
 
 def _dispatch_fork_config(app: DeepApp) -> None:

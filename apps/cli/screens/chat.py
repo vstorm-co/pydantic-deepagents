@@ -576,7 +576,7 @@ class ChatScreen(Screen):
         assistant.finalize_text()
         msg_list.end_assistant_message()
 
-    # ── User input handling ───────────────────────────────────────
+    # User input handling
 
     #: Slash commands allowed while a fork is active - everything else is blocked
     #: because a new `agent.run()` would overwrite `deps.fork_coordinator`.
@@ -635,7 +635,7 @@ class ChatScreen(Screen):
                         app.notify(f"→ {branch_id_or_label}: {preview}")
                         return
 
-            # ── Slash commands during fork - only inspection allow-list ──
+            # Slash commands during fork - only inspection allow-list
             if text.startswith("/") and not text.startswith("//"):
                 cmd = text.split(maxsplit=1)[0].lower()
                 if cmd in self._FORK_ALLOWED_COMMANDS or self._is_fork_inspection(text):
@@ -1499,7 +1499,7 @@ class ChatScreen(Screen):
 
         return re.sub(r"@([\w./\-]+)", replace_ref, text)
 
-    # ── Agent event handling ──────────────────────────────────────
+    # Agent event handling
 
     def on_agent_run_started(self, _event: AgentRunStarted) -> None:
         header = self.query_one(DeepHeader)
@@ -1552,7 +1552,7 @@ class ChatScreen(Screen):
         notify_error(self.app, f"Error: {event.error}")
         self.query_one(InputArea).focus_input()
 
-    # ── Approval handling ─────────────────────────────────────────
+    # Approval handling
 
     def on_approval_requested(self, event: ApprovalRequested) -> None:
         async def _handle_result(result: str) -> None:
@@ -1563,7 +1563,7 @@ class ChatScreen(Screen):
             _handle_result,
         )
 
-    # ── Status updates ────────────────────────────────────────────
+    # Status updates
 
     def on_cost_updated(self, event: CostUpdated) -> None:
         status = self.query_one(StatusBar)
@@ -1602,7 +1602,7 @@ class ChatScreen(Screen):
     def on_compression_complete(self, _event: CompressionComplete) -> None:
         notify_success(self.app, "Context compacted")
 
-    # ── Subagent / Team panel updates ────────────────────────────
+    # Subagent / Team panel updates
 
     def _update_subagents_panel(
         self,
@@ -1664,7 +1664,7 @@ class ChatScreen(Screen):
         except Exception:
             pass  # Side panel may not be mounted yet
 
-    # ── Actions ───────────────────────────────────────────────────
+    # Actions
 
     def action_show_todos(self) -> None:
         self.app.handle_command("/todos")  # type: ignore[attr-defined]

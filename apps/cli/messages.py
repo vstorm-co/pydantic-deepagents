@@ -11,7 +11,7 @@ from typing import Any
 
 from textual.message import Message
 
-# ── Streaming messages ────────────────────────────────────────────────
+# Streaming messages
 
 
 class AgentToken(Message):
@@ -38,7 +38,7 @@ class AgentThinking(Message):
         self.status = status
 
 
-# ── Tool call messages ────────────────────────────────────────────────
+# Tool call messages
 
 
 class ToolCallStarted(Message):
@@ -77,7 +77,7 @@ class ToolCallCompleted(Message):
         self.call_id = call_id
 
 
-# ── Approval messages ────────────────────────────────────────────────
+# Approval messages
 
 
 class ApprovalRequested(Message):
@@ -95,7 +95,7 @@ class ApprovalRequested(Message):
         self.future = future
 
 
-# ── Agent lifecycle messages ──────────────────────────────────────────
+# Agent lifecycle messages
 
 
 class AgentRunStarted(Message):
@@ -118,7 +118,7 @@ class AgentError(Message):
         self.error = error
 
 
-# ── Status messages ──────────────────────────────────────────────────
+# Status messages
 
 
 class CostUpdated(Message):
@@ -164,7 +164,7 @@ class CompressionComplete(Message):
     """Context compression has finished."""
 
 
-# ── User input messages ──────────────────────────────────────────────
+# User input messages
 
 
 class UserSubmitted(Message):

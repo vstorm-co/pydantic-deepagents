@@ -172,7 +172,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
             self._enabled = {bid: True for bid in ordered}
         self._include_parent: bool = True
 
-    # ── Composition ───────────────────────────────────────────────
+    # Composition
 
     def compose(self) -> ComposeResult:
         with Vertical(id="diff-container"):
@@ -354,7 +354,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
             actions.update(text)
             self.set_timer(2.0, lambda: actions.update(self._render_action_hint()))
 
-    # ── Testing helpers ───────────────────────────────────────────
+    # Testing helpers
 
     @property
     def selected_path(self) -> str | None:

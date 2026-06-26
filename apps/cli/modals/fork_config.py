@@ -179,7 +179,7 @@ class ForkConfigModal(ModalScreen[None]):
             return items + [fill] * (self._branch_count - len(items))
         return items[: self._branch_count]
 
-    # ── compose ────────────────────────────────────────────────────────
+    # compose
 
     def compose(self) -> ComposeResult:
         self._snapshot_app_state()
@@ -263,12 +263,12 @@ class ForkConfigModal(ModalScreen[None]):
     def _fmt_float(value: float | None) -> str:
         return "" if value is None else f"{value}"
 
-    # ── focus management ───────────────────────────────────────────────
+    # focus management
 
     def on_mount(self) -> None:
         self.query_one("#fork-config-count", Input).focus()
 
-    # ── input helpers ──────────────────────────────────────────────────
+    # input helpers
 
     def _input(self, suffix: str) -> Input:
         return self.query_one(f"#{suffix}", Input)
@@ -303,7 +303,7 @@ class ForkConfigModal(ModalScreen[None]):
             return f"Must be positive, got {value}"
         return value
 
-    # ── resize ─────────────────────────────────────────────────────────
+    # resize
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "fork-config-count":
@@ -529,7 +529,7 @@ class ForkConfigModal(ModalScreen[None]):
     def action_cancel(self) -> None:
         self.dismiss(None)
 
-    # ── helpers ────────────────────────────────────────────────────────
+    # helpers
 
     def _app(self) -> DeepApp:
         return self.app  # type: ignore[return-value]

@@ -20,7 +20,7 @@ agent = create_deep_agent(eviction_token_limit=None)
 
 ## How It Works
 
-The [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability] uses the `after_tool_execute` hook to intercept large tool results **before** they enter the conversation history. This means the full output never bloats the message list in memory.
+The [`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability] uses the `after_tool_execute` hook to intercept large tool results **before** they enter the conversation history. This means the full output never bloats the message list in memory.
 
 1. After each tool call, `after_tool_execute` checks the result size
 2. If the result exceeds the token limit (chars / 4), it:
@@ -29,7 +29,7 @@ The [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability]
 3. The agent can then use `read_file` with `offset`/`limit` to access the full output
 
 !!! tip "Why a capability hook?"
-    [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability] intercepts via `after_tool_execute`, so a large output is written to the backend and replaced with a preview **before** it ever enters the message history — the full content never sits in memory waiting for the next model call. It is the default used by `create_deep_agent`.
+    [`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability] intercepts via `after_tool_execute`, so a large output is written to the backend and replaced with a preview **before** it ever enters the message history — the full content never sits in memory waiting for the next model call. It is the default used by `create_deep_agent`.
 
 ### Before Eviction
 
@@ -68,7 +68,7 @@ capability directly:
 ```python
 from pydantic_ai import Agent
 from pydantic_ai_backends import StateBackend, ensure_async
-from pydantic_deep.processors.eviction import EvictionCapability
+from pydantic_deep.features.eviction import EvictionCapability
 
 agent = Agent(
     "anthropic:claude-sonnet-4-6",
@@ -93,8 +93,8 @@ When used via `create_deep_agent()`, the processor resolves the backend from `ct
 
 | Component | Description |
 |-----------|-------------|
-| [`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability] | Capability that intercepts large outputs via `after_tool_execute` (default) |
-| [`create_content_preview`][pydantic_deep.processors.eviction.create_content_preview] | Create head/tail preview |
+| [`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability] | Capability that intercepts large outputs via `after_tool_execute` (default) |
+| [`create_content_preview`][pydantic_deep.features.eviction.create_content_preview] | Create head/tail preview |
 | `DEFAULT_TOKEN_LIMIT` | Default threshold: 20,000 tokens |
 | `DEFAULT_EVICTION_PATH` | Default path: `/large_tool_results` |
 

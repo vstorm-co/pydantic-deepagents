@@ -1,7 +1,7 @@
 """History processors for pydantic-deep agents."""
 
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
-from pydantic_deep.processors.eviction import (
+from pydantic_deep.features.eviction import (
     DEFAULT_EVICTION_PATH,
     DEFAULT_TOKEN_LIMIT,
     EVICTION_MESSAGE_TEMPLATE,

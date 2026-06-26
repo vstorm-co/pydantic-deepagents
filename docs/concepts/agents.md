@@ -238,7 +238,7 @@ for more details.
 ### Eviction
 
 Automatically save large tool outputs to files (handled by
-[`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability]):
+[`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability]):
 
 ```python
 agent = create_deep_agent(eviction_token_limit=20000)

@@ -26,7 +26,7 @@ from pydantic_deep import (
     create_content_preview,
     create_deep_agent,
 )
-from pydantic_deep.processors.eviction import _content_to_str, _sanitize_id
+from pydantic_deep.features.eviction.capability import _content_to_str, _sanitize_id
 
 TEST_MODEL = TestModel()
 
@@ -972,29 +972,29 @@ class TestExtensionForMediaType:
     """Tests for the `_extension_for_media_type` helper."""
 
     def test_known_media_type_uses_mapping(self):
-        from pydantic_deep.processors.eviction import _extension_for_media_type
+        from pydantic_deep.features.eviction.capability import _extension_for_media_type
 
         assert _extension_for_media_type("image/jpeg") == "jpg"
         assert _extension_for_media_type("image/png") == "png"
 
     def test_unknown_media_type_uses_subtype(self):
-        from pydantic_deep.processors.eviction import _extension_for_media_type
+        from pydantic_deep.features.eviction.capability import _extension_for_media_type
 
         assert _extension_for_media_type("image/x-foo") == "x-foo"
         assert _extension_for_media_type("application/x-custom; charset=utf-8") == "x-custom"
 
     def test_subtype_special_chars_sanitized(self):
-        from pydantic_deep.processors.eviction import _extension_for_media_type
+        from pydantic_deep.features.eviction.capability import _extension_for_media_type
 
         assert _extension_for_media_type("image/foo.bar") == "foo_bar"
 
     def test_no_slash_falls_back_to_bin(self):
-        from pydantic_deep.processors.eviction import _extension_for_media_type
+        from pydantic_deep.features.eviction.capability import _extension_for_media_type
 
         assert _extension_for_media_type("weirdmediatype") == "bin"
 
     def test_empty_subtype_falls_back_to_bin(self):
-        from pydantic_deep.processors.eviction import _extension_for_media_type
+        from pydantic_deep.features.eviction.capability import _extension_for_media_type
 
         assert _extension_for_media_type("image/") == "bin"
 

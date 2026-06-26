@@ -14,6 +14,7 @@ import pytest
 import pydantic_deep
 from pydantic_deep.features import browser as browser_feature
 from pydantic_deep.features import context as context_feature
+from pydantic_deep.features import eviction as eviction_feature
 from pydantic_deep.features import memory as memory_feature
 
 
@@ -102,3 +103,19 @@ class TestBrowserShim:
     def test_top_level_exports_stable(self) -> None:
         assert pydantic_deep.BrowserToolset is browser_feature.BrowserToolset
         assert pydantic_deep.BrowserCapability is browser_feature.BrowserCapability
+
+
+class TestEvictionShim:
+    def test_processors_eviction_reexports_and_warns(self) -> None:
+        import pydantic_deep.processors.eviction as shim
+
+        with pytest.warns(DeprecationWarning, match="features.eviction"):
+            importlib.reload(shim)
+
+        assert shim.EvictionCapability is eviction_feature.EvictionCapability
+        assert shim.DEFAULT_TOKEN_LIMIT == eviction_feature.DEFAULT_TOKEN_LIMIT
+        assert callable(shim._content_to_str)
+        assert callable(shim._sanitize_id)
+
+    def test_top_level_exports_stable(self) -> None:
+        assert pydantic_deep.EvictionCapability is eviction_feature.EvictionCapability

@@ -54,7 +54,7 @@ hook definitions.
 
 ## EvictionCapability
 
-::: pydantic_deep.processors.eviction.EvictionCapability
+::: pydantic_deep.features.eviction.EvictionCapability
     options:
       show_source: false
 

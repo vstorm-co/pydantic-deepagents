@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `memory`: `pydantic_deep.toolsets.memory` / `pydantic_deep.capabilities.memory` → `pydantic_deep.features.memory`.
   - `context`: `pydantic_deep.toolsets.context` / `pydantic_deep.capabilities.context` → `pydantic_deep.features.context`.
   - `browser`: `pydantic_deep.toolsets.browser` / `pydantic_deep.capabilities.browser` → `pydantic_deep.features.browser`.
+  - `eviction`: `pydantic_deep.processors.eviction` → `pydantic_deep.features.eviction`.
 
 ## [0.3.33] - 2026-06-26
 

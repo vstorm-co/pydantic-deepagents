@@ -51,6 +51,7 @@ from pydantic_deep.capabilities.periodic_reminder import (
 from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.context import ContextToolset
+from pydantic_deep.features.eviction import EvictionCapability
 from pydantic_deep.features.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
@@ -63,7 +64,6 @@ from pydantic_deep.models import (
     DEFAULT_MODEL,
     DEFAULT_SUMMARIZATION_MODEL,
 )
-from pydantic_deep.processors.eviction import EvictionCapability
 from pydantic_deep.processors.history_archive import create_history_search_toolset
 from pydantic_deep.processors.patch import PatchToolCallsCapability
 from pydantic_deep.prompts import BASE_PROMPT

@@ -603,7 +603,7 @@ def _find_orphaned_results(messages) -> set[tuple[int, str]]:
 
 ### 2. `EvictionProcessor` (async)
 
-**Source:** `pydantic_deep/processors/eviction.py`
+**Source:** `pydantic_deep/features/eviction/capability.py`
 
 Saves large tool outputs to the backend and replaces them with a preview.
 

@@ -230,11 +230,11 @@ Function type for custom token counting.
 ## Eviction
 
 Large tool outputs are evicted to the backend *before* they enter history by
-[`EvictionCapability`][pydantic_deep.processors.eviction.EvictionCapability]
+[`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability]
 (documented under [Capabilities](capabilities.md)), enabled by default via
 `create_deep_agent(eviction_token_limit=...)`. See [Eviction](../advanced/eviction.md).
 
-::: pydantic_deep.processors.eviction.create_content_preview
+::: pydantic_deep.features.eviction.create_content_preview
     options:
       show_source: false
 

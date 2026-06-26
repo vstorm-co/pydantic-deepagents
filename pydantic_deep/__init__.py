@@ -130,6 +130,14 @@ from pydantic_deep.features.context import (
     format_context_prompt,
     load_context_files,
 )
+from pydantic_deep.features.eviction import (
+    BINARY_PRUNED_TEMPLATE,
+    DEFAULT_EVICTION_PATH,
+    DEFAULT_MAX_BINARY_CONTENT,
+    DEFAULT_TOKEN_LIMIT,
+    EVICTION_MESSAGE_TEMPLATE,
+    EvictionCapability,
+)
 from pydantic_deep.features.memory import (
     DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
@@ -165,14 +173,6 @@ from pydantic_deep.mcp import (
     builtin_mcp_servers,
     parse_mcp_servers,
     probe_mcp_server,
-)
-from pydantic_deep.processors.eviction import (
-    BINARY_PRUNED_TEMPLATE,
-    DEFAULT_EVICTION_PATH,
-    DEFAULT_MAX_BINARY_CONTENT,
-    DEFAULT_TOKEN_LIMIT,
-    EVICTION_MESSAGE_TEMPLATE,
-    EvictionCapability,
 )
 from pydantic_deep.processors.patch import (
     CANCELLED_MESSAGE,

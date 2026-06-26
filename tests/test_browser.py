@@ -173,7 +173,9 @@ class TestCheckAllowedDomain:
         assert _check_allowed_domain("not-a-url", ["example.com"]) is False
 
     def test_urlparse_exception_returns_false(self) -> None:
-        with patch("pydantic_deep.features.browser.toolset.urlparse", side_effect=Exception("parse error")):
+        with patch(
+            "pydantic_deep.features.browser.toolset.urlparse", side_effect=Exception("parse error")
+        ):
             assert _check_allowed_domain("https://example.com", ["example.com"]) is False
 
 

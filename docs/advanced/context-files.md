@@ -1,6 +1,11 @@
 # Context Files
 
-Context files are project-level markdown files that are loaded from the backend and injected into the agent's system prompt. They provide project-specific instructions, conventions, and personality.
+Every project has its own rules — coding conventions, the tools you use, a tone
+you want. **Context files** are project-level markdown (`AGENTS.md`, `CLAUDE.md`,
+`SOUL.md`, …) that the agent loads from the backend and folds into its system
+prompt automatically. Drop a file in the project; every agent run picks it up.
+It's how you give an agent a sense of *this* codebase without re-explaining it
+each time.
 
 ## Supported Files
 

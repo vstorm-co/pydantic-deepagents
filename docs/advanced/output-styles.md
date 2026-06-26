@@ -1,6 +1,9 @@
 # Output Styles
 
-Output styles are markdown-based formatting directives injected into the system prompt to control how the agent formats and presents its responses.
+Same agent, different voice. **Output styles** are small markdown directives —
+"be concise", "explain like a teacher", "stay formal" — injected into the system
+prompt to shape *how* the agent presents its answers, without touching *what* it
+does. Pick a built-in style or write your own, and switch it per run.
 
 ## Quick Start
 

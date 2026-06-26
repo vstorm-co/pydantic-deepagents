@@ -1,6 +1,11 @@
 # Hooks
 
-Hooks allow executing shell commands or Python handlers on tool lifecycle events, following Claude Code's hook conventions. Use them for audit logging, security gates, content filtering, or custom side effects. Hooks are implemented via `HooksCapability`, a pydantic-ai capability.
+Want to log every tool call, block writes outside a directory, or scrub secrets
+from output? **Hooks** let you run a shell command or Python handler on tool
+lifecycle events — before a tool runs, after it returns, or when it fails —
+following Claude Code's hook conventions. They're your insertion point for audit
+logging, security gates, content filtering, and custom side effects, implemented
+via the `HooksCapability`.
 
 ## Quick Start
 

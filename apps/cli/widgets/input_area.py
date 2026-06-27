@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from apps.cli.messages import (
     AttachFileRequested,
     CommandSelected,
     FileSelected,
+    MultilinePasteRequested,
     PasteImageRequested,
     UserSubmitted,
 )
@@ -235,6 +237,14 @@ class PromptInput(Input):
         path = _dropped_file_path(event.text)
         if path is not None:
             self.post_message(AttachFileRequested(path))
+            event.stop()
+            return
+        # A multi-line paste (e.g. a code block) can't survive a single-line
+        # input — hand it to multiline mode with the structure preserved,
+        # prepending whatever the user already typed.
+        if "\n" in event.text:
+            combined = self.value + event.text
+            self.post_message(MultilinePasteRequested(combined))
             event.stop()
             return
         super()._on_paste(event)
@@ -472,3 +482,23 @@ class InputArea(Vertical):
     def toggle_multiline(self) -> None:
         """Toggle between single-line and multiline mode."""
         self.is_multiline = not self.is_multiline
+
+    def enter_multiline_with(self, text: str) -> None:
+        """Switch to multiline mode and load `text`, cursor at the end."""
+        self.is_multiline = True
+
+        def _load() -> None:
+            with contextlib.suppress(Exception):
+                ml = self.query_one(MultilineInput)
+                ml.text = text
+                ml.move_cursor(ml.document.end)
+                ml.focus()
+
+        # watch_is_multiline mounts the MultilineInput on the next refresh, so
+        # defer loading the text until it exists.
+        self.call_after_refresh(_load)
+
+    def on_multiline_paste_requested(self, event: MultilinePasteRequested) -> None:
+        """A multi-line paste arrived in the single-line input — preserve it."""
+        event.stop()
+        self.enter_multiline_with(event.text)

@@ -154,3 +154,12 @@ class AttachFileRequested(Message):
     def __init__(self, path: str) -> None:
         super().__init__()
         self.path = path
+
+
+class MultilinePasteRequested(Message):
+    """Multi-line text was pasted into the single-line input — switch to
+    multiline mode and keep the pasted structure intact."""
+
+    def __init__(self, text: str) -> None:
+        super().__init__()
+        self.text = text

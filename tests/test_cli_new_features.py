@@ -116,3 +116,39 @@ async def test_input_prefill_stages_command(app: DeepApp) -> None:
         await pilot.pause()
         prompt = input_area.query("PromptInput").first()
         assert prompt.value == "/goal "  # type: ignore[attr-defined]
+
+
+async def test_multiline_paste_preserves_structure(app: DeepApp) -> None:
+    """A multi-line paste switches the input to multiline mode with the text
+    (and any already-typed prefix) intact instead of losing the newlines."""
+    from apps.cli.widgets.input_area import InputArea, MultilineInput
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        input_area = app.screen.query_one(InputArea)
+        input_area.enter_multiline_with("def f():\n    return 1\n")
+        await pilot.pause()
+        assert input_area.is_multiline is True
+        ml = input_area.query_one(MultilineInput)
+        assert ml.text == "def f():\n    return 1\n"
+
+
+async def test_on_paste_routes_multiline(app: DeepApp) -> None:
+    """PromptInput._on_paste hands multi-line pastes to multiline mode and lets
+    a plain single-line paste fall through to the default insert behaviour."""
+    from textual.events import Paste
+
+    from apps.cli.widgets.input_area import InputArea
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        input_area = app.screen.query_one(InputArea)
+        prompt = input_area.query("PromptInput").first()
+        prompt.value = "pre "  # type: ignore[attr-defined]
+        prompt._on_paste(Paste("a\nb"))  # type: ignore[attr-defined]
+        await pilot.pause()
+        # Routed to multiline with the prefix preserved.
+        assert input_area.is_multiline is True
+        from apps.cli.widgets.input_area import MultilineInput
+
+        assert input_area.query_one(MultilineInput).text == "pre a\nb"

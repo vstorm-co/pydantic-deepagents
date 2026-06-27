@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from pydantic_deep.toolsets.forking.editor import EditorDetector
+from pydantic_deep.features.forking.editor import EditorDetector
 
 # ---------------------------------------------------------------------------
 # Test 6 — PYDANTIC_DEEP_DIFFTOOL env var takes precedence.
@@ -33,7 +33,7 @@ def test_env_override_works_without_path_tools() -> None:
 
 
 def test_pycharm_invoke_makes_single_popen_with_all_paths() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         handles = EditorDetector.invoke(
             "pycharm",
@@ -60,7 +60,7 @@ def test_pycharm_detection_when_pycharm_on_path_only() -> None:
 
 def test_vscode_invoke_makes_one_popen_per_branch() -> None:
     branch_paths = [Path("/a/cat.md"), Path("/b/cat.md"), Path("/c/cat.md")]
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         handles = EditorDetector.invoke("vscode", Path("/parent/cat.md"), branch_paths)
     # Three branches → three Popen calls (one per branch).
@@ -89,7 +89,7 @@ def test_tui_fallback_when_no_editor_found() -> None:
 
 
 def test_tui_invoke_returns_empty_list_and_spawns_no_processes() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         handles = EditorDetector.invoke("tui", Path("/p"), [Path("/a")])
     assert handles == []
     assert popen_mock.call_count == 0
@@ -102,7 +102,7 @@ def test_tui_invoke_returns_empty_list_and_spawns_no_processes() -> None:
 
 def test_custom_invoke_uses_template_substitution() -> None:
     """`custom` kind: env var template gets `{parent}` / `{branches}` filled in."""
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         EditorDetector.invoke(
             "custom",
@@ -118,7 +118,7 @@ def test_custom_invoke_uses_template_substitution() -> None:
 
 
 def test_custom_invoke_reads_env_when_no_template_supplied() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         with patch.dict(
             "os.environ", {"PYDANTIC_DEEP_DIFFTOOL": "meld {parent} {branches}"}, clear=False
@@ -134,7 +134,7 @@ def test_custom_invoke_reads_env_when_no_template_supplied() -> None:
 
 
 def test_pycharm_invoke_two_branches_puts_parent_in_center() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         EditorDetector.invoke("pycharm", Path("/p/f"), [Path("/a/f"), Path("/b/f")])
     args = popen_mock.call_args.args[0]
@@ -142,7 +142,7 @@ def test_pycharm_invoke_two_branches_puts_parent_in_center() -> None:
 
 
 def test_pycharm_invoke_no_parent_omits_parent_arg() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         handles = EditorDetector.invoke("pycharm", None, [Path("/a/f"), Path("/b/f")])
     assert popen_mock.call_count == 1
@@ -151,7 +151,7 @@ def test_pycharm_invoke_no_parent_omits_parent_arg() -> None:
 
 
 def test_vscode_invoke_no_parent_two_branches_diffs_first_vs_rest() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         handles = EditorDetector.invoke("vscode", None, [Path("/a/f"), Path("/b/f")])
     assert popen_mock.call_count == 1
@@ -160,7 +160,7 @@ def test_vscode_invoke_no_parent_two_branches_diffs_first_vs_rest() -> None:
 
 
 def test_vscode_invoke_no_parent_single_branch_opens_file() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         handles = EditorDetector.invoke("vscode", None, [Path("/a/f")])
     assert popen_mock.call_count == 1
@@ -169,21 +169,21 @@ def test_vscode_invoke_no_parent_single_branch_opens_file() -> None:
 
 
 def test_vscode_invoke_no_parent_no_branches_returns_empty() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         handles = EditorDetector.invoke("vscode", None, [])
     assert handles == []
     assert popen_mock.call_count == 0
 
 
 def test_tui_invoke_no_parent_still_empty() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         handles = EditorDetector.invoke("tui", None, [Path("/a")])
     assert handles == []
     assert popen_mock.call_count == 0
 
 
 def test_custom_invoke_no_parent_substitutes_empty_string() -> None:
-    with patch("pydantic_deep.toolsets.forking.editor.subprocess.Popen") as popen_mock:
+    with patch("pydantic_deep.features.forking.editor.subprocess.Popen") as popen_mock:
         popen_mock.return_value = MagicMock()
         EditorDetector.invoke(
             "custom", None, [Path("/a"), Path("/b")], custom_cmd="meld {parent} {branches}"

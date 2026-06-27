@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import json
 from datetime import datetime
 
@@ -13,26 +15,41 @@ from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
 from apps.cli.config import get_sessions_dir
+from apps.cli.fuzzy import fuzzy_filter
 from apps.cli.modals._filter_input import FilterInput
 
 
 def _load_sessions() -> list[dict[str, str]]:
-    """Discover saved sessions from the sessions directory."""
+    """Discover saved sessions, most-recently-modified first.
+
+    Reads + JSON-parses each session's messages.json, so callers should run
+    this off the event loop (it can be slow with many large sessions).
+    """
 
     sessions_dir = get_sessions_dir()
     if not sessions_dir.is_dir():
         return []
 
-    sessions: list[dict[str, str]] = []
-    for session_dir in sorted(sessions_dir.iterdir(), reverse=True):
+    # Sort by messages.json mtime (newest first) rather than directory name,
+    # which is a uuid/id and doesn't reflect recency.
+    candidates: list[tuple[float, object]] = []
+    for session_dir in sessions_dir.iterdir():
         if not session_dir.is_dir():
             continue
-
         messages_file = session_dir / "messages.json"
         if not messages_file.exists():
             continue
+        try:
+            mtime = messages_file.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        candidates.append((mtime, session_dir))
+    candidates.sort(key=lambda c: c[0], reverse=True)
 
-        session_id = session_dir.name
+    sessions: list[dict[str, str]] = []
+    for _mtime, session_dir in candidates[:50]:  # 50 most recent
+        messages_file = session_dir / "messages.json"  # type: ignore[operator]
+        session_id = session_dir.name  # type: ignore[attr-defined]
         msg_count = 0
         first_user_msg = ""
         modified = ""
@@ -65,7 +82,7 @@ def _load_sessions() -> list[dict[str, str]]:
             }
         )
 
-    return sessions[:50]  # Limit to 50 most recent
+    return sessions
 
 
 class SessionPickerModal(ModalScreen[str | None]):
@@ -102,23 +119,23 @@ class SessionPickerModal(ModalScreen[str | None]):
         self._sessions: list[dict[str, str]] = []
 
     def compose(self) -> ComposeResult:
-        self._sessions = _load_sessions()
-
         with Vertical(id="session-container"):
-            yield Static(f"[bold]Load Session[/bold]  ({len(self._sessions)} found)\n")
-            from apps.cli.modals._filter_input import FilterInput
-
+            yield Static("[bold]Load Session[/bold]  [dim]loading…[/dim]", id="session-title")
             yield FilterInput(
                 placeholder="Type to filter...",
                 id="session-filter",
                 list_id="session-list",
                 enter_selects=True,
             )
-            yield OptionList(*self._make_options(self._sessions), id="session-list")
+            yield OptionList(id="session-list")
             yield Static(
                 "\n[dim]↑↓ navigate  Enter load  Esc cancel[/dim]",
                 id="session-hint",
             )
+
+    @staticmethod
+    def _key(s: dict[str, str]) -> str:
+        return f"{s['date']} {s['id']} {s['preview']}"
 
     def _make_options(self, sessions: list[dict[str, str]]) -> list[Option]:
         options: list[Option] = []
@@ -129,22 +146,28 @@ class SessionPickerModal(ModalScreen[str | None]):
 
     def on_mount(self) -> None:
         self.query_one("#session-filter", FilterInput).focus()
+        # Reading + parsing many messages.json files can be slow — do it off the
+        # event loop so opening /load never freezes the UI.
+        self.run_worker(self._load(), exclusive=True)
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        query = event.value.strip().lower()
-        if query:
-            filtered = [
-                s
-                for s in self._sessions
-                if query in s["preview"].lower() or query in s["id"].lower() or query in s["date"]
-            ]
-        else:
-            filtered = self._sessions
+    async def _load(self) -> None:
+        with contextlib.suppress(Exception):
+            self._sessions = await asyncio.to_thread(_load_sessions)
+        with contextlib.suppress(Exception):
+            self.query_one("#session-title", Static).update(
+                f"[bold]Load Session[/bold]  ({len(self._sessions)} found)"
+            )
+            self._populate(self._sessions)
 
+    def _populate(self, sessions: list[dict[str, str]]) -> None:
         option_list = self.query_one("#session-list", OptionList)
         option_list.clear_options()
-        for opt in self._make_options(filtered):
+        for opt in self._make_options(sessions):
             option_list.add_option(opt)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        filtered = fuzzy_filter(event.value, self._sessions, key=self._key)
+        self._populate(filtered)
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         session_id = str(event.option.id) if event.option.id else ""

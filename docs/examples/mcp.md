@@ -1,6 +1,8 @@
 # MCP Server Example
 
-This example demonstrates connecting to MCP servers for external tool integration.
+Your agent doesn't have to stop at the built-in tools. This example connects it
+to an [MCP](https://modelcontextprotocol.io/) server, so external tools — GitHub,
+docs lookups, your own services — show up alongside the native ones.
 
 ## Source Code
 
@@ -78,6 +80,6 @@ The `MCP` capability handles:
 
 ## Learn More
 
-- [MCP Guide](../advanced/mcp.md) -- Full MCP documentation
+- [MCP Guide](../learn/web-and-mcp.md) -- Full MCP documentation
 - [pydantic-ai MCP docs](https://ai.pydantic.dev/mcp/) -- Upstream reference
 - [modelcontextprotocol.io](https://modelcontextprotocol.io/) -- MCP specification

@@ -305,4 +305,4 @@ if tool_name == "execute":
 
 - [Docker Sandbox](docker-sandbox.md) - Combine with isolation
 - [Full App](full-app.md) - Web-based approval UI
-- [Advanced: Human-in-the-Loop](../advanced/human-in-the-loop.md) - Deep dive
+- [Advanced: Human-in-the-Loop](../learn/human-in-the-loop.md) - Deep dive

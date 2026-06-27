@@ -10,7 +10,7 @@ specific tool: exactness requirements, coding quality, autonomy rules.
 
 from __future__ import annotations
 
-# ── Core CLI section (always included) ──────────────────────────────────
+# Core CLI section (always included)
 
 _CLI_CORE = """\
 
@@ -48,7 +48,7 @@ do NOT use your own vocabulary, even if you know a "better" synonym
 the task defines what is valid, not your training data
 """
 
-# ── Code quality section (always included) ────────────────────────────────
+# Code quality section (always included)
 
 _CODE_QUALITY_SECTION = """\
 
@@ -75,7 +75,7 @@ don't assume UTF-8 when it's binary
 the root cause — don't add random flags hoping it works
 """
 
-# ── Verification section (always included) ──────────────────────────────
+# Verification section (always included)
 
 _VERIFICATION_SECTION = """\
 
@@ -139,7 +139,7 @@ fix it. If your approach doesn't work, try another. Do NOT stop and report \
 problems — SOLVE them.
 """
 
-# ── Lean non-interactive prompt (minimal, benchmark-optimized) ────────
+# Lean non-interactive prompt (minimal, benchmark-optimized)
 
 _LEAN_NON_INTERACTIVE = """\
 You are an autonomous agent executing tasks in a sandboxed environment.
@@ -159,7 +159,7 @@ of shell equivalents (`cat`, `sed`, `find`).
 what was asked.
 """
 
-# ── Concise output section (for non-interactive/benchmark) ──────────────
+# Concise output section (for non-interactive/benchmark)
 
 _CONCISE_OUTPUT_SECTION = """\
 

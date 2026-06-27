@@ -86,6 +86,35 @@ def test_mcpauth_secret_kind_requires_secret_key() -> None:
     assert MCPAuth(kind="none").secret_key == ""
 
 
+def test_mcpauth_rejects_invalid_value_template() -> None:
+    # A template with an extra placeholder or unbalanced braces would raise at
+    # render_value time; __post_init__ rejects it up front (B13).
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="none", value_template="Bearer {token} {extra}")
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="none", value_template="Bearer {token")
+    # A valid template (and a literal-brace one using `{{`) is accepted.
+    assert MCPAuth(kind="none", value_template="token={token}").render_value("x") == "token=x"
+    assert MCPAuth(kind="none", value_template="{{literal}} {token}").render_value("x") == (
+        "{literal} x"
+    )
+
+
+def test_stdio_server_redirects_stderr_to_log_file() -> None:
+    """A stdio MCP server's stderr must go to a log file, not the terminal —
+    otherwise the server's logs (tools/list traffic, etc.) paint over the TUI."""
+    import tempfile
+
+    from pydantic_deep.mcp.registry import _stdio_log_file
+
+    path = _stdio_log_file("my/server name")
+    assert str(path).startswith(tempfile.gettempdir())
+    assert path.name == "my_server_name.log"  # sanitised, not the raw name
+    # Building a stdio server with the redirect must not raise.
+    cfg = MCPServerConfig(name="demo", transport="stdio", command="echo", args=["hi"])
+    assert build_mcp_server(cfg) is not None
+
+
 def test_oauth_auth_does_not_require_secret() -> None:
     cfg = MCPServerConfig(
         name="figma", transport="http", url="https://mcp.figma.com/mcp", auth=MCPAuth(kind="oauth")

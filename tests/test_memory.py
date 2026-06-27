@@ -156,7 +156,7 @@ class TestFormatMemoryPrompt:
 
     def test_pinned_head_survives_truncation(self):
         """Content above the pin marker is always injected; the body is tailed."""
-        from pydantic_deep.toolsets.memory import DEFAULT_PIN_END_MARKER
+        from pydantic_deep.features.memory import DEFAULT_PIN_END_MARKER
 
         head = f"# Identity\nfoundational note\n{DEFAULT_PIN_END_MARKER}\n"
         body = "\n".join(f"obs {i}" for i in range(50))
@@ -172,7 +172,7 @@ class TestFormatMemoryPrompt:
 
     def test_pinned_head_only_empty_body(self):
         """A file that is only a pinned head injects the head with no marker."""
-        from pydantic_deep.toolsets.memory import DEFAULT_PIN_END_MARKER
+        from pydantic_deep.features.memory import DEFAULT_PIN_END_MARKER
 
         mem = MemoryFile(
             agent_name="main",

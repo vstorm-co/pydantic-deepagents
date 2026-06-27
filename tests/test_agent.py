@@ -379,7 +379,7 @@ class TestDeepAgentDeps:
 
     def test_checkpoint_store_set(self):
         """checkpoint_store can be passed to constructor."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         deps = DeepAgentDeps(checkpoint_store=store)
@@ -387,7 +387,7 @@ class TestDeepAgentDeps:
 
     def test_clone_for_subagent_propagates_checkpoint_store(self):
         """checkpoint_store is shared with subagent deps."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         original = DeepAgentDeps(checkpoint_store=store)
@@ -440,8 +440,8 @@ class TestDeepAgentDeps:
         # Binary files should have line_count = None
         assert deps.uploads[path]["line_count"] is None
 
-    async def test_upload_files_skips_failures(self):
-        """A failing file should not abort the rest of the batch."""
+    async def test_upload_files_skips_failures(self, caplog):
+        """A failing file should not abort the rest of the batch (and is logged, B9)."""
         from unittest.mock import patch
 
         deps = DeepAgentDeps(backend=StateBackend())
@@ -455,7 +455,10 @@ class TestDeepAgentDeps:
                 raise ValueError("boom")
             return await real_upload_file(name, content, upload_dir=upload_dir)
 
-        with patch.object(deps, "upload_file", side_effect=flaky_upload_file):
+        with (
+            patch.object(deps, "upload_file", side_effect=flaky_upload_file),
+            caplog.at_level("WARNING"),
+        ):
             paths = await deps.upload_files(
                 [
                     ("good1.csv", b"a,b\n1,2\n"),
@@ -466,6 +469,8 @@ class TestDeepAgentDeps:
 
         # The bad file is skipped, the good ones still upload.
         assert paths == ["/uploads/good1.csv", "/uploads/good2.txt"]
+        # The skip is surfaced, not silent (B9).
+        assert any("bad.bin" in r.getMessage() for r in caplog.records)
 
     def test_get_uploads_summary_empty(self):
         """Test uploads summary with no uploads."""

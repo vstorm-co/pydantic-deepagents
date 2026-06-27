@@ -27,13 +27,15 @@ from pydantic_deep import (
     InMemoryForkStateStore,
     LiveForkCapability,
     MergeStrategy,
+    PendingApprovalRequest,
     clone_for_branch,
     create_deep_agent,
 )
-from pydantic_deep.capabilities.message_queue import MessageQueue
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
-from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
-from pydantic_deep.toolsets.forking.isolation import _read_backend_bytes
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
+from pydantic_deep.features.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
+from pydantic_deep.features.forking.coordinator import _APPROVAL_POLL_INTERVAL_S
+from pydantic_deep.features.forking.isolation import _read_backend_bytes
+from pydantic_deep.features.message_queue import MessageQueue
 
 
 def _make_test_agent() -> Agent[DeepAgentDeps, str]:
@@ -437,7 +439,7 @@ def test_branch_overlay_mirror_delete_swallows_oserror(tmp_path):
     """OSError from materializer.flush_delete is logged, not propagated."""
     from unittest.mock import patch as _patch
 
-    from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
+    from pydantic_deep.features.forking.materializer import ForkMaterializer
 
     parent = StateBackend()
     parent.write("/x.py", "v0")
@@ -1400,7 +1402,7 @@ async def test_merge_tool_action_auto_uses_judge_and_commits():
             return JudgeVerdict(winner_branch_id=winner_id, reasoning="fake", confidence=0.9), None
 
     merge_fn = toolset.tools["merge_or_select"].function
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _FakeJudge):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", _FakeJudge):
         out = await merge_fn(_StubCtx(deps), "auto")
     # Should have committed the merge automatically.
     assert "winner=" in out
@@ -1926,7 +1928,7 @@ def test_execute_timeout_still_propagates_partial_mutations(tmp_path: Path) -> N
     """
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import _EXIT_TIMEOUT
+    from pydantic_deep.features.forking.isolation import _EXIT_TIMEOUT
 
     parent = LocalBackend(root_dir=str(tmp_path))
     overlay = BranchOverlay(parent)
@@ -1955,7 +1957,7 @@ def test_execute_crash_still_propagates_partial_mutations(
 
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking import isolation
+    from pydantic_deep.features.forking import isolation
 
     parent = LocalBackend(root_dir=str(tmp_path))
     overlay = BranchOverlay(parent)
@@ -1990,7 +1992,7 @@ def test_execute_mkdir_propagates_to_overlay(tmp_path: Path) -> None:
     """mkdir via execute records a 'mkdir' FileChange in the overlay."""
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     parent = LocalBackend(root_dir=str(tmp_path))
     overlay = BranchOverlay(parent)
@@ -2008,7 +2010,7 @@ def test_execute_rmdir_propagates_to_overlay(tmp_path: Path) -> None:
     """rmdir via execute records a 'rmdir' FileChange in the overlay."""
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     target_dir = tmp_path / "existing"
     target_dir.mkdir()
@@ -2027,7 +2029,7 @@ def test_flush_mkdir_creates_directory_on_parent(tmp_path: Path) -> None:
     """flush_to with a mkdir change creates the directory on the parent backend."""
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     parent = LocalBackend(root_dir=str(tmp_path))
     overlay = BranchOverlay(parent)
@@ -2044,7 +2046,7 @@ def test_flush_rmdir_removes_directory_on_parent(tmp_path: Path) -> None:
     """flush_to with an rmdir change removes the directory on the parent backend."""
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     target_dir = tmp_path / "to_remove"
     target_dir.mkdir()
@@ -2064,7 +2066,7 @@ def test_flush_mkdir_no_execute_reports_error() -> None:
     """flush_to mkdir on a backend without execute reports a FlushError."""
     from pydantic_ai_backends import StateBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     parent = StateBackend()
     overlay = BranchOverlay(parent)
@@ -2079,7 +2081,7 @@ def test_flush_rmdir_no_execute_reports_error() -> None:
     """flush_to rmdir on a backend without execute reports a FlushError."""
     from pydantic_ai_backends import StateBackend
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.isolation import BranchOverlay
 
     parent = StateBackend()
     overlay = BranchOverlay(parent)
@@ -2092,7 +2094,7 @@ def test_flush_rmdir_no_execute_reports_error() -> None:
 
 def test_collect_state_records_empty_directories(tmp_path: Path) -> None:
     """_collect_state records empty directories as entries ending with '/'."""
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
@@ -2107,8 +2109,8 @@ def test_flush_mkdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
     from datetime import datetime, timezone
     from unittest.mock import MagicMock
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
-    from pydantic_deep.types import FileChange
+    from pydantic_deep.features.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.types import FileChange
 
     parent = MagicMock()
     parent.execute_enabled = True
@@ -2130,8 +2132,8 @@ def test_flush_rmdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
     from datetime import datetime, timezone
     from unittest.mock import MagicMock
 
-    from pydantic_deep.toolsets.forking.isolation import BranchOverlay
-    from pydantic_deep.types import FileChange
+    from pydantic_deep.features.forking.isolation import BranchOverlay
+    from pydantic_deep.features.forking.types import FileChange
 
     parent = MagicMock()
     parent.execute_enabled = True
@@ -2154,7 +2156,7 @@ def test_propagate_mutations_handles_directory_create(tmp_path: Path) -> None:
     """_propagate_mutations detects a new empty directory and calls record_mkdir."""
     from unittest.mock import MagicMock
 
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     parent_root = tmp_path / "root"
     parent_root.mkdir()
@@ -2173,7 +2175,7 @@ def test_propagate_mutations_handles_directory_delete(tmp_path: Path) -> None:
     """_propagate_mutations detects a removed directory and calls record_rmdir."""
     from unittest.mock import MagicMock
 
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     parent_root = tmp_path / "root"
     parent_root.mkdir()
@@ -2192,7 +2194,7 @@ def test_propagate_mutations_unchanged_directory_is_noop(tmp_path: Path) -> None
     """_propagate_mutations skips directories present in both pre and post."""
     from unittest.mock import MagicMock
 
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     parent_root = tmp_path / "root"
     parent_root.mkdir()
@@ -2210,7 +2212,7 @@ def test_propagate_mutations_unchanged_directory_is_noop(tmp_path: Path) -> None
 
 def test_collect_state_does_not_record_nonempty_directories(tmp_path: Path) -> None:
     """_collect_state does NOT record directories that contain files."""
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     nonempty = tmp_path / "has_file"
     nonempty.mkdir()
@@ -2228,7 +2230,7 @@ def test_collect_state_does_not_record_nonempty_directories(tmp_path: Path) -> N
 
 
 def test_rewrite_parent_root_only_on_path_boundaries() -> None:
-    from pydantic_deep.toolsets.forking.isolation import _rewrite_parent_root
+    from pydantic_deep.features.forking.isolation import _rewrite_parent_root
 
     root = "/home/u/proj"
     snap = "/tmp/snap"
@@ -2255,7 +2257,7 @@ def test_rewrite_parent_root_only_on_path_boundaries() -> None:
 
 def test_copy_tree_recurses_into_subdirectory(tmp_path: Path) -> None:
     """_copy_tree mirrors subdirectory structure as real copies and skips _SNAP_SKIP_DIRS."""
-    from pydantic_deep.toolsets.forking.isolation import _SNAP_SKIP_DIRS, _copy_tree
+    from pydantic_deep.features.forking.isolation import _SNAP_SKIP_DIRS, _copy_tree
 
     src = tmp_path / "src"
     src.mkdir()
@@ -2289,7 +2291,7 @@ def test_copy_tree_recurses_into_subdirectory(tmp_path: Path) -> None:
 
 def test_copy_tree_skips_unreadable_entry(tmp_path: Path) -> None:
     """_copy_tree logs and skips an entry it can't copy (e.g. a dangling symlink)."""
-    from pydantic_deep.toolsets.forking.isolation import _copy_tree
+    from pydantic_deep.features.forking.isolation import _copy_tree
 
     src = tmp_path / "src"
     src.mkdir()
@@ -2313,7 +2315,7 @@ def test_copy_tree_skips_unreadable_entry(tmp_path: Path) -> None:
 
 def test_collect_state_skips_snap_skip_dirs(tmp_path: Path) -> None:
     """_collect_state does not recurse into _SNAP_SKIP_DIRS entries."""
-    from pydantic_deep.toolsets.forking.isolation import _SNAP_SKIP_DIRS, _collect_state
+    from pydantic_deep.features.forking.isolation import _SNAP_SKIP_DIRS, _collect_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2333,7 +2335,7 @@ def test_collect_state_skips_snap_skip_dirs(tmp_path: Path) -> None:
 
 def test_collect_state_recurses_into_subdirectory(tmp_path: Path) -> None:
     """_collect_state recurses into normal subdirectories."""
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2351,7 +2353,7 @@ def test_collect_state_skips_non_file_non_dir_entries(tmp_path: Path) -> None:
     """_collect_state ignores entries that are not symlinks, files, or directories."""
     import os
 
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2371,7 +2373,7 @@ def test_collect_state_permission_error_returns_silently(tmp_path: Path) -> None
     """_collect_state silently returns when os.scandir raises PermissionError."""
     from unittest.mock import patch
 
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     with patch("os.scandir", side_effect=PermissionError("no access")):
         out: dict[str, tuple[bool, float]] = {}
@@ -2381,7 +2383,7 @@ def test_collect_state_permission_error_returns_silently(tmp_path: Path) -> None
 
 def test_collect_state_symlink_signature_oserror_fallback(tmp_path: Path) -> None:
     """A dangling symlink → content signature falls back to '' (unreadable)."""
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2401,7 +2403,7 @@ def test_collect_state_file_signature_oserror_fallback(tmp_path: Path) -> None:
     """_collect_state uses signature='' when a file's content can't be read."""
     from unittest.mock import MagicMock, patch
 
-    from pydantic_deep.toolsets.forking.isolation import _collect_state
+    from pydantic_deep.features.forking.isolation import _collect_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2432,7 +2434,7 @@ def test_snapshot_state_detects_content_change_with_preserved_mtime(tmp_path: Pa
     """
     import os
 
-    from pydantic_deep.toolsets.forking.isolation import _snapshot_state
+    from pydantic_deep.features.forking.isolation import _snapshot_state
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2458,7 +2460,7 @@ def test_branch_snapshot_overlay_read_failure_is_skipped(tmp_path: Path) -> None
     """An exception from overlay.read_bytes skips that path without crashing."""
     from unittest.mock import patch
 
-    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+    from pydantic_deep.features.forking.isolation import _branch_snapshot
 
     overlay = StateBackend()
     from datetime import datetime, timezone
@@ -2478,7 +2480,7 @@ def test_branch_snapshot_overlay_read_failure_is_skipped(tmp_path: Path) -> None
 
 def test_branch_snapshot_path_not_relative_to_root(tmp_path: Path) -> None:
     """A path that isn't under parent_root uses lstrip('/') as fallback."""
-    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+    from pydantic_deep.features.forking.isolation import _branch_snapshot
 
     overlay = StateBackend()
     # Write a file with a path NOT under tmp_path (different absolute root).
@@ -2499,7 +2501,7 @@ def test_branch_snapshot_unlinks_existing_symlink_before_overlay_write(
     tmp_path: Path,
 ) -> None:
     """When overlay writes to a path already symlinked from parent, symlink is removed."""
-    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+    from pydantic_deep.features.forking.isolation import _branch_snapshot
 
     # Parent has file.py.
     parent_file = tmp_path / "file.py"
@@ -2523,7 +2525,7 @@ def test_branch_snapshot_unlinks_existing_symlink_before_overlay_write(
 
 def test_branch_snapshot_deleted_path_not_relative_to_root(tmp_path: Path) -> None:
     """Deleted paths not under parent_root fall back to lstrip('/') placement."""
-    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+    from pydantic_deep.features.forking.isolation import _branch_snapshot
 
     overlay = StateBackend()
     # Create a file in the snapshot that we'll then mark deleted.
@@ -2542,7 +2544,7 @@ def test_branch_snapshot_deleted_path_not_relative_to_root(tmp_path: Path) -> No
 
 def test_branch_snapshot_deleted_path_unlinks_existing_entry(tmp_path: Path) -> None:
     """Deleted path whose symlink exists in snap is removed."""
-    from pydantic_deep.toolsets.forking.isolation import _branch_snapshot
+    from pydantic_deep.features.forking.isolation import _branch_snapshot
 
     parent_file = tmp_path / "todel.py"
     parent_file.write_text("original")
@@ -2565,7 +2567,7 @@ def test_branch_snapshot_deleted_path_unlinks_existing_entry(tmp_path: Path) -> 
 
 def test_propagate_mutations_created_path_snap_file_missing(tmp_path: Path) -> None:
     """Created path whose snap_file doesn't exist at propagation time is skipped."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2581,7 +2583,7 @@ def test_propagate_mutations_created_path_snap_file_missing(tmp_path: Path) -> N
 
 def test_propagate_mutations_symlink_replaced_by_real_file(tmp_path: Path) -> None:
     """Symlink → real file transition is captured as an overlay write."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2601,7 +2603,7 @@ def test_propagate_mutations_symlink_replaced_by_real_file(tmp_path: Path) -> No
 
 def test_propagate_mutations_real_file_mtime_changed(tmp_path: Path) -> None:
     """An existing real file whose mtime changed is captured as an overlay write."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2621,7 +2623,7 @@ def test_propagate_mutations_real_file_mtime_changed(tmp_path: Path) -> None:
 
 def test_propagate_mutations_write_through_symlink_snap_missing(tmp_path: Path) -> None:
     """Write-through-symlink case where snap_file doesn't exist is skipped."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2638,7 +2640,7 @@ def test_propagate_mutations_write_through_symlink_snap_missing(tmp_path: Path) 
 
 def test_propagate_mutations_symlink_replaced_snap_file_missing(tmp_path: Path) -> None:
     """Symlink→real-file case where snap_file vanished is skipped silently."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2654,7 +2656,7 @@ def test_propagate_mutations_symlink_replaced_snap_file_missing(tmp_path: Path) 
 
 def test_propagate_mutations_real_file_modified_snap_file_missing(tmp_path: Path) -> None:
     """Real-file mtime change where snap_file vanished is skipped silently."""
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2674,7 +2676,7 @@ def test_propagate_mutations_overlay_write_oserror_is_logged(
     """An `OSError` from `overlay.write` is logged, not silently swallowed."""
     import logging
 
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2689,7 +2691,7 @@ def test_propagate_mutations_overlay_write_oserror_is_logged(
             raise OSError("disk full")
 
     overlay = _FailingOverlay(StateBackend())
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.isolation"):
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
         _propagate_mutations(snap, tmp_path, pre, post, overlay)
     assert any("failed to capture" in rec.message for rec in caplog.records)
 
@@ -2700,7 +2702,7 @@ def test_propagate_mutations_overlay_delete_oserror_is_logged(
     """An `OSError` from `overlay.delete` is logged, not silently swallowed."""
     import logging
 
-    from pydantic_deep.toolsets.forking.isolation import _propagate_mutations
+    from pydantic_deep.features.forking.isolation import _propagate_mutations
 
     snap = tmp_path / "snap"
     snap.mkdir()
@@ -2713,7 +2715,7 @@ def test_propagate_mutations_overlay_delete_oserror_is_logged(
             raise OSError("readonly fs")
 
     overlay = _FailingOverlay(StateBackend())
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.isolation"):
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
         _propagate_mutations(snap, tmp_path, pre, post, overlay)
     assert any("failed to record delete" in rec.message for rec in caplog.records)
 
@@ -2763,7 +2765,7 @@ def test_run_in_snapshot_output_truncated(tmp_path: Path) -> None:
     """Output longer than _EXEC_MAX_CHARS is truncated and truncated=True."""
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.toolsets.forking.isolation import _EXEC_MAX_CHARS
+    from pydantic_deep.features.forking.isolation import _EXEC_MAX_CHARS
 
     parent = LocalBackend(root_dir=tmp_path)
     overlay = BranchOverlay(parent)
@@ -3258,7 +3260,7 @@ async def test_merge_tool_action_auto_committed_without_verdict():
     from unittest.mock import AsyncMock, patch
 
     from pydantic_deep import MergeResult
-    from pydantic_deep.types import ResolveOutcome
+    from pydantic_deep.features.forking.types import ResolveOutcome
 
     deps = DeepAgentDeps(backend=StateBackend())
     _build_capability_with_coordinator(deps)
@@ -3303,7 +3305,7 @@ async def test_merge_tool_action_auto_not_committed_with_verdict_picks_winner():
     from unittest.mock import AsyncMock, patch
 
     from pydantic_deep import JudgeVerdict
-    from pydantic_deep.types import ResolveOutcome
+    from pydantic_deep.features.forking.types import ResolveOutcome
 
     deps = DeepAgentDeps(backend=StateBackend())
     _build_capability_with_coordinator(deps)
@@ -3336,3 +3338,95 @@ async def test_merge_tool_action_auto_not_committed_with_verdict_picks_winner():
     # The tool should have fallen through to merge_or_select(pick:<winner_id>)
     assert "winner=" in out
     assert coord.is_resolved
+
+
+# ---------------------------------------------------------------------------
+# A1 — auto/vote merge must not deadlock on a winner parked on approval.
+# ---------------------------------------------------------------------------
+
+
+async def test_await_winner_auto_denies_parked_approval():
+    """Non-interactive (auto/vote) commit denies a parked approval instead of hanging."""
+    from types import SimpleNamespace
+
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps)
+    approval = PendingApprovalRequest(branch_id="w", description="execute: rm -rf /")
+    winner = SimpleNamespace(task=None, pending_approval=approval)
+
+    async def _parked() -> str:
+        answered = await approval.response.get()
+        assert answered is False  # auto-denied
+        winner.pending_approval = None  # branch resets it after answering
+        await asyncio.sleep(_APPROVAL_POLL_INTERVAL_S * 3)  # an iter sees not-done + no pending
+        return "done"
+
+    winner.task = asyncio.create_task(_parked())
+    await asyncio.sleep(0)  # let the task reach its await
+
+    result = await coord._await_winner(cast(Any, winner), auto_deny_approvals=True)
+    assert result == "done"
+
+
+async def test_await_winner_manual_plain_await():
+    """Manual mode awaits the task directly (a human answers approvals via the TUI)."""
+    from types import SimpleNamespace
+
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps)
+
+    async def _quick() -> str:
+        return "ok"
+
+    winner = SimpleNamespace(task=asyncio.create_task(_quick()), pending_approval=None)
+    assert await coord._await_winner(cast(Any, winner), auto_deny_approvals=False) == "ok"
+
+
+# ---------------------------------------------------------------------------
+# A2 — aclose is locked + idempotent.
+# ---------------------------------------------------------------------------
+
+
+async def test_aclose_is_idempotent(tmp_path: Path) -> None:
+    deps = DeepAgentDeps(backend=StateBackend())
+    coord = _make_coordinator(_make_test_agent(), deps, materializer_root=tmp_path)
+    await coord.fork(
+        [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        parent_history=_seed_history("p"),
+    )
+    await asyncio.gather(*(rt.task for rt in coord.branches.values()))
+
+    await coord.aclose()
+    assert coord._closed is True
+    await coord.aclose()  # second call is a no-op via the _closed guard
+    assert coord._closed is True
+
+
+async def test_cancel_branch_task_warns_when_loser_ignores_cancel(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A4: a loser that doesn't quiesce in time is logged, not silently ignored."""
+    from types import SimpleNamespace
+
+    from pydantic_deep.features.forking import coordinator as _coord_mod
+
+    monkeypatch.setattr(_coord_mod, "_CANCEL_CLEANUP_TIMEOUT_S", 0.01)
+    coord = _make_coordinator(_make_test_agent(), DeepAgentDeps(backend=StateBackend()))
+    started = asyncio.Event()
+
+    async def _stubborn() -> None:
+        started.set()
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            await asyncio.sleep(0.05)  # exceed the 0.01s quiesce window before honoring cancel
+            raise
+
+    task = asyncio.create_task(_stubborn())
+    await started.wait()
+    rt = SimpleNamespace(task=task)
+    with caplog.at_level("WARNING"):
+        await coord._cancel_branch_task(cast(Any, rt), "loser z")
+    assert any("did not stop" in r.getMessage() for r in caplog.records)
+    with contextlib.suppress(asyncio.CancelledError):
+        await task

@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.33"
+version = "0.3.34"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -42,9 +42,9 @@ classifiers = [
 dependencies = [
     "pydantic-ai-slim[web-fetch]>=2.0.0",
     "pydantic-ai-todo>=0.2.6",
-    "pydantic-ai-backend[console]>=0.2.14",
+    "pydantic-ai-backend[console]>=0.2.15",
     "summarization-pydantic-ai>=0.1.10",
-    "subagents-pydantic-ai>=0.2.7",
+    "subagents-pydantic-ai>=0.2.8",
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
@@ -52,7 +52,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.14"]
+sandbox = ["pydantic-ai-backend[docker]>=0.2.15"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)
@@ -64,6 +64,9 @@ cli = [
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
     "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=2.0.0",
+    # Enables read_file image downscaling (backend resizes oversized images);
+    # a graceful no-op in the backend when absent.
+    "pillow>=10.0.0",
 ]
 # TUI (Textual-based terminal UI)
 tui = [

@@ -9,9 +9,11 @@ if TYPE_CHECKING:
     from apps.cli.app import DeepApp
 
 import asyncio
+import json
 import re
 import time as _time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -30,7 +32,7 @@ from pydantic_ai.messages import (
 )
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.screen import Screen
 
@@ -40,7 +42,6 @@ from apps.cli.messages import (
     AgentError,
     AgentRunStarted,
     AgentTextComplete,
-    AgentToken,
     ApprovalRequested,
     CommandSelected,
     CompressionComplete,
@@ -49,8 +50,6 @@ from apps.cli.messages import (
     CostUpdated,
     FileSelected,
     TodosUpdated,
-    ToolCallCompleted,
-    ToolCallStarted,
     UserSubmitted,
 )
 from apps.cli.modals.approval import ApprovalModal
@@ -68,11 +67,12 @@ from apps.cli.widgets.input_area import InputArea
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.notification import notify_error, notify_success, notify_warning
 from apps.cli.widgets.queued_panel import QueuedWidget
-from apps.cli.widgets.side_panel import SidePanel
+from apps.cli.widgets.shells_panel import ShellsWidget
 from apps.cli.widgets.status_bar import StatusBar
 from apps.cli.widgets.subagents_panel import SubagentsWidget
+from apps.cli.widgets.todos_panel import TodosWidget
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS
-from pydantic_deep.types import PendingApprovalRequest
+from pydantic_deep.features.forking.types import PendingApprovalRequest
 
 _FORK_POLL_INTERVAL_S: float = 0.5
 
@@ -170,8 +170,8 @@ async def _stream_branch_via_iter(  # noqa: C901
                                 a.add_tool_call(tool_name, args, call_id)
                                 msg_list.scroll_end(animate=False)
                             elif isinstance(event, FunctionToolResultEvent):
-                                call_id = getattr(event.result, "tool_call_id", "unknown")
-                                raw = str(event.result.content)
+                                call_id = getattr(event.part, "tool_call_id", "unknown")
+                                raw = str(getattr(event.part, "content", event.content))
                                 from apps.cli.text_heuristics import (
                                     looks_like_error as _looks_err,
                                 )
@@ -235,6 +235,12 @@ def _format_turn_summary(counts: dict[str, int], elapsed: float) -> str:
     return "✓ " + " · ".join(parts) + f" · {elapsed:.1f}s"
 
 
+#: Single-threaded writer for session/tool-log IO so disk writes never block
+#: the Textual event loop or stutter streaming. max_workers=1 preserves append
+#: order across submissions (C12).
+_SESSION_IO_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-session-io")
+
+
 class ChatScreen(Screen):
     """The main chat interface with header, messages, status bar, and input."""
 
@@ -247,6 +253,10 @@ class ChatScreen(Screen):
         Binding("ctrl+k", "show_todos", "TODOs"),
         Binding("ctrl+l", "clear_screen", "Clear"),
         Binding("ctrl+r", "search_messages", "Search"),
+        Binding("ctrl+p", "history_picker", "History"),
+        # Copy the mouse-drag text selection to the clipboard. ctrl+c is taken by
+        # interrupt, so Textual's built-in copy action gets ctrl+shift+c here.
+        Binding("ctrl+shift+c", "copy_text", "Copy selection", show=False),
         Binding("tab", "cycle_branch_tab", "Cycle branch", show=False),
         Binding("enter", "merge_focused_branch", "Merge focused branch", show=False),
         Binding("pageup", "scroll_up", "Scroll up", show=False),
@@ -257,40 +267,81 @@ class ChatScreen(Screen):
     _approval_in_flight: bool = False
     # Images grabbed from the clipboard, attached to the next submitted prompt.
     _pending_images: list[tuple[bytes, str]]
+    # Chip labels shown in the input's attachments bar (kept in step with the
+    # clipboard/dropped images so the user sees what will be sent).
+    _attachment_labels: list[str]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Initialise here, not in on_mount: the ctrl+v / @file-ref bindings can
+        # fire before on_mount (or after a screen swap), so the attribute must
+        # exist for the whole screen lifetime (C6).
+        super().__init__(*args, **kwargs)
+        self._pending_images = []
+        self._attachment_labels = []
+        #: True once the >=90% context warning has fired; reset below 85% so the
+        #: heads-up shows once per crossing, not on every context update.
+        self._context_warned = False
 
     def compose(self) -> ComposeResult:
         yield DeepHeader()
-        with Horizontal(id="main-layout"):
-            with Vertical(id="messages-pane"):
-                yield MessageList()
-                yield ForkTabsWidget()
-                with Vertical(id="fork-view-body"):
-                    yield ForkOverviewWidget()
-            yield SidePanel()
+        with Vertical(id="messages-pane"):
+            yield MessageList()
+            yield ForkTabsWidget()
+            with Vertical(id="fork-view-body"):
+                yield ForkOverviewWidget()
         yield StatusBar()
-        yield InputArea()
+        # One bottom-docked column so the pieces stack instead of overlapping
+        # (sibling `dock: bottom` widgets all anchor to the same edge). The
+        # activity strip is pinned directly above the input: subagents sit right
+        # under the conversation, then the TODO list, then any queued messages.
+        # Each panel collapses when empty so the strip only shows when relevant.
+        with Vertical(id="bottom-bar"):
+            with Vertical(id="activity-dock"):
+                yield SubagentsWidget()
+                yield ShellsWidget()
+                yield ForkBadgeWidget()
+                yield TodosWidget()
+                yield QueuedWidget()
+            yield InputArea()
 
     def on_mount(self) -> None:
         """Show welcome banner, init session, bootstrap context files, focus input."""
-        self._pending_images = []
         self._init_session()
         self._bootstrap_context_files()
-        self._init_side_panel()
+        self._init_subagents()
         self.call_later(self._show_welcome)
         self.query_one(InputArea).focus_input()
 
     def on_resize(self, event: Any) -> None:
-        """Keep side panel responsive to terminal width changes."""
-        self.query_one(SidePanel).update_for_width(self.app.size.width)
+        """Keep the footer responsive to terminal width changes."""
+        self._refresh_session_footer()
+        self._sync_activity_dock()
 
-    def _init_side_panel(self) -> None:
-        """Show side panel and populate with default subagents."""
-        side = self.query_one(SidePanel)
-        side.update_for_width(self.app.size.width)
+    def _refresh_session_footer(self) -> None:
+        from apps.cli.widgets.input_area import SessionFooter
 
-        sa_widget = side.query_one(SubagentsWidget)
+        with contextlib.suppress(Exception):
+            self.query_one(SessionFooter).refresh_session()
+
+    def _sync_activity_dock(self) -> None:
+        """Collapse the pinned activity strip when every panel is empty, so it
+        only takes space when subagents / todos / queued messages exist."""
+        with contextlib.suppress(Exception):
+            dock = self.query_one("#activity-dock")
+            panels = (
+                self.query_one(SubagentsWidget),
+                self.query_one(ShellsWidget),
+                self.query_one(ForkBadgeWidget),
+                self.query_one(TodosWidget),
+                self.query_one(QueuedWidget),
+            )
+            dock.display = any(p.display for p in panels)
+
+    def _init_subagents(self) -> None:
+        """Seed the subagents panel baseline (hidden until one is active)."""
+        sa_widget = self.query_one(SubagentsWidget)
         defaults = []
-        agent = getattr(self.app, "agent", None)
+        agent = self.app.agent
         if agent:
             mgr = getattr(agent, "_task_manager", None)
             if mgr:
@@ -298,19 +349,21 @@ class ChatScreen(Screen):
                     defaults.append({"name": name, "status": "idle", "description": ""})
         if not defaults:
             defaults = [
+                {"name": "general-purpose", "status": "idle", "description": ""},
                 {"name": "planner", "status": "idle", "description": ""},
                 {"name": "research", "status": "idle", "description": ""},
             ]
         # Remember the configured subagents so running tasks can be merged into
-        # this baseline instead of replacing it - idle agents stay visible
-        # (dimmed) rather than disappearing while one is active.
+        # this baseline instead of replacing it - idle agents stay tracked
+        # (though the panel only renders the active ones).
         self._known_subagents: list[str] = [d["name"] for d in defaults]
         sa_widget.agents = defaults
+        self._sync_activity_dock()
 
     def _bootstrap_context_files(self) -> None:
         """Create AGENTS.md, SOUL.md and MEMORY.md if they don't exist."""
 
-        working_dir = Path(getattr(self.app, "working_dir", ".")).resolve()
+        working_dir = Path(self.app.working_dir).resolve()
         created: list[str] = []
 
         # AGENTS.md - project conventions (visible to agent + subagents)
@@ -413,20 +466,29 @@ class ChatScreen(Screen):
             self._session_dir = None
 
     def _save_session(self) -> None:
-        """Save current message history to session directory."""
+        """Save current message history to the session directory.
+
+        Snapshots the history on the event loop (cheap list copy), then
+        serializes + writes off-loop on the shared writer thread so a large
+        history can't stutter streaming (C12).
+        """
         if not self._session_dir:
             return
-        try:
-            from pydantic_ai.messages import ModelMessagesTypeAdapter
+        history = list(self.app.message_history)
+        if not history:
+            return
+        messages_file = self._session_dir / "messages.json"
 
-            history = getattr(self.app, "message_history", [])
-            if not history:
-                return
-            data = ModelMessagesTypeAdapter.dump_json(history, indent=2)
-            messages_file = self._session_dir / "messages.json"
-            messages_file.write_bytes(data)
-        except Exception:
-            pass  # Don't crash on save failure
+        def _write() -> None:
+            try:
+                from pydantic_ai.messages import ModelMessagesTypeAdapter
+
+                data = ModelMessagesTypeAdapter.dump_json(history, indent=2)
+                messages_file.write_bytes(data)
+            except Exception:
+                pass  # Don't crash on save failure
+
+        _SESSION_IO_EXECUTOR.submit(_write)
 
     def _append_tool_log(
         self,
@@ -443,32 +505,34 @@ class ChatScreen(Screen):
         """
         if not self._session_dir:
             return
-        try:
-            import json
-            from datetime import datetime, timezone
+        # Build the record on the loop (cheap), append off-loop so a JSONL write
+        # on every tool result can't stutter streaming (C12).
+        is_subagent = tool_name == "task"  # subagent outputs get full content
+        max_result = 20_000 if is_subagent else 2000
+        record = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "tool": tool_name,
+            "args": {k: str(v)[:500] for k, v in args.items()},
+            "result_preview": result[:max_result],
+            "result_length": len(result),
+            "elapsed": round(elapsed, 3),
+            "error": is_error,
+        }
+        log_file = self._session_dir / "tool_log.jsonl"
 
-            # Subagent outputs get full content; other tools get preview
-            is_subagent = tool_name == "task"
-            max_result = 20_000 if is_subagent else 2000
-            record = {
-                "ts": datetime.now(timezone.utc).isoformat(),
-                "tool": tool_name,
-                "args": {k: str(v)[:500] for k, v in args.items()},
-                "result_preview": result[:max_result],
-                "result_length": len(result),
-                "elapsed": round(elapsed, 3),
-                "error": is_error,
-            }
-            log_file = self._session_dir / "tool_log.jsonl"
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        except Exception:
-            pass
+        def _append() -> None:
+            try:
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+
+        _SESSION_IO_EXECUTOR.submit(_append)
 
     def _sync_status_from_history(self) -> None:
         """Calculate cost and token usage from message_history and update status bar."""
         try:
-            history = getattr(self.app, "message_history", [])
+            history = self.app.message_history
             status = self.query_one(StatusBar)
             status.message_count = len(history)
 
@@ -486,10 +550,11 @@ class ChatScreen(Screen):
             status.total_input_tokens = total_input
             status.total_output_tokens = total_output
 
-            # Only fall back to a rough heuristic when no authoritative cost is
-            # available. CostTracking (genai-prices) feeds precise per-model
-            # values via on_cost_updated/app.total_cost; never overwrite those.
-            if self.app.total_cost <= 0:  # type: ignore
+            # Only fall back to a rough heuristic when CostTracking hasn't yet
+            # reported an authoritative cost. Gating on `cost_known` (not
+            # `total_cost <= 0`) keeps a genuine $0 turn from being clobbered
+            # by a fabricated Sonnet-rate estimate (C5).
+            if not self.app.cost_known:
                 # Estimate cost (~$3/MTok input, ~$15/MTok output for Sonnet-class)
                 estimated_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
                 status.total_cost = estimated_cost
@@ -506,6 +571,9 @@ class ChatScreen(Screen):
                 status.context_current = total_input
                 status.context_max = max_tokens
                 status.context_pct = total_input / max_tokens
+
+            # Keep the footer (session/workspace) current.
+            self._refresh_session_footer()
         except Exception:
             from apps.cli.debug_log import get_logger
 
@@ -535,48 +603,15 @@ class ChatScreen(Screen):
             pass
 
     def _show_welcome(self) -> None:
-        """Display a welcome message with project context."""
+        """Initialize the empty welcome state.
 
-        msg_list = self.query_one(MessageList)
+        The identity/version live in the top header, so there's no welcome
+        banner in the conversation — it would just duplicate the header. This
+        only refreshes the session footer now that deps are wired.
+        """
+        self._refresh_session_footer()
 
-        working_dir = getattr(self.app, "working_dir", ".")
-        root = Path(working_dir).resolve()
-        lines: list[str] = []
-
-        try:
-            from apps.cli.local_context import (
-                detect_language,
-                detect_package_manager,
-                detect_test_command,
-            )
-
-            lang = detect_language(root)
-            pkg = detect_package_manager(root)
-            test_cmd = detect_test_command(root)
-            if lang:
-                info = f"**{lang}**"
-                if pkg:
-                    info += f" · {pkg}"
-                lines.append(info)
-            if test_cmd:
-                lines.append(f"Test: `{test_cmd}`")
-        except Exception:
-            pass
-
-        bootstrapped = getattr(self, "_bootstrapped_files", [])
-        if bootstrapped:
-            lines.append(f"Created: {', '.join(bootstrapped)}")
-
-        lines.append("")
-        lines.append("Ready! Type a message, `/` for commands, `@` for files.")
-
-        welcome = "\n".join(lines)
-        assistant = msg_list.begin_assistant_message()
-        assistant.append_text(welcome)
-        assistant.finalize_text()
-        msg_list.end_assistant_message()
-
-    # ── User input handling ───────────────────────────────────────
+    # User input handling
 
     #: Slash commands allowed while a fork is active - everything else is blocked
     #: because a new `agent.run()` would overwrite `deps.fork_coordinator`.
@@ -635,7 +670,7 @@ class ChatScreen(Screen):
                         app.notify(f"→ {branch_id_or_label}: {preview}")
                         return
 
-            # ── Slash commands during fork - only inspection allow-list ──
+            # Slash commands during fork - only inspection allow-list
             if text.startswith("/") and not text.startswith("//"):
                 cmd = text.split(maxsplit=1)[0].lower()
                 if cmd in self._FORK_ALLOWED_COMMANDS or self._is_fork_inspection(text):
@@ -710,6 +745,10 @@ class ChatScreen(Screen):
 
         text = self._expand_file_refs(text)
 
+        # Remember the prompt so `/retry` can re-run it after a bad/aborted turn.
+        if text:
+            app.last_user_prompt = text  # type: ignore[attr-defined]
+
         msg_list = self.query_one(MessageList)
 
         # Attach any clipboard images grabbed via Ctrl+V / `/paste`, building a
@@ -723,15 +762,17 @@ class ChatScreen(Screen):
 
             from pydantic_ai.messages import BinaryContent
 
+            # Snapshot the chip labels before clearing so the conversation can
+            # show them as a clean sub-line (fall back to [Image #N] per image).
+            labels = self._attachment_labels or [f"[Image #{i + 1}]" for i in range(len(images))]
             self._pending_images = []
+            self._attachment_labels = []
+            self._refresh_attachments_bar()
             # Omit an empty text block — providers reject empty text content.
             prompt: Any = ([text] if text else []) + [
                 BinaryContent(data=data, media_type=mt) for data, mt in images
             ]
-            n = len(images)
-            badge = f"[dim]🖼 {n} image{'s' if n != 1 else ''} attached[/dim]"
-            display = f"{text}\n{badge}" if text else badge
-            msg_list.append_user_message(display)
+            msg_list.append_user_message(text, attachments=labels)
             self._run_agent(prompt)
             return
 
@@ -741,6 +782,20 @@ class ChatScreen(Screen):
     def on_paste_image_requested(self, _event: Any) -> None:
         """Ctrl+V in the input: attach a clipboard image to the next prompt."""
         self.attach_clipboard_image()
+
+    def _refresh_attachments_bar(self) -> None:
+        """Push the current attachment chip labels to the input's bar."""
+        with contextlib.suppress(Exception):
+            self.query_one(InputArea).set_attachments(self._attachment_labels)
+
+    def clear_attachments(self) -> None:
+        """Drop all pending attachments (Esc on an empty prompt)."""
+        if not self._pending_images and not self._attachment_labels:
+            return
+        self._pending_images = []
+        self._attachment_labels = []
+        self._refresh_attachments_bar()
+        self.app.notify("Attachments cleared")
 
     def attach_clipboard_image(self) -> None:
         """Grab an image from the clipboard and attach it to the next prompt."""
@@ -756,33 +811,71 @@ class ChatScreen(Screen):
             )
             return
         self._pending_images.append(result)
-        data, _mt = result
-        kb = max(1, len(data) // 1024)
-        n = len(self._pending_images)
-        app.notify(f"🖼 Image attached ({kb} KB) - {n} pending. Send a message to include it.")
+        self._attachment_labels.append(f"[Image #{len(self._pending_images)}]")
+        self._refresh_attachments_bar()
         with contextlib.suppress(Exception):
             self.query_one(InputArea).focus_input()
+
+    def on_attach_file_requested(self, event: Any) -> None:
+        """A file was dropped on the input — attach an image as a chip, or add a
+        non-image as an `@path` reference the prompt expansion picks up."""
+        path = Path(event.path)
+        ext = path.suffix.lower()
+        if ext in self._IMAGE_EXTS and path.is_file():
+            try:
+                self._pending_images.append((path.read_bytes(), self._IMAGE_EXTS[ext]))
+            except OSError:
+                self.app.notify(f"Could not read {path.name}", severity="warning")
+                return
+            self._attachment_labels.append(f"[{path.name}]")
+            self._refresh_attachments_bar()
+        else:
+            # Reuse the @file machinery: drop a reference into the input so the
+            # file's content is expanded on submit, and it's visible to the user.
+            with contextlib.suppress(Exception):
+                prompt = self.query_one(InputArea).query_one("PromptInput")
+                sep = "" if not prompt.value or prompt.value.endswith(" ") else " "
+                # Quote paths with spaces so the @-ref round-trips through expansion.
+                ref = f'"{path}"' if " " in str(path) else str(path)
+                prompt.value = f"{prompt.value}{sep}@{ref} "
+                prompt.cursor_position = len(prompt.value)
+        with contextlib.suppress(Exception):
+            self.query_one(InputArea).focus_input()
+
+    #: Commands that expect an inline free-text argument — selecting them from
+    #: the picker stages `/cmd ` in the input instead of running with no arg.
+    #: (Excludes commands whose no-arg form is itself useful, e.g. /theme lists
+    #: the available themes.)
+    _ARG_COMMANDS = frozenset({"/goal", "/export"})
 
     def on_command_selected(self, event: CommandSelected) -> None:
         """Open the command picker or handle a selected command."""
 
         async def _handle_result(result: str | None) -> None:
-            if result:
-                self.app.handle_command(result)  # type: ignore[attr-defined]
+            if not result:
+                return
+            if result in self._ARG_COMMANDS:
+                with contextlib.suppress(Exception):
+                    self.query_one(InputArea).prefill(f"{result} ")
+                return
+            self.app.handle_command(result)  # type: ignore[attr-defined]
 
         self.app.push_screen(CommandPickerModal(), _handle_result)
 
     def on_file_selected(self, event: FileSelected) -> None:
         """Open the file picker."""
 
-        working_dir = getattr(self.app, "working_dir", ".")
+        working_dir = self.app.working_dir
 
         async def _handle_result(result: str | None) -> None:
             if result:
                 input_area = self.query_one(InputArea)
                 prompt = input_area.query("PromptInput")
                 if prompt:
-                    prompt.first().value += f"@{result} "
+                    # Quote paths with spaces so the @-ref round-trips intact
+                    # (e.g. "@\"Screenshot 2026 ....png\"").
+                    ref = f'"{result}"' if " " in result else result
+                    prompt.first().value += f"@{ref} "
 
         self.app.push_screen(FilePickerModal(working_dir), _handle_result)
 
@@ -840,6 +933,14 @@ class ChatScreen(Screen):
                 "dissolve_team",
             }
         )
+        _SHELL_TOOLS = frozenset(
+            {
+                "run_in_background",
+                "read_output",
+                "kill_shell",
+                "list_shells",
+            }
+        )
         _subagent_tasks: dict[str, dict[str, Any]] = {}  # task_id -> info
         _turn_started = _time.monotonic()
         _turn_counts: dict[str, int] = {}
@@ -858,7 +959,7 @@ class ChatScreen(Screen):
             return {}
 
         try:
-            from pydantic_deep.processors.patch import patch_tool_calls_processor
+            from pydantic_deep.features.patch import patch_tool_calls_processor
 
             history = patch_tool_calls_processor(list(history))
 
@@ -985,9 +1086,9 @@ class ChatScreen(Screen):
                                             app.push_screen(_overlay)
 
                                 elif isinstance(event, FunctionToolResultEvent):
-                                    tool_name = getattr(event.result, "tool_name", "unknown")
-                                    call_id = getattr(event.result, "tool_call_id", tool_name)
-                                    raw = str(event.result.content)
+                                    tool_name = getattr(event.part, "tool_name", "unknown")
+                                    call_id = getattr(event.part, "tool_call_id", tool_name)
+                                    raw = str(getattr(event.part, "content", event.content))
                                     elapsed = 0.0
                                     args = {}
                                     if call_id in pending:
@@ -1018,6 +1119,9 @@ class ChatScreen(Screen):
                                         )
                                         self._update_subagents_panel(_subagent_tasks)
 
+                                    if tool_name in _SHELL_TOOLS:
+                                        self._refresh_shells_panel()
+
                                     if tool_name == "fork_run":
                                         from apps.cli.forking import reconcile_active_fork
 
@@ -1042,10 +1146,10 @@ class ChatScreen(Screen):
 
             if result is not None:
                 try:
-                    usage = result.usage()
+                    usage = result.usage
                     assistant.set_usage(
-                        input_tokens=usage.request_tokens or 0,
-                        output_tokens=usage.response_tokens or 0,
+                        input_tokens=usage.input_tokens or 0,
+                        output_tokens=usage.output_tokens or 0,
                         requests=usage.requests or 0,
                     )
                 except Exception:
@@ -1163,13 +1267,9 @@ class ChatScreen(Screen):
                                                 )
                                                 msg_list.scroll_end(animate=False)
                                         elif isinstance(event, FunctionToolResultEvent):
-                                            tool_name = getattr(
-                                                event.result, "tool_name", "unknown"
-                                            )
-                                            call_id = getattr(
-                                                event.result, "tool_call_id", tool_name
-                                            )
-                                            raw = str(event.result.content)
+                                            tool_name = getattr(event.part, "tool_name", "unknown")
+                                            call_id = getattr(event.part, "tool_call_id", tool_name)
+                                            raw = str(getattr(event.part, "content", event.content))
                                             # Same error detection as the main loop:
                                             # an approved command that fails must show
                                             # as an error (✗), not a green success.
@@ -1232,7 +1332,7 @@ class ChatScreen(Screen):
                 if _queue is not None:
                     _follow_up_msgs = await _queue.drain_follow_up()
                     if _follow_up_msgs:
-                        from pydantic_deep.capabilities.message_queue import (
+                        from pydantic_deep.features.message_queue import (
                             format_follow_up as _fmt_fu,
                         )
 
@@ -1325,19 +1425,23 @@ class ChatScreen(Screen):
             else:
                 with contextlib.suppress(Exception):
                     self.query_one(QueuedWidget).clear_steering()
+                self._sync_activity_dock()
 
     def _increment_queue_badge(self, *, steering: bool) -> None:
         with contextlib.suppress(Exception):
             w = self.query_one(QueuedWidget)
             w.increment_steering() if steering else w.increment_follow_up()
+        self._sync_activity_dock()
 
     def _decrement_queue_badge(self, follow_up_count: int = 1) -> None:
         with contextlib.suppress(Exception):
             self.query_one(QueuedWidget).decrement_follow_up(follow_up_count)
+        self._sync_activity_dock()
 
     def _reset_queue_badge(self) -> None:
         with contextlib.suppress(Exception):
             self.query_one(QueuedWidget).reset()
+        self._sync_activity_dock()
 
     async def _continue_goal(self) -> None:
         """Evaluate the active goal and drive another turn when not yet met.
@@ -1406,7 +1510,7 @@ class ChatScreen(Screen):
         surfaces *why* a server's tools were missing (e.g. figma without the
         desktop app), notifying each server at most once per session.
         """
-        deps = getattr(self.app, "deps", None)
+        deps = self.app.deps
         degraded = getattr(deps, "mcp_degraded", None)
         if not degraded:
             return
@@ -1438,7 +1542,7 @@ class ChatScreen(Screen):
         path = args.get("file_path") or args.get("path")
         if not path:
             return
-        deps = getattr(self.app, "deps", None)
+        deps = self.app.deps
         backend = getattr(deps, "backend", None)
         if backend is None:
             return
@@ -1466,40 +1570,40 @@ class ChatScreen(Screen):
     }
 
     def _expand_file_refs(self, text: str) -> str:
-        """Expand @file references in the prompt with file contents.
+        """Resolve @file references in the prompt to plain paths.
 
-        Image files (``@shot.png`` etc.) are attached as multimodal content
-        for the next prompt instead of being inlined as text.
+        A text/code file reference (``@src/main.py``) is turned into the bare
+        path (backticked) so the *agent* decides how to read it — whole via
+        read_file, a slice with offset/limit, or grep — instead of us dumping
+        the entire file into the prompt (which wastes context and removes that
+        choice). Image files (``@shot.png``) are still attached as multimodal
+        content, since the model reads those directly rather than via tools.
+        Unknown paths are left untouched (e.g. ``@someone`` mentions).
         """
 
-        working_dir = Path(getattr(self.app, "working_dir", "."))
-        if not hasattr(self, "_pending_images"):
-            self._pending_images = []
+        working_dir = Path(self.app.working_dir)
 
         def replace_ref(match: re.Match[str]) -> str:
-            filepath = match.group(1)
+            # Group 1 = a quoted path `@"with spaces.png"`, group 2 = a bare path.
+            filepath = match.group(1) if match.group(1) is not None else match.group(2)
             full_path = working_dir / filepath
+            if not full_path.is_file():
+                return match.group(0)  # not a real file — leave as typed
             ext = full_path.suffix.lower()
-            if ext in self._IMAGE_EXTS and full_path.is_file():
+            if ext in self._IMAGE_EXTS:
                 try:
                     data = full_path.read_bytes()
                     self._pending_images.append((data, self._IMAGE_EXTS[ext]))
                     return f"[image: {filepath}]"
                 except Exception:
                     return match.group(0)
-            try:
-                if full_path.is_file():
-                    content = full_path.read_text()
-                    if len(content) > 50_000:
-                        content = content[:50_000] + "\n... (truncated)"
-                    return f'\n\n<file path="{filepath}">\n{content}\n</file>\n'
-            except Exception:
-                pass
-            return match.group(0)  # Leave as-is if can't read
+            # Hand the agent the path, not the contents.
+            return f"`{filepath}`"
 
-        return re.sub(r"@([\w./\-]+)", replace_ref, text)
+        # Match a quoted `@"path with spaces"` first, then a bare `@path`.
+        return re.sub(r'@"([^"]+)"|@([\w./\-]+)', replace_ref, text)
 
-    # ── Agent event handling ──────────────────────────────────────
+    # Agent event handling
 
     def on_agent_run_started(self, _event: AgentRunStarted) -> None:
         header = self.query_one(DeepHeader)
@@ -1508,33 +1612,11 @@ class ChatScreen(Screen):
         msg_list = self.query_one(MessageList)
         msg_list.begin_assistant_message()
 
-    def on_agent_token(self, event: AgentToken) -> None:
-        msg_list = self.query_one(MessageList)
-        if msg_list.current_assistant:
-            msg_list.current_assistant.append_text(event.text)
-            # Auto-scroll (debounced - Textual coalesces scroll_end calls)
-            msg_list.scroll_end(animate=False)
-        # Track for /copy
-        self.app.last_response = getattr(self.app, "last_response", "") + event.text  # type: ignore
-
     def on_agent_text_complete(self, _event: AgentTextComplete) -> None:
         msg_list = self.query_one(MessageList)
         if msg_list.current_assistant:
             msg_list.current_assistant.finalize_text()
             msg_list.scroll_end(animate=False)
-
-    def on_tool_call_started(self, event: ToolCallStarted) -> None:
-        msg_list = self.query_one(MessageList)
-        if msg_list.current_assistant:
-            msg_list.current_assistant.add_tool_call(event.tool_name, event.args, event.call_id)
-            msg_list.scroll_end(animate=False)
-
-    def on_tool_call_completed(self, event: ToolCallCompleted) -> None:
-        msg_list = self.query_one(MessageList)
-        if msg_list.current_assistant:
-            msg_list.current_assistant.complete_tool_call(
-                event.call_id, event.result, event.elapsed, event.error
-            )
 
     def on_agent_complete(self, _event: AgentComplete) -> None:
         header = self.query_one(DeepHeader)
@@ -1552,7 +1634,7 @@ class ChatScreen(Screen):
         notify_error(self.app, f"Error: {event.error}")
         self.query_one(InputArea).focus_input()
 
-    # ── Approval handling ─────────────────────────────────────────
+    # Approval handling
 
     def on_approval_requested(self, event: ApprovalRequested) -> None:
         async def _handle_result(result: str) -> None:
@@ -1563,7 +1645,7 @@ class ChatScreen(Screen):
             _handle_result,
         )
 
-    # ── Status updates ────────────────────────────────────────────
+    # Status updates
 
     def on_cost_updated(self, event: CostUpdated) -> None:
         status = self.query_one(StatusBar)
@@ -1583,18 +1665,24 @@ class ChatScreen(Screen):
         status.context_pct = event.pct
         status.context_current = event.current
         status.context_max = event.maximum
+        # Warn once on the rising edge past 90%, not on every update — context
+        # stays high across many requests in a turn, which would flood the UI.
+        # Reset below 85% (hysteresis) so a later spike warns again, and after
+        # /compact drops usage the user gets a fresh heads-up if it climbs back.
         if event.pct >= 0.9:
-            notify_warning(self.app, f"Context at {event.pct:.0%} - type /compact to summarize")
+            if not self._context_warned:
+                notify_warning(self.app, f"Context at {event.pct:.0%} - type /compact to summarize")
+                self._context_warned = True
+        elif event.pct < 0.85:
+            self._context_warned = False
 
     def on_todos_updated(self, event: TodosUpdated) -> None:
         status = self.query_one(StatusBar)
         todos = event.todos
         status.total_todos = len(todos)
         status.active_todos = sum(1 for t in todos if getattr(t, "status", "") == "completed")
-        side = self.query_one(SidePanel)
-        todos_widget = side.query_one("TodosWidget")
-        todos_widget.todos = todos  # type: ignore[attr-defined]
-        side.show_if_needed(self.app.size.width, len(todos) > 0)
+        self.query_one(TodosWidget).todos = todos
+        self._sync_activity_dock()
 
     def on_compression_started(self, _event: CompressionStarted) -> None:
         notify_warning(self.app, "Compacting context...")
@@ -1602,19 +1690,16 @@ class ChatScreen(Screen):
     def on_compression_complete(self, _event: CompressionComplete) -> None:
         notify_success(self.app, "Context compacted")
 
-    # ── Subagent / Team panel updates ────────────────────────────
+    # Subagent / Team panel updates
 
     def _update_subagents_panel(
         self,
         subagent_tasks: dict[str, dict[str, Any]],
         team_event: tuple[str, dict[str, Any]] | None = None,
     ) -> None:
-        """Update the SubagentsWidget in the side panel with current task info."""
+        """Update the SubagentsWidget (pinned under the messages) with task info."""
         try:
-            from apps.cli.widgets.subagents_panel import SubagentsWidget
-
-            side = self.query_one(SidePanel)
-            sa_widget = side.query_one(SubagentsWidget)
+            sa_widget = self.query_one(SubagentsWidget)
 
             # Start from the known/idle baseline so configured subagents stay
             # visible (dimmed) while others run, then overlay live task status
@@ -1658,13 +1743,29 @@ class ChatScreen(Screen):
                     )
 
             sa_widget.agents = agents_list
-
-            if agents_list:
-                side.show_if_needed(self.app.size.width, True)
+            self._sync_activity_dock()
         except Exception:
-            pass  # Side panel may not be mounted yet
+            pass  # Panel may not be mounted yet
 
-    # ── Actions ───────────────────────────────────────────────────
+    def _refresh_shells_panel(self) -> None:
+        """Pull the live background-shell registry from the backend and push it
+        into the pinned ShellsWidget. Safe to call from any shell tool result —
+        a backend without background support just yields an empty list."""
+        try:
+            shells_widget = self.query_one(ShellsWidget)
+        except Exception:
+            return  # Panel may not be mounted yet
+        deps = getattr(self.app, "deps", None)
+        backend = getattr(deps, "backend", None)
+        lister = getattr(backend, "list_background", None)
+        shells: list[Any] = []
+        if callable(lister):
+            with contextlib.suppress(Exception):
+                shells = list(lister())
+        shells_widget.shells = shells
+        self._sync_activity_dock()
+
+    # Actions
 
     def action_show_todos(self) -> None:
         self.app.handle_command("/todos")  # type: ignore[attr-defined]
@@ -1698,7 +1799,7 @@ class ChatScreen(Screen):
 
         coordinator = session.coordinator
         coordinator.branch_runner = _stream_branch_via_iter
-        parent_model = getattr(self.app, "model_name", None) or None
+        parent_model = self.app.model_name or None
         branch_models: dict[str, str] = {}
         for branch_id in session.handle.branches:
             runtime = coordinator.branches[branch_id]
@@ -1718,6 +1819,7 @@ class ChatScreen(Screen):
 
         with contextlib.suppress(NoMatches):
             self.query_one(ForkBadgeWidget).show()
+        self._sync_activity_dock()
 
         self._poll_timer = self.set_interval(_FORK_POLL_INTERVAL_S, self._poll_fork_state)
 
@@ -1748,6 +1850,7 @@ class ChatScreen(Screen):
             self.query_one(ForkOverviewWidget).set_active(False)
         with contextlib.suppress(NoMatches):
             self.query_one(ForkBadgeWidget).hide()
+        self._sync_activity_dock()
         with contextlib.suppress(NoMatches):
             self.query_one(MessageList).display = True
 
@@ -1774,7 +1877,7 @@ class ChatScreen(Screen):
             partial = list(getattr(runtime, "partial_history", None) or [])
             if partial:
                 with contextlib.suppress(Exception):  # pragma: no cover - defensive
-                    panel.replay_messages(partial)
+                    panel.replay_final(partial)
 
         def _on_done(t: asyncio.Task[Any]) -> None:
             def _apply() -> None:
@@ -1810,7 +1913,7 @@ class ChatScreen(Screen):
                 result = t.result()
                 panel.mark_status("done")
                 with contextlib.suppress(Exception):  # pragma: no cover - defensive
-                    panel.replay_messages(list(result.all_messages()))
+                    panel.replay_final(list(result.all_messages()))
 
             try:
                 app.call_from_thread(_apply)
@@ -1879,7 +1982,7 @@ class ChatScreen(Screen):
                             panel.mark_status("failed")
                         else:
                             with contextlib.suppress(Exception):
-                                panel.replay_messages(list(result.all_messages()))
+                                panel.replay_final(list(result.all_messages()))
                 if not panel.streaming:
                     with contextlib.suppress(Exception):
                         if runtime.partial_history:
@@ -1993,7 +2096,7 @@ class ChatScreen(Screen):
             app.notify(f"Merge failed: {e}", severity="error")
             return
 
-        from pydantic_deep.processors.patch import patch_tool_calls_processor
+        from pydantic_deep.features.patch import patch_tool_calls_processor
 
         app.message_history = patch_tool_calls_processor(list(result.history_after_merge))
         label = runtime.spec.label
@@ -2073,5 +2176,22 @@ class ChatScreen(Screen):
                     children[child_idx].scroll_visible(animate=True)
 
         self.app.push_screen(SearchModal(), _handle_result)
+
+    def action_history_picker(self) -> None:
+        """Open the input-history picker (Ctrl+P) and stage the chosen prompt."""
+        from apps.cli.modals.history_picker import HistoryPickerModal
+        from apps.cli.widgets.input_area import _load_history
+
+        def _handle_result(result: str | None) -> None:
+            if not result:
+                return
+            with contextlib.suppress(Exception):
+                input_area = self.query_one(InputArea)
+                if "\n" in result:
+                    input_area.enter_multiline_with(result)
+                else:
+                    input_area.prefill(result)
+
+        self.app.push_screen(HistoryPickerModal(_load_history()), _handle_result)
 
     # on_resize is defined near on_mount - handles side panel visibility

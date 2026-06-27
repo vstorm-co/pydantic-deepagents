@@ -24,7 +24,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Static
 
 from apps.cli.forking import ForkPickerResult
-from pydantic_deep.types import BranchSpec
+from pydantic_deep.features.forking.types import BranchSpec
 
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp

@@ -29,6 +29,44 @@ from typing import Any
 _LOGGER_NAME = "pydantic_deep.tui"
 _MAX_LOG_FILES = 20
 
+# Third-party loggers that attach console/Rich handlers writing to the real
+# terminal. Under the Textual TUI those paint over the live screen (e.g.
+# fastmcp logging MCP `tools/list` traffic). Silenced at TUI launch.
+_NOISY_CONSOLE_LOGGERS = (
+    "fastmcp",
+    "mcp",
+    "httpx",
+    "httpcore",
+    "fastmcp.client",
+    "py.warnings",  # warnings.warn() output, routed here via captureWarnings(True)
+)
+
+
+def quiet_console_logging() -> None:
+    """Stop third-party libraries from logging to the terminal under the TUI.
+
+    The TUI owns the screen; any library that writes to ``sys.stdout``/``stderr``
+    (fastmcp/mcp use Rich handlers) corrupts the render. Drop those handlers,
+    route to a NullHandler, stop propagation, and raise the level so even a
+    stray record never reaches the console. Idempotent and exception-safe.
+    """
+    # fastmcp re-runs ``configure_logging`` (re-adding a stderr RichHandler) when
+    # a client connects — mid-generation, painting "tools/list" over the screen.
+    # Disabling its logging makes that reconfigure an early-return no-op for good.
+    with contextlib.suppress(Exception):
+        import fastmcp
+
+        fastmcp.settings.log_enabled = False
+        fastmcp.settings.enable_rich_logging = False
+
+    for name in _NOISY_CONSOLE_LOGGERS:
+        with contextlib.suppress(Exception):
+            lg = logging.getLogger(name)
+            lg.handlers = [logging.NullHandler()]
+            lg.propagate = False
+            lg.setLevel(logging.WARNING)
+
+
 _logger: logging.Logger | None = None
 _session_id: str = ""
 

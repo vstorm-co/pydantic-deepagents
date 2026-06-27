@@ -28,12 +28,12 @@ from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.forking.coordinator import (
+from pydantic_deep.features.forking.coordinator import (
     ForkCoordinator,
     _describe_blocked_call,
 )
-from pydantic_deep.toolsets.forking.store import InMemoryForkStateStore
-from pydantic_deep.types import BranchIsolation, BranchSpec
+from pydantic_deep.features.forking.store import InMemoryForkStateStore
+from pydantic_deep.features.forking.types import BranchIsolation, BranchSpec
 
 
 class _NormalResult:

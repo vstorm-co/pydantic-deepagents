@@ -97,7 +97,9 @@ class TestGetDirectoryTree:
         result = get_directory_tree(tmp_path)
         assert result == ""
 
-    def test_simple_structure(self, tmp_path: Path) -> None:
+    def test_root_files_and_folder_counts(self, tmp_path: Path) -> None:
+        """Folders-first: root files are listed; nested files are counted, not
+        individually listed."""
         (tmp_path / "file1.py").write_text("content")
         (tmp_path / "file2.txt").write_text("content")
         (tmp_path / "subdir").mkdir()
@@ -107,7 +109,8 @@ class TestGetDirectoryTree:
         assert "file1.py" in result
         assert "file2.txt" in result
         assert "subdir/" in result
-        assert "nested.py" in result
+        assert "(1 file)" in result  # nested.py counted
+        assert "nested.py" not in result  # not listed individually
 
     def test_ignores_patterns(self, tmp_path: Path) -> None:
         (tmp_path / "src").mkdir()
@@ -118,10 +121,26 @@ class TestGetDirectoryTree:
         (tmp_path / ".git").mkdir()
 
         result = get_directory_tree(tmp_path)
-        assert "app.py" in result
+        assert "src/" in result
         assert "node_modules" not in result
         assert "__pycache__" not in result
         assert ".git" not in result
+
+    def test_ignores_hidden_dirs_and_custom_named_venv(self, tmp_path: Path) -> None:
+        """A custom-named virtualenv (`.venv310`) and any hidden dir are skipped
+        — detected by the `pyvenv.cfg` marker, not a hard-coded name."""
+        (tmp_path / "src").mkdir()
+        venv = tmp_path / ".venv310"
+        (venv / "bin").mkdir(parents=True)
+        (venv / "pyvenv.cfg").write_text("home = /usr/bin\n")
+        (venv / "bin" / "activate").write_text("")
+        (tmp_path / ".secret").mkdir()
+
+        result = get_directory_tree(tmp_path)
+        assert "src/" in result
+        assert ".venv310" not in result
+        assert "activate" not in result
+        assert ".secret" not in result
 
     def test_max_depth(self, tmp_path: Path) -> None:
         current = tmp_path
@@ -135,28 +154,41 @@ class TestGetDirectoryTree:
         assert "level1/" in result
         assert "level5/" not in result
 
-    def test_max_entries(self, tmp_path: Path) -> None:
-        for i in range(50):
-            (tmp_path / f"file{i:03d}.txt").write_text("")
+    def test_per_dir_cap_marks_overflow(self, tmp_path: Path) -> None:
+        parent = tmp_path / "parent"
+        parent.mkdir()
+        for i in range(30):
+            (parent / f"child{i:02d}").mkdir()
 
-        result = get_directory_tree(tmp_path, max_entries=5)
-        lines = result.strip().split("\n")
-        assert len(lines) <= 7
-        assert "more" in lines[-1]
+        result = get_directory_tree(tmp_path, max_per_dir=5)
+        assert "more dirs" in result
+
+    def test_all_top_level_dirs_shown(self, tmp_path: Path) -> None:
+        """Top-level directories are the backbone — none get dropped even when
+        an earlier sibling is large."""
+        big = tmp_path / "aaa_big"
+        big.mkdir()
+        for i in range(40):
+            (big / f"sub{i:02d}").mkdir()
+        (tmp_path / "zzz_pkg").mkdir()
+
+        result = get_directory_tree(tmp_path, max_entries=10)
+        assert "aaa_big/" in result
+        assert "zzz_pkg/" in result  # not starved by the big sibling
 
     def test_permission_error(self, tmp_path: Path) -> None:
         """Unreadable directory should be silently skipped."""
         (tmp_path / "readable").mkdir()
-        (tmp_path / "readable" / "file.txt").write_text("content")
+        (tmp_path / "readable" / "child").mkdir()
         unreadable = tmp_path / "unreadable"
         unreadable.mkdir()
-        (unreadable / "secret.txt").write_text("secret")
+        (unreadable / "secret").mkdir()
         unreadable.chmod(0o000)
 
         try:
             result = get_directory_tree(tmp_path)
-            assert "file.txt" in result
-            assert "secret.txt" not in result
+            assert "readable/" in result
+            assert "secret" not in result
         finally:
             unreadable.chmod(0o755)
 
@@ -217,7 +249,7 @@ class TestLocalContextToolset:
         ctx = MagicMock()
         result = await toolset.get_instructions(ctx)
         assert isinstance(result, list)
-        joined = "\n\n".join(result)
+        joined = "\n\n".join(part.content for part in result)
         assert "### Local Context" in joined
         assert "test.py" in joined
 

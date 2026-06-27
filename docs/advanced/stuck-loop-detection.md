@@ -1,104 +1,107 @@
-# Stuck Loop Detection
+# Stuck-loop detection
 
-The `StuckLoopDetection` capability detects repetitive agent behavior and intervenes before the agent wastes tokens on unproductive loops. It is **enabled by default**.
+Sometimes an agent gets stuck. It reads the same file again and again, bounces between two tools forever, or keeps calling something that does nothing. Left alone, it burns tokens and never finishes. Stuck-loop detection watches for that and steps in — nudging the model to try something else, or stopping the run.
 
-## Quick Start
+It's on by default. You already have it.
 
 ```python
 from pydantic_deep import create_deep_agent
 
-# Enabled by default
-agent = create_deep_agent()
-
-# Disable
-agent = create_deep_agent(stuck_loop_detection=False)
-
-# Custom: use as a capability directly
-from pydantic_deep import StuckLoopDetection
-
-agent = create_deep_agent(
-    stuck_loop_detection=False,
-    capabilities=[StuckLoopDetection(max_repeated=5, action="error")],
-)
+# Stuck-loop detection is already running
+agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
 ```
 
-## Detection Patterns
+If the agent calls `read_file("/src/app.py")` three times in a row, the third call doesn't return a file — it returns a nudge telling the model to change course. You wrote nothing to make that happen.
 
-### Repeated Identical Calls
+## What it catches
 
-Same tool called with the same arguments N times in a row:
+It watches the stream of tool calls and looks for three shapes of "spinning."
+
+### Repeated identical calls
+
+The same tool, the same arguments, N times in a row:
 
 ```
 read_file(path="/src/app.py")    # 1
 read_file(path="/src/app.py")    # 2
-read_file(path="/src/app.py")    # 3  -> TRIGGERED
+read_file(path="/src/app.py")    # 3  -> triggered
 ```
 
 ### Alternating A-B-A-B
 
-Two tool calls alternating back and forth:
+Two tools ping-ponging back and forth with nothing changing:
 
 ```
 grep(pattern="TODO")             # A
 read_file(path="/src/app.py")    # B
 grep(pattern="TODO")             # A
-read_file(path="/src/app.py")    # B  -> TRIGGERED
+read_file(path="/src/app.py")    # B  -> triggered
 ```
 
-### No-Op Calls
+### No-op calls
 
-Same tool returning the same result repeatedly (the operation has no effect):
+A tool that keeps returning the *same result* — the call has no effect, so repeating it is pointless:
 
 ```
 list_files(path="/src")  -> ["a.py", "b.py"]
 list_files(path="/src")  -> ["a.py", "b.py"]
-list_files(path="/src")  -> ["a.py", "b.py"]  -> TRIGGERED
+list_files(path="/src")  -> ["a.py", "b.py"]  -> triggered
 ```
 
-## Configuration
+## How it works
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_repeated` | `int` | `3` | Number of repetitions before triggering |
-| `action` | `str` | `"warn"` | `"warn"` raises `ModelRetry` (model can self-correct), `"error"` raises `StuckLoopError` (run aborts) |
-| `detect_repeated` | `bool` | `True` | Enable repeated identical call detection |
-| `detect_alternating` | `bool` | `True` | Enable A-B-A-B pattern detection |
-| `detect_noop` | `bool` | `True` | Enable no-op (same result) detection |
+Stuck-loop detection is a [capability][pydantic_deep.features.stuck_loop.StuckLoopDetection] — it hooks into the agent lifecycle and runs after every tool call. For each call it records two things: a hash of the tool name plus its arguments, and a hash of the tool name plus its result. Then it checks the recent history against the three patterns above.
 
-## How It Works
+When a pattern matches, what happens next depends on `action`:
 
-The capability uses the `after_tool_execute` hook to track every tool call:
+- `"warn"` (the default) raises a `ModelRetry`. The model receives the message as feedback and gets a chance to self-correct. The run keeps going.
+- `"error"` raises a `StuckLoopError` and the run stops.
 
-1. After each tool call, it records `(tool_name, args_hash)` and `(tool_name, result_hash)`
-2. Checks the recorded history against the three detection patterns
-3. If a pattern is detected:
-    - **`action="warn"`** — raises `ModelRetry` with a message explaining the pattern. The model receives the feedback and can try a different approach
-    - **`action="error"`** — raises `StuckLoopError` to abort the run immediately
+Each run gets its own fresh detection state (via `for_run()`), so concurrent runs never share history or trip over each other.
 
-Per-run state isolation via `for_run()` ensures concurrent agent runs don't share detection history.
+!!! note "The model sees the nudge"
+    With `action="warn"`, the message is handed back to the model as a retry
+    prompt — something like *"You called `read_file` with identical arguments
+    3 times in a row. Try a different approach."* Most of the time that's
+    enough to break the loop.
 
-## Actions
+## Tuning it
 
-### Warn (default)
+You can dial the behaviour by passing your own `StuckLoopDetection` instance. Turn the default off so you don't run two copies, then add yours:
 
-```python
-StuckLoopDetection(action="warn")
+```python hl_lines="6 7 8"
+from pydantic_deep import create_deep_agent
+from pydantic_deep.features.stuck_loop import StuckLoopDetection
+
+agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
+    stuck_loop_detection=False,  # disable the default
+    capabilities=[
+        StuckLoopDetection(max_repeated=5, action="error"),
+    ],
+)
 ```
 
-Raises `ModelRetry` — the model receives the error as a retry prompt and can self-correct:
+The knobs:
 
-```
-You called `read_file` with identical arguments 3 times in a row.
-Try a different approach.
-```
+| Parameter | Type | Default | What it does |
+|-----------|------|---------|--------------|
+| `max_repeated` | `int` | `3` | How many repetitions before it triggers. Must be at least 2. |
+| `action` | `str` | `"warn"` | `"warn"` raises `ModelRetry` (model self-corrects); `"error"` raises `StuckLoopError` (run aborts). |
+| `detect_repeated` | `bool` | `True` | Catch the same call N times in a row. |
+| `detect_alternating` | `bool` | `True` | Catch the A-B-A-B ping-pong. |
+| `detect_noop` | `bool` | `True` | Catch a tool returning the same result repeatedly. |
+| `ignore_tools` | `set[str]` | `set()` | Tool names exempt from all checks — for polling primitives that *are* meant to be called repeatedly. |
 
-### Error
+!!! tip "Exempt your pollers"
+    Some tools are *supposed* to be called over and over with the same
+    arguments — a status poller, a queue check. Add them to `ignore_tools`
+    so a legitimate poll loop doesn't read as a stuck loop:
+    `StuckLoopDetection(ignore_tools={"inspect_branches"})`.
 
-```python
-StuckLoopDetection(action="error")
-```
+## Handling a hard stop
 
-Raises `StuckLoopError` — the run aborts. Useful when you want hard limits:
+When you choose `action="error"`, catch `StuckLoopError` to decide what happens next. It carries a `pattern` attribute telling you which shape tripped — `"repeated"`, `"alternating"`, or `"noop"`:
 
 ```python
 from pydantic_deep import StuckLoopError
@@ -106,18 +109,26 @@ from pydantic_deep import StuckLoopError
 try:
     result = await agent.run("...", deps=deps)
 except StuckLoopError as e:
-    print(f"Agent stuck: {e.pattern} — {e}")
+    print(f"Agent got stuck ({e.pattern}): {e}")
 ```
 
-## Components
+!!! warning "Disable it only with a reason"
+    The default `"warn"` mode is cheap insurance — it costs nothing until the
+    agent actually loops, and it gives the model a chance to recover on its
+    own. Reach for `create_deep_agent(stuck_loop_detection=False)` only when
+    you have a deliberate reason to let loops run.
 
-| Component | Description |
-|-----------|-------------|
-| [`StuckLoopDetection`][pydantic_deep.capabilities.stuck_loop.StuckLoopDetection] | Capability that detects stuck loops |
-| [`StuckLoopError`][pydantic_deep.capabilities.stuck_loop.StuckLoopError] | Exception raised when `action="error"` |
+## Recap
 
-## Next Steps
+- Stuck-loop detection is a capability that's **on by default** — it watches tool calls and breaks unproductive loops.
+- It catches three patterns: **repeated** identical calls, **alternating** A-B-A-B, and **no-op** same-result calls.
+- `max_repeated` (default `3`) sets the threshold; the count must be at least 2.
+- `action="warn"` (default) raises `ModelRetry` so the model self-corrects; `action="error"` raises `StuckLoopError` and stops the run.
+- Add noisy-but-legitimate pollers to `ignore_tools` so they aren't flagged.
 
-- [Eviction](eviction.md) -- Large tool output management
-- [Cost Tracking](cost-tracking.md) -- Token and cost monitoring
-- [Hooks](hooks.md) -- Custom lifecycle hooks
+Where to go next:
+
+- [Capabilities & lifecycle](capabilities.md) — how capabilities hook into the agent.
+- [Cost tracking & budgets](cost-tracking.md) — another guardrail, this one for spend.
+- [Hooks](hooks.md) — run your own logic on tool events.
+- [`StuckLoopDetection`][pydantic_deep.features.stuck_loop.StuckLoopDetection] and [`StuckLoopError`][pydantic_deep.features.stuck_loop.StuckLoopError] in the API reference.

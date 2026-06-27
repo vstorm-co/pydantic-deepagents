@@ -12,8 +12,8 @@ from pydantic_deep import (
     StateBackend,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.skills import Skill as SkillDataclass
-from pydantic_deep.toolsets.skills import SkillsToolset
+from pydantic_deep.features.skills import Skill as SkillDataclass
+from pydantic_deep.features.skills import SkillsToolset
 
 TEST_MODEL = TestModel()
 
@@ -444,7 +444,7 @@ class TestFallbackModel:
         assert not isinstance(agent.model, FallbackModel)
 
     async def test_fallback_hook_dispatched_on_model_api_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -473,7 +473,7 @@ class TestFallbackModel:
         assert received[0].tool_input["primary"] is not None
 
     async def test_fallback_hook_not_triggered_for_non_api_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -501,7 +501,7 @@ class TestFallbackModel:
         assert received == []
 
     async def test_fallback_hook_not_triggered_for_auth_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -561,7 +561,7 @@ class TestFallbackModel:
 
     async def test_hook_not_fired_for_last_model_in_exhausted_chain(self) -> None:
         """When the last model in the chain fails, no MODEL_FALLBACK_TRIGGERED hook fires."""
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -599,7 +599,7 @@ class TestFallbackModel:
         request, same coroutine context) must reset hop to 0 and fire the hook
         for the primary again - covering the auto-reset branch.
         """
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -640,7 +640,7 @@ class TestFallbackModel:
         from pydantic_ai_backends import StateBackend
 
         from pydantic_deep.agent import _fallback_hop_cv, _wrap_with_fallback_and_hooks
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         seen_hops: list[int] = []
 
@@ -707,7 +707,7 @@ class TestFallbackModel:
         from pydantic_ai_backends import ExecuteResponse
 
         from pydantic_deep.agent import _wrap_with_fallback_and_hooks
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent
+        from pydantic_deep.features.hooks import Hook, HookEvent
 
         class _CommandBackend(StateBackend):  # type: ignore[misc]
             id = "command-backend"

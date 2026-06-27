@@ -26,7 +26,7 @@ from pydantic_deep import (
     Skill,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.plan import create_plan_toolset
+from pydantic_deep.features.plan import create_plan_toolset
 from pydantic_deep.types import SubAgentConfig
 
 from .config import MODEL_NAME, SKILLS_DIR

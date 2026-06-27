@@ -51,11 +51,9 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models import Model
 
-logger = logging.getLogger(__name__)
+from pydantic_deep.models import DEFAULT_GOAL_MODEL
 
-# Default small/fast evaluator model. Matches the periodic-reminder default so
-# both auxiliary features bill against the same cheap tier.
-DEFAULT_GOAL_MODEL = "anthropic:claude-haiku-4-5-20251001"
+logger = logging.getLogger(__name__)
 
 # Maximum length of a goal condition, mirroring Claude Code's 4,000-char cap.
 MAX_GOAL_CONDITION_CHARS = 4000

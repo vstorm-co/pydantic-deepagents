@@ -31,11 +31,11 @@ from pydantic_deep import (
     InMemoryForkStateStore,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
-from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
-from pydantic_deep.toolsets.forking.coordinator import (
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
+from pydantic_deep.features.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
+from pydantic_deep.features.forking.budget import BudgetWatcher
+from pydantic_deep.features.forking.coordinator import (
     _agent_model_name,
-    _BudgetWatcher,
     _build_branch_cost_tracking,
     _find_parent_cost_tracking,
     _PerBranchCostTracking,
@@ -117,7 +117,7 @@ async def test_per_branch_budget_exhausts_only_target_branch():
 
     a_watcher = coord.branches[a_id].cost_tracker
     assert isinstance(a_watcher, _PerBranchCostTracking)
-    assert isinstance(a_watcher.on_cost_update, _BudgetWatcher)
+    assert isinstance(a_watcher.on_cost_update, BudgetWatcher)
 
     await a_watcher.on_cost_update(_cost_info(total=0.10))
 
@@ -565,7 +565,7 @@ def test_build_branch_cost_tracking_warns_when_no_parent_and_no_model():
     class FakeAgent:
         model = object()  # unrecognised shape
 
-    watcher = _BudgetWatcher(
+    watcher = BudgetWatcher(
         coordinator=cast(Any, None),
         branch_id="bx",
         budget_usd=0.05,
@@ -602,6 +602,30 @@ async def test_aggregate_watcher_second_call_skips_non_running_branches():
     assert coord.branches[bid].status.state == "aggregate_budget_exhausted"
     await tracker.on_cost_update(_cost_info(total=0.20))
     assert coord.branches[bid].status.state == "aggregate_budget_exhausted"
+    await _drain_branch_tasks(coord)
+
+
+async def test_aggregate_watcher_skips_already_terminated_sibling():
+    """When the aggregate cap trips, the termination loop skips a sibling that
+    is already in a terminal state (covers the non-`running` loop branch)."""
+    deps = DeepAgentDeps(backend=StateBackend())
+    agent = _make_test_agent()
+    coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.05)
+
+    handle = await coord.fork(
+        [BranchSpec(label="a", steer="a"), BranchSpec(label="b", steer="b")],
+        parent_history=_seed_history("p"),
+    )
+    aid, bid = handle.branches
+    await coord.terminate_branch(aid)
+    assert coord.branches[aid].status.state == "terminated"
+
+    tracker_b = coord.branches[bid].cost_tracker
+    assert tracker_b is not None
+    await tracker_b.on_cost_update(_cost_info(total=0.10))
+
+    assert coord.branches[bid].status.state == "aggregate_budget_exhausted"
+    assert coord.branches[aid].status.state == "terminated"
     await _drain_branch_tasks(coord)
 
 
@@ -670,7 +694,7 @@ def test_build_branch_cost_tracking_from_model_name_when_no_parent():
     class FakeAgent:
         model = "anthropic:claude-sonnet-4-6"
 
-    watcher = _BudgetWatcher(
+    watcher = BudgetWatcher(
         coordinator=cast(Any, None),
         branch_id="bx",
         budget_usd=0.05,

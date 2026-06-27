@@ -5,7 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.34] - 2026-06-27
+
+A large release: a full CLI/TUI overhaul, a vertical-slice re-organization of the
+framework into `features/`, a new **Monitor** capability, broad edge-case
+hardening, and a documentation rewrite.
+
+### Added
+
+#### Framework
+
+- **Monitor — watch & react** (`pydantic_deep/features/monitoring/`). The agent starts a long-lived command (log tail, CI poll, file watch, dev server) with `start_monitor` / `list_monitors` / `stop_monitor`; each new line of matching output is pushed back into the conversation via the message queue, so the agent reacts without polling. `MonitorManager` drains the process on an interval, filters lines by an optional regex, and emits `MonitorEvent` batches through an `on_event` sink. Enabled by default (`include_monitoring=True`); needs a background-capable backend.
+- **Background process tools** surfaced from `pydantic-ai-backend` 0.2.15 (`run_in_background` / `read_output` / `kill_shell` / `list_shells`), so dev servers and watchers outlive a single `execute()` call (which kills its whole process tree on timeout).
+- **`ToolSearch` capability** (`pydantic_deep/features/tool_search/`) — defer situational toolsets so the model discovers them on demand. Off by default in the library, on in the CLI.
+- A built-in **`general-purpose` subagent** so the agent can delegate arbitrary multi-step work.
+
+#### CLI / TUI
+
+- New slash commands: **`/retry`** (re-run the last prompt, dropping the previous turn), **`/export [path]`** (save the conversation to Markdown), **`/shells`** (list background processes).
+- **Ctrl+P input-history picker** with fuzzy search; **fuzzy subsequence matching** in the `/` command and `@` file pickers (new `apps/cli/fuzzy.py`).
+- **Background-shells panel** pinned in the activity dock.
+- **Multi-line paste** switches the input to multiline, preserving code blocks.
+- Visible **attachment chips** + **drag-and-drop** files onto the input; clipboard image paste; quoted **`@"path with spaces"`** so spaced screenshots attach as images.
+- Interactive **`/settings`** modal (changes apply immediately) and an **`/info`** modal; `/help` and the command picker now list every command, guarded by a coverage test.
+- Warm **amber (Tau-inspired) default theme** with theme-aware chrome (header, status line, input, tool calls, diffs), animated welcome, and a boxed prompt.
+
+### Changed
+
+- **`@file` references now pass the path** (backticked) to the agent instead of inlining the whole file — the agent decides how to read it (full, sliced, or grep). Images still attach as multimodal content.
+- **`!shell` and `/diff` run off the event loop** (no UI freeze on long commands or large repos); the **`/load` session picker** loads asynchronously, sorts by modification time, and fuzzy-filters.
+- **Lean behavioral prompt** sections when `tool_search` is on (tools carry their own descriptions); folders-first directory tree in the context prompt.
+- **Prompt caching enabled on the OpenRouter path** (previously only the Anthropic cache keys were set), cutting cost on multi-turn / subagent runs.
+- Left sidebar replaced by activity panels pinned above the input; session + workspace moved to a footer; the status line carries live metrics.
+- Broad **type hardening** and de-duplication across the framework (pydantic models for improve insights, `Literal` status/action enums, typed deps/callbacks/coordinators, tightened public exports, drift guards on `DeepAgentSpec` and overloads); default models sourced from `pydantic_deep.models`.
+- **Pinned `pydantic-ai-backend>=0.2.15`** (background processes, read output ceiling, glob mtime sort, edit staleness guard, image downscaling, Python grep build-dir skip, `AsyncCompositeBackend`) and **`subagents-pydantic-ai>=0.2.8`** (dropping the local `RunUsage` shim); added `pillow` to the `cli` extra for image downscaling.
+- **Documentation rewritten in the FastAPI tutorial style** and restructured around FastAPI's Learn → Advanced → Reference model. New step-by-step **Tutorial — User Guide** (`docs/learn/`, 13 pages), a rewritten **Advanced User Guide** (`docs/advanced/`, 19 pages including new goal-loop and monitor pages), a full **CLI guide** (`docs/cli/`, 6 pages), an **Applications** section covering the reference apps (`docs/apps/`: DeepResearch, ACP/Zed, Harbor), and new API-reference pages (monitoring, goal, tool-search, message-queue). Concept/example/landing pages carry the same voice; the real Pydantic logo is used in the navbar/favicon; pages superseded by the tutorial were retired and cross-links updated. `mkdocs build --strict` passes clean. `CLAUDE.md` reflects the `features/` layout.
+- **Reorganized features into vertical-slice packages under `pydantic_deep/features/`.** Each feature now lives in one folder (`capability.py` + `toolset.py` + `service.py`/`types.py`) instead of being smeared across `toolsets/` and `capabilities/`. Top-level imports (`from pydantic_deep import …`) are unchanged. The old deep import paths remain as deprecation shims (emitting `DeprecationWarning`) and will be removed in the next minor release.
+  - `memory`: `pydantic_deep.toolsets.memory` / `pydantic_deep.capabilities.memory` → `pydantic_deep.features.memory`.
+  - `context`: `pydantic_deep.toolsets.context` / `pydantic_deep.capabilities.context` → `pydantic_deep.features.context`.
+  - `browser`: `pydantic_deep.toolsets.browser` / `pydantic_deep.capabilities.browser` → `pydantic_deep.features.browser`.
+  - `eviction`: `pydantic_deep.processors.eviction` → `pydantic_deep.features.eviction`.
+  - `patch`: `pydantic_deep.processors.patch` → `pydantic_deep.features.patch`.
+  - `history_archive`: `pydantic_deep.processors.history_archive` → `pydantic_deep.features.history_archive`.
+  - `stuck_loop`: `pydantic_deep.capabilities.stuck_loop` → `pydantic_deep.features.stuck_loop`.
+  - `periodic_reminder`: `pydantic_deep.capabilities.periodic_reminder` → `pydantic_deep.features.periodic_reminder`.
+  - `hooks`: `pydantic_deep.capabilities.hooks` → `pydantic_deep.features.hooks`.
+  - `message_queue`: `pydantic_deep.capabilities.message_queue` → `pydantic_deep.features.message_queue`.
+  - `teams`: `pydantic_deep.toolsets.teams` → `pydantic_deep.features.teams`.
+  - `plan`: `pydantic_deep.toolsets.plan` → `pydantic_deep.features.plan`.
+  - `checkpointing`: `pydantic_deep.toolsets.checkpointing` → `pydantic_deep.features.checkpointing`.
+  - `improve`: `pydantic_deep.improve` / `pydantic_deep.toolsets.improve` → `pydantic_deep.features.improve`.
+  - `skills`: `pydantic_deep.toolsets.skills` / `pydantic_deep.capabilities.skills` → `pydantic_deep.features.skills`.
+  - `forking`: `pydantic_deep.toolsets.forking` / `pydantic_deep.capabilities.forking` → `pydantic_deep.features.forking`.
+  - `liteparse`: `pydantic_deep.toolsets.liteparse` → `pydantic_deep.features.liteparse`.
+
+### Fixed
+
+- **Subagents crashing with `'RunUsage' object is not callable`** under pydantic-ai 2.0 (usage became a property), fixed upstream in `subagents-pydantic-ai` 0.2.8 and re-pinned here.
+- **Context-usage warning spammed on every update** — it now warns once per crossing above 90% with hysteresis (re-arms below 85%), instead of on every `ContextUpdated`.
+- **`/undo` left the removed turn on screen** — it now removes the turn's widgets too (`MessageList.remove_last_turn`), keeping the transcript in sync with history. `/retry` reuses the same path.
+- **Status bar overflow** that ghosted text beside the input.
+- Numerous edge cases: forking auto/vote merge and abort deadlocks; skills frontmatter / path containment / reserved words; eviction preview-on-write-failure and collision-safe ids; patch tool-call rebuild preserving `ModelRequest` fields; MCP stdio/stderr screen leaks; dropped uploads; corrupt-archive recovery; and Python warnings leaking onto the TUI.
+- CI: docs build (stale `eviction.create_content_preview` reference) and `mypy` errors.
 
 ## [0.3.33] - 2026-06-26
 

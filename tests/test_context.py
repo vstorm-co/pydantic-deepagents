@@ -18,7 +18,7 @@ from pydantic_deep import (
     format_context_prompt,
     load_context_files,
 )
-from pydantic_deep.toolsets.context import _discover_and_load, _truncate_content
+from pydantic_deep.features.context.service import _discover_and_load
 
 TEST_MODEL = TestModel()
 
@@ -197,54 +197,6 @@ class TestDiscoverAndLoad:
         assert files[0].name == "CUSTOM.md"
         assert files[0].path == "/project/CUSTOM.md"
         assert files[0].content == "# Custom"
-
-
-class TestTruncateContent:
-    """Tests for _truncate_content helper."""
-
-    def test_short_content_no_truncation(self):
-        """Test that short content is returned as-is."""
-        content = "Short content"
-        result = _truncate_content(content, 1000)
-        assert result == content
-
-    def test_exact_limit_no_truncation(self):
-        """Test content at exactly the limit."""
-        content = "x" * 100
-        result = _truncate_content(content, 100)
-        assert result == content
-
-    def test_long_content_truncated(self):
-        """Test that long content is truncated with marker."""
-        content = "A" * 50 + "B" * 50 + "C" * 50  # 150 chars
-        result = _truncate_content(content, 100)
-
-        assert "[50 chars truncated]" in result
-        # Head should be 70 chars (70% of 100)
-        assert result.startswith("A" * 50 + "B" * 20)
-        # Tail should be last 30 chars of original = "C" * 30
-        assert result.endswith("C" * 30)
-
-    def test_truncation_preserves_head_and_tail(self):
-        """Test that 70/30 head/tail ratio is preserved."""
-        content = "H" * 700 + "T" * 300  # 1000 chars
-        result = _truncate_content(content, 500)
-
-        # Head: 70% of 500 = 350 chars
-        assert result[:350] == "H" * 350
-        # Tail: 30% of 500 = 150 chars
-        assert result[-150:] == "T" * 150
-        assert "[500 chars truncated]" in result
-
-    def test_zero_max_chars_drops_all_content(self):
-        """Test that max_chars=0 yields only the marker, not the full content."""
-        content = "A" * 100
-        result = _truncate_content(content, 0)
-
-        # With max_chars=0 both head and tail are empty; content[-0:] must not
-        # leak the entire string back into the result.
-        assert "A" not in result
-        assert "[100 chars truncated]" in result
 
 
 class TestFormatContextPrompt:

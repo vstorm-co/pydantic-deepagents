@@ -16,11 +16,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from pydantic_deep.capabilities.forking import LiveForkCapability
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
-from pydantic_deep.toolsets.forking.diff import build_diff_report
-from pydantic_deep.types import (
+from pydantic_deep.features.forking.capability import LiveForkCapability
+from pydantic_deep.features.forking.coordinator import ForkCoordinator
+from pydantic_deep.features.forking.diff import build_diff_report
+from pydantic_deep.features.forking.types import (
     BranchDiffReport,
     BranchIsolation,
     BranchSpec,
@@ -230,7 +230,7 @@ async def start_fork_from_cli(
     coordinator.capability = cap
     app.deps.fork_coordinator = coordinator
 
-    from pydantic_deep.processors.patch import patch_tool_calls_processor
+    from pydantic_deep.features.patch import patch_tool_calls_processor
 
     safe_history = patch_tool_calls_processor(list(app.message_history))
     merge_strategy = MergeStrategy(

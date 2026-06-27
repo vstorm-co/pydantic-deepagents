@@ -1,156 +1,173 @@
-# Plan Mode
+# Plan mode
 
-Plan mode provides a Claude Code-style planning subagent that analyzes the codebase, asks clarifying questions, and creates step-by-step implementation plans — without making any changes.
+Sometimes you want a plan *before* the agent touches anything. Plan mode gives you a built-in **planner** sub-agent that reads the codebase, asks you the questions it needs answered, and writes a step-by-step implementation plan to a file — without changing a single line. Look before you leap.
 
-## Quick Start
+## Enable it
 
-Plan mode is **enabled by default** when subagents are enabled:
+Plan mode is **on by default** whenever sub-agents are on. You already have it:
 
-```python
+```python hl_lines="4 5"
 from pydantic_deep import create_deep_agent
 
 agent = create_deep_agent(
-    include_plan=True,       # Default: True
-    include_subagents=True,  # Default: True
+    include_plan=True,       # default: True
+    include_subagents=True,  # default: True
 )
 ```
 
-The main agent can invoke the planner:
-
-```
-User: "Plan how to add authentication to the app"
-Agent: [delegates to planner subagent]
-Planner: [reads code, asks questions, creates plan, saves to file]
-```
-
-## How It Works
-
-The planner is a **subagent** registered with the task tool:
-
-1. Main agent delegates to the "planner" subagent
-2. Planner reads files to understand the codebase
-3. Planner asks clarifying questions via `ask_user`
-4. Planner writes a structured plan and saves it via `save_plan`
-
-### Planner Tools
-
-| Tool | Description |
-|------|-------------|
-| `ask_user` | Ask the user a question with predefined options |
-| `save_plan` | Save the plan as a markdown file |
-
-Plus all console tools (read_file, ls, grep, glob) for code exploration.
-
-### ask_user
-
-The `ask_user` tool pauses execution and asks the human a question with predefined options:
+Now just ask for a plan, and the main agent delegates to the planner:
 
 ```python
-# The planner calls:
+deps = DeepAgentDeps(backend=StateBackend())
+
+result = await agent.run(
+    "Plan how to add authentication to the app. Don't write any code yet.",
+    deps=deps,
+)
+print(result.output)
+```
+
+!!! example "Check it"
+    After the run, list the plans the agent wrote:
+    `print(await deps.backend.ls("/plans"))`. There's a markdown file in there —
+    a real, structured plan you can read, edit, and hand back for execution.
+
+## What just happened
+
+The planner is a sub-agent registered under the task tool. When you ask for a plan, here's the flow:
+
+1. The main agent delegates to the **planner** sub-agent.
+2. The planner reads files to understand the codebase — it has the full console toolset (`read_file`, `ls`, `grep`, `glob`) for exploration.
+3. Whenever something is ambiguous, it calls `ask_user` to ask you a clarifying question.
+4. It writes a structured plan and persists it with `save_plan`.
+
+The planner is told, firmly, that it **only plans** — it never edits files or runs commands.
+
+## The two planner tools
+
+The planner has its own two-tool toolset on top of the read-only console tools.
+
+### `ask_user`
+
+`ask_user` pauses to ask you a question with a few concrete options. The planner must always offer 2–4 of them:
+
+```python
 ask_user(
     question="Which auth method should we use?",
     options=[
-        {"label": "JWT", "description": "Stateless tokens", "recommended": "true"},
-        {"label": "Session", "description": "Server-side sessions"},
-        {"label": "OAuth", "description": "Third-party auth providers"},
+        {"label": "JWT", "description": "Stateless, good for APIs", "recommended": True},
+        {"label": "Session", "description": "Traditional server-side state"},
+        {"label": "OAuth2", "description": "Third-party auth providers"},
     ],
 )
 ```
 
-When no `ask_user` callback is set on deps (headless mode), it auto-selects the recommended option.
+Each option is a `PlanOption` — a `label`, an optional `description`, and an optional `recommended` flag. Mark the one you'd lean toward as `recommended=True`; the planner is instructed to ask the most important questions first.
 
-### save_plan
+### `save_plan`
 
-Plans are saved as markdown files to the backend:
+When the plan is ready, the planner calls `save_plan` with a title and the full markdown:
 
 ```python
 save_plan(
     title="Add JWT Authentication",
-    content="# Plan: Add JWT Authentication\n\n## Context\n..."
+    content="# Plan: Add JWT Authentication\n\n## Context\n...",
 )
-# Saves to: /plans/add-jwt-authentication-a1b2c3.md
+# -> Plan saved to `/plans/add-jwt-authentication-a1b2c3.md`
 ```
 
-## Configuration
+The title becomes a slug, a short random suffix keeps filenames unique, and the file lands in `plans_dir`. Non-Latin titles are preserved, so a plan titled in any language still gets a readable filename.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `include_plan` | `bool` | `True` | Enable the planner subagent |
-| `plans_dir` | `str` | `"/plans"` | Directory for plan files |
+## Headless by default
 
-## Plan Format
+Here's the part that makes plan mode safe to run unattended: **`ask_user` only blocks if you give it someone to ask.**
 
-The planner produces structured markdown plans:
+The tool looks for an `ask_user` callback on your deps. If there isn't one — the common case in scripts, tests, and background jobs — it doesn't hang waiting for input. It **auto-selects the recommended option** (or the first option if none is marked) and returns `[Auto-selected: JWT]` so the transcript records the choice. The planner keeps going and still produces a complete plan.
+
+!!! tip "Best of both modes"
+    Write your planner instructions to mark a sensible `recommended` option on
+    every question. Then the same agent runs interactively when a human is
+    present and falls through to good defaults when one isn't.
+
+## Going interactive
+
+To actually prompt a human, set an `ask_user` callback on your deps. It receives the question and the list of `PlanOption`s, and returns the chosen label:
+
+```python
+async def handle_ask_user(question: str, options: list) -> str:
+    print(f"\n{question}")
+    for i, opt in enumerate(options, 1):
+        rec = " (recommended)" if opt.recommended else ""
+        print(f"  {i}. {opt.label}{rec} — {opt.description}")
+    choice = int(input("Choose: "))
+    return options[choice - 1].label
+
+
+deps = DeepAgentDeps(
+    backend=StateBackend(),
+    ask_user=handle_ask_user,
+)
+```
+
+Now every `ask_user` call surfaces in your terminal and waits for a real answer.
+
+## The plan it produces
+
+The planner writes plans in a consistent shape, so they're easy to skim and easy to execute:
 
 ```markdown
-# Plan: [Title]
+# Plan: Add JWT Authentication
 
 ## Context
 [What needs to be done and why]
 
 ## Decisions Made
-- [Decision 1]: [chosen option] — [reason]
+- Auth method: JWT — stateless, fits the existing API surface
 
 ## Implementation Steps
 
-### Step 1: [Title]
-- **Files**: `path/to/file.py`
-- **Action**: create | modify | delete
-- **Details**: [What to change and how]
-
-### Step 2: [Title]
-...
+### Step 1: Add token utilities
+- **Files**: `app/auth/tokens.py`
+- **Action**: create
+- **Details**: encode/decode helpers, expiry handling
 
 ## Files Summary
 | File | Action | Description |
 |------|--------|-------------|
-| ... | create/modify/delete | ... |
+| app/auth/tokens.py | create | JWT encode/decode helpers |
 
 ## Notes
-[Caveats, dependencies, or follow-up items]
+[Caveats, dependencies, follow-up items]
 ```
 
-## Interactive Mode
+## Configuration
 
-To enable the `ask_user` callback for interactive planning, set it on deps:
+| Parameter | Type | Default | What it does |
+|-----------|------|---------|--------------|
+| `include_plan` | `bool` | `True` | Register the planner sub-agent |
+| `plans_dir` | `str` | `"/plans"` | Where plan files are saved |
 
-```python
-async def handle_ask_user(question: str, options: list[dict]) -> str:
-    print(f"\n{question}")
-    for i, opt in enumerate(options, 1):
-        rec = " (recommended)" if opt.get("recommended") == "true" else ""
-        print(f"  {i}. {opt['label']}{rec} — {opt['description']}")
-    choice = input("Choose: ")
-    return options[int(choice) - 1]["label"]
-
-deps = DeepAgentDeps(
-    backend=backend,
-    ask_user=handle_ask_user,
-)
-```
-
-!!! info "Multi-User Applications"
-    Plans are saved as files in the backend. In multi-user apps, use separate
-    backends per user. UUIDs in filenames prevent collisions, but users sharing a
-    backend can see each other's plans. See [Multi-User Guide](multi-user.md).
-
-## Disabling Plan Mode
+To turn plan mode off entirely:
 
 ```python
 agent = create_deep_agent(include_plan=False)
 ```
 
-## Components
+!!! info "Multi-user apps"
+    Plans are just files in the backend. Random suffixes keep filenames from
+    colliding, but users who share one backend can read each other's plans. Give
+    each user their own backend. See the [Multi-user guide](multi-user.md).
 
-| Component | Description |
-|-----------|-------------|
-| [`create_plan_toolset`][pydantic_deep.toolsets.plan.create_plan_toolset] | Factory for plan tools |
-| `PLANNER_INSTRUCTIONS` | Built-in planner system prompt |
-| `PLANNER_DESCRIPTION` | Planner subagent description |
-| `DEFAULT_PLANS_DIR` | Default plans directory: `/plans` |
+## Recap
 
-## Next Steps
+- Plan mode ships **on by default** with sub-agents — the planner reads the code, asks, and writes a plan, but never edits.
+- `ask_user` offers 2–4 options; `save_plan` writes structured markdown to `plans_dir`.
+- With no `ask_user` callback it runs **headless**, auto-selecting the recommended option — safe for scripts and tests.
+- Add an `ask_user` callback on `DeepAgentDeps` to make planning interactive.
+- The [`create_plan_toolset`][pydantic_deep.features.plan.create_plan_toolset] factory builds the toolset behind it all.
 
-- [Subagents](subagents.md) — Task delegation system
-- [Teams](teams.md) — Multi-agent collaboration
-- [Human-in-the-Loop](human-in-the-loop.md) — Approval workflows
+Where to go next:
+
+- [Subagents](../learn/subagents.md) — the delegation system the planner rides on
+- [Human-in-the-loop](../learn/human-in-the-loop.md) — approval and review workflows
+- [Agent teams](teams.md) — many agents working together

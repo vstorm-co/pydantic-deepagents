@@ -1,6 +1,12 @@
 # Toolsets
 
-Toolsets are collections of tools that extend agent capabilities. pydantic-deep includes four built-in toolsets.
+A single tool is one function the model can call. A **toolset** is a bundle of
+related tools that travel together — and, optionally, the system-prompt text
+that teaches the model how to use them. When you flip on a feature in
+`create_deep_agent()`, what you're really doing is adding a toolset.
+
+pydantic-deep ships four built-in toolsets; you can add your own with the
+`toolsets=` argument.
 
 ## Built-in Toolsets
 
@@ -138,7 +144,7 @@ read_skill_resource(skill_name="code-review", resource_name="template.md")
 
 ### CheckpointToolset
 
-Manual checkpoint controls for conversation state. See [Checkpointing](../advanced/checkpointing.md).
+Manual checkpoint controls for conversation state. See [Checkpointing](../learn/sessions.md).
 
 | Tool | Description |
 |------|-------------|
@@ -168,7 +174,7 @@ agent = create_deep_agent(include_teams=True)
 
 ### MemoryToolset
 
-Persistent agent memory across sessions. See [Memory](../advanced/memory.md).
+Persistent agent memory across sessions. See [Memory](../learn/memory.md).
 
 | Tool | Description |
 |------|-------------|
@@ -195,7 +201,7 @@ agent = create_deep_agent(include_plan=True)  # Default: True
 
 ### ContextToolset
 
-Injects project context files (AGENTS.md, SOUL.md) into the system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions.
+Injects project context files (AGENTS.md, SOUL.md) into the system prompt. See [Context Files](../learn/memory.md). Has no tools — only provides instructions.
 
 ```python
 agent = create_deep_agent(context_discovery=True)  # Auto-discover AGENTS.md, SOUL.md
@@ -410,6 +416,15 @@ async def ensure_directory(
     create_directory(path)
     return f"Created directory {path}"
 ```
+
+## Recap
+
+- A toolset bundles related tools (and their prompt) so a feature is one object,
+  not a scatter of functions.
+- The four built-ins — todo, filesystem, sub-agents, skills — are toggled by the
+  `include_*` flags.
+- Add your own via `toolsets=[…]`; each tool is a typed `async` function with
+  `ctx.deps` injected.
 
 ## Next Steps
 

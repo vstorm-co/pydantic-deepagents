@@ -7,48 +7,48 @@ messages. Enable them via `include_teams=True` on
 
 ## AgentTeam
 
-::: pydantic_deep.toolsets.teams.AgentTeam
+::: pydantic_deep.features.teams.AgentTeam
     options:
       show_source: false
 
 ## TeamMember
 
-::: pydantic_deep.toolsets.teams.TeamMember
+::: pydantic_deep.features.teams.TeamMember
     options:
       show_source: false
 
 ## TeamMemberHandle
 
-::: pydantic_deep.toolsets.teams.TeamMemberHandle
+::: pydantic_deep.features.teams.TeamMemberHandle
     options:
       show_source: false
 
 ## SharedTodoItem
 
-::: pydantic_deep.toolsets.teams.SharedTodoItem
+::: pydantic_deep.features.teams.SharedTodoItem
     options:
       show_source: false
 
 ## SharedTodoList
 
-::: pydantic_deep.toolsets.teams.SharedTodoList
+::: pydantic_deep.features.teams.SharedTodoList
     options:
       show_source: false
 
 ## TeamMessage
 
-::: pydantic_deep.toolsets.teams.TeamMessage
+::: pydantic_deep.features.teams.TeamMessage
     options:
       show_source: false
 
 ## TeamMessageBus
 
-::: pydantic_deep.toolsets.teams.TeamMessageBus
+::: pydantic_deep.features.teams.TeamMessageBus
     options:
       show_source: false
 
 ## create_team_toolset
 
-::: pydantic_deep.toolsets.teams.create_team_toolset
+::: pydantic_deep.features.teams.create_team_toolset
     options:
       show_source: false

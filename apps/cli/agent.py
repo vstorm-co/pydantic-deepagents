@@ -12,10 +12,10 @@ from apps.cli.config import load_config
 from apps.cli.prompts import build_cli_instructions
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
-from pydantic_deep.capabilities.forking import LiveForkCapability
-from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
-from pydantic_deep.capabilities.message_queue import MessageQueue
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.forking.capability import LiveForkCapability
+from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
+from pydantic_deep.features.message_queue import MessageQueue
 
 
 def _detect_fork_test_command(backend: Any) -> str | None:
@@ -160,7 +160,8 @@ def create_cli_agent(  # noqa: C901
     Configuration precedence: explicit arguments > config file > defaults.
 
     Args:
-        model: Model to use. Falls back to config, then `"anthropic:claude-sonnet-4-6"`.
+        model: Model to use. Falls back to the config file's `model`, which
+            itself defaults to `pydantic_deep.models.DEFAULT_MODEL`.
         working_dir: Filesystem root directory. Defaults to cwd.
         shell_allow_list: Allowed shell command prefixes. None = all allowed.
         on_cost_update: Callback for cost updates.
@@ -397,7 +398,7 @@ def create_cli_agent(  # noqa: C901
     extra_capabilities: list[Any] = []
     if effective_browser:
         try:
-            from pydantic_deep.capabilities.browser import BrowserCapability
+            from pydantic_deep.features.browser import BrowserCapability
 
             effective_headless = (
                 browser_headless if browser_headless is not None else config.browser_headless
@@ -455,6 +456,8 @@ def create_cli_agent(  # noqa: C901
         include_teams=(include_teams if include_teams is not None else config.include_teams),
         include_liteparse=effective_liteparse,
         include_improve=True,
+        # Defer the situational tool surface so only the core loop loads upfront.
+        tool_search=(config.tool_search if not lean else False),
         forking=LiveForkCapability(test_command=_detect_fork_test_command(effective_backend)),
         # Web tools — explicit params override config
         web_search=(

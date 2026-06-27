@@ -74,3 +74,81 @@ async def test_approval_modal_position_label() -> None:
         title = m2.query_one("#approval-title")
         rendered = str(title.render())
         assert "1 of 3" in rendered
+
+
+async def test_context_warning_fires_once_per_crossing(
+    app: DeepApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The >=90% context warning must not spam on every update — only on the
+    rising edge, re-arming after usage drops below 85% (hysteresis)."""
+    from apps.cli.messages import ContextUpdated
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        screen = cast(ChatScreen, app.screen)
+        warnings: list[str] = []
+        monkeypatch.setattr(
+            app,
+            "notify",
+            lambda m, **k: warnings.append(m) if "Context at" in str(m) else None,
+        )
+
+        # Several high updates in a row → exactly one warning.
+        for pct in (0.91, 0.93, 0.95):
+            screen.on_context_updated(ContextUpdated(pct, int(pct * 200_000), 200_000))
+        assert len(warnings) == 1
+
+        # Drop below the reset threshold (e.g. after /compact) → re-armed.
+        screen.on_context_updated(ContextUpdated(0.40, 80_000, 200_000))
+        # Climb back over 90% → one more warning.
+        screen.on_context_updated(ContextUpdated(0.92, 184_000, 200_000))
+        assert len(warnings) == 2
+
+
+async def test_input_prefill_stages_command(app: DeepApp) -> None:
+    """InputArea.prefill stages text in the single-line input for editing."""
+    from apps.cli.widgets.input_area import InputArea
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        input_area = app.screen.query_one(InputArea)
+        input_area.prefill("/goal ")
+        await pilot.pause()
+        prompt = input_area.query("PromptInput").first()
+        assert prompt.value == "/goal "  # type: ignore[attr-defined]
+
+
+async def test_multiline_paste_preserves_structure(app: DeepApp) -> None:
+    """A multi-line paste switches the input to multiline mode with the text
+    (and any already-typed prefix) intact instead of losing the newlines."""
+    from apps.cli.widgets.input_area import InputArea, MultilineInput
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        input_area = app.screen.query_one(InputArea)
+        input_area.enter_multiline_with("def f():\n    return 1\n")
+        await pilot.pause()
+        assert input_area.is_multiline is True
+        ml = input_area.query_one(MultilineInput)
+        assert ml.text == "def f():\n    return 1\n"
+
+
+async def test_on_paste_routes_multiline(app: DeepApp) -> None:
+    """PromptInput._on_paste hands multi-line pastes to multiline mode and lets
+    a plain single-line paste fall through to the default insert behaviour."""
+    from textual.events import Paste
+
+    from apps.cli.widgets.input_area import InputArea
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        input_area = app.screen.query_one(InputArea)
+        prompt = input_area.query("PromptInput").first()
+        prompt.value = "pre "  # type: ignore[attr-defined]
+        prompt._on_paste(Paste("a\nb"))  # type: ignore[attr-defined]
+        await pilot.pause()
+        # Routed to multiline with the prefix preserved.
+        assert input_area.is_multiline is True
+        from apps.cli.widgets.input_area import MultilineInput
+
+        assert input_area.query_one(MultilineInput).text == "pre a\nb"

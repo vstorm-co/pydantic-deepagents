@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import atexit
+import contextlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,9 +12,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from apps.cli.app import DeepApp
 
-from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
+    #: A slash-command handler: receives the app and the raw argument string.
+    CommandHandler = Callable[[DeepApp, str], Awaitable[None]]
+
 
 from apps.cli.debug_log import get_logger
 from apps.cli.forking import (
@@ -24,7 +31,6 @@ from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
 from apps.cli.modals.fork_config import ForkConfigModal
 from apps.cli.modals.fork_picker import ForkPickerModal
 from apps.cli.modals.merge_picker import MergePickerModal, MergePickerResult
-from apps.cli.text_heuristics import looks_like_error
 from apps.cli.widgets.judge_loading import JudgeAborted, JudgeLoadingScreen
 from apps.cli.widgets.merge_acceptance import MergeAcceptanceAction, MergeAcceptanceWidget
 from apps.cli.widgets.status_bar import StatusBar
@@ -32,638 +38,753 @@ from apps.cli.widgets.status_bar import StatusBar
 _FORK_ID_PREFIX_LEN = 8
 
 
-async def dispatch_command(app: DeepApp, command: str) -> None:  # noqa: C901
-    """Dispatch a slash command to the appropriate handler."""
-
+async def dispatch_command(app: DeepApp, command: str) -> None:
+    """Dispatch a slash command to its registered handler."""
     log = get_logger()
-
     parts = command.strip().split(maxsplit=1)
     cmd = parts[0].lower()
     arg = parts[1] if len(parts) > 1 else ""
     log.info("Command dispatched", command=cmd, arg=arg if arg else None)
 
-    if cmd in ("/quit", "/exit", "/q"):
-        app.exit()
+    handler = _COMMANDS.get(cmd)
+    if handler is not None:
+        await handler(app, arg)
+    else:
+        await _dispatch_unknown(app, cmd, arg)
 
-    elif cmd == "/clear":
+
+async def _dispatch_unknown(app: DeepApp, cmd: str, arg: str) -> None:
+    """Fallback: treat the command as a skill name, else warn."""
+    # Check if it's a skill command (e.g. /code-review)
+    # Skills are loaded via the command picker from _discover_skill_commands()
+    skill_name = cmd.lstrip("/")
+    from apps.cli.modals.command_picker import _discover_skill_commands
+
+    known_skills = {name.lstrip("/"): desc for name, desc in _discover_skill_commands()}
+
+    if skill_name in known_skills:
+        # Send as a prompt to the agent: "Use the X skill" + any args
+        prompt = f"Use the {skill_name} skill."
+        if arg:
+            prompt += f" {arg}"
         from apps.cli.widgets.message_list import MessageList
 
         try:
             msg_list = app.screen.query_one(MessageList)
-            msg_list.clear_messages()
+            msg_list.append_user_message(prompt)
+            app.screen._run_agent(prompt)  # type: ignore[attr-defined]
+        except Exception:
+            app.notify(f"Failed to run skill: {skill_name}", severity="error")
+    else:
+        app.notify(f"Unknown command: {cmd}", severity="warning")
+
+
+async def _cmd_quit(app: DeepApp, arg: str) -> None:
+    app.exit()
+
+
+async def _cmd_clear(app: DeepApp, arg: str) -> None:
+    from apps.cli.widgets.message_list import MessageList
+
+    try:
+        msg_list = app.screen.query_one(MessageList)
+        msg_list.clear_messages()
+    except Exception:
+        pass
+    app.message_history.clear()
+    # Starting a fresh conversation also drops any active goal.
+    from apps.cli.goal import clear_goal
+
+    clear_goal(app, notify=False)
+    app.notify("History cleared")
+
+
+async def _cmd_undo(app: DeepApp, arg: str) -> None:
+    from apps.cli.widgets.message_list import MessageList
+
+    if len(app.message_history) >= 2:
+        app.message_history = app.message_history[:-2]
+        msg = "Removed last turn"
+    elif app.message_history:
+        app.message_history = app.message_history[:-1]
+        msg = "Removed last message"
+    else:
+        app.notify("No messages to undo", severity="warning")
+        return
+    # Keep the visible transcript in sync — otherwise the removed turn lingers
+    # on screen even though the model no longer sees it.
+    with contextlib.suppress(Exception):
+        app.screen.query_one(MessageList).remove_last_turn()
+    app.notify(msg)
+
+
+async def _cmd_retry(app: DeepApp, arg: str) -> None:
+    """Re-run the last user prompt, dropping the previous (bad/aborted) turn."""
+    from apps.cli.widgets.message_list import MessageList
+
+    prompt = getattr(app, "last_user_prompt", "")
+    if not prompt:
+        app.notify("Nothing to retry yet", severity="warning")
+        return
+    task = app.agent_task
+    if task is not None and not task.done():
+        app.notify("Agent is still running — wait for it to finish", severity="warning")
+        return
+    if getattr(app, "active_fork", None) is not None:
+        app.notify("Can't retry while a fork is active — use /merge first", severity="warning")
+        return
+
+    chat = app.screen
+    if not hasattr(chat, "_run_agent"):
+        app.notify("Retry is unavailable here", severity="error")
+        return
+    # Drop the previous turn (request + response) so the model re-runs fresh,
+    # and clear its widgets so the transcript shows one clean retry.
+    if len(app.message_history) >= 2:
+        app.message_history = app.message_history[:-2]
+    with contextlib.suppress(Exception):
+        msg_list = chat.query_one(MessageList)
+        msg_list.remove_last_turn()
+        msg_list.append_user_message(prompt)
+    chat._run_agent(prompt)  # type: ignore[attr-defined]
+
+
+async def _cmd_copy(app: DeepApp, arg: str) -> None:
+    # Copy last assistant message text (including errors shown as messages)
+    from apps.cli.widgets.assistant_message import AssistantMessage
+    from apps.cli.widgets.message_list import MessageList
+
+    text_to_copy = app.last_response
+    # Fallback: find the last AssistantMessage widget text
+    if not text_to_copy:
+        try:
+            msg_list = app.screen.query_one(MessageList)
+            assistants = list(msg_list.query(AssistantMessage))
+            if assistants:
+                text_to_copy = assistants[-1].text
         except Exception:
             pass
-        app.message_history.clear()
-        # Starting a fresh conversation also drops any active goal.
-        from apps.cli.goal import clear_goal
 
-        clear_goal(app, notify=False)
-        app.notify("History cleared")
-
-    elif cmd == "/undo":
-        if len(app.message_history) >= 2:
-            app.message_history = app.message_history[:-2]
-            app.notify("Removed last turn")
-        elif app.message_history:
-            app.message_history = app.message_history[:-1]
-            app.notify("Removed last message")
+    if not text_to_copy:
+        app.notify("No response to copy", severity="warning")
+        return
+    try:
+        if sys.platform == "darwin":
+            subprocess.run(["pbcopy"], input=text_to_copy.encode(), check=True)
         else:
-            app.notify("No messages to undo", severity="warning")
+            subprocess.run(
+                ["xclip", "-selection", "clipboard"],
+                input=text_to_copy.encode(),
+                check=True,
+            )
+        app.notify("Copied to clipboard")
+    except Exception:
+        app.notify("Failed to copy to clipboard", severity="error")
 
-    elif cmd == "/copy":
-        # Copy last assistant message text (including errors shown as messages)
+
+async def _cmd_model(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.fallback_picker import FallbackPickerModal
+    from apps.cli.modals.model_picker import ModelPickerModal
+
+    async def _handle_fallback(primary: str, fallback: str | None) -> None:
+        app.set_fallback_and_reconfigure(primary, fallback)
+
+    async def _handle_model(result: str | None) -> None:
+        if result:
+            primary = result
+
+            def _on_fallback_picked(fb: str | None) -> None:
+                app.call_later(_handle_fallback, primary, fb)
+
+            app.push_screen(
+                FallbackPickerModal(result, app.fallback_model_name or None),
+                _on_fallback_picked,
+            )
+
+    app.push_screen(ModelPickerModal(app.model_name), _handle_model)
+
+
+async def _cmd_context(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.context_view import ContextViewModal
+
+    total_input = 0
+    for msg in app.message_history:
+        usage = getattr(msg, "usage", None)
+        if usage and hasattr(usage, "input_tokens"):
+            total_input += usage.input_tokens or 0
+
+    # Use callback values if available, otherwise estimate
+    ctx_current = app.context_current if app.context_current > 0 else total_input
+    ctx_max = app.context_max if app.context_max > 0 else 200_000
+    ctx_pct = ctx_current / ctx_max if ctx_max > 0 else 0.0
+
+    async def _handle_ctx(result: str | None) -> None:
+        if result == "compact":
+            await dispatch_command(app, "/compact")
+
+    app.push_screen(
+        ContextViewModal(
+            pct=ctx_pct,
+            current=ctx_current,
+            maximum=ctx_max,
+            message_count=len(app.message_history),
+        ),
+        _handle_ctx,
+    )
+
+
+async def _cmd_compact(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.compact import CompactModal
+
+    async def _handle_compact(result: tuple[str, str] | None) -> None:
+        if result is None:
+            return
+        mode, focus = result
+        history = app.message_history
+
+        if mode == "trim":
+            # Zero-cost: just keep last 20 messages
+            keep = min(20, len(history))
+            app.message_history = history[-keep:]
+            app.notify(f"Trimmed to last {keep} messages")
+        elif mode == "llm":
+            compacted = False
+            try:
+                agent = app.agent
+                if agent is not None:
+                    for cap in getattr(agent, "_capabilities", []):
+                        cap_type = type(cap).__name__
+                        if "ContextManager" in cap_type:
+                            compact = getattr(cap, "compact", None)
+                            if compact is not None:
+                                app.notify("Compacting with LLM...", severity="information")
+                                app.message_history = await compact(history, focus)
+                                compacted = True
+                                app.notify("Context compacted (LLM)")
+                            break
+            except Exception:
+                pass
+
+            if not compacted:
+                # Fallback: trim to last 30 messages
+                keep = min(30, len(history))
+                app.message_history = history[-keep:]
+                app.notify(f"Compacted (kept last {keep} messages)")
+        else:
+            app.notify(f"Unknown compact mode: {mode}", severity="warning")
+            return
+
+        try:
+            status = app.screen.query_one(StatusBar)
+            status.message_count = len(app.message_history)
+        except Exception:
+            pass
+
+    app.push_screen(CompactModal(), _handle_compact)
+
+
+async def _cmd_copy_all(app: DeepApp, arg: str) -> None:
+    try:
         from apps.cli.widgets.assistant_message import AssistantMessage
         from apps.cli.widgets.message_list import MessageList
+        from apps.cli.widgets.user_message import UserMessage
 
-        text_to_copy = app.last_response
-        # Fallback: find the last AssistantMessage widget text
-        if not text_to_copy:
-            try:
-                msg_list = app.screen.query_one(MessageList)
-                assistants = list(msg_list.query(AssistantMessage))
-                if assistants:
-                    text_to_copy = assistants[-1]._text
-            except Exception:
-                pass
+        msg_list = app.screen.query_one(MessageList)
+        lines: list[str] = []
+        for child in msg_list.children:
+            if isinstance(child, UserMessage):
+                lines.append(f"You: {child.text}")
+            elif isinstance(child, AssistantMessage):
+                lines.append(f"Assistant: {child.text}")
+            lines.append("")
 
-        if not text_to_copy:
-            app.notify("No response to copy", severity="warning")
+        full_text = "\n".join(lines)
+        if sys.platform == "darwin":
+            subprocess.run(["pbcopy"], input=full_text.encode(), check=True)
+        else:
+            subprocess.run(
+                ["xclip", "-selection", "clipboard"], input=full_text.encode(), check=True
+            )
+        app.notify(f"Copied {len(lines)} lines to clipboard")
+    except Exception as e:
+        app.notify(f"Failed to copy: {e}", severity="error")
+
+
+async def _cmd_export(app: DeepApp, arg: str) -> None:
+    """Write the conversation to a Markdown file (`/export [path]`)."""
+    from datetime import datetime
+
+    from apps.cli.widgets.assistant_message import AssistantMessage
+    from apps.cli.widgets.message_list import MessageList
+    from apps.cli.widgets.user_message import UserMessage
+
+    try:
+        msg_list = app.screen.query_one(MessageList)
+    except Exception:
+        app.notify("Nothing to export", severity="warning")
+        return
+
+    lines: list[str] = ["# Conversation", ""]
+    count = 0
+    for child in msg_list.children:
+        if isinstance(child, UserMessage):
+            lines += ["## You", "", child.text, ""]
+            count += 1
+        elif isinstance(child, AssistantMessage):
+            lines += ["## Assistant", "", child.text, ""]
+            count += 1
+
+    if count == 0:
+        app.notify("Nothing to export", severity="warning")
+        return
+
+    if arg.strip():
+        path = Path(arg.strip()).expanduser()
+    else:
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        path = Path.cwd() / f"conversation-{ts}.md"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(lines), encoding="utf-8")
+    except OSError as e:
+        app.notify(f"Export failed: {e}", severity="error")
+        return
+    app.notify(f"Exported {count} messages → {path}")
+
+
+async def _cmd_cost(app: DeepApp, arg: str) -> None:
+    total_input = 0
+    total_output = 0
+    for msg in app.message_history:
+        usage = getattr(msg, "usage", None)
+        if usage is None:
+            continue
+        total_input += getattr(usage, "input_tokens", 0) or 0
+        total_output += getattr(usage, "output_tokens", 0) or 0
+    # Prefer the authoritative cost from CostTracking (genai-prices, accurate
+    # per active model). Fall back to a rough Sonnet-rate heuristic only when
+    # no tracked cost has been reported — gating on `cost_known`, not a
+    # `> 0` test, so a genuine $0 turn is shown as $0.0000 (C5).
+    if app.cost_known:
+        cost_label = f"${app.total_cost:.4f}"
+    else:
+        est_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
+        cost_label = f"~${est_cost:.4f}"
+    app.notify(
+        f"Cost: {cost_label}  ·  Input: {total_input:,} tokens  ·  Output: {total_output:,} tokens"
+    )
+
+
+async def _cmd_tokens(app: DeepApp, arg: str) -> None:
+    count = len(app.message_history)
+    total_input = 0
+    total_output = 0
+    for msg in app.message_history:
+        usage = getattr(msg, "usage", None)
+        if usage is None:
+            continue
+        total_input += getattr(usage, "input_tokens", 0) or 0
+        total_output += getattr(usage, "output_tokens", 0) or 0
+    app.notify(
+        f"{count} messages  ·  {total_input:,} input tokens  ·  {total_output:,} output tokens"
+    )
+
+
+async def _cmd_shells(app: DeepApp, arg: str) -> None:
+    """List background shells started via run_in_background."""
+    deps = getattr(app, "deps", None)
+    backend = getattr(deps, "backend", None)
+    lister = getattr(backend, "list_background", None)
+    if not callable(lister):
+        app.notify("Background shells aren't supported by this backend", severity="warning")
+        return
+    try:
+        shells = list(lister())
+    except Exception:
+        app.notify("Could not read background shells", severity="error")
+        return
+    if not shells:
+        app.notify("No background shells")
+        return
+
+    running = sum(1 for s in shells if getattr(s, "running", False))
+    lines: list[str] = []
+    for s in shells[:8]:
+        if getattr(s, "running", False):
+            state = "running"
+        else:
+            state = f"exit {getattr(s, 'exit_code', '?')}"
+        cmd = " ".join(str(getattr(s, "command", "")).split())[:40]
+        lines.append(f"{getattr(s, 'shell_id', '?')} [{state}] {cmd}")
+    if len(shells) > 8:
+        lines.append(f"… +{len(shells) - 8} more")
+    summary = f"{running} running / {len(shells)} total\n" + "\n".join(lines)
+    app.notify(summary, timeout=8)
+
+
+async def _cmd_todos(app: DeepApp, arg: str) -> None:
+    # The TODO list is now pinned above the input whenever tasks exist, so this
+    # just reports the current state.
+    from apps.cli.widgets.todos_panel import TodosWidget
+
+    try:
+        todos = list(app.screen.query_one(TodosWidget).todos)
+    except Exception:
+        todos = []
+    if not todos:
+        app.notify("No todos yet", severity="information")
+        return
+    done = sum(1 for t in todos if getattr(t, "status", "") == "completed")
+    app.notify(f"{done}/{len(todos)} todos complete — shown above the input")
+
+
+async def _cmd_paste(app: DeepApp, arg: str) -> None:
+    handler = getattr(app.screen, "attach_clipboard_image", None)
+    if handler is not None:
+        handler()
+    else:
+        app.notify("Image paste is unavailable on this screen", severity="warning")
+
+
+async def _cmd_info(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.info_view import InfoModal
+
+    app.push_screen(InfoModal())
+
+
+async def _cmd_mcp(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.mcp_view import MCPViewModal
+
+    app.push_screen(MCPViewModal())
+
+
+async def _cmd_skills(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.skills_view import SkillsViewModal
+
+    app.push_screen(SkillsViewModal())
+
+
+async def _cmd_diff(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.diff_view import DiffViewModal
+
+    app.push_screen(DiffViewModal(working_dir=app.working_dir))
+
+
+async def _cmd_screenshot(app: DeepApp, arg: str) -> None:
+    # Export the current TUI as an SVG - handy for docs / marketing assets.
+    try:
+        filename = arg.strip() or None
+        saved = app.save_screenshot(filename)
+        app.notify(f"📸 Screenshot saved: {saved}")
+    except Exception as exc:  # pragma: no cover - defensive
+        app.notify(f"Screenshot failed: {exc}", severity="error")
+
+
+async def _cmd_version(app: DeepApp, arg: str) -> None:
+    app.notify(f"pydantic-deep v{app.app_version}")
+
+
+async def _cmd_remember(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.remember import RememberModal
+
+    async def _handle_remember(result: str | None) -> None:
+        if result:
+            import os
+
+            memory_path = os.path.join(app.working_dir, ".pydantic-deep", "main", "MEMORY.md")
+            os.makedirs(os.path.dirname(memory_path), exist_ok=True)
+            with open(memory_path, "a") as f:
+                f.write(f"\n- {result}\n")
+            app.notify("Saved to memory")
+
+    app.push_screen(RememberModal(initial_text=arg), _handle_remember)
+
+
+async def _cmd_remind(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.remind_picker import ReminderPickerModal
+    from apps.cli.reminder import _apply_reminder_mode
+
+    current = getattr(app, "_reminder_mode", "off")
+
+    async def _handle_remind(mode: str | None) -> None:
+        if mode is None:
+            return
+        _apply_reminder_mode(app, mode)
+
+    app.push_screen(ReminderPickerModal(current_mode=current), _handle_remind)
+
+
+async def _cmd_goal(app: DeepApp, arg: str) -> None:
+    from apps.cli.goal import handle_goal_command
+
+    await handle_goal_command(app, arg)
+
+
+async def _cmd_settings(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.settings_view import SettingsModal
+
+    app.push_screen(SettingsModal())
+
+
+async def _cmd_load(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.session_picker import SessionPickerModal
+
+    async def _handle_load(session_id: str | None) -> None:
+        if not session_id:
             return
         try:
-            if sys.platform == "darwin":
-                subprocess.run(["pbcopy"], input=text_to_copy.encode(), check=True)
-            else:
-                subprocess.run(
-                    ["xclip", "-selection", "clipboard"],
-                    input=text_to_copy.encode(),
-                    check=True,
-                )
-            app.notify("Copied to clipboard")
-        except Exception:
-            app.notify("Failed to copy to clipboard", severity="error")
+            import json
 
-    elif cmd == "/model":
-        from apps.cli.modals.fallback_picker import FallbackPickerModal
-        from apps.cli.modals.model_picker import ModelPickerModal
+            from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-        async def _handle_fallback(primary: str, fallback: str | None) -> None:
-            app.set_fallback_and_reconfigure(primary, fallback)
+            from apps.cli.config import get_sessions_dir
 
-        async def _handle_model(result: str | None) -> None:
-            if result:
-                primary = result
-
-                def _on_fallback_picked(fb: str | None) -> None:
-                    app.call_later(_handle_fallback, primary, fb)
-
-                app.push_screen(
-                    FallbackPickerModal(result, app.fallback_model_name or None),
-                    _on_fallback_picked,
-                )
-
-        app.push_screen(ModelPickerModal(app.model_name), _handle_model)
-
-    elif cmd == "/context":
-        from apps.cli.modals.context_view import ContextViewModal
-
-        total_input = 0
-        for msg in app.message_history:
-            usage = getattr(msg, "usage", None)
-            if usage and hasattr(usage, "input_tokens"):
-                total_input += usage.input_tokens or 0
-
-        # Use callback values if available, otherwise estimate
-        ctx_current = app.context_current if app.context_current > 0 else total_input
-        ctx_max = app.context_max if app.context_max > 0 else 200_000
-        ctx_pct = ctx_current / ctx_max if ctx_max > 0 else 0.0
-
-        async def _handle_ctx(result: str | None) -> None:
-            if result == "compact":
-                await dispatch_command(app, "/compact")
-
-        app.push_screen(
-            ContextViewModal(
-                pct=ctx_pct,
-                current=ctx_current,
-                maximum=ctx_max,
-                message_count=len(app.message_history),
-            ),
-            _handle_ctx,
-        )
-
-    elif cmd == "/compact":
-        from apps.cli.modals.compact import CompactModal
-
-        async def _handle_compact(result: tuple[str, str] | None) -> None:
-            if result is None:
-                return
-            mode, focus = result
-            history = app.message_history
-
-            if mode == "trim":
-                # Zero-cost: just keep last 20 messages
-                keep = min(20, len(history))
-                app.message_history = history[-keep:]
-                app.notify(f"Trimmed to last {keep} messages")
-            elif mode == "llm":
-                compacted = False
-                try:
-                    agent = app.agent
-                    if agent is not None:
-                        for cap in getattr(agent, "_capabilities", []):
-                            cap_type = type(cap).__name__
-                            if "ContextManager" in cap_type:
-                                compact = getattr(cap, "compact", None)
-                                if compact is not None:
-                                    app.notify("Compacting with LLM...", severity="information")
-                                    app.message_history = await compact(history, focus)
-                                    compacted = True
-                                    app.notify("Context compacted (LLM)")
-                                break
-                except Exception:
-                    pass
-
-                if not compacted:
-                    # Fallback: trim to last 30 messages
-                    keep = min(30, len(history))
-                    app.message_history = history[-keep:]
-                    app.notify(f"Compacted (kept last {keep} messages)")
-            else:
-                app.notify(f"Unknown compact mode: {mode}", severity="warning")
+            messages_path = get_sessions_dir() / session_id / "messages.json"
+            if not messages_path.exists():
+                app.notify(f"Session {session_id} not found", severity="error")
                 return
 
-            try:
-                status = app.screen.query_one(StatusBar)
-                status.message_count = len(app.message_history)
-            except Exception:
-                pass
+            json.loads(messages_path.read_text())
+            history = ModelMessagesTypeAdapter.validate_json(messages_path.read_bytes())
+            app.message_history = list(history)
 
-        app.push_screen(CompactModal(), _handle_compact)
-
-    elif cmd == "/copy-all":
-        try:
-            from apps.cli.widgets.assistant_message import AssistantMessage
             from apps.cli.widgets.message_list import MessageList
-            from apps.cli.widgets.user_message import UserMessage
 
             msg_list = app.screen.query_one(MessageList)
-            lines: list[str] = []
-            for child in msg_list.children:
-                if isinstance(child, UserMessage):
-                    lines.append(f"You: {child._text}")
-                elif isinstance(child, AssistantMessage):
-                    lines.append(f"Assistant: {child._text}")
-                lines.append("")
+            msg_list.clear_messages()
+            msg_list.replay_messages_into(history)
 
-            full_text = "\n".join(lines)
-            if sys.platform == "darwin":
-                subprocess.run(["pbcopy"], input=full_text.encode(), check=True)
-            else:
-                subprocess.run(
-                    ["xclip", "-selection", "clipboard"], input=full_text.encode(), check=True
-                )
-            app.notify(f"Copied {len(lines)} lines to clipboard")
+            app.notify(
+                f"Loaded session: {len(history)} messages",
+                severity="information",
+            )
+
+            status = app.screen.query_one(StatusBar)
+            status.message_count = len(history)
+
+            msg_list.scroll_end(animate=False)
         except Exception as e:
-            app.notify(f"Failed to copy: {e}", severity="error")
+            app.notify(f"Failed to load session: {e}", severity="error")
 
-    elif cmd == "/cost":
-        total_input = 0
-        total_output = 0
-        for msg in app.message_history:
-            usage = getattr(msg, "usage", None)
-            if usage is None:
-                continue
-            total_input += getattr(usage, "input_tokens", 0) or 0
-            total_output += getattr(usage, "output_tokens", 0) or 0
-        # Prefer the authoritative cost from CostTracking (genai-prices, accurate
-        # per active model). Fall back to a rough Sonnet-rate heuristic only when
-        # no tracked cost is available.
-        if app.total_cost > 0:
-            cost_label = f"${app.total_cost:.4f}"
-        else:
-            est_cost = (total_input * 3.0 + total_output * 15.0) / 1_000_000
-            cost_label = f"~${est_cost:.4f}"
-        app.notify(
-            f"Cost: {cost_label}  ·  "
-            f"Input: {total_input:,} tokens  ·  Output: {total_output:,} tokens"
-        )
+    app.push_screen(SessionPickerModal(), _handle_load)
 
-    elif cmd == "/tokens":
-        count = len(app.message_history)
-        total_input = 0
-        total_output = 0
-        for msg in app.message_history:
-            usage = getattr(msg, "usage", None)
-            if usage is None:
-                continue
-            total_input += getattr(usage, "input_tokens", 0) or 0
-            total_output += getattr(usage, "output_tokens", 0) or 0
-        app.notify(
-            f"{count} messages  ·  {total_input:,} input tokens  ·  {total_output:,} output tokens"
-        )
 
-    elif cmd == "/todos":
-        from apps.cli.widgets.side_panel import SidePanel
+async def _cmd_improve(app: DeepApp, arg: str) -> None:  # noqa: C901
+    log = get_logger()
+    days = int(arg) if arg and arg.isdigit() else 7
+    app.notify(f"Analyzing sessions from last {days} days...")
 
+    async def _run_improve(days: int = days) -> None:
         try:
-            side = app.screen.query_one(SidePanel)
-            if side.has_class("visible"):
-                side.remove_class("visible")
-            else:
-                side.add_class("visible")
-        except Exception:
-            app.notify("No todos yet", severity="information")
+            from pathlib import Path
 
-    elif cmd == "/paste":
-        handler = getattr(app.screen, "attach_clipboard_image", None)
-        if handler is not None:
-            handler()
-        else:
-            app.notify("Image paste is unavailable on this screen", severity="warning")
+            from apps.cli.config import get_sessions_dir
+            from apps.cli.keystore import load_keys
+            from apps.cli.modals.improve_review import ImproveReviewModal
+            from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
 
-    elif cmd == "/mcp":
-        from apps.cli.modals.mcp_view import MCPViewModal
+            # Ensure API keys are available (improve creates its own agents)
+            load_keys()
 
-        app.push_screen(MCPViewModal())
+            # Use the same model as the current agent
+            model = app.model_name
+            if not model or model in ("test", "preview"):
+                from apps.cli.config import load_config
+                from pydantic_deep.models import DEFAULT_IMPROVE_MODEL
 
-    elif cmd == "/skills":
-        from apps.cli.modals.skills_view import SkillsViewModal
+                model = load_config().model or DEFAULT_IMPROVE_MODEL
 
-        app.push_screen(SkillsViewModal())
+            def _on_progress(stage: str, current: int, total: int) -> None:
+                if stage == "discovering":
+                    app.notify("Discovering sessions...", timeout=3)
+                elif stage == "extracting":
+                    app.notify(
+                        f"Extracting insights: {current}/{total} sessions...",
+                        timeout=5,
+                    )
+                elif stage == "synthesizing":
+                    app.notify("Synthesizing changes...", timeout=5)
+                elif stage == "done":
+                    pass  # Report will be shown in modal
 
-    elif cmd == "/diff":
-        from apps.cli.modals.diff_view import DiffViewModal
+            log.info("Improve starting", model=model, days=days)
+            analyzer = ImprovementAnalyzer(
+                model=model,
+                sessions_dir=get_sessions_dir(),
+                working_dir=Path(app.working_dir),
+                on_progress=_on_progress,
+            )
+            report = await analyzer.analyze(days=days)
 
-        app.push_screen(DiffViewModal(working_dir=app.working_dir))
+            if report.failed_sessions > 0:
+                err_msg = f"{report.failed_sessions} session(s) failed extraction"
+                if report.extraction_errors:
+                    details = "; ".join(f"{sid}: {exc}" for sid, exc in report.extraction_errors)
+                    err_msg += f" ({details})"
+                elif report.last_error:
+                    err_msg += f": {report.last_error}"
+                app.notify(err_msg, severity="warning", timeout=10)
 
-    elif cmd == "/screenshot":
-        # Export the current TUI as an SVG - handy for docs / marketing assets.
-        try:
-            filename = arg.strip() or None
-            saved = app.save_screenshot(filename)
-            app.notify(f"📸 Screenshot saved: {saved}")
-        except Exception as exc:  # pragma: no cover - defensive
-            app.notify(f"Screenshot failed: {exc}", severity="error")
-
-    elif cmd == "/version":
-        app.notify(f"pydantic-deep v{app.app_version}")
-
-    elif cmd == "/remember":
-        from apps.cli.modals.remember import RememberModal
-
-        async def _handle_remember(result: str | None) -> None:
-            if result:
-                import os
-
-                memory_path = os.path.join(app.working_dir, ".pydantic-deep", "main", "MEMORY.md")
-                os.makedirs(os.path.dirname(memory_path), exist_ok=True)
-                with open(memory_path, "a") as f:
-                    f.write(f"\n- {result}\n")
-                app.notify("Saved to memory")
-
-        app.push_screen(RememberModal(initial_text=arg), _handle_remember)
-
-    elif cmd == "/remind":
-        from apps.cli.modals.remind_picker import ReminderPickerModal
-        from apps.cli.reminder import _apply_reminder_mode
-
-        current = getattr(app, "_reminder_mode", "off")
-
-        async def _handle_remind(mode: str | None) -> None:
-            if mode is None:
+            if not report.proposed_changes:
+                app.notify("No improvements found.", severity="information")
                 return
-            _apply_reminder_mode(app, mode)
 
-        app.push_screen(ReminderPickerModal(current_mode=current), _handle_remind)
-
-    elif cmd == "/goal":
-        from apps.cli.goal import handle_goal_command
-
-        await handle_goal_command(app, arg)
-
-    elif cmd == "/settings":
-        from apps.cli.screens.settings import SettingsScreen
-
-        app.push_screen(SettingsScreen())
-
-    elif cmd == "/load":
-        from apps.cli.modals.session_picker import SessionPickerModal
-
-        async def _handle_load(session_id: str | None) -> None:  # noqa: C901
-            if not session_id:
-                return
-            try:
-                import json
-
-                from pydantic_ai.messages import ModelMessagesTypeAdapter
-
-                from apps.cli.config import get_sessions_dir
-
-                messages_path = get_sessions_dir() / session_id / "messages.json"
-                if not messages_path.exists():
-                    app.notify(f"Session {session_id} not found", severity="error")
+            async def _handle_review(
+                selected: list | None,
+                _analyzer: ImprovementAnalyzer = analyzer,
+                _report: Any = report,
+            ) -> None:
+                if selected is None:
+                    app.notify("Improve skipped")
                     return
-
-                json.loads(messages_path.read_text())
-                history = ModelMessagesTypeAdapter.validate_json(messages_path.read_bytes())
-                app.message_history = list(history)
-
-                from apps.cli.widgets.message_list import MessageList
-
-                msg_list = app.screen.query_one(MessageList)
-                msg_list.clear_messages()
-
-                from pydantic_ai.messages import (
-                    TextPart,
-                    ToolCallPart,
-                    ToolReturnPart,
-                    UserPromptPart,
-                )
-
-                completed_call_ids: set[str] = {
-                    part.tool_call_id
-                    for msg in history
-                    for part in msg.parts
-                    if isinstance(part, ToolReturnPart)
-                }
-
-                for msg in history:
-                    for part in msg.parts:
-                        if isinstance(part, UserPromptPart):
-                            content = part.content
-                            if isinstance(content, str) and content:
-                                msg_list.append_user_message(content)
-                        elif isinstance(part, TextPart):
-                            if part.content:
-                                assistant_msg = msg_list.begin_assistant_message()
-                                assistant_msg.append_text(part.content)
-                                assistant_msg.finalize_text()
-                                msg_list.end_assistant_message()
-                        elif isinstance(part, ToolCallPart):
-                            args = part.args_as_dict()
-                            call_id = part.tool_call_id
-                            assistant_msg = msg_list.current_assistant
-                            if assistant_msg is None:
-                                assistant_msg = msg_list.begin_assistant_message()
-                            assistant_msg.add_tool_call(part.tool_name, args, call_id)
-                            if call_id not in completed_call_ids:
-                                assistant_msg.complete_tool_call(call_id, "Interrupted", 0.0, True)
-                        elif isinstance(part, ToolReturnPart):
-                            content = str(part.content)
-                            assistant_msg = msg_list.current_assistant
-                            if assistant_msg is not None:
-                                assistant_msg.complete_tool_call(
-                                    part.tool_call_id, content, 0.0, looks_like_error(content)
-                                )
-
-                if msg_list.current_assistant is not None:
-                    msg_list.current_assistant.finalize_text()
-                    msg_list.end_assistant_message()
-
+                modified = await _analyzer.apply_changes(selected)
+                _report.accepted_changes = list(selected)
+                _analyzer.save_improve_state(_report)
                 app.notify(
-                    f"Loaded session: {len(history)} messages",
+                    f"Applied {len(modified)} changes: {', '.join(modified)}",
                     severity="information",
                 )
 
-                status = app.screen.query_one(StatusBar)
-                status.message_count = len(history)
+            app.push_screen(ImproveReviewModal(report), _handle_review)
+        except Exception as e:
+            import traceback
 
-                msg_list.scroll_end(animate=False)
-            except Exception as e:
-                app.notify(f"Failed to load session: {e}", severity="error")
-
-        app.push_screen(SessionPickerModal(), _handle_load)
-
-    elif cmd == "/improve":
-        days = int(arg) if arg and arg.isdigit() else 7
-        app.notify(f"Analyzing sessions from last {days} days...")
-
-        async def _run_improve(days: int = days) -> None:
-            try:
-                from pathlib import Path
-
-                from apps.cli.config import get_sessions_dir
-                from apps.cli.keystore import load_keys
-                from apps.cli.modals.improve_review import ImproveReviewModal
-                from pydantic_deep.improve.analyzer import ImprovementAnalyzer
-
-                # Ensure API keys are available (improve creates its own agents)
-                load_keys()
-
-                # Use the same model as the current agent
-                model = app.model_name
-                if not model or model in ("test", "preview"):
-                    from apps.cli.config import load_config
-
-                    model = load_config().model or "openrouter:anthropic/claude-sonnet-4"
-
-                def _on_progress(stage: str, current: int, total: int) -> None:
-                    if stage == "discovering":
-                        app.notify("Discovering sessions...", timeout=3)
-                    elif stage == "extracting":
-                        app.notify(
-                            f"Extracting insights: {current}/{total} sessions...",
-                            timeout=5,
-                        )
-                    elif stage == "synthesizing":
-                        app.notify("Synthesizing changes...", timeout=5)
-                    elif stage == "done":
-                        pass  # Report will be shown in modal
-
-                log.info("Improve starting", model=model, days=days)
-                analyzer = ImprovementAnalyzer(
-                    model=model,
-                    sessions_dir=get_sessions_dir(),
-                    working_dir=Path(app.working_dir),
-                    on_progress=_on_progress,
-                )
-                report = await analyzer.analyze(days=days)
-
-                if report.failed_sessions > 0:
-                    err_msg = f"{report.failed_sessions} session(s) failed extraction"
-                    if report.extraction_errors:
-                        details = "; ".join(
-                            f"{sid}: {exc}" for sid, exc in report.extraction_errors
-                        )
-                        err_msg += f" ({details})"
-                    elif report.last_error:
-                        err_msg += f": {report.last_error}"
-                    app.notify(err_msg, severity="warning", timeout=10)
-
-                if not report.proposed_changes:
-                    app.notify("No improvements found.", severity="information")
-                    return
-
-                async def _handle_review(
-                    selected: list | None,
-                    _analyzer: ImprovementAnalyzer = analyzer,
-                    _report: Any = report,
-                ) -> None:
-                    if selected is None:
-                        app.notify("Improve skipped")
-                        return
-                    modified = await _analyzer.apply_changes(selected)
-                    _report.accepted_changes = list(selected)
-                    _analyzer.save_improve_state(_report)
-                    app.notify(
-                        f"Applied {len(modified)} changes: {', '.join(modified)}",
-                        severity="information",
-                    )
-
-                app.push_screen(ImproveReviewModal(report), _handle_review)
-            except Exception as e:
-                import traceback
-
-                error_detail = traceback.format_exc()
-                log.error("Improve pipeline failed", exc_info=True)
-                try:
-                    app.screen.add_system_message(  # type: ignore[attr-defined]
-                        f"**Improve failed:**\n\n```\n{error_detail}\n```"
-                    )
-                except Exception:
-                    app.notify(f"Improve failed: {e}", severity="error")
-
-        app._spawn_tracked(_run_improve(), label="/improve")
-
-    elif cmd == "/help":
-        from apps.cli.modals.help_view import HelpModal
-
-        app.push_screen(HelpModal())
-
-    elif cmd == "/provider":
-        from apps.cli.screens.onboarding import _PROVIDERS, ApiKeyModal, ProviderPickerModal
-
-        _PROVIDER_DEFAULT_MODELS = {
-            "openrouter": "openrouter:anthropic/claude-sonnet-4",
-            "anthropic": "anthropic:claude-sonnet-4-6",
-            "openai": "openai:gpt-4.1",
-            "google": "google-gla:gemini-2.5-pro",
-        }
-
-        async def _handle_provider(provider_id: str | None) -> None:
-            if provider_id is None:
-                return
-            if provider_id == "ollama":
-                app.reconfigure_agent(model="ollama:llama3.3")
-                return
-            for pid, name, env_var, url in _PROVIDERS:
-                if pid == provider_id:
-                    default_model = _PROVIDER_DEFAULT_MODELS.get(pid, "")
-
-                    async def _handle_key(
-                        key: str | None,
-                        _name: str = name,
-                        _model: str = default_model,
-                    ) -> None:
-                        if key:
-                            app.notify(f"✓ {_name} key set! Connecting...", severity="information")
-                            app.reconfigure_agent(model=_model)
-
-                    app.push_screen(ApiKeyModal(name, env_var, url), _handle_key)
-                    return
-
-        app.push_screen(ProviderPickerModal(), _handle_provider)
-
-    elif cmd == "/save":
-        app.notify("Sessions are auto-saved after each turn")
-
-    elif cmd == "/theme":
-        from apps.cli.styles.themes import apply_theme, available_themes
-
-        if arg:
-            if apply_theme(app, arg):
-                app.notify(f"Theme: {arg}")
-                try:
-                    from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
-
-                    set_config_value(DEFAULT_CONFIG_PATH, "theme", arg)
-                except Exception:
-                    pass
-            else:
-                names = ", ".join(available_themes())
-                app.notify(f"Unknown theme: {arg}. Available: {names}", severity="warning")
-        else:
-            names = ", ".join(available_themes())
-            app.notify(f"Available themes: {names}. Use /theme <name>")
-
-    elif cmd == "/config":
-        from apps.cli.config import (
-            format_config,
-            load_config,
-            set_config_value,
-        )
-
-        if arg.startswith("set "):
-            # /config set key value
-            set_parts = arg[4:].strip().split(maxsplit=1)
-            if len(set_parts) < 2:
-                app.notify("Usage: /config set <key> <value>", severity="warning")
-                return
-            key, val = set_parts[0], set_parts[1]
-            try:
-                from apps.cli.config import DEFAULT_CONFIG_PATH
-
-                set_config_value(DEFAULT_CONFIG_PATH, key, val)
-                app.notify(f"Set {key} = {val}")
-                log.info("Config updated", key=key, value=val)
-            except KeyError as exc:
-                app.notify(str(exc), severity="error")
-        else:
-            # /config — show current config
-            config = load_config()
-            text = format_config(config)
+            error_detail = traceback.format_exc()
+            log.error("Improve pipeline failed", exc_info=True)
             try:
                 app.screen.add_system_message(  # type: ignore[attr-defined]
-                    f"**Current config:**\n\n```toml\n{text}\n```"
+                    f"**Improve failed:**\n\n```\n{error_detail}\n```"
                 )
             except Exception:
-                app.notify(text[:200])
+                app.notify(f"Improve failed: {e}", severity="error")
 
-    elif cmd == "/bug":
-        import webbrowser
+    app._spawn_tracked(_run_improve(), label="/improve")
 
-        webbrowser.open("https://github.com/vstorm-co/pydantic-deepagents/issues")
-        app.notify("Opened GitHub issues in browser")
 
-    elif cmd == "/fork":
-        if arg.strip().startswith("diff"):
-            rest = arg.strip()[len("diff") :].strip()
-            await _dispatch_fork_open_diff(app, rest or None)
-        else:
-            await _dispatch_fork(app)
+async def _cmd_help(app: DeepApp, arg: str) -> None:
+    from apps.cli.modals.help_view import HelpModal
 
-    elif cmd == "/fork-config":
-        _dispatch_fork_config(app)
+    app.push_screen(HelpModal())
 
-    elif cmd == "/merge":
-        await _dispatch_merge(app)
 
-    else:
-        # Check if it's a skill command (e.g. /code-review)
-        # Skills are loaded via the command picker from _discover_skill_commands()
-        skill_name = cmd.lstrip("/")
-        from apps.cli.modals.command_picker import _discover_skill_commands
+async def _cmd_provider(app: DeepApp, arg: str) -> None:
+    from apps.cli.providers import PROVIDER_DEFAULT_MODELS as _PROVIDER_DEFAULT_MODELS
+    from apps.cli.screens.onboarding import _PROVIDERS, ApiKeyModal, ProviderPickerModal
 
-        known_skills = {name.lstrip("/"): desc for name, desc in _discover_skill_commands()}
+    async def _handle_provider(provider_id: str | None) -> None:
+        if provider_id is None:
+            return
+        if provider_id == "ollama":
+            app.reconfigure_agent(model="ollama:llama3.3")
+            return
+        for pid, name, env_var, url in _PROVIDERS:
+            if pid == provider_id:
+                default_model = _PROVIDER_DEFAULT_MODELS.get(pid, "")
 
-        if skill_name in known_skills:
-            # Send as a prompt to the agent: "Use the X skill" + any args
-            prompt = f"Use the {skill_name} skill."
-            if arg:
-                prompt += f" {arg}"
-            from apps.cli.widgets.message_list import MessageList
+                async def _handle_key(
+                    key: str | None,
+                    _name: str = name,
+                    _model: str = default_model,
+                ) -> None:
+                    if key:
+                        app.notify(f"✓ {_name} key set! Connecting...", severity="information")
+                        app.reconfigure_agent(model=_model)
 
+                app.push_screen(ApiKeyModal(name, env_var, url), _handle_key)
+                return
+
+    app.push_screen(ProviderPickerModal(), _handle_provider)
+
+
+async def _cmd_save(app: DeepApp, arg: str) -> None:
+    app.notify("Sessions are auto-saved after each turn")
+
+
+async def _cmd_theme(app: DeepApp, arg: str) -> None:
+    from apps.cli.styles.themes import apply_theme, available_themes
+
+    if arg:
+        if apply_theme(app, arg):
+            app.notify(f"Theme: {arg}")
             try:
-                msg_list = app.screen.query_one(MessageList)
-                msg_list.append_user_message(prompt)
-                app.screen._run_agent(prompt)  # type: ignore[attr-defined]
+                from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+
+                set_config_value(DEFAULT_CONFIG_PATH, "theme", arg)
             except Exception:
-                app.notify(f"Failed to run skill: {skill_name}", severity="error")
+                pass
         else:
-            app.notify(f"Unknown command: {cmd}", severity="warning")
+            names = ", ".join(available_themes())
+            app.notify(f"Unknown theme: {arg}. Available: {names}", severity="warning")
+    else:
+        names = ", ".join(available_themes())
+        app.notify(f"Available themes: {names}. Use /theme <name>")
 
 
-# ── Fork dispatch helpers ─────────────────────────────────────────────
+async def _cmd_bug(app: DeepApp, arg: str) -> None:
+    import webbrowser
+
+    webbrowser.open("https://github.com/vstorm-co/pydantic-deepagents/issues")
+    app.notify("Opened GitHub issues in browser")
+
+
+async def _cmd_fork(app: DeepApp, arg: str) -> None:
+    if arg.strip().startswith("diff"):
+        rest = arg.strip()[len("diff") :].strip()
+        await _dispatch_fork_open_diff(app, rest or None)
+    else:
+        await _dispatch_fork(app)
+
+
+async def _cmd_fork_config(app: DeepApp, arg: str) -> None:
+    _dispatch_fork_config(app)
+
+
+async def _cmd_merge(app: DeepApp, arg: str) -> None:
+    await _dispatch_merge(app)
+
+
+_COMMANDS: dict[str, CommandHandler] = {
+    "/quit": _cmd_quit,
+    "/exit": _cmd_quit,
+    "/q": _cmd_quit,
+    "/clear": _cmd_clear,
+    "/undo": _cmd_undo,
+    "/retry": _cmd_retry,
+    "/copy": _cmd_copy,
+    "/export": _cmd_export,
+    "/model": _cmd_model,
+    "/context": _cmd_context,
+    "/compact": _cmd_compact,
+    "/copy-all": _cmd_copy_all,
+    "/cost": _cmd_cost,
+    "/tokens": _cmd_tokens,
+    "/todos": _cmd_todos,
+    "/shells": _cmd_shells,
+    "/paste": _cmd_paste,
+    "/mcp": _cmd_mcp,
+    "/skills": _cmd_skills,
+    "/diff": _cmd_diff,
+    "/screenshot": _cmd_screenshot,
+    "/version": _cmd_version,
+    "/remember": _cmd_remember,
+    "/remind": _cmd_remind,
+    "/goal": _cmd_goal,
+    "/settings": _cmd_settings,
+    "/load": _cmd_load,
+    "/improve": _cmd_improve,
+    "/help": _cmd_help,
+    "/info": _cmd_info,
+    "/provider": _cmd_provider,
+    "/save": _cmd_save,
+    "/theme": _cmd_theme,
+    "/bug": _cmd_bug,
+    "/fork": _cmd_fork,
+    "/fork-config": _cmd_fork_config,
+    "/merge": _cmd_merge,
+}
+
+
+# Fork dispatch helpers
 
 
 async def _dispatch_fork(app: DeepApp) -> None:
@@ -713,7 +834,7 @@ async def _dispatch_fork(app: DeepApp) -> None:
     app.push_screen(ForkPickerModal(), _on_result)
 
 
-# ── /fork-config ───────────────────────────────────────────────────────
+# /fork-config
 
 
 def _dispatch_fork_config(app: DeepApp) -> None:
@@ -766,7 +887,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
             app.notify(f"Merge failed: {e}", severity="error")
             return
 
-        from pydantic_deep.processors.patch import patch_tool_calls_processor
+        from pydantic_deep.features.patch import patch_tool_calls_processor
 
         parent_len = len(app.message_history)
         patched = patch_tool_calls_processor(list(result.history_after_merge))
@@ -792,7 +913,7 @@ async def _dispatch_merge(app: DeepApp) -> None:
         detect the editor kind once and open the diff picker pre-checked
         with only that branch. User can toggle more branches via Space.
         """
-        from pydantic_deep.toolsets.forking.editor import EditorDetector
+        from pydantic_deep.features.forking.editor import EditorDetector
 
         kind = EditorDetector.detect()
         if kind == "tui":
@@ -879,7 +1000,7 @@ async def _handle_judge_result(
 
     outcome = result
     if outcome.committed and outcome.merge_result is not None:
-        from pydantic_deep.processors.patch import patch_tool_calls_processor
+        from pydantic_deep.features.patch import patch_tool_calls_processor
 
         parent_len = len(app.message_history)
         patched = patch_tool_calls_processor(list(outcome.merge_result.history_after_merge))
@@ -1067,7 +1188,7 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
     Falls back to the in-TUI :class:`MergePickerModal` (diff-explore
     mode) when no external editor is detected.
     """
-    from pydantic_deep.toolsets.forking.editor import EditorDetector
+    from pydantic_deep.features.forking.editor import EditorDetector
 
     session = app.active_fork
     if session is None:
@@ -1096,6 +1217,27 @@ async def _dispatch_fork_open_diff(app: DeepApp, _path_arg: str | None) -> None:
     await _open_diff_picker(app, kind=kind, initial_branch_id=None)
 
 
+#: Temp dirs created by `_labeled_symlinks`, removed at interpreter exit (C13).
+_FORK_SYMLINK_DIRS: set[Path] = set()
+
+
+def _cleanup_fork_symlink_dirs() -> None:
+    """Remove every temp dir `_labeled_symlinks` created (atexit hook, C13)."""
+    for d in _FORK_SYMLINK_DIRS:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+atexit.register(_cleanup_fork_symlink_dirs)
+
+
+def _link_or_copy(src: Path, dst: Path) -> None:
+    """Symlink `dst` → `src`, copying instead where symlinks need privilege (Windows, C13)."""
+    try:
+        dst.symlink_to(src)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
 def _labeled_symlinks(
     parent_path: Path | None,
     branch_paths: list[Path],
@@ -1108,22 +1250,25 @@ def _labeled_symlinks(
     Creates `{tempdir}/pd_{fork_id}/parent/{basename}` and
     `{tempdir}/pd_{fork_id}/{label}/{basename}` symlinks pointing at the
     materialiser paths.  Keeping the temp-dir prefix short ensures the
-    label component stays visible in PyCharm/VS Code title truncation.
+    label component stays visible in PyCharm/VS Code title truncation. The
+    temp dir is tracked for cleanup at exit, and falls back to a copy where
+    symlinks aren't permitted (C13).
     """
     tmp = Path(tempfile.gettempdir()) / f"pd_{fork_id[:_FORK_ID_PREFIX_LEN]}"
     tmp.mkdir(exist_ok=True)
+    _FORK_SYMLINK_DIRS.add(tmp)
     sym_branches: list[Path] = []
     for bp, label in zip(branch_paths, labels, strict=True):
         d = tmp / label
         d.mkdir(exist_ok=True)
         link = d / basename
-        link.symlink_to(bp.resolve())
+        _link_or_copy(bp.resolve(), link)
         sym_branches.append(link)
     if parent_path is not None:
         pd = tmp / "parent"
         pd.mkdir(exist_ok=True)
         plink = pd / basename
-        plink.symlink_to(parent_path.resolve())
+        _link_or_copy(parent_path.resolve(), plink)
         return plink, sym_branches
     return None, sym_branches
 
@@ -1140,7 +1285,7 @@ async def _open_diff_picker(
     the same flow with `initial_branch_id` set to the merge picker's
     currently-highlighted branch.
     """
-    from pydantic_deep.toolsets.forking.editor import EditorDetector
+    from pydantic_deep.features.forking.editor import EditorDetector
 
     session = app.active_fork
     if session is None:  # pragma: no cover - defensive: caller already checked
@@ -1219,46 +1364,7 @@ def _replay_branch_into_main_chat(
     except Exception:
         return
 
-    completed_call_ids: set[str] = {
-        part.tool_call_id
-        for msg in branch_messages
-        for part in getattr(msg, "parts", [])
-        if isinstance(part, ToolReturnPart)
-    }
-
-    for msg in branch_messages:
-        for part in getattr(msg, "parts", []):
-            if isinstance(part, UserPromptPart):
-                content = part.content
-                if isinstance(content, str) and content:
-                    msg_list.append_user_message(content)
-            elif isinstance(part, TextPart):
-                if part.content:
-                    assistant_msg = msg_list.begin_assistant_message()
-                    assistant_msg.append_text(part.content)
-                    assistant_msg.finalize_text()
-                    msg_list.end_assistant_message()
-            elif isinstance(part, ToolCallPart):
-                args = part.args_as_dict()
-                call_id = part.tool_call_id
-                assistant_msg = msg_list.current_assistant
-                if assistant_msg is None:
-                    assistant_msg = msg_list.begin_assistant_message()
-                assistant_msg.add_tool_call(part.tool_name, args, call_id)
-                if call_id not in completed_call_ids:
-                    assistant_msg.complete_tool_call(call_id, "No return", 0.0, True)
-            elif isinstance(part, ToolReturnPart):
-                content_str = str(part.content)
-                assistant_msg = msg_list.current_assistant
-                if assistant_msg is not None:
-                    assistant_msg.complete_tool_call(
-                        part.tool_call_id, content_str, 0.0, looks_like_error(content_str)
-                    )
-
-    if msg_list.current_assistant is not None:
-        msg_list.current_assistant.finalize_text()
-        msg_list.end_assistant_message()
-
+    msg_list.replay_messages_into(branch_messages)
     chat.add_system_message(_build_replay_summary(label, result))
 
 

@@ -14,7 +14,7 @@ from apps.cli.agent import (
     create_cli_agent,
 )
 from apps.cli.prompts import CLI_SYSTEM_PROMPT, build_cli_instructions
-from pydantic_deep.capabilities.hooks import HookEvent, HookInput, HookResult
+from pydantic_deep.features.hooks import HookEvent, HookInput, HookResult
 
 TEST_MODEL = TestModel()
 
@@ -106,7 +106,7 @@ class TestCreateCliAgent:
         from unittest.mock import patch
 
         # Remove the browser module from sys.modules so the import inside the try block fires
-        browser_mod = sys.modules.pop("pydantic_deep.capabilities.browser", None)
+        browser_mod = sys.modules.pop("pydantic_deep.features.browser.capability", None)
         try:
             with patch.dict("sys.modules", {"playwright": None, "playwright.async_api": None}):
                 import warnings
@@ -122,7 +122,7 @@ class TestCreateCliAgent:
                 # is importable; just assert the agent is created without exception
         finally:
             if browser_mod is not None:
-                sys.modules["pydantic_deep.capabilities.browser"] = browser_mod
+                sys.modules["pydantic_deep.features.browser.capability"] = browser_mod
 
     def test_include_browser_false_skips_capability(self, tmp_path: Path) -> None:
         """When include_browser=False, no BrowserCapability is added."""

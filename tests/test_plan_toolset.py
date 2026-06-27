@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic_deep.toolsets.plan.toolset import _slugify_title
+from pydantic_deep.features.plan.toolset import _slugify_title
 
 
 class TestSlugifyTitle:

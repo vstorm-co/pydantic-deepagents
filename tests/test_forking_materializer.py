@@ -20,9 +20,9 @@ from pydantic_deep import (
     ForkCoordinator,
     InMemoryForkStateStore,
 )
-from pydantic_deep.toolsets.forking.isolation import BranchOverlay
-from pydantic_deep.toolsets.forking.materializer import ForkMaterializer
-from pydantic_deep.types import BranchStatus, FileChange
+from pydantic_deep.features.forking.isolation import BranchOverlay
+from pydantic_deep.features.forking.materializer import ForkMaterializer
+from pydantic_deep.features.forking.types import BranchStatus, FileChange
 
 
 def _seed_history(text: str) -> list[Any]:
@@ -262,7 +262,7 @@ def test_mirror_to_disk_logs_oserror_but_does_not_propagate(tmp_path: Path, capl
     materializer.flush_change = _raise  # type: ignore[method-assign]
     overlay.attach_materializer(materializer, "approach_a")
 
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.isolation"):
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
         result = overlay.write("a.py", "after")
 
     assert result.error is None

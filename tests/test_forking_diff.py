@@ -24,9 +24,9 @@ from pydantic_deep import (
     LiveForkCapability,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
-from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-from pydantic_deep.toolsets.forking.diff import (
+from pydantic_deep.features.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
+from pydantic_deep.features.forking.coordinator import BranchRuntime
+from pydantic_deep.features.forking.diff import (
     _binary_placeholder,
     _change_identity,
     _classify_agreement,
@@ -34,7 +34,7 @@ from pydantic_deep.toolsets.forking.diff import (
     _is_binary_bytes,
     build_diff_report,
 )
-from pydantic_deep.types import BranchStatus
+from pydantic_deep.features.forking.types import BranchStatus
 
 
 def _make_status(branch_id: str, label: str) -> BranchStatus:

@@ -118,7 +118,8 @@ class TestExecuteHeadless:
         mock_usage.input_tokens = 800
         mock_usage.output_tokens = 200
         mock_usage.requests = 3
-        mock_result.usage.return_value = mock_usage
+        # pydantic-ai 2.0: `result.usage` is a property, not a method.
+        mock_result.usage = mock_usage
         agent.run = AsyncMock(return_value=mock_result)
         return agent
 

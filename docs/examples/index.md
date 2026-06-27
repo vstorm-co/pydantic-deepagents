@@ -1,6 +1,13 @@
 # Examples
 
-This section contains practical examples demonstrating pydantic-deep features.
+Concepts click when you see them run. This section is a gallery of small,
+complete programs — each focused on a single feature, each runnable as written.
+Skim the cards below for the topic you need, or start with
+[Basic Usage](basic-usage.md) and build up from there.
+
+!!! tip "No API key? No problem"
+    Every example works with `TestModel` (see [Testing Without API](#testing-without-api))
+    so you can run them offline before spending a token.
 
 ## Running Examples
 

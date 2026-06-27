@@ -2,6 +2,15 @@
 
 Screen {
     background: $background;
+    /* Quiet, near-invisible scrollbars — they only hint until hovered. */
+    scrollbar-size-vertical: 1;
+    scrollbar-size-horizontal: 1;
+    scrollbar-color: $panel;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $accent;
+    scrollbar-background: $background;
+    scrollbar-background-hover: $background;
+    scrollbar-background-active: $background;
 }
 
 #main-layout {
@@ -35,7 +44,7 @@ UserMessage {
     height: auto;
     padding: 0 2;
     margin: 1 0 0 0;
-    border-top: solid $surface-lighten-1;
+    border-left: thick $primary;
 }
 
 UserMessage .user-label {
@@ -50,11 +59,10 @@ UserMessage .user-text {
 AssistantMessage {
     height: auto;
     margin: 1 0 0 0;
-    border-top: solid $surface-lighten-1;
 }
 
 AssistantMessage .assistant-label {
-    color: $success-lighten-1;
+    color: $accent;
     padding: 0 2;
 }
 
@@ -64,7 +72,7 @@ ToolCallWidget {
     height: auto;
     padding: 0 2;
     margin: 0 0 0 1;
-    border-left: tall $surface-lighten-2;
+    border-left: tall $primary 40%;
 }
 
 ToolCallWidget .tool-header {
@@ -91,30 +99,34 @@ ToolCallWidget .tool-output-expanded.visible {
     display: block;
 }
 
-/* ── Side panel ──────────────────────────────────────── */
+/* ── Bottom bar ──────────────────────────────────────── */
+/* A single bottom-docked column so the activity strip and the input stack
+   vertically instead of overlapping (sibling dock:bottom widgets all anchor
+   to the same edge). The input is undocked here — the column docks instead. */
 
-SidePanel {
-    width: 32;
-    display: none;
-    padding: 0 1;
-    border-left: tall $surface-lighten-2;
-}
-
-SidePanel.visible {
-    display: block;
-}
-
-TodosWidget {
+#bottom-bar {
+    dock: bottom;
     height: auto;
-    padding: 1;
-    border: round $surface-lighten-2;
+    background: $background;
 }
 
-SubagentsWidget {
+#bottom-bar InputArea {
+    dock: none;
+}
+
+/* Pinned above the input: subagents (under the messages), then the TODO
+   list, then queued messages. Collapses to zero height when all are empty. */
+
+#activity-dock {
     height: auto;
-    padding: 1;
-    border: round $surface-lighten-2;
-    margin: 1 0 0 0;
+    padding: 0 2;
+    background: $background;
+}
+
+#activity-dock SubagentsWidget,
+#activity-dock TodosWidget,
+#activity-dock QueuedWidget {
+    margin: 0 0 1 0;
 }
 
 /* ── Status bar ──────────────────────────────────────── */

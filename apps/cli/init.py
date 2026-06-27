@@ -10,6 +10,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from pydantic_deep.models import DEFAULT_MODEL
+
 _AGENTS_MD_TEMPLATE = """\
 
 Describe your project here. This file is read by pydantic-deep at startup
@@ -30,13 +32,13 @@ This file is automatically maintained by pydantic-deep.
 The agent reads and updates this file across sessions.
 """
 
-_DEFAULT_CONFIG_TOML = """\
-model = "anthropic:claude-opus-4-6"
+_DEFAULT_CONFIG_TOML = f"""\
+model = "{DEFAULT_MODEL}"
 show_cost = true
 show_tokens = true
 
 # Tools that require user approval before execution
-# Use /config set approve_tools "execute,write_file" to change
+# Edit this list directly, or change other settings with /settings in the CLI
 approve_tools = ["execute"]
 """
 

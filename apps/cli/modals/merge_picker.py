@@ -27,7 +27,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Static
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchChange, BranchDiffReport, BranchStatus
+    from pydantic_deep.features.forking.types import BranchChange, BranchDiffReport, BranchStatus
 
 _DIFF_PREVIEW_LINES = 14
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, ScreenStackError
 from textual.binding import Binding
 from textual.css.query import NoMatches
 from textual.reactive import reactive
@@ -26,6 +26,7 @@ from apps.cli.widgets.header import DeepHeader
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.status_bar import StatusBar
 from pydantic_deep.goal import GoalEvaluator, GoalState
+from pydantic_deep.models import DEFAULT_JUDGE_MODEL
 
 
 def _detect_git_branch(working_dir: str) -> str:
@@ -70,13 +71,17 @@ class DeepApp(App):
     context_max: reactive[int] = reactive(0)
     total_cost: reactive[float] = reactive(0.0)
     current_cost: reactive[float] = reactive(0.0)
+    #: True once CostTracking has reported an authoritative cost. Distinguishes
+    #: "genuinely $0 / cached / un-priceable" from "not yet known" so the status
+    #: bar doesn't clobber a real zero with a fabricated estimate (C5).
+    cost_known: reactive[bool] = reactive(False)
     active_fork: reactive[CLIForkSession | None] = reactive(None)
     fork_branch_count: reactive[int] = reactive(2)
     fork_aggregate_budget_usd: reactive[float | None] = reactive["float | None"](None)
     fork_branch_models: reactive[list[str | None]] = reactive(list, always_update=True)
     fork_branch_budgets: reactive[list[float | None]] = reactive(list, always_update=True)
     fork_merge_strategy: reactive[str] = reactive("auto_with_fallback")
-    fork_judge_model: reactive[str] = reactive("anthropic:claude-haiku-4-5")
+    fork_judge_model: reactive[str] = reactive(DEFAULT_JUDGE_MODEL)
     fork_confidence_threshold: reactive[float] = reactive(0.80)
 
     agent_task: asyncio.Task[None] | None = None
@@ -104,9 +109,11 @@ class DeepApp(App):
         self._branch = _detect_git_branch(str(working_dir))
         self.message_history: list[ModelMessage] = message_history or []
         self.last_response: str = ""
+        #: Text of the most recent user prompt — powers `/retry`.
+        self.last_user_prompt: str = ""
         self._startup_error = startup_error
         self.queue = getattr(deps, "message_queue", None)
-        # Active goal-completion loop (set via /goal). The evaluator is created
+        # Active goaql-completion loop (set via /goal). The evaluator is created
         # lazily on first use so sessions that never set a goal pay nothing.
         self._goal: GoalState | None = None
         self._goal_evaluator: GoalEvaluator | None = None
@@ -144,15 +151,17 @@ class DeepApp(App):
         super().notify(message, title=title, severity=severity, timeout=timeout)  # type: ignore[arg-type]
 
     def _apply_configured_theme(self) -> None:
-        """Read theme from config and apply it."""
+        """Read theme from config and apply it.
+
+        Always applies a `deep-*` theme — including `default` — so the brand
+        palette is the baseline and the TUI never shows Textual's stock theme.
+        """
         try:
             from apps.cli.config import load_config
+            from apps.cli.styles.themes import apply_theme
 
             config = load_config()
-            if config.theme and config.theme != "default":
-                from apps.cli.styles.themes import apply_theme
-
-                apply_theme(self, config.theme)
+            apply_theme(self, config.theme or "default")
         except Exception:
             pass
 
@@ -281,10 +290,22 @@ class DeepApp(App):
         effective_fallback = config.fallback_model or None
 
         log.info("Reconfiguring agent", model=effective, fallback=effective_fallback)
+        self.notify(f"Configuring {effective}…", severity="information")
+        # create_cli_agent does heavy blocking work (config loads, MCP server
+        # construction, DockerSandbox startup, git subprocesses). Run it off the
+        # event loop so the TUI stays responsive, then apply on the main thread (C2).
+        self.run_worker(
+            lambda: self._reconfigure_worker(effective, effective_fallback),
+            thread=True,
+            exclusive=True,
+            group="reconfigure-agent",
+        )
+
+    def _reconfigure_worker(self, effective: str, effective_fallback: str | None) -> None:
+        """Build the agent in a worker thread; hand results back to the main thread (C2)."""
+        from apps.cli.agent import create_cli_agent
 
         try:
-            from apps.cli.agent import create_cli_agent
-
             agent, deps = create_cli_agent(
                 model=effective,
                 fallback_model=effective_fallback,
@@ -293,31 +314,41 @@ class DeepApp(App):
                 on_context_update=self._on_context_update,
                 on_reminder=self._on_reminder,
             )
-            self.agent = agent
-            self.deps = deps
-            self.queue = getattr(deps, "message_queue", None)
-            self._startup_error = None
-            self.model_name = effective
-            self.fallback_model_name = effective_fallback or ""
-
-            # Save the working model to config
-            try:
-                from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
-
-                set_config_value(DEFAULT_CONFIG_PATH, "model", effective)
-            except Exception:
-                pass
-
-            msg = f"Agent ready! Model: {effective}"
-            if effective_fallback:
-                msg += f" → fallback: {effective_fallback}"
-            log.info(
-                "Agent reconfigured successfully", model=effective, fallback=effective_fallback
-            )
-            self.notify(msg, severity="information")
         except Exception as exc:
-            log.error("Agent reconfiguration failed", exc_info=True, model=effective)
-            self.notify(f"Still failing: {exc}", severity="error", timeout=10)
+            get_logger().error("Agent reconfiguration failed", exc_info=True, model=effective)
+            self.call_from_thread(
+                self.notify, f"Still failing: {exc}", severity="error", timeout=10
+            )
+            return
+        self.call_from_thread(
+            self._apply_reconfigured_agent, agent, deps, effective, effective_fallback
+        )
+
+    def _apply_reconfigured_agent(
+        self, agent: Any, deps: Any, effective: str, effective_fallback: str | None
+    ) -> None:
+        """Assign the freshly-built agent and persist the model (main thread, C2)."""
+        self.agent = agent
+        self.deps = deps
+        self.queue = getattr(deps, "message_queue", None)
+        self._startup_error = None
+        self.model_name = effective
+        self.fallback_model_name = effective_fallback or ""
+
+        try:
+            from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+
+            set_config_value(DEFAULT_CONFIG_PATH, "model", effective)
+        except Exception:
+            pass
+
+        msg = f"Agent ready! Model: {effective}"
+        if effective_fallback:
+            msg += f" → fallback: {effective_fallback}"
+        get_logger().info(
+            "Agent reconfigured successfully", model=effective, fallback=effective_fallback
+        )
+        self.notify(msg, severity="information")
 
     def set_fallback_and_reconfigure(self, model: str, fallback: str | None) -> None:
         """Persist `fallback` to config (empty string clears it), then reconfigure
@@ -335,50 +366,47 @@ class DeepApp(App):
     @staticmethod
     def _pick_available_model(current: str) -> str:
         """If the current model's provider key isn't set, pick one that is."""
+        from apps.cli.providers import PROVIDERS
 
-        # Map provider prefix → env var → default model
-        provider_keys = [
-            ("openrouter:", "OPENROUTER_API_KEY", "openrouter:anthropic/claude-sonnet-4"),
-            ("anthropic:", "ANTHROPIC_API_KEY", "anthropic:claude-sonnet-4-6"),
-            ("openai:", "OPENAI_API_KEY", "openai:gpt-4.1"),
-            ("google", "GOOGLE_API_KEY", "google-gla:gemini-2.5-pro"),
-        ]
+        # Keyed providers only — a model name starts with its provider id.
+        keyed = [p for p in PROVIDERS if p.env_var]
 
-        # Check if current model's key is available
-        for prefix, env_var, _ in provider_keys:
-            if current.startswith(prefix) and os.environ.get(env_var):
-                return current  # Current model's key is set, keep it
+        # Current model's key is set → keep it.
+        for p in keyed:
+            if current.startswith(p.id) and os.environ.get(p.env_var):
+                return current
 
-        # Current model's key not set - find first available
-        for _prefix, env_var, default_model in provider_keys:
-            if os.environ.get(env_var):
-                return default_model
+        # Current model's key not set → fall back to the first provider with a key.
+        for p in keyed:
+            if os.environ.get(p.env_var):
+                return p.default_model
 
         return current  # No keys at all - return as-is, will fail with clear error
 
-    # ── Watchers - propagate to widgets ───────────────────────────
+    # Watchers - propagate to widgets
 
     def watch_model_name(self, name: str) -> None:
-        try:
+        # Only the "not ready yet" cases are expected: no screen on the stack
+        # (reactive init before mount) or the target widget not mounted. Any
+        # other error is a real bug — don't bury it under bare `except` (C11).
+        with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(DeepHeader).model_name = name
             self.screen.query_one(StatusBar).model_name = name
-        except (NoMatches, Exception):
-            pass
 
     def watch_is_streaming(self, streaming: bool) -> None:
-        with contextlib.suppress(NoMatches, Exception):
+        with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(DeepHeader).is_streaming = streaming
 
     def watch_context_pct(self, pct: float) -> None:
-        with contextlib.suppress(NoMatches, Exception):
+        with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(StatusBar).context_pct = pct
 
     def watch_total_cost(self, cost: float) -> None:
-        with contextlib.suppress(NoMatches, Exception):
+        with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(StatusBar).total_cost = cost
 
     def watch_current_cost(self, cost: float) -> None:
-        with contextlib.suppress(NoMatches, Exception):
+        with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(StatusBar).current_cost = cost
 
     def watch_active_fork(self, new: CLIForkSession | None) -> None:
@@ -408,7 +436,7 @@ class DeepApp(App):
         except Exception as exc:  # pragma: no cover - defensive surfacing
             self.notify(f"Fork view error: {exc}", severity="error", timeout=10)
 
-    # ── Command handling ──────────────────────────────────────────
+    # Command handling
 
     def _spawn_tracked(self, coro: Any, *, label: str) -> asyncio.Task[Any]:
         """Schedule `coro` as a tracked background task.
@@ -436,11 +464,15 @@ class DeepApp(App):
 
         self._spawn_tracked(dispatch_command(self, command), label=f"Command {command}")
 
-    # ── Shell commands ────────────────────────────────────────────
+    # Shell commands
 
     def run_shell_command(self, command: str) -> None:
-        """Execute a shell command and show output in message list + save to session."""
+        """Run a shell command without blocking the UI; show + persist output.
 
+        The subprocess runs in a worker thread (via `_run_shell_async`) so a
+        long command like `!make test` keeps the TUI responsive instead of
+        freezing the event loop for up to the 60s timeout.
+        """
         try:
             msg_list = self.screen.query_one(MessageList)
         except (NoMatches, Exception):
@@ -448,9 +480,17 @@ class DeepApp(App):
             return
 
         msg_list.append_user_message(f"!{command}")
+        screen = self.screen
+        self._spawn_tracked(
+            self._run_shell_async(command, screen, msg_list),
+            label=f"shell {command[:20]}",
+        )
 
+    async def _run_shell_async(self, command: str, screen: Any, msg_list: Any) -> None:
+        """Worker for `run_shell_command` — runs the subprocess off the event loop."""
         try:
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 command,
                 shell=True,
                 capture_output=True,
@@ -479,17 +519,17 @@ class DeepApp(App):
         except Exception as e:
             output_text = f"**Error:** {e}"
 
-        # Use add_system_message to show + persist to session
+        # Use add_system_message to show + persist to session.
         try:
-            self.screen.add_system_message(output_text)  # type: ignore[attr-defined]
+            screen.add_system_message(output_text)
         except Exception:
-            # Fallback: just show without saving
+            # Fallback: just show without saving.
             assistant = msg_list.begin_assistant_message()
             assistant.append_text(output_text)
             assistant.finalize_text()
             msg_list.end_assistant_message()
 
-    # ── Actions ───────────────────────────────────────────────────
+    # Actions
 
     def _signal_cancelling(self) -> None:
         """Immediately flag in-flight tool calls as stopping for instant feedback.
@@ -520,14 +560,9 @@ class DeepApp(App):
             screen = self.screen
             handler = getattr(screen, "fork_action_escape", None)
             if handler is not None:
-                task = asyncio.create_task(handler())
-
-                def _on_fork_esc_done(t: asyncio.Task[Any]) -> None:
-                    exc = t.exception()
-                    if exc is not None:  # pragma: no cover - defensive surfacing
-                        self.notify(f"Fork Esc handler failed: {exc}", severity="error")
-
-                task.add_done_callback(_on_fork_esc_done)
+                # Route through _spawn_tracked so the abort/terminate coroutine
+                # keeps a strong ref and can't be GC'd mid-flight (C7).
+                self._spawn_tracked(handler(), label="fork-esc")
                 return
 
         if self.agent_task and not self.agent_task.done():
@@ -535,6 +570,15 @@ class DeepApp(App):
             self.agent_task.cancel()
             self.notify("Agent interrupted", severity="warning")
         else:
+            # Idle Esc clears pending attachments first, if any.
+            clear = getattr(self.screen, "clear_attachments", None)
+            pending = bool(getattr(self.screen, "_pending_images", None)) or bool(
+                getattr(self.screen, "_attachment_labels", None)
+            )
+            if clear is not None and pending:
+                clear()
+                return
+
             from apps.cli.widgets.input_area import InputArea
 
             with contextlib.suppress(NoMatches):

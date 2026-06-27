@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic_ai import RunContext
+from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 
 from pydantic_deep.deps import DeepAgentDeps
@@ -38,6 +39,8 @@ IGNORE_PATTERNS: frozenset[str] = frozenset(
         ".idea",
         ".vscode",
         ".pydantic-deep",
+        "htmlcov",  # coverage HTML output
+        "site",  # mkdocs build output
     }
 )
 
@@ -293,53 +296,120 @@ def detect_test_command(root: Path) -> str | None:
     return None
 
 
+# Files surfaced at the project root before the directory skeleton (capped).
+_MAX_ROOT_FILES = 12
+
+
+def _is_venv(path: Path) -> bool:
+    """A virtualenv, detected by its marker file — so any name is caught
+    (`.venv`, `venv`, `.venv310`, `env`, …), not just the hard-coded set."""
+    try:
+        return (path / "pyvenv.cfg").exists()
+    except OSError:
+        return False
+
+
+def _ignored_dir(entry: Path) -> bool:
+    """Directories left out of the structural map: VCS, caches, build output,
+    any hidden dir, and virtualenvs. The agent can `ls -a` if it needs them."""
+    name = entry.name
+    return name in IGNORE_PATTERNS or name.startswith(".") or _is_venv(entry)
+
+
+def _dir_children(path: Path) -> tuple[list[Path], int]:
+    """Return (visible subdirectories, count of visible files) for `path`."""
+    try:
+        entries = list(path.iterdir())
+    except OSError:
+        return [], 0
+    dirs = sorted(
+        (e for e in entries if e.is_dir() and not _ignored_dir(e)),
+        key=lambda p: p.name.lower(),
+    )
+    files = sum(1 for e in entries if e.is_file() and not e.name.startswith("."))
+    return dirs, files
+
+
 def get_directory_tree(
     root: Path,
     *,
-    max_depth: int = 3,
-    max_entries: int = 30,
+    max_depth: int = 2,
+    max_entries: int = 60,
+    max_per_dir: int = 12,
 ) -> str:
-    """Build a directory tree string.
+    """Build a folders-first structural map of `root`.
+
+    Lists the project's top-level files, then the directory skeleton with a
+    per-directory file count — skipping VCS, caches, build output, hidden dirs,
+    and virtualenvs (by their `pyvenv.cfg` marker, so a custom-named `.venv310`
+    is caught too). Designed to orient an agent on the layout without dumping
+    every file.
+
+    A per-directory cap keeps one fat directory (e.g. a `workspaces/` full of
+    generated runs) from crowding out the rest of the project, so siblings like
+    the source package stay visible.
 
     Args:
         root: Root directory to scan.
-        max_depth: Maximum depth to traverse.
-        max_entries: Maximum total entries to include.
+        max_depth: Maximum directory depth to traverse.
+        max_entries: Overall safety cap on directory entries.
+        max_per_dir: Maximum subdirectories shown under a single directory.
 
     Returns:
         Formatted tree string.
     """
+    if not root.exists():
+        return ""
+
     lines: list[str] = []
-    count = 0
 
-    def _walk(path: Path, prefix: str, depth: int) -> None:
-        nonlocal count
-        if depth > max_depth or count >= max_entries:
+    def _emit(child: Path, prefix: str, is_last: bool) -> None:
+        _, n_files = _dir_children(child)
+        annot = f"  ({n_files} file{'s' if n_files != 1 else ''})" if n_files else ""
+        connector = "└── " if is_last else "├── "
+        lines.append(f"{prefix}{connector}{child.name}/{annot}")
+
+    def _walk(path: Path, prefix: str, depth: int, budget: list[int]) -> None:
+        # `budget` is a single-element mutable shared across this subtree only,
+        # so a deep or fat area (e.g. a generated `workspaces/`) spends its own
+        # allowance without starving sibling top-level areas.
+        if depth > max_depth or budget[0] <= 0:
             return
+        dirs, _ = _dir_children(path)
+        shown = dirs[:max_per_dir]
+        hidden = len(dirs) - len(shown)
+        for i, child in enumerate(shown):
+            if budget[0] <= 0:
+                return
+            is_last = i == len(shown) - 1 and hidden == 0
+            _emit(child, prefix, is_last)
+            budget[0] -= 1
+            _walk(child, prefix + ("    " if is_last else "│   "), depth + 1, budget)
+        if hidden:
+            lines.append(f"{prefix}└── … ({hidden} more dirs)")
 
-        try:
-            entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name))
-        except PermissionError:
-            return
+    # Top-level files first — few and meaningful (pyproject.toml, Makefile, …).
+    try:
+        root_files = sorted(
+            (e.name for e in root.iterdir() if e.is_file() and not e.name.startswith(".")),
+            key=str.lower,
+        )
+    except OSError:
+        root_files = []
+    for name in root_files[:_MAX_ROOT_FILES]:
+        lines.append(f"├── {name}")
+    if len(root_files) > _MAX_ROOT_FILES:
+        lines.append(f"├── … ({len(root_files) - _MAX_ROOT_FILES} more files)")
 
-        filtered = [e for e in entries if e.name not in IGNORE_PATTERNS]
-
-        for i, entry in enumerate(filtered):
-            if count >= max_entries:
-                lines.append(f"{prefix}... ({len(filtered) - i} more)")
-                break
-
-            is_last = i == len(filtered) - 1
-            connector = "└── " if is_last else "├── "
-            suffix = "/" if entry.is_dir() else ""
-            lines.append(f"{prefix}{connector}{entry.name}{suffix}")
-            count += 1
-
-            if entry.is_dir():
-                extension = "    " if is_last else "│   "
-                _walk(entry, prefix + extension, depth + 1)
-
-    _walk(root, "", 0)
+    # Every top-level directory is always shown — it's the backbone of the map.
+    # Each gets an equal slice of the entry budget so the source package stays
+    # detailed even when it sorts after large generated/doc directories.
+    top_dirs, _ = _dir_children(root)
+    per_subtree = max(4, max_entries // max(1, len(top_dirs)))
+    for i, child in enumerate(top_dirs):
+        is_last = i == len(top_dirs) - 1
+        _emit(child, "", is_last)
+        _walk(child, "    " if is_last else "│   ", 1, [per_subtree])
     return "\n".join(lines)
 
 
@@ -433,9 +503,11 @@ class LocalContextToolset(FunctionToolset[DeepAgentDeps]):
             )
         return self._cached_context
 
-    async def get_instructions(self, ctx: RunContext[DeepAgentDeps]) -> list[str] | None:
+    async def get_instructions(
+        self, ctx: RunContext[DeepAgentDeps]
+    ) -> list[InstructionPart] | None:
         """Inject local context into the system prompt."""
-        return [self._build_context()]
+        return [InstructionPart(content=self._build_context(), dynamic=True)]
 
 
 __all__ = [

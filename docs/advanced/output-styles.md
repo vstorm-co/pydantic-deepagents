@@ -1,108 +1,120 @@
-# Output Styles
+# Output styles
 
-Output styles are markdown-based formatting directives injected into the system prompt to control how the agent formats and presents its responses.
+Same agent, same tools — different voice. An **output style** changes *how* your agent writes: its tone, its formatting, how much it explains. You pick one with a single argument, and switch it per run.
 
-## Quick Start
-
-```python
+```python hl_lines="3"
 from pydantic_deep import create_deep_agent
 
-# Use a built-in style
 agent = create_deep_agent(output_style="concise")
 ```
 
-## Built-in Styles
+That's it. The agent now answers in clipped, code-first replies — no preamble, no "here's what I'll do". Swap `"concise"` for `"explanatory"` and the same agent starts teaching instead.
 
-| Style | Description |
-|-------|-------------|
-| `concise` | Minimal output, code-only, no explanations |
-| `explanatory` | Step-by-step reasoning, examples, definitions |
-| `formal` | Professional, structured, numbered sections |
-| `conversational` | Friendly, casual, uses analogies |
-| `markdown` | Well-formed markdown with headings and fenced code |
-| `json-only` | Strict JSON output, no preamble or commentary |
-| `bullet` | Bulleted lists only, no paragraphs |
+!!! info "Prompt-level, not validation"
+    An output style is text appended to the system prompt. It *asks* the model to
+    write a certain way — it never inspects or rejects the result. If you need the
+    output to actually *conform* to a shape, that's [structured output](../learn/structured-output.md),
+    not a style. More on the difference below.
+
+## The built-in styles
+
+Seven styles ship in the box. Pass any of them by name to `output_style=`:
+
+| Style | What the agent does |
+|-------|---------------------|
+| `concise` | Minimal output, code-only, skips explanations and pleasantries |
+| `explanatory` | Step-by-step reasoning, defines terms, gives examples |
+| `formal` | Numbered sections, complete sentences, cites files and lines |
+| `conversational` | Friendly and casual, uses analogies, asks follow-ups |
+| `markdown` | Always well-formed markdown — headings, fenced code, tables |
+| `json-only` | A single valid JSON value, no prose around it |
+| `bullet` | Bulleted lists only, one idea per bullet, no paragraphs |
+
+Pick the one that fits the surface your output lands on:
 
 ```python
-# Minimal, code-focused responses
+# A coding session where you just want the answer
 agent = create_deep_agent(output_style="concise")
 
-# Detailed explanations for learning
+# Onboarding docs that explain the "why"
 agent = create_deep_agent(output_style="explanatory")
 
-# Professional documentation style
-agent = create_deep_agent(output_style="formal")
-
-# Friendly teaching style
-agent = create_deep_agent(output_style="conversational")
-
-# Stable markdown for downstream renderers
+# Output piped straight into a markdown renderer
 agent = create_deep_agent(output_style="markdown")
 
-# Strict JSON for piping into jq / parsers
+# Raw JSON on stdout for jq or a parser
 agent = create_deep_agent(output_style="json-only")
-
-# Bulleted summaries / status updates
-agent = create_deep_agent(output_style="bullet")
 ```
 
-**`json-only` is a prompt — not a guarantee.**
+!!! example "Check it"
+    Run the same prompt twice — once with `output_style="concise"` and once with
+    `output_style="explanatory"`. The plan, the tools, the files written are
+    identical. Only the words around them change.
 
-The model is *asked* to produce valid JSON, but nothing validates the
-result. If you know the shape of the output, prefer `output_type` (see
-below) — it gives you a real guarantee, `json-only` doesn't.
+## `json-only` is a prompt, not a guarantee
 
-### `json-only` vs `output_type`
+It's tempting to reach for `json-only` when you want machine-readable output. Be careful: the model is *asked* to emit valid JSON, but nothing checks that it did. A stray sentence, a trailing comma, a markdown fence — any of those breaks the parser downstream, and the style can't stop them.
 
-| | `json-only` (style) | `output_type` (structured output) |
-|---|---|---|
-| Mechanism | Prompt directive | Provider-native JSON / tool-calling mode |
-| Validation | None | Schema-validated, retries on failure |
-| Result type | `str` | Typed Pydantic model |
-| Use when | Shape is free-form or unknown | Shape is known and fixed |
-
-If your output has a known shape, use `output_type`:
+If you know the shape of the data, use [`output_type`](../learn/structured-output.md) instead. It uses the provider's native JSON / tool-calling mode, validates against your schema, and retries on failure:
 
 ```python
 from pydantic import BaseModel
 from pydantic_deep import create_deep_agent
 
+
 class Result(BaseModel):
     status: str
     items: list[str]
 
-agent = create_deep_agent(output_type=Result)
+
+agent = create_deep_agent(output_type=Result)  # result.output is a Result
 ```
 
-Reach for `json-only` only when `output_type` doesn't fit:
+Here's the side-by-side:
 
-- Free-form JSON where the shape depends on the input (e.g. extracting metadata from arbitrary documents)
-- Models / providers without structured-output support (some OpenRouter models, local LLMs, older APIs)
-- CLI piping where you want raw JSON on stdout without wrapping in a typed model
-- Streaming where partial-JSON parsing against a schema is impractical
-- Intermediate tool outputs in multi-step agents, where the final `output_type` is `str` but a step needs JSON
+| | `json-only` (style) | `output_type` (structured output) |
+|---|---|---|
+| Mechanism | Prompt directive | Provider-native JSON / tool calling |
+| Validation | None | Schema-validated, retries on failure |
+| Result type | `str` | Your typed Pydantic model |
+| Use when | Shape is free-form or unknown | Shape is known and fixed |
 
-## Custom Styles
+So reach for `json-only` only when `output_type` genuinely doesn't fit:
+
+- Free-form JSON whose shape depends on the input (e.g. metadata pulled from arbitrary documents).
+- Models or providers without structured-output support.
+- CLI piping where you want raw JSON on stdout, unwrapped.
+- An intermediate step that needs JSON while the run's final `output_type` stays `str`.
+
+## Writing your own style
+
+The seven built-ins are a starting point, not a ceiling. You can supply a style two ways.
 
 ### Inline
 
-Pass an `OutputStyle` instance directly:
+Build an `OutputStyle` and pass the instance straight in:
 
-```python
+```python hl_lines="3 4 5 6 7"
+from pydantic_deep import create_deep_agent
 from pydantic_deep.styles import OutputStyle
 
 agent = create_deep_agent(
     output_style=OutputStyle(
         name="technical",
         description="Deep technical detail",
-        content="Always include implementation details, cite specific files and line numbers...",
+        content=(
+            "Always include implementation details. "
+            "Cite specific files and line numbers."
+        ),
     ),
 )
 ```
 
-### From Files
+An `OutputStyle` is just three fields: a `name`, a one-line `description`, and the `content` that gets injected into the prompt.
 
-Create markdown style files with YAML frontmatter:
+### From a markdown file
+
+For styles you want to reuse or share, write them as markdown files with YAML frontmatter — the body *is* the style content:
 
 ```markdown
 ---
@@ -112,66 +124,60 @@ description: My custom output style
 
 Use a structured format:
 - Start with a one-sentence summary
-- Include code examples for every suggestion
+- Include a code example for every suggestion
 - End with action items
 ```
 
-Then reference by name:
+Drop that file in a directory, point `styles_dir` at it, and reference the style by its frontmatter `name`:
 
-```python
+```python hl_lines="3"
 agent = create_deep_agent(
     output_style="my-style",
-    styles_dir="/path/to/styles",  # Directory containing .md style files
+    styles_dir="/path/to/styles",  # directory of .md style files
 )
 ```
 
-### Discovery
+!!! tip "Inspect a directory of styles"
+    [`discover_styles`][pydantic_deep.styles.discover_styles] loads every valid
+    `.md` style in a directory into a `{name: OutputStyle}` dict — handy for
+    listing what's available before you pick one.
 
-Load all styles from a directory:
+    ```python
+    from pydantic_deep.styles import discover_styles
 
-```python
-from pydantic_deep.styles import discover_styles
+    styles = discover_styles("/path/to/styles")
+    # {"my-style": OutputStyle(...), "another": OutputStyle(...)}
+    ```
 
-styles = discover_styles("/path/to/styles")
-# Returns: {"my-style": OutputStyle(...), "another": OutputStyle(...)}
-```
+## How a name gets resolved
 
-## Resolution Order
+When you pass a string to `output_style`, [`resolve_style`][pydantic_deep.styles.resolve_style] walks this order:
 
-When you pass a string name to `output_style`, the resolution order is:
+1. If you passed an `OutputStyle` instance, it's used as-is.
+2. Otherwise the name is looked up in [`BUILTIN_STYLES`][pydantic_deep.styles.BUILTIN_STYLES].
+3. If it's not a built-in, each directory in `styles_dir` is searched for a matching `.md` file.
+4. If nothing matches anywhere, you get a `ValueError` listing the built-ins.
 
-1. Return `OutputStyle` instances directly
-2. Look up in `BUILTIN_STYLES` (`concise`, `explanatory`, `formal`, `conversational`, `markdown`, `json-only`, `bullet`)
-3. Search `styles_dir` directories for matching `.md` files
-4. Raise `ValueError` if not found
+Whichever style wins, it's appended to the agent's instructions as a labeled section:
 
-## How It Works
-
-The resolved style is appended to the agent's instructions as a system prompt section:
-
-```
+```text
 ## Output Style: concise
 
 Be extremely concise in all responses:
 - No explanations unless explicitly asked
 - Code only with minimal comments
-- One-line answers when possible
 ...
 ```
 
-## Components
+## Recap
 
-| Component | Description |
-|-----------|-------------|
-| [`OutputStyle`][pydantic_deep.styles.OutputStyle] | Style dataclass (name, description, content) |
-| [`BUILTIN_STYLES`][pydantic_deep.styles.BUILTIN_STYLES] | Registry of 7 built-in styles |
-| [`resolve_style`][pydantic_deep.styles.resolve_style] | Resolve style name to OutputStyle |
-| [`discover_styles`][pydantic_deep.styles.discover_styles] | Discover styles from a directory |
-| [`load_style_from_file`][pydantic_deep.styles.load_style_from_file] | Load a single style from a markdown file |
-| [`format_style_prompt`][pydantic_deep.styles.format_style_prompt] | Format style for system prompt injection |
+- An output style shapes *how* the agent writes — tone and format — without changing *what* it does.
+- It's prompt-level: appended to the system prompt, never validated. `json-only` asks for JSON; it doesn't enforce it.
+- Seven built-ins ship ready to use: `concise`, `explanatory`, `formal`, `conversational`, `markdown`, `json-only`, `bullet`.
+- Bring your own with an inline `OutputStyle` or a markdown file picked up from `styles_dir`.
+- When you need the output to *conform* to a shape, use `output_type`, not a style.
 
-## Next Steps
+Where to go next:
 
-- [Context Files](context-files.md) — Project context injection
-- [Memory](memory.md) — Persistent agent memory
-- [Agents](../concepts/agents.md) — Full agent configuration
+- [Structured output →](../learn/structured-output.md) — validated, typed results instead of free-form text
+- [Memory →](../learn/memory.md) — give the agent persistent context across runs

@@ -87,6 +87,7 @@ from pydantic_ai_summarization import (
     create_summarization_processor,
 )
 
+from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
 from pydantic_deep.capabilities import (
     BrowserCapability,
@@ -95,16 +96,86 @@ from pydantic_deep.capabilities import (
     MemoryCapability,
     PeriodicReminderCapability,
     PeriodicReminderConfig,
-    PlanCapability,
     ReminderGenerator,
     SkillsCapability,
     StuckLoopDetection,
     StuckLoopError,
-    TeamCapability,
     make_config_for_mode,
 )
-from pydantic_deep.capabilities.forking import LiveForkCapability
-from pydantic_deep.capabilities.hooks import (
+from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
+from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
+from pydantic_deep.features.browser import BrowserToolset
+from pydantic_deep.features.checkpointing import (
+    Checkpoint,
+    CheckpointMiddleware,
+    CheckpointStore,
+    CheckpointToolset,
+    FileCheckpointStore,
+    InMemoryCheckpointStore,
+    RewindRequested,
+    fork_from_checkpoint,
+)
+from pydantic_deep.features.context import (
+    DEFAULT_CONTEXT_FILENAMES,
+    DEFAULT_MAX_CONTEXT_CHARS,
+    SUBAGENT_CONTEXT_ALLOWLIST,
+    ContextFile,
+    ContextToolset,
+    discover_context_files,
+    format_context_prompt,
+    load_context_files,
+)
+from pydantic_deep.features.eviction import (
+    BINARY_PRUNED_TEMPLATE,
+    DEFAULT_EVICTION_PATH,
+    DEFAULT_MAX_BINARY_CONTENT,
+    DEFAULT_TOKEN_LIMIT,
+    EVICTION_MESSAGE_TEMPLATE,
+    EvictionCapability,
+)
+from pydantic_deep.features.forking import (
+    JUDGE_SYSTEM_PROMPT,
+    BranchOverlay,
+    ForkBranchLimitError,
+    ForkCoordinator,
+    ForkDepthLimitError,
+    ForkStateStore,
+    InMemoryForkStateStore,
+    JudgeAgent,
+    build_diff_report,
+    clone_for_branch,
+    compute_confidence,
+    count_retry_parts,
+    count_stuck_loop_hits,
+    create_fork_toolset,
+)
+from pydantic_deep.features.forking.capability import LiveForkCapability
+from pydantic_deep.features.forking.types import (
+    BranchChange,
+    BranchCost,
+    BranchDiffAgreement,
+    BranchDiffOperation,
+    BranchDiffReport,
+    BranchIsolation,
+    BranchOutcome,
+    BranchSpec,
+    BranchState,
+    BranchStatus,
+    ConfidenceSignals,
+    DiffSummary,
+    FileChange,
+    FlushError,
+    FlushReport,
+    ForkCostSummary,
+    ForkHandle,
+    JudgeVerdict,
+    MergeResult,
+    MergeStrategy,
+    PathDiff,
+    PendingApprovalRequest,
+    ResolveOutcome,
+)
+from pydantic_deep.features.hooks import (
     DEFAULT_BLOCKED_COMMANDS,
     DEFAULT_BLOCKED_READ_PATHS,
     DEFAULT_BLOCKED_WRITE_PATHS,
@@ -118,8 +189,67 @@ from pydantic_deep.capabilities.hooks import (
     HooksCapability,
     default_security_hook,
 )
-from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.liteparse import (
+    PARSE_DOCUMENT_DESCRIPTION,
+    SCREENSHOT_DOCUMENT_DESCRIPTION,
+    LiteparseToolset,
+)
+from pydantic_deep.features.memory import (
+    DEFAULT_MAX_MEMORY_LINES,
+    DEFAULT_MEMORY_DIR,
+    DEFAULT_MEMORY_FILENAME,
+    DEFAULT_PIN_END_MARKER,
+    AgentMemoryToolset,
+    MemoryAccessError,
+    MemoryFile,
+    format_memory_prompt,
+    get_memory_path,
+    load_memory,
+)
+from pydantic_deep.features.monitoring import (
+    MonitorEvent,
+    MonitorInfo,
+    MonitorManager,
+    create_monitor_toolset,
+)
+from pydantic_deep.features.patch import (
+    CANCELLED_MESSAGE,
+    PatchToolCallsCapability,
+    patch_tool_calls_processor,
+)
+from pydantic_deep.features.plan import PlanOption
+from pydantic_deep.features.skills import (
+    BackendSkillResource,
+    BackendSkillScript,
+    BackendSkillScriptExecutor,
+    BackendSkillsDirectory,
+    CallableSkillScriptExecutor,
+    FileBasedSkillResource,
+    FileBasedSkillScript,
+    LocalSkillScriptExecutor,
+    Skill,
+    SkillException,
+    SkillNotFoundError,
+    SkillResource,
+    SkillResourceLoadError,
+    SkillResourceNotFoundError,
+    SkillScript,
+    SkillScriptExecutionError,
+    SkillsDirectory,
+    SkillValidationError,
+    SkillWrapper,
+)
+from pydantic_deep.features.teams import (
+    AgentTeam,
+    SharedTodoItem,
+    SharedTodoList,
+    TeamMember,
+    TeamMemberHandle,
+    TeamMemberSpec,
+    TeamMessage,
+    TeamMessageBus,
+    create_team_toolset,
+)
 from pydantic_deep.goal import (
     DEFAULT_GOAL_MODEL,
     GoalEvaluation,
@@ -144,23 +274,6 @@ from pydantic_deep.mcp import (
     parse_mcp_servers,
     probe_mcp_server,
 )
-from pydantic_deep.processors.eviction import (
-    BINARY_PRUNED_TEMPLATE,
-    DEFAULT_EVICTION_PATH,
-    DEFAULT_MAX_BINARY_CONTENT,
-    DEFAULT_TOKEN_LIMIT,
-    EVICTION_MESSAGE_TEMPLATE,
-    NUM_CHARS_PER_TOKEN,
-    EvictionCapability,
-    EvictionProcessor,
-    create_content_preview,
-    create_eviction_processor,
-)
-from pydantic_deep.processors.patch import (
-    CANCELLED_MESSAGE,
-    PatchToolCallsCapability,
-    patch_tool_calls_processor,
-)
 from pydantic_deep.prompts import BASE_PROMPT
 from pydantic_deep.spec import DeepAgent, DeepAgentSpec
 from pydantic_deep.styles import (
@@ -172,115 +285,9 @@ from pydantic_deep.styles import (
     resolve_style,
 )
 from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
-from pydantic_deep.toolsets.browser import BrowserToolset
-from pydantic_deep.toolsets.checkpointing import (
-    Checkpoint,
-    CheckpointMiddleware,
-    CheckpointStore,
-    CheckpointToolset,
-    FileCheckpointStore,
-    InMemoryCheckpointStore,
-    RewindRequested,
-    fork_from_checkpoint,
-)
-from pydantic_deep.toolsets.context import (
-    DEFAULT_CONTEXT_FILENAMES,
-    DEFAULT_MAX_CONTEXT_CHARS,
-    SUBAGENT_CONTEXT_ALLOWLIST,
-    ContextFile,
-    ContextToolset,
-    discover_context_files,
-    format_context_prompt,
-    load_context_files,
-)
-from pydantic_deep.toolsets.forking import (
-    JUDGE_SYSTEM_PROMPT,
-    BranchOverlay,
-    ForkBranchLimitError,
-    ForkCoordinator,
-    ForkDepthLimitError,
-    ForkStateStore,
-    InMemoryForkStateStore,
-    JudgeAgent,
-    build_diff_report,
-    clone_for_branch,
-    compute_confidence,
-    count_retry_parts,
-    count_stuck_loop_hits,
-    create_fork_toolset,
-)
-from pydantic_deep.toolsets.liteparse import (
-    PARSE_DOCUMENT_DESCRIPTION,
-    SCREENSHOT_DOCUMENT_DESCRIPTION,
-    LiteparseToolset,
-)
-from pydantic_deep.toolsets.memory import (
-    DEFAULT_MAX_MEMORY_LINES,
-    DEFAULT_MEMORY_DIR,
-    DEFAULT_MEMORY_FILENAME,
-    DEFAULT_PIN_END_MARKER,
-    AgentMemoryToolset,
-    MemoryAccessError,
-    MemoryFile,
-    format_memory_prompt,
-    get_memory_path,
-    load_memory,
-)
-from pydantic_deep.toolsets.skills import (
-    BackendSkillResource,
-    BackendSkillScript,
-    BackendSkillScriptExecutor,
-    BackendSkillsDirectory,
-    CallableSkillScriptExecutor,
-    FileBasedSkillResource,
-    FileBasedSkillScript,
-    LocalSkillScriptExecutor,
-    Skill,
-    SkillException,
-    SkillNotFoundError,
-    SkillResource,
-    SkillResourceLoadError,
-    SkillResourceNotFoundError,
-    SkillScript,
-    SkillScriptExecutionError,
-    SkillsDirectory,
-    SkillValidationError,
-    SkillWrapper,
-)
-from pydantic_deep.toolsets.teams import (
-    AgentTeam,
-    SharedTodoItem,
-    SharedTodoList,
-    TeamMember,
-    TeamMemberHandle,
-    TeamMessage,
-    TeamMessageBus,
-    create_team_toolset,
-)
 from pydantic_deep.types import (
-    BranchChange,
-    BranchCost,
-    BranchDiffAgreement,
-    BranchDiffOperation,
-    BranchDiffReport,
-    BranchIsolation,
-    BranchOutcome,
-    BranchSpec,
-    BranchState,
-    BranchStatus,
     BrowseResult,
     CompiledSubAgent,
-    ConfidenceSignals,
-    DiffSummary,
-    FileChange,
-    ForkCostSummary,
-    ForkHandle,
-    JudgeVerdict,
-    MergeResult,
-    MergeStrategy,
-    PathDiff,
-    PendingApprovalRequest,
-    ResolveOutcome,
     ResponseFormat,
     SubAgentConfig,
     Todo,
@@ -301,6 +308,8 @@ __all__ = [
     "create_default_deps",
     "run_with_files",
     "DeepAgentDeps",
+    "DEFAULT_USAGE_LIMITS",
+    "unwrap_backend",
     "DeepAgent",
     "DeepAgentSpec",
     # Goal-completion loop engine
@@ -344,8 +353,6 @@ __all__ = [
     "SkillsCapability",
     "ContextFilesCapability",
     "MemoryCapability",
-    "TeamCapability",
-    "PlanCapability",
     "StuckLoopDetection",
     "StuckLoopError",
     "PeriodicReminderCapability",
@@ -416,8 +423,6 @@ __all__ = [
     "DEFAULT_PIN_END_MARKER",
     # Eviction
     "EvictionCapability",
-    "EvictionProcessor",
-    "create_eviction_processor",
     "create_content_preview",
     "NUM_CHARS_PER_TOKEN",
     "DEFAULT_TOKEN_LIMIT",
@@ -457,9 +462,15 @@ __all__ = [
     "SharedTodoList",
     "TeamMember",
     "TeamMemberHandle",
+    "TeamMemberSpec",
     "TeamMessage",
     "TeamMessageBus",
     "create_team_toolset",
+    "MonitorManager",
+    "MonitorEvent",
+    "MonitorInfo",
+    "create_monitor_toolset",
+    "PlanOption",
     # Output styles
     "OutputStyle",
     "BUILTIN_STYLES",
@@ -510,6 +521,8 @@ __all__ = [
     "ForkHandle",
     "MergeStrategy",
     "MergeResult",
+    "FlushError",
+    "FlushReport",
     "PendingApprovalRequest",
     "FileChange",
     "BranchDiffReport",

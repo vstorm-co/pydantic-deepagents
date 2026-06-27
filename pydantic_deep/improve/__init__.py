@@ -1,41 +1,39 @@
-"""Self-improving agent system.
+"""Deprecated import location for the improve feature.
 
-Analyzes historical conversation sessions, extracts patterns, failures,
-and user preferences, then proposes updates to context files (SOUL.md,
-AGENTS.md, MEMORY.md) and skills.
-
-Core components:
-
-- :class:`SessionExtractor` - extracts insights from a single session
-- :class:`SessionInsights` - structured insights from one session
-- :class:`ProposedChange` - a proposed update to a context file
-- :class:`ImprovementReport` - full report from an improve run
+The implementation moved to :mod:`pydantic_deep.features.improve` (see the
+CHANGELOG). This module re-exports the public names for backward compatibility
+and will be removed in the next minor release. Import from
+``pydantic_deep.features.improve`` instead.
 """
 
 from __future__ import annotations
 
-from pydantic_deep.improve.analyzer import DEFAULT_CONTEXT_FILES
-from pydantic_deep.improve.extractor import SessionExtractor
-from pydantic_deep.improve.types import (
+import warnings
+
+from pydantic_deep.features.improve import (
+    DEFAULT_CONTEXT_FILES,
     AgentLearningInsight,
     ContextInsight,
     DecisionInsight,
     FailureInsight,
     ImprovementReport,
+    ImproveToolset,
     PatternInsight,
     PreferenceInsight,
     ProposedChange,
+    SessionExtractor,
     SessionInsights,
     UserFactInsight,
 )
 
 __all__ = [
-    "AgentLearningInsight",
     "DEFAULT_CONTEXT_FILES",
+    "AgentLearningInsight",
     "ContextInsight",
     "DecisionInsight",
     "FailureInsight",
     "ImprovementReport",
+    "ImproveToolset",
     "PatternInsight",
     "PreferenceInsight",
     "ProposedChange",
@@ -43,3 +41,10 @@ __all__ = [
     "SessionInsights",
     "UserFactInsight",
 ]
+
+warnings.warn(
+    "pydantic_deep.improve has moved to pydantic_deep.features.improve; "
+    "update your imports (this shim will be removed in the next minor release).",
+    DeprecationWarning,
+    stacklevel=2,
+)

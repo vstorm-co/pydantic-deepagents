@@ -11,15 +11,7 @@ from typing import Any
 
 from textual.message import Message
 
-# ── Streaming messages ────────────────────────────────────────────────
-
-
-class AgentToken(Message):
-    """A streaming text delta from the model."""
-
-    def __init__(self, text: str) -> None:
-        super().__init__()
-        self.text = text
+# Streaming messages
 
 
 class AgentTextComplete(Message):
@@ -38,46 +30,7 @@ class AgentThinking(Message):
         self.status = status
 
 
-# ── Tool call messages ────────────────────────────────────────────────
-
-
-class ToolCallStarted(Message):
-    """A tool call has started."""
-
-    def __init__(
-        self,
-        tool_name: str,
-        args: dict[str, Any],
-        call_id: str,
-    ) -> None:
-        super().__init__()
-        self.tool_name = tool_name
-        self.args = args
-        self.call_id = call_id
-
-
-class ToolCallCompleted(Message):
-    """A tool call has completed (success or error)."""
-
-    def __init__(
-        self,
-        tool_name: str,
-        args: dict[str, Any],
-        result: str,
-        elapsed: float,
-        error: bool,
-        call_id: str,
-    ) -> None:
-        super().__init__()
-        self.tool_name = tool_name
-        self.args = args
-        self.result = result
-        self.elapsed = elapsed
-        self.error = error
-        self.call_id = call_id
-
-
-# ── Approval messages ────────────────────────────────────────────────
+# Approval messages
 
 
 class ApprovalRequested(Message):
@@ -95,7 +48,7 @@ class ApprovalRequested(Message):
         self.future = future
 
 
-# ── Agent lifecycle messages ──────────────────────────────────────────
+# Agent lifecycle messages
 
 
 class AgentRunStarted(Message):
@@ -118,7 +71,7 @@ class AgentError(Message):
         self.error = error
 
 
-# ── Status messages ──────────────────────────────────────────────────
+# Status messages
 
 
 class CostUpdated(Message):
@@ -164,7 +117,7 @@ class CompressionComplete(Message):
     """Context compression has finished."""
 
 
-# ── User input messages ──────────────────────────────────────────────
+# User input messages
 
 
 class UserSubmitted(Message):
@@ -193,3 +146,20 @@ class FileSelected(Message):
 
 class PasteImageRequested(Message):
     """User asked to paste an image from the clipboard (Ctrl+V)."""
+
+
+class AttachFileRequested(Message):
+    """A file path was dropped onto the input — attach it to the next prompt."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__()
+        self.path = path
+
+
+class MultilinePasteRequested(Message):
+    """Multi-line text was pasted into the single-line input — switch to
+    multiline mode and keep the pasted structure intact."""
+
+    def __init__(self, text: str) -> None:
+        super().__init__()
+        self.text = text

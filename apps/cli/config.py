@@ -21,6 +21,8 @@ else:  # pragma: no cover
     except ImportError:
         import tomli as tomllib  # type: ignore[import-not-found,no-redefine]
 
+from pydantic_deep.models import DEFAULT_JUDGE_MODEL, DEFAULT_MODEL
+
 
 def get_project_dir() -> Path:
     """Return `.pydantic-deep/` in CWD."""
@@ -100,7 +102,7 @@ _FORK_MERGE_STRATEGY_VALUES = frozenset({"manual", "auto", "auto_with_fallback",
 class CliConfig:
     """CLI configuration loaded from config.toml."""
 
-    model: str = "anthropic:claude-opus-4-6"
+    model: str = DEFAULT_MODEL
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
     theme: str = "default"
@@ -140,6 +142,12 @@ class CliConfig:
     """Enable document parsing via LiteParse.
 
     Requires `pydantic-deep[liteparse]` and Node.js >= 18."""
+    tool_search: bool = True
+    """Defer the situational tool surface and discover tools on demand.
+
+    Keeps the core read/edit/run/track loop always-loaded and hides the rest
+    (subagents, skills, memory, MCP, …) until the model searches for them,
+    cutting per-request input tokens. Default `True` in the CLI."""
     periodic_reminder: bool = True
     """Inject a periodic reminder of the original task every N turns."""
     reminder_mode: Literal["off", "first", "context", "llm"] = "llm"
@@ -179,7 +187,7 @@ class CliConfig:
       majority wins, commits immediately.
 
     Set via `/fork-config`."""
-    fork_judge_model: str = "anthropic:claude-haiku-4-5"
+    fork_judge_model: str = DEFAULT_JUDGE_MODEL
     """Model used as the judge in `auto` / `auto_with_fallback` modes.
 
     Any pydantic-ai model string is valid, e.g.
@@ -241,7 +249,7 @@ def validate_config(config: CliConfig) -> list[str]:
 
         if not _Path(config.working_dir).exists():
             warnings.append(f"Working directory '{config.working_dir}' does not exist")
-    known_themes = {"default", "minimal", "ocean", "rose"}
+    known_themes = {"default", "emerald", "minimal", "ocean", "rose"}
     if config.theme not in known_themes:
         warnings.append(
             f"Unknown theme '{config.theme}'. Known themes: {', '.join(sorted(known_themes))}"
@@ -343,38 +351,58 @@ def set_config_value(path: Path, key: str, value: str) -> None:
     _write_toml(path, data)
 
 
-def _coerce_value(key: str, value: str) -> Any:  # noqa: C901
-    """Coerce string value to the correct type based on the field."""
+def _coerce_float_field(key: str, value: str) -> float | None:
+    """Coerce a (possibly optional) float field, rejecting blanks on required ones."""
+    if value.lower() in ("none", "null", ""):
+        if key in _OPTIONAL_FLOAT_FIELDS:
+            return None
+        raise ValueError(f"{key} requires a numeric value; '{value}' is not allowed")
+    return float(value)
+
+
+def _coerce_env_dict(value: str) -> dict[str, str]:
+    """Parse comma-separated `KEY=VALUE` pairs into a dict.
+
+    Without this the raw string fell through unchanged, so a later
+    `{**config.sandbox_env_vars}` spread (agent.py) raised TypeError.
+    """
+    env: dict[str, str] = {}
+    for raw_pair in value.split(","):
+        pair = raw_pair.strip()
+        if not pair:
+            continue
+        if "=" not in pair:
+            raise ValueError(
+                f"sandbox_env_vars expects comma-separated KEY=VALUE pairs; '{pair}' has no '='"
+            )
+        k, v = pair.split("=", 1)
+        env[k.strip()] = v.strip()
+    return env
+
+
+def _coerce_merge_strategy(value: str) -> str:
+    """Validate and normalise a fork merge-strategy value."""
+    v = value.strip().lower()
+    if v not in _FORK_MERGE_STRATEGY_VALUES:
+        raise ValueError(
+            f"Invalid fork_merge_strategy '{value}'. "
+            f"Valid: {', '.join(sorted(_FORK_MERGE_STRATEGY_VALUES))}"
+        )
+    return v
+
+
+def _coerce_value(key: str, value: str) -> Any:
+    """Coerce a raw string config value to the typed value for `key`."""
     if key in _BOOL_FIELDS:
         return value.lower() in ("true", "1", "yes")
     if key in _INT_FIELDS:
         return int(value)
     if key in _FLOAT_FIELDS:
-        if value.lower() in ("none", "null", ""):
-            if key in _OPTIONAL_FLOAT_FIELDS:
-                return None
-            msg = f"{key} requires a numeric value; '{value}' is not allowed"
-            raise ValueError(msg)
-        return float(value)
+        return _coerce_float_field(key, value)
     if key in ("shell_allow_list", "approve_tools"):
         return [v.strip() for v in value.split(",") if v.strip()]
     if key == "sandbox_env_vars":
-        # Dict field: parse comma-separated `KEY=VALUE` pairs. Without this
-        # branch the raw string fell through to `return value`, so a later
-        # `{**config.sandbox_env_vars}` spread (agent.py) raised TypeError.
-        env: dict[str, str] = {}
-        for pair in value.split(","):
-            pair = pair.strip()
-            if not pair:
-                continue
-            if "=" not in pair:
-                msg = (
-                    f"sandbox_env_vars expects comma-separated KEY=VALUE pairs; '{pair}' has no '='"
-                )
-                raise ValueError(msg)
-            k, v = pair.split("=", 1)
-            env[k.strip()] = v.strip()
-        return env
+        return _coerce_env_dict(value)
     if key in ("fork_branch_models", "fork_branch_budgets"):
         # Keep the list count-aligned with fork_branch_count: the persisted string
         # encodes one slot per branch (N-1 commas), so an all-default 1-branch
@@ -383,14 +411,7 @@ def _coerce_value(key: str, value: str) -> Any:  # noqa: C901
         # by branch slot would rely on the picker's padding to avoid an IndexError.
         return [v.strip() or None for v in value.split(",")]
     if key == "fork_merge_strategy":
-        v = value.strip().lower()
-        if v not in _FORK_MERGE_STRATEGY_VALUES:
-            msg = (
-                f"Invalid fork_merge_strategy '{value}'. "
-                f"Valid: {', '.join(sorted(_FORK_MERGE_STRATEGY_VALUES))}"
-            )
-            raise ValueError(msg)
-        return v
+        return _coerce_merge_strategy(value)
     if key == "working_dir" and value.lower() in ("none", "null", ""):
         return None
     if key == "thinking_effort" and value.strip() == "":

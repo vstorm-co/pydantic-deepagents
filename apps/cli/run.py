@@ -152,7 +152,7 @@ async def execute_headless(  # noqa: C901
             result = await run_coro
 
         if output_json:
-            output = _build_json_output(result.output, result.usage())
+            output = _build_json_output(result.output, result.usage)
             print(json.dumps(output, indent=2, default=str))
         else:
             print(result.output)
@@ -211,10 +211,10 @@ async def _run_verbose(agent: Any, task: str, deps: Any, run_kwargs: dict[str, A
 
     assert run.result is not None
     total = _time.monotonic() - start
-    usage = run.result.usage()
+    usage = run.result.usage
     _log(
         f"[{total:6.1f}s] done — "
-        f"in:{usage.request_tokens} out:{usage.response_tokens} reqs:{usage.requests}"
+        f"in:{usage.input_tokens} out:{usage.output_tokens} reqs:{usage.requests}"
     )
     return run.result
 

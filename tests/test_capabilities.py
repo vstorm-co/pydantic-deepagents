@@ -9,11 +9,9 @@ from pydantic_ai.models.test import TestModel
 from pydantic_deep.capabilities import (
     ContextFilesCapability,
     MemoryCapability,
-    PlanCapability,
     SkillsCapability,
-    TeamCapability,
 )
-from pydantic_deep.toolsets.skills import Skill
+from pydantic_deep.features.skills import Skill
 
 _MODEL = TestModel()
 
@@ -100,31 +98,6 @@ class TestMemoryCapability:
     def test_get_instructions_callable(self):
         cap = MemoryCapability()
         assert callable(cap.get_instructions())
-
-
-class TestPlanCapability:
-    def test_default_construction(self):
-        cap = PlanCapability()
-        assert cap._toolset is not None
-        assert cap.plans_dir == "/plans"
-
-    def test_custom_dir(self):
-        cap = PlanCapability(plans_dir="/custom/plans")
-        assert cap.plans_dir == "/custom/plans"
-
-    def test_get_toolset(self):
-        cap = PlanCapability()
-        assert cap.get_toolset() is not None
-
-
-class TestTeamCapability:
-    def test_default_construction(self):
-        cap = TeamCapability()
-        assert cap._toolset is not None
-
-    def test_get_toolset(self):
-        cap = TeamCapability()
-        assert cap.get_toolset() is not None
 
 
 class TestCapabilityComposition:

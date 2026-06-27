@@ -1,6 +1,8 @@
 # Filesystem Example
 
-This example demonstrates working with files using LocalBackend.
+Ready to move off in-memory storage and have the agent touch real files? Swap
+`StateBackend` for `LocalBackend` and the same agent now reads and writes your
+actual disk. Here's what that looks like.
 
 !!! info "Full Documentation"
     For complete backend documentation, see **[pydantic-ai-backend docs](https://vstorm-co.github.io/pydantic-ai-backend/)**.

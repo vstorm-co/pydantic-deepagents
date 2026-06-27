@@ -28,7 +28,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Rule, Static
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import JudgeVerdict
+    from pydantic_deep.features.forking.types import JudgeVerdict
 
 
 MergeAcceptanceAction = Literal["accept", "diff", "override"]

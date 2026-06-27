@@ -115,6 +115,11 @@ class BranchPanelWidget(Vertical):
         # flushed the freshly-mounted message yet, leaving the spinner stuck.
         self._rendered_call_msgs: dict[str, AssistantMessage] = {}
         self.streaming: bool = False
+        # True once the terminal transcript has been rendered. Both the task
+        # done-callback and the poll tick race to render a finished branch;
+        # this makes the second a no-op so the panel isn't cleared + re-rendered
+        # twice (C8).
+        self._final_replayed: bool = False
 
     def compose(self) -> ComposeResult:
         yield Static(self._render_header(), classes="branch-header")
@@ -175,10 +180,24 @@ class BranchPanelWidget(Vertical):
             self._last_replayed_len = 0
             self._rendered_call_ids = set()
             self._rendered_call_msgs = {}
+            self._final_replayed = False
             with contextlib.suppress(NoMatches):
                 self.query_one(MessageList).clear_messages()
         self.reason = reason
         self.status = state
+
+    def replay_final(self, messages: list[Any]) -> None:
+        """Idempotent terminal replay — render a finished branch's transcript once.
+
+        The single entry point for both branch-completion renderers (the task
+        done-callback and the poll tick). Whichever fires first renders; the
+        other is a no-op, so the panel isn't cleared and re-rendered twice (C8).
+        Reset by `mark_status("running")` for a continued turn.
+        """
+        if self._final_replayed:
+            return
+        self._final_replayed = True
+        self.replay_messages(messages)
 
     def replay_messages(self, messages: list[Any]) -> None:
         """Replay a completed branch's `all_messages()` into the panel.
@@ -221,9 +240,7 @@ class BranchPanelWidget(Vertical):
                 elif isinstance(part, ToolCallPart):
                     args = part.args_as_dict()
                     call_id = part.tool_call_id
-                    assistant_msg = msg_list.current_assistant
-                    if assistant_msg is None:
-                        assistant_msg = msg_list.begin_assistant_message()
+                    assistant_msg = msg_list.current_assistant or msg_list.begin_assistant_message()
                     assistant_msg.add_tool_call(part.tool_name, args, call_id)
                     # Hold a reference to the message that rendered this call so
                     # its ToolReturnPart completes the right row even after a
@@ -290,9 +307,7 @@ class BranchPanelWidget(Vertical):
                     if call_id in self._rendered_call_ids:
                         continue
                     args = part.args_as_dict()
-                    assistant_msg = msg_list.current_assistant
-                    if assistant_msg is None:
-                        assistant_msg = msg_list.begin_assistant_message()
+                    assistant_msg = msg_list.current_assistant or msg_list.begin_assistant_message()
                     assistant_msg.add_tool_call(part.tool_name, args, call_id)
                     self._rendered_call_ids.add(call_id)
                     self._rendered_call_msgs[call_id] = assistant_msg

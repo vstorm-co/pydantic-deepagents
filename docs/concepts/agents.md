@@ -1,19 +1,31 @@
 # Agents
 
-The [`create_deep_agent`][pydantic_deep.agent.create_deep_agent] function is the main entry point for creating deep agents.
+Almost everything you do with pydantic-deep starts at one function:
+[`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. It returns a fully
+wired agent — planning, filesystem, web, memory, sub-agents — and then gets out
+of your way. This page is the tour of what you can turn on, pass in, and read
+back out.
 
-## Basic Usage
+## Basic usage
+
+The smallest possible agent takes no arguments at all:
 
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
 
-# Create agent with defaults
+# Create an agent with all the sensible defaults.
 agent = create_deep_agent()
 
-# Run with dependencies
+# Dependencies decide *where* state lives (here: in memory).
 deps = DeepAgentDeps(backend=StateBackend())
 result = await agent.run("Hello!", deps=deps)
 ```
+
+!!! tip "Two objects, one split"
+    Keep the mental model simple: the **agent** is *what to do* (model,
+    instructions, which tools), and **`DeepAgentDeps`** is *the world it acts in*
+    (the backend, todos, uploads). The same agent can run against many different
+    deps.
 
 ## Configuration Options
 
@@ -132,7 +144,7 @@ agent = create_deep_agent(
 agent = create_deep_agent(context_discovery=True)
 ```
 
-See [Context Files](../advanced/context-files.md) for more details.
+See [Context Files](../learn/memory.md) for more details.
 
 ### Persistent Memory
 
@@ -145,7 +157,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [Memory](../advanced/memory.md) for more details.
+See [Memory](../learn/memory.md) for more details.
 
 ### Checkpointing
 
@@ -162,7 +174,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [Checkpointing](../advanced/checkpointing.md) for more details.
+See [Checkpointing](../learn/sessions.md) for more details.
 
 ### Agent Teams
 
@@ -220,18 +232,19 @@ agent = create_deep_agent(
 ```
 
 To gate sensitive tools behind approval, use `interrupt_on` (see
-[Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/middleware.md)
+[Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/capabilities.md)
 for more details.
 
-### Eviction Processor
+### Eviction
 
-Automatically save large tool outputs to files:
+Automatically save large tool outputs to files (handled by
+[`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability]):
 
 ```python
 agent = create_deep_agent(eviction_token_limit=20000)
 ```
 
-See [Eviction](../advanced/eviction.md) for more details.
+See [Eviction](../advanced/context-management.md) for more details.
 
 ### Context Manager
 
@@ -245,7 +258,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [History Processors](../advanced/processors.md) for more details.
+See [History Processors](../advanced/context-management.md) for more details.
 
 ### Human-in-the-Loop
 
@@ -279,7 +292,7 @@ result = await agent.run("Analyze this task: implement auth", deps=deps)
 print(result.output.priority)  # Type-safe access
 ```
 
-See [Structured Output](../advanced/structured-output.md) for more details.
+See [Structured Output](../learn/structured-output.md) for more details.
 
 ### Context Management
 
@@ -296,7 +309,7 @@ processor = create_summarization_processor(
 agent = create_deep_agent(history_processors=[processor])
 ```
 
-See [History Processors](../advanced/processors.md) for more details.
+See [History Processors](../advanced/context-management.md) for more details.
 
 ### Advanced Agent Configuration
 
@@ -573,7 +586,7 @@ agent = create_deep_agent(
 Or provide skills directly via a `SkillsToolset`:
 
 ```python
-from pydantic_deep.toolsets.skills import Skill, SkillsToolset
+from pydantic_deep.features.skills import Skill, SkillsToolset
 
 skill = Skill(name="code-review", description="Review code for quality", content="...")
 agent = create_deep_agent(
@@ -653,6 +666,16 @@ async def run_with_fallback(agent, prompt, deps):
         logger.error(f"Agent failed: {e}")
         return f"I encountered an error: {e}. Please try again."
 ```
+
+## Recap
+
+- `create_deep_agent()` is the one entry point — call it with no arguments for a
+  capable default, or layer on features with keyword flags.
+- The agent (what to do) and `DeepAgentDeps` (the world to do it in) are separate;
+  the same agent runs against many deps.
+- Your own `async` functions become typed tools, with `ctx.deps` injected.
+- Long conversations and large outputs are managed for you (context manager +
+  eviction), so you can focus on the task, not the token budget.
 
 ## Next Steps
 

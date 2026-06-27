@@ -5,7 +5,14 @@
     See [pydantic-ai#3780](https://github.com/pydantic/pydantic-ai/pull/3780) for progress.
     We will migrate to use the upstream implementation once available.
 
-Skills are modular packages that extend agent capabilities through filesystem-based configuration. They enable **progressive disclosure** - only loading detailed instructions when needed.
+Sometimes you want to teach an agent *how* to do something — your team's git
+conventions, a report format, a deploy checklist — without bloating its system
+prompt with every detail up front. That's what **skills** are for.
+
+A skill is a folder of instructions the agent discovers by name and loads only
+when it's actually relevant. This is **progressive disclosure**: the agent sees
+a one-line summary of every skill, and pulls in the full instructions on demand.
+Cheap to have many; you only pay for the one in use.
 
 ## What are Skills?
 
@@ -201,12 +208,12 @@ EOF
 
 ### From Directories
 
-Use [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory]
+Use [`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory]
 to discover skills from a filesystem directory. `get_skills()` returns a
 `dict[str, Skill]` keyed by skill name:
 
 ```python
-from pydantic_deep.toolsets.skills import SkillsDirectory
+from pydantic_deep.features.skills import SkillsDirectory
 
 source = SkillsDirectory(path="~/.pydantic-deep/skills")
 
@@ -219,7 +226,7 @@ for name, skill in source.get_skills().items():
 To pass skills directly (without filesystem discovery), use a `SkillsToolset`:
 
 ```python
-from pydantic_deep.toolsets.skills import Skill, SkillsToolset
+from pydantic_deep.features.skills import Skill, SkillsToolset
 
 skill = Skill(name="code-review", description="Review code for quality", content="...")
 agent = create_deep_agent(
@@ -370,7 +377,7 @@ The cache persists for the lifetime of the agent instance. Each agent has its ow
 
 ### Discovery Performance
 
-Skill discovery (via [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory]) scans directories on agent creation:
+Skill discovery (via [`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory]) scans directories on agent creation:
 
 | Factor | Impact |
 |--------|--------|
@@ -437,7 +444,7 @@ agent = create_deep_agent(
 
 By default, `skill_directories` accepts local filesystem paths (strings or dicts).
 For non-local backends (in-memory, Docker, remote storage), use
-[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory]
+[`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory]
 which discovers skills via the backend's file operations.
 
 ### StateBackend (In-Memory)
@@ -448,7 +455,7 @@ then point `BackendSkillsDirectory` at them:
 ```python
 from pydantic_ai_backends import StateBackend
 from pydantic_deep import create_deep_agent
-from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+from pydantic_deep.features.skills.backend import BackendSkillsDirectory
 
 backend = StateBackend()
 
@@ -482,7 +489,7 @@ instead of direct filesystem access. This ensures consistent path resolution:
 ```python
 from pydantic_ai_backends import LocalBackend
 from pydantic_deep import create_deep_agent
-from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+from pydantic_deep.features.skills.backend import BackendSkillsDirectory
 
 backend = LocalBackend(root_dir="/home/user/project")
 
@@ -501,7 +508,7 @@ run inside the container:
 ```python
 from pydantic_ai_backends import DockerSandbox
 from pydantic_deep import create_deep_agent
-from pydantic_deep.toolsets.skills.backend import BackendSkillsDirectory
+from pydantic_deep.features.skills.backend import BackendSkillsDirectory
 
 sandbox = DockerSandbox(runtime="python-minimal")
 
@@ -549,6 +556,14 @@ agent = create_deep_agent(
     backend=sandbox,
 )
 ```
+
+## Recap
+
+- A skill is a `SKILL.md` folder (plus optional resources/scripts) the agent
+  loads on demand — progressive disclosure keeps the prompt lean.
+- Point `create_deep_agent(skill_directories=[…])` at a folder, or store skills
+  in any backend with `BackendSkillsDirectory`.
+- Many skills cost almost nothing until one is actually used.
 
 ## Next Steps
 

@@ -426,6 +426,6 @@ flowchart LR
    the same architecture works with local filesystem, in-memory state, or Docker sandbox.
 
 10. **Optional checkpoints for library users:** The `CheckpointMiddleware` and
-    `FileCheckpointStore` remain available in `pydantic_deep/toolsets/checkpointing.py`
+    `FileCheckpointStore` remain available in `pydantic_deep/features/checkpointing.py`
     for library users who need discrete snapshots and rewind. The CLI does not use them —
     `messages.json` is sufficient for session persistence.

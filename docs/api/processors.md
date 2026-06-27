@@ -227,42 +227,14 @@ Function type for custom token counting.
 
 ---
 
-## EvictionProcessor
+## Eviction
 
-History processor that evicts large tool outputs to files. See [Eviction](../advanced/eviction.md).
+Large tool outputs are evicted to the backend *before* they enter history by
+[`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability]
+(documented under [Capabilities](capabilities.md)), enabled by default via
+`create_deep_agent(eviction_token_limit=...)`. See [Eviction](../advanced/context-management.md).
 
-### Definition
-
-```python
-@dataclass
-class EvictionProcessor:
-    backend: BackendProtocol
-    token_limit: int = 20_000
-    eviction_path: str = "/large_tool_results"
-    head_lines: int = 5
-    tail_lines: int = 5
-```
-
-### Factory
-
-```python
-from pydantic_deep import create_eviction_processor
-
-processor = create_eviction_processor(
-    backend=StateBackend(),
-    token_limit=20000,
-)
-```
-
-::: pydantic_deep.processors.eviction.EvictionProcessor
-    options:
-      show_source: false
-
-::: pydantic_deep.processors.eviction.create_eviction_processor
-    options:
-      show_source: false
-
-::: pydantic_deep.processors.eviction.create_content_preview
+::: pydantic_deep.features.eviction.create_content_preview
     options:
       show_source: false
 
@@ -273,7 +245,7 @@ processor = create_eviction_processor(
 History processor that fixes orphaned tool calls in message history.
 
 ```python
-from pydantic_deep.processors.patch import patch_tool_calls_processor
+from pydantic_deep.features.patch import patch_tool_calls_processor
 
 # Use as history processor
 agent = Agent("anthropic:claude-sonnet-4-6", history_processors=[patch_tool_calls_processor])
@@ -308,7 +280,7 @@ Most users do not construct it directly — set `context_manager=True` (default)
 and configure it via the `context_manager_max_tokens`, `on_context_update`,
 `on_before_compress`, and `on_after_compress` parameters of `create_deep_agent`.
 
-See [History Processors](../advanced/processors.md) for details.
+See [History Processors](../advanced/context-management.md) for details.
 
 ---
 

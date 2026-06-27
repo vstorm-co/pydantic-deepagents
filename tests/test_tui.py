@@ -20,14 +20,121 @@ class TestTUIWidgets:
             await pilot.pause()
             assert app.screen.__class__.__name__ == "ChatScreen"
 
-    async def test_welcome_shown(self, app):
+    async def test_welcome_starts_with_empty_conversation(self, app):
+        """No welcome banner in the conversation — identity lives in the top
+        header, so the message list starts empty (no duplicate hero)."""
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
             await pilot.pause()
+            from apps.cli.widgets.hero import HeroBanner
             from apps.cli.widgets.message_list import MessageList
 
             msg_list = app.screen.query_one(MessageList)
-            assert len(msg_list.children) >= 1
+            assert len(msg_list.children) == 0
+            assert len(msg_list.query(HeroBanner)) == 0
+
+    def test_quiet_console_logging_strips_terminal_handlers(self):
+        """fastmcp/mcp must not log to the terminal under the TUI (it paints over
+        the live screen, e.g. MCP `tools/list`)."""
+        import logging
+
+        from apps.cli.debug_log import quiet_console_logging
+
+        lg = logging.getLogger("fastmcp")
+        lg.handlers = [logging.StreamHandler()]  # simulate a console handler
+        lg.propagate = True
+        quiet_console_logging()
+        assert all(isinstance(h, logging.NullHandler) for h in lg.handlers)
+        assert lg.propagate is False
+
+        # fastmcp re-runs configure_logging on client connect; it must stay quiet.
+        from fastmcp.utilities.logging import configure_logging
+
+        configure_logging(level="INFO")
+        assert all(isinstance(h, logging.NullHandler) for h in lg.handlers)
+
+    async def test_brand_theme_is_active_by_default(self, app):
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            assert app.theme == "deep-default"
+
+    async def test_status_bar_never_overflows_width(self, app):
+        """A fully-populated status bar must fit the terminal width — overflow on
+        a single docked row ghosts text beside the input on some terminals."""
+        import re
+
+        from rich.cells import cell_len
+        from textual.widgets import Static
+
+        from apps.cli.widgets.status_bar import StatusBar
+
+        markup = re.compile(r"\[/?[^\]]*\]")
+        async with app.run_test(size=(72, 30)) as pilot:
+            await pilot.pause()
+            sb = app.screen.query_one(StatusBar)
+            sb.approve_mode = "auto"
+            sb.active_todos, sb.total_todos = 2, 5
+            sb.total_cost = 0.0184
+            sb.total_input_tokens, sb.total_output_tokens = 8200, 1400
+            sb.context_pct = 0.42
+            sb.message_count = 6
+            sb.model_name = "anthropic:claude-sonnet-4-6"
+            await pilot.pause()
+            content = sb.query_one("#status-content", Static)
+            visible = cell_len(markup.sub("", str(content.render())))
+            assert visible <= 72
+
+    async def test_info_modal_lists_wired_capabilities(self, app):
+        async with app.run_test(size=(120, 34)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.modals.info_view import build_info_markup
+
+            text = build_info_markup(app)
+            # Capability surface, on demand via /info.
+            assert "tools" in text
+            assert "read" in text and "bash" in text
+            assert "extensions" in text
+
+    async def test_session_footer_shows_model_and_branch(self, app):
+        async with app.run_test(size=(120, 34)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.input_area import SessionFooter
+
+            footer = app.screen.query_one(SessionFooter)
+            footer.refresh_session()
+            text = str(footer.render())
+            assert "test" in text  # the session model
+
+    async def test_prompt_has_single_row_and_gen_squares(self, app):
+        async with app.run_test(size=(100, 32)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.ambient import GenSquares
+            from apps.cli.widgets.input_area import PromptInput
+
+            box = app.screen.query_one("#prompt-box")
+            # Exactly one prompt row — guards the reactive-init double-mount bug.
+            assert len(box.query("PromptRow")) == 1
+            assert len(box.query(PromptInput)) == 1
+            assert len(app.screen.query(GenSquares)) == 1
+
+    async def test_gen_squares_animate_while_generating(self, app):
+        async with app.run_test(size=(100, 32)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            from apps.cli.widgets.ambient import GenSquares
+            from apps.cli.widgets.input_area import InputArea
+
+            squares = app.screen.query_one(GenSquares)
+            assert squares.active is False
+            app.screen.query_one(InputArea).is_agent_running = True
+            await pilot.pause()
+            assert squares.active is True
+            app.screen.query_one(InputArea).is_agent_running = False
+            await pilot.pause()
+            assert squares.active is False
 
     async def test_user_message(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
@@ -38,19 +145,29 @@ class TestTUIWidgets:
             msg_list = app.screen.query_one(MessageList)
             msg_list.append_user_message("test")
             await pilot.pause()
-            assert len(msg_list.children) >= 2
+            # No hero; just the user message.
+            assert len(msg_list.children) >= 1
 
     async def test_shell_command(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
             await pilot.pause()
             app.run_shell_command("echo hello")
-            await pilot.pause()
             from apps.cli.widgets.message_list import MessageList
 
             msg_list = app.screen.query_one(MessageList)
-            # welcome + user "!echo hello" + assistant result = 3+
-            assert len(msg_list.children) >= 3
+            # The subprocess now runs off the event loop, so the assistant
+            # result lands a few ticks after the user "!echo hello" message.
+            for _ in range(50):
+                await pilot.pause()
+                if len(msg_list.children) >= 2:
+                    break
+            assert len(msg_list.children) >= 2
+            # The command output actually made it to the transcript.
+            from apps.cli.widgets.assistant_message import AssistantMessage
+
+            results = list(msg_list.query(AssistantMessage))
+            assert any("hello" in r.text for r in results)
 
     async def test_header_state(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
@@ -93,6 +210,7 @@ class TestTUIWidgets:
             messages: list[str] = []
             app.notify = lambda msg, **kw: messages.append(msg)
             app.total_cost = 0.1234
+            app.cost_known = True
 
             await dispatch_command(app, "/cost")
             await pilot.pause()
@@ -153,6 +271,9 @@ class TestReconfigureAgent:
             await pilot.pause()
             # Explicit model skips key-based model picking; deterministic.
             app.reconfigure_agent(model="anthropic:claude-sonnet-4-6")
+            # Agent is now built in a worker thread (C2); wait for it, then let
+            # the main-thread apply callback run.
+            await app.workers.wait_for_complete()
             await pilot.pause()
 
         assert captured["on_cost_update"] is sentinel_cost
@@ -262,7 +383,7 @@ class TestThemes:
 
         assert THEMES["ocean"]["primary"] == "#3b82f6"
         assert THEMES["rose"]["primary"] == "#f43f5e"
-        assert THEMES["minimal"]["primary"] == "#a0a0a0"
+        assert THEMES["minimal"]["primary"] == "#b4b4b4"
 
     async def test_register_themes(self, app):
         async with app.run_test(size=(120, 35)) as pilot:
@@ -291,23 +412,24 @@ class TestThemes:
 
 class TestFileRefs:
     async def test_expand_file_refs_existing(self, app):
-        """Test that @file refs expand for existing files."""
+        """An existing text file resolves to its path, not its contents — the
+        agent decides how to read it."""
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
             await pilot.pause()
+            import os
+
             from apps.cli.screens.chat import ChatScreen
 
             chat = app.screen
             assert isinstance(chat, ChatScreen)
-            # pyproject.toml should exist in the working dir
             result = chat._expand_file_refs("look at @pyproject.toml please")
-            # If pyproject.toml exists in cwd, it should be expanded
-            import os
-
             if os.path.isfile(os.path.join(app.working_dir, "pyproject.toml")):
-                assert '<file path="pyproject.toml">' in result
+                # Path is passed through (backticked); contents are NOT inlined.
+                assert "`pyproject.toml`" in result
+                assert "<file path=" not in result
+                assert "[project]" not in result  # no file body leaked in
             else:
-                # If not, it should be left as-is
                 assert "@pyproject.toml" in result
 
     async def test_expand_file_refs_nonexistent(self, app):
@@ -343,7 +465,7 @@ class TestMessageQueueIntegration:
 
         from apps.cli.messages import UserSubmitted
         from apps.cli.screens.chat import ChatScreen
-        from pydantic_deep.capabilities.message_queue import MessageQueue
+        from pydantic_deep.features.message_queue import MessageQueue
 
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()
@@ -386,7 +508,7 @@ class TestMessageQueueIntegration:
 
         from apps.cli.messages import UserSubmitted
         from apps.cli.screens.chat import ChatScreen
-        from pydantic_deep.capabilities.message_queue import MessageQueue
+        from pydantic_deep.features.message_queue import MessageQueue
 
         async with app.run_test(size=(120, 35)) as pilot:
             await pilot.pause()

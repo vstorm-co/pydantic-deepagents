@@ -9,7 +9,7 @@ import pytest
 from pydantic_ai_backends import StateBackend, ensure_async
 from pydantic_ai_backends.types import ExecuteResponse
 
-from pydantic_deep.toolsets.skills.backend import (
+from pydantic_deep.features.skills.backend import (
     BackendSkillResource,
     BackendSkillScript,
     BackendSkillScriptExecutor,
@@ -21,13 +21,13 @@ from pydantic_deep.toolsets.skills.backend import (
     create_backend_resource,
     create_backend_script,
 )
-from pydantic_deep.toolsets.skills.exceptions import (
+from pydantic_deep.features.skills.exceptions import (
     SkillResourceLoadError,
     SkillScriptExecutionError,
     SkillValidationError,
 )
-from pydantic_deep.toolsets.skills.toolset import SkillsToolset
-from pydantic_deep.toolsets.skills.types import SkillScript
+from pydantic_deep.features.skills.toolset import SkillsToolset
+from pydantic_deep.features.skills.types import SkillScript
 
 # Helper: create a mock SandboxProtocol (StateBackend + execute)
 
@@ -216,7 +216,7 @@ class TestBackendSkillScriptExecutor:
     """Tests for BackendSkillScriptExecutor."""
 
     def _make_script(self, name: str = "test.py", uri: str = "/skills/test/test.py") -> SkillScript:
-        from pydantic_deep.toolsets.skills.types import SkillScript
+        from pydantic_deep.features.skills.types import SkillScript
 
         return SkillScript(
             name=name,
@@ -734,7 +734,7 @@ class TestCoverageEdgeCases:
 
     async def test_yaml_without_pyyaml(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test YAML resource loading when pyyaml is not available."""
-        import pydantic_deep.toolsets.skills.backend as backend_mod
+        import pydantic_deep.features.skills.backend as backend_mod
 
         monkeypatch.setattr(backend_mod, "_HAS_YAML", False)
 
@@ -793,3 +793,31 @@ class TestCoverageEdgeCases:
 
         assert "dedup-test" in skills
         assert len(skills) == 1
+
+
+class TestBackendDiscoveryContainmentB2:
+    """B2: discovered resources/scripts that escape the skill dir are rejected."""
+
+    def test_resource_outside_skill_dir_skipped(self) -> None:
+        sync_backend = MagicMock()
+        # glob_info returns one in-dir file and one that escapes via `..`.
+        sync_backend.glob_info.return_value = [
+            {"name": "ok.md", "path": "/skills/s/ok.md"},
+            {"name": "escape.md", "path": "/skills/s/../../etc/escape.md"},
+        ]
+        async_backend = MagicMock()
+        with pytest.warns(UserWarning, match="resolves outside skill directory"):
+            resources = _discover_backend_resources(sync_backend, async_backend, "/skills/s")
+        uris = {r.uri for r in resources}
+        assert "/skills/s/ok.md" in uris
+        assert all("etc/escape.md" not in (u or "") for u in uris)
+
+    def test_script_outside_skill_dir_skipped(self) -> None:
+        backend = MagicMock()
+        backend.glob_info.side_effect = lambda pattern, base: (
+            [{"name": "run.py", "path": "/skills/s/../../evil.py"}] if pattern == "*.py" else []
+        )
+        executor = MagicMock()
+        with pytest.warns(UserWarning, match="resolves outside skill directory"):
+            scripts = _discover_backend_scripts(backend, "/skills/s", "s", executor)
+        assert scripts == []

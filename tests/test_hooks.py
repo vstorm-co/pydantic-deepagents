@@ -20,7 +20,7 @@ from pydantic_ai.usage import RunUsage
 from pydantic_ai_backends import ExecuteResponse, SandboxProtocol, StateBackend, ensure_async
 
 from pydantic_deep import DeepAgentDeps, create_deep_agent, default_security_hook
-from pydantic_deep.capabilities.hooks import (
+from pydantic_deep.features.hooks.capability import (
     DEFAULT_BLOCKED_COMMANDS,
     DEFAULT_BLOCKED_READ_PATHS,
     DEFAULT_BLOCKED_WRITE_PATHS,

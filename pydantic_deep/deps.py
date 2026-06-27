@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import logging
 import mimetypes
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from pydantic_deep.capabilities.message_queue import MessageQueue
-    from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
+    from collections.abc import Awaitable, Callable
+
+    from pydantic_ai_shields import CostTracking
+    from pydantic_ai_summarization import ContextManagerCapability
+
+    from pydantic_deep.features.checkpointing import CheckpointStore
+    from pydantic_deep.features.forking.coordinator import ForkCoordinator
+    from pydantic_deep.features.message_queue import MessageQueue
+    from pydantic_deep.features.monitoring import MonitorManager
+    from pydantic_deep.features.plan.toolset import PlanOption
+
+    #: Interactive-question callback used by the plan `ask_user` tool.
+    AskUserCallback = Callable[[str, list[PlanOption]], "str | Awaitable[str]"]
 
 import chardet
 from pydantic_ai.usage import UsageLimits
@@ -50,18 +62,17 @@ class DeepAgentDeps:
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
-    ask_user: Any = field(default=None, repr=False)  # Callback for interactive questions
-    context_middleware: Any = field(default=None, repr=False)  # ContextManagerCapability | None
+    ask_user: AskUserCallback | None = field(default=None, repr=False)
+    context_middleware: ContextManagerCapability | None = field(default=None, repr=False)
     share_todos: bool = False  # When True, subagents share parent's todo list
-    checkpoint_store: Any = field(default=None, repr=False)  # Per-session CheckpointStore
-    message_queue: MessageQueue | None = field(
-        default=None, repr=False
-    )  # Shared queue for mid-run message delivery
+    checkpoint_store: CheckpointStore | None = field(default=None, repr=False)
+    message_queue: MessageQueue | None = field(default=None, repr=False)
+    monitor_manager: MonitorManager | None = field(default=None, repr=False)
     fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
     _fork_depth: int = field(default=0, repr=False)
-    _branch_cost_tracking: Any = field(default=None, repr=False)
+    _branch_cost_tracking: CostTracking | None = field(default=None, repr=False)
     _branch_id: str | None = field(default=None, repr=False)
-    _parent_fork_coordinator: Any = field(default=None, repr=False)
+    _parent_fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         """Auto-wrap sync backends and wire StateBackend cache."""
@@ -216,9 +227,10 @@ class DeepAgentDeps:
                 path = await self.upload_file(name, content, upload_dir=upload_dir)
                 paths.append(path)
             except Exception:
-                # Skip failed uploads so one bad file doesn't abort the batch.
-                # This covers backend write errors (RuntimeError) as well as
-                # any failure during encoding detection or metadata inference.
+                # Skip failed uploads so one bad file doesn't abort the batch
+                # (backend write errors, encoding/metadata failures) — but log
+                # which file was dropped so it isn't silently lost (B9).
+                logging.getLogger(__name__).warning("Skipping upload of %r", name, exc_info=True)
                 continue
         return paths
 
@@ -262,6 +274,9 @@ class DeepAgentDeps:
         - `context_middleware`: a CLI-only handle used by `/compact` and
           `/context` over the *parent's* history; a subagent has its own
           history and never runs those commands.
+        - `monitor_manager`: monitors are a top-level concern; a subagent
+          starts with none rather than inheriting/duplicating the parent's
+          background watches.
         - `fork_coordinator`: allocated lazily per-run by the fork
           capability, so a forking subagent gets its own (mirrors how
           `clone_for_branch` resets it).
@@ -272,20 +287,25 @@ class DeepAgentDeps:
           `ForkCoordinator.fork` and only meaningful to an agent wired
           with the fork capability; inert on a separately-compiled subagent.
 
+        Every other field (backend, files, uploads, ask_user, share_todos,
+        checkpoint_store, message_queue) is shared with the parent via
+        `replace`, so new shared fields propagate automatically.
+
         Args:
             max_depth: Maximum nesting depth for subagent. If > 0, subagents
                 dict is copied to allow nested delegation.
         """
-        return DeepAgentDeps(
-            backend=self.backend,
-            files=self.files,  # Shared reference
-            todos=self.todos if self.share_todos else [],  # Shared or fresh
+        return replace(
+            self,
+            todos=self.todos if self.share_todos else [],
             subagents=self.subagents.copy() if max_depth > 0 else {},
-            uploads=self.uploads,  # Shared reference
-            ask_user=self.ask_user,  # Propagate to subagents
-            share_todos=self.share_todos,  # Propagate to subagents
-            checkpoint_store=self.checkpoint_store,  # Shared reference
-            message_queue=self.message_queue,  # Shared - subagents can steer parent
+            context_middleware=None,
+            monitor_manager=None,
+            fork_coordinator=None,
+            _fork_depth=0,
+            _branch_cost_tracking=None,
+            _branch_id=None,
+            _parent_fork_coordinator=None,
         )
 
 

@@ -152,7 +152,7 @@ History processors are ordered: eviction → patch → user-provided
 
 ```pydantic_deep/agent.py#L775-783
 if patch_tool_calls:
-    from pydantic_deep.processors.patch import patch_tool_calls_processor
+    from pydantic_deep.features.patch import patch_tool_calls_processor
     all_processors.insert(0, patch_tool_calls_processor)
 
 if eviction_token_limit is not None:

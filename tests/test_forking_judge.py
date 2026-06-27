@@ -30,19 +30,19 @@ from pydantic_deep import (
     MergeStrategy,
     compute_confidence,
 )
-from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
-from pydantic_deep.toolsets.forking.coordinator import (
+from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
+from pydantic_deep.features.forking.coordinator import (
     _detect_vote_models,
     _last_assistant_text,
 )
-from pydantic_deep.toolsets.forking.judge import (
+from pydantic_deep.features.forking.judge import (
     _MAX_JUDGE_PROMPT_CHARS,
     _build_judge_prompt,
     _majority_pick,
     count_retry_parts,
     count_stuck_loop_hits,
 )
-from pydantic_deep.types import (
+from pydantic_deep.features.forking.types import (
     BranchChange,
     BranchDiffReport,
     BranchOutcome,
@@ -56,7 +56,7 @@ def test_judge_verdict_confidence_must_be_in_unit_interval() -> None:
     """JudgeVerdict.confidence is bounded to [0, 1] - out-of-range is rejected."""
     import pydantic
 
-    from pydantic_deep.types import JudgeVerdict
+    from pydantic_deep.features.forking.types import JudgeVerdict
 
     # Valid endpoints are accepted.
     assert JudgeVerdict(winner_branch_id="a", confidence=0.0, reasoning="r").confidence == 0.0
@@ -178,7 +178,7 @@ async def test_run_judges_vote_sums_per_judge_usages():
 
     from pydantic_ai.usage import RunUsage
 
-    from pydantic_deep.types import JudgeVerdict as _JV
+    from pydantic_deep.features.forking.types import JudgeVerdict as _JV
 
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
@@ -193,7 +193,7 @@ async def test_run_judges_vote_sums_per_judge_usages():
                 RunUsage(input_tokens=10, output_tokens=5, requests=1),
             )
 
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _StubJudge):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", _StubJudge):
         verdict, usage = await coord._run_judges(
             MergeStrategy(kind="vote", judge_models=["m1", "m2", "m3"]),
             "goal",
@@ -213,7 +213,7 @@ async def test_run_judges_vote_all_none_usage_is_none():
     """A panel where every judge reports no usage yields None (not [None, ...])."""
     from unittest.mock import patch
 
-    from pydantic_deep.types import JudgeVerdict as _JV
+    from pydantic_deep.features.forking.types import JudgeVerdict as _JV
 
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
@@ -225,7 +225,7 @@ async def test_run_judges_vote_all_none_usage_is_none():
         async def evaluate(self, _goal: Any, _diff: Any, _outcomes: Any) -> Any:
             return (_JV(winner_branch_id=a_id, confidence=0.8, reasoning="ok"), None)
 
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _StubJudge):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", _StubJudge):
         _verdict, usage = await coord._run_judges(
             MergeStrategy(kind="vote", judge_models=["m1", "m2"]),
             "goal",
@@ -366,7 +366,7 @@ async def test_auto_mode_commits_without_user_input():
 
     fake_verdict = _verdict(winner=winner_id, confidence=0.5)
     fake_cls = _make_fake_judge_class(fake_verdict)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(MergeStrategy(kind="auto"))
 
     assert outcome.committed is True
@@ -391,7 +391,7 @@ async def test_auto_with_fallback_above_threshold_defers_commit():
     # threshold so the above-threshold branch fires.
     strategy = MergeStrategy(kind="auto_with_fallback", confidence_threshold=0.10)
     fake_cls = _make_fake_judge_class(fake_verdict)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(strategy)
 
     assert outcome.committed is False
@@ -414,7 +414,7 @@ async def test_auto_with_fallback_below_threshold_returns_fallthrough():
     fake_verdict = _verdict(winner=winner_id, confidence=0.5)
     strategy = MergeStrategy(kind="auto_with_fallback", confidence_threshold=0.99)
     fake_cls = _make_fake_judge_class(fake_verdict)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(strategy)
 
     assert outcome.committed is False
@@ -448,7 +448,7 @@ async def test_vote_mode_majority_wins():
         return v
 
     fake_cls = _make_fake_judge_class(_by_model)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(MergeStrategy(kind="vote"))
 
     assert outcome.committed is True
@@ -533,7 +533,7 @@ async def test_override_path_picker_can_select_different_branch():
     fake_verdict = _verdict(winner=a_id, confidence=0.5)
     strategy = MergeStrategy(kind="auto_with_fallback", confidence_threshold=0.10)
     fake_cls = _make_fake_judge_class(fake_verdict)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(strategy)
 
     assert outcome.committed is False
@@ -556,7 +556,7 @@ async def test_resolve_manual_short_circuits_no_judge():
         def __init__(self, _model: Any) -> None:
             raise AssertionError("judge must not be constructed for manual")
 
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _ExplodingJudge):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", _ExplodingJudge):
         outcome = await coord.resolve(MergeStrategy(kind="manual"))
     assert outcome.committed is False
     assert outcome.auto_eligible is False
@@ -773,7 +773,7 @@ async def test_vote_mode_uses_default_model_triple_when_none():
         return fake_verdict
 
     fake_cls = _make_fake_judge_class(_factory)
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(MergeStrategy(kind="vote"))
 
     assert outcome.committed is True
@@ -831,7 +831,7 @@ async def test_resolve_returns_cached_outcome_without_reinvoking_judge():
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
 
-    from pydantic_deep.toolsets.forking.coordinator import ResolveOutcome
+    from pydantic_deep.features.forking.coordinator import ResolveOutcome
 
     cached = ResolveOutcome(
         committed=False,
@@ -844,7 +844,7 @@ async def test_resolve_returns_cached_outcome_without_reinvoking_judge():
         merge_result=None,
         judge_usage=None,
     )
-    from pydantic_deep.toolsets.forking.coordinator import _strategy_cache_key
+    from pydantic_deep.features.forking.coordinator import _strategy_cache_key
 
     coord._cached_outcome = cached
     coord._cached_outcome_key = _strategy_cache_key(MergeStrategy(kind="auto_with_fallback"))
@@ -853,7 +853,7 @@ async def test_resolve_returns_cached_outcome_without_reinvoking_judge():
         def __init__(self, _model: Any) -> None:
             raise AssertionError("judge must NOT be invoked on a cache hit")
 
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", _ExplodingJudge):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", _ExplodingJudge):
         outcome = await coord.resolve(MergeStrategy(kind="auto_with_fallback"))
 
     assert outcome is cached
@@ -865,7 +865,7 @@ async def test_resolve_cache_misses_on_different_threshold():
     coord, _deps = await _coordinator_with_two_branches()
     a_id = _resolve_winner_id(coord, "a")
 
-    from pydantic_deep.toolsets.forking.coordinator import ResolveOutcome, _strategy_cache_key
+    from pydantic_deep.features.forking.coordinator import ResolveOutcome, _strategy_cache_key
 
     cached = ResolveOutcome(
         committed=False,
@@ -982,8 +982,8 @@ async def test_messages_for_falls_back_to_partial_when_task_cancelled():
     the fork coordinator's test path can't easily produce this state because
     `TestModel` finishes synchronously.
     """
-    from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.coordinator import BranchRuntime
+    from pydantic_deep.features.forking.types import BranchStatus
 
     # Task that will never complete; cancel it.
     async def _hang() -> Any:
@@ -1022,8 +1022,8 @@ async def test_messages_for_falls_back_to_partial_when_task_cancelled():
 
 async def test_messages_for_falls_back_when_result_lacks_all_messages():
     """Task completed but result object has no `all_messages` callable."""
-    from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.coordinator import BranchRuntime
+    from pydantic_deep.features.forking.types import BranchStatus
 
     async def _return_object() -> Any:
         return object()  # no `all_messages` method
@@ -1069,8 +1069,8 @@ async def test_build_branch_outcomes_skips_non_request_messages_in_goal_scan():
     :class:`ModelResponse` - the goal extractor must walk past it to find the
     later :class:`ModelRequest` carrying the user prompt.
     """
-    from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.coordinator import BranchRuntime
+    from pydantic_deep.features.forking.types import BranchStatus
 
     deps = DeepAgentDeps(backend=StateBackend())
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
@@ -1117,8 +1117,8 @@ async def test_build_branch_outcomes_skips_non_request_messages_in_goal_scan():
 
 async def test_build_branch_outcomes_with_synthetic_runtimes():
     """Compact construction exercising each missing goal-extraction branch."""
-    from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.coordinator import BranchRuntime
+    from pydantic_deep.features.forking.types import BranchStatus
 
     deps = DeepAgentDeps(backend=StateBackend())
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
@@ -1181,8 +1181,8 @@ async def test_messages_for_logs_and_falls_back_when_task_result_raises(
     """A task that completed with an exception → `_messages_for` logs + falls back."""
     import logging
 
-    from pydantic_deep.toolsets.forking.coordinator import BranchRuntime
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.coordinator import BranchRuntime
+    from pydantic_deep.features.forking.types import BranchStatus
 
     async def _explode() -> Any:
         raise RuntimeError("branch blew up after the fact")
@@ -1208,7 +1208,7 @@ async def test_messages_for_logs_and_falls_back_when_task_result_raises(
         ),
         partial_history=sentinel,
     )
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.coordinator"):
+    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.coordinator"):
         result = ForkCoordinator._messages_for(rt)
     assert result == sentinel
     assert any("falling back to partial_history" in r.getMessage() for r in caplog.records)
@@ -1221,7 +1221,7 @@ async def test_vote_mode_empty_judge_models_list_raises():
     fake_verdict = _verdict(winner=a_id, confidence=0.9)
     fake_cls = _make_fake_judge_class(fake_verdict)
     with (
-        patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls),
+        patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls),
         pytest.raises(ValueError, match="requires at least one judge model"),
     ):
         await coord.resolve(MergeStrategy(kind="vote", judge_models=[]))
@@ -1240,7 +1240,7 @@ async def test_vote_mode_uses_user_supplied_judge_models():
 
     fake_cls = _make_fake_judge_class(_factory)
     custom = ["anthropic:claude-haiku-4-5-20251001", "anthropic:claude-haiku-4-5-20251001"]
-    with patch("pydantic_deep.toolsets.forking.coordinator.JudgeAgent", fake_cls):
+    with patch("pydantic_deep.features.forking.coordinator.JudgeAgent", fake_cls):
         outcome = await coord.resolve(MergeStrategy(kind="vote", judge_models=custom))
     assert outcome.committed is True
     assert call_models == custom
@@ -1576,7 +1576,7 @@ async def test_run_tests_for_branch_returns_none_on_spawn_failure(
 
     with (
         patch("asyncio.create_subprocess_exec", _raise_oserror),
-        caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.coordinator"),
+        caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.coordinator"),
     ):
         ratio = await coord._run_tests_for_branch(coord.branches[bid])
     assert ratio is None
@@ -1603,7 +1603,7 @@ async def test_run_tests_for_branch_swallows_snapshot_errors(
 
     with (
         patch.object(rt.overlay, "snapshot", _bad_snapshot),
-        caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.coordinator"),
+        caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.coordinator"),
     ):
         ratio = await coord._run_tests_for_branch(rt)
     assert ratio is None
@@ -1661,7 +1661,7 @@ async def test_run_tests_for_branch_escalates_to_kill_when_terminate_ignored(
     with (
         patch("asyncio.create_subprocess_exec", _stub_spawn),
         patch("asyncio.wait_for", _stub_wait_for),
-        caplog.at_level(logging.WARNING, logger="pydantic_deep.toolsets.forking.coordinator"),
+        caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.coordinator"),
     ):
         ratio = await coord._run_tests_for_branch(rt)
 
@@ -1673,7 +1673,7 @@ async def test_run_tests_for_branch_escalates_to_kill_when_terminate_ignored(
 
 async def test_live_fork_capability_threads_test_command_to_coordinator():
     """`LiveForkCapability(test_command=..., test_timeout_s=...)` lands on the coordinator."""
-    from pydantic_deep.capabilities.forking import LiveForkCapability
+    from pydantic_deep.features.forking.capability import LiveForkCapability
 
     cap = LiveForkCapability(test_command="pytest -q", test_timeout_s=42.0)
     assert cap.test_command == "pytest -q"
@@ -1706,7 +1706,7 @@ async def test_live_fork_capability_end_to_end_produces_test_pass_ratio(tmp_path
     """
     from pydantic_ai_backends import LocalBackend
 
-    from pydantic_deep.capabilities.forking import LiveForkCapability
+    from pydantic_deep.features.forking.capability import LiveForkCapability
 
     backend = LocalBackend(root_dir=str(tmp_path))
     backend.write("seed.txt", "x\n")

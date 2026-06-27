@@ -20,13 +20,30 @@ class UserMessage(Widget):
     }
     """
 
-    def __init__(self, text: str, timestamp: datetime | None = None) -> None:
+    def __init__(
+        self,
+        text: str,
+        timestamp: datetime | None = None,
+        attachments: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self._text = text
         self._timestamp = timestamp or datetime.now()
+        self._attachments = attachments or []
+
+    @property
+    def text(self) -> str:
+        """The message text (public accessor for copy commands)."""
+        return self._text
 
     def compose(self) -> ComposeResult:
         time_str = self._timestamp.strftime("%H:%M")
         escaped = self._text.replace("[", r"\[")
-        yield Static(f"[bold cyan]You[/bold cyan]  [dim]{time_str}[/dim]")
-        yield Static(f"  {escaped}")
+        yield Static(f"[$accent b]You[/]  [$text-muted]{time_str}[/]")
+        if escaped:
+            yield Static(f"  {escaped}")
+        for label in self._attachments:
+            # A dim tree-branch sub-line per attachment (brackets escaped so a
+            # label like [Image #1] isn't parsed as markup).
+            chip = label.replace("[", r"\[")
+            yield Static(f"  [$text-muted]└ {chip}[/]")

@@ -1,5 +1,12 @@
 # Installation
 
+There are two ways to use pydantic-deep — pick whichever fits:
+
+- **Just want the terminal assistant?** Use the [one-command CLI install](#cli-one-command-macos-linux) — no Python setup needed.
+- **Building your own agent?** Install [the Python package](#framework-python-package) and import `create_deep_agent`.
+
+Both are below.
+
 ## CLI — One Command (macOS & Linux)
 
 The fastest way to get the terminal assistant — no Python knowledge required:

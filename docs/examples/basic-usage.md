@@ -1,6 +1,9 @@
 # Basic Usage
 
-This example demonstrates the fundamental features of pydantic-deep.
+If you read one example, read this one. It puts the fundamentals together in a
+single script — creating an agent, giving it an in-memory backend, and watching
+it plan with todos and write files. Everything else in this gallery is a
+variation on what you see here.
 
 ## Source Code
 

@@ -12,6 +12,7 @@ server work immediately without re-configuring it.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Any
@@ -19,6 +20,8 @@ from typing import Any
 from pydantic_deep.mcp.config import MCPServerConfig, MCPTransport
 
 __all__ = ["parse_mcp_servers", "expand_env_vars"]
+
+logger = logging.getLogger(__name__)
 
 # ${VAR} and ${VAR:-default}, matching Claude Code's expansion syntax.
 _VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
@@ -43,8 +46,14 @@ def expand_env_vars(value: str) -> str:
     return _VAR_RE.sub(_repl, value)
 
 
-def _expand(value: str) -> str:
-    return expand_env_vars(value) if isinstance(value, str) else value
+def _expand(value: Any) -> str:
+    """Expand env vars in a string; coerce any non-string to `str`.
+
+    JSON configs occasionally carry numeric args (``"args": [8080]``); coercing
+    here keeps the `list[str]`/`dict[str, str]` contracts intact instead of
+    letting an `int` reach the transport and `TypeError` at connect (B13).
+    """
+    return expand_env_vars(value) if isinstance(value, str) else str(value)
 
 
 def parse_mcp_servers(
@@ -60,6 +69,7 @@ def parse_mcp_servers(
     out: list[MCPServerConfig] = []
     for name, entry in servers.items():
         if not isinstance(entry, dict):
+            logger.warning("Skipping MCP server %r: entry is not an object", name)
             continue
         transport_type = entry.get("type")
         try:
@@ -82,8 +92,15 @@ def parse_mcp_servers(
                     enabled=enabled,
                 )
             else:
-                continue  # WebSocket or unrecognised shape — not supported
+                logger.warning(
+                    "Skipping MCP server %r: unsupported shape (WebSocket or no command/url)",
+                    name,
+                )
+                continue
         except Exception:
-            continue  # skip a malformed entry rather than abort the whole import
+            # Skip a malformed entry rather than abort the whole import, but say
+            # which one and why so it isn't silently lost (B13).
+            logger.warning("Skipping malformed MCP server %r", name, exc_info=True)
+            continue
         out.append(config)
     return out

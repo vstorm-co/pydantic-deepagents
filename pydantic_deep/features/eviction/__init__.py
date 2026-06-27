@@ -4,6 +4,7 @@ A lifecycle-only slice: `capability.py` (EvictionCapability + the preview/templa
 helpers and defaults). No model-callable tools.
 """
 
+from pydantic_deep._text import create_content_preview
 from pydantic_deep.features.eviction.capability import (
     BINARY_PRUNED_TEMPLATE,
     DEFAULT_EVICTION_PATH,
@@ -20,4 +21,5 @@ __all__ = [
     "DEFAULT_TOKEN_LIMIT",
     "EVICTION_MESSAGE_TEMPLATE",
     "EvictionCapability",
+    "create_content_preview",
 ]

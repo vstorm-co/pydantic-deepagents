@@ -180,12 +180,12 @@ class TestRetry:
             app.last_user_prompt = "do the thing"
             app.message_history = ["a", "b", "c", "d"]
             app.agent_task = None
-            app.screen._run_agent = MagicMock()  # type: ignore[attr-defined]
+            app.screen._run_agent = MagicMock()
             app.notify = MagicMock()
             await dispatch_command(app, "/retry")
             # Previous turn dropped, last prompt re-dispatched.
             assert app.message_history == ["a", "b"]
-            app.screen._run_agent.assert_called_once_with("do the thing")  # type: ignore[attr-defined]
+            app.screen._run_agent.assert_called_once_with("do the thing")
 
     async def test_blocked_while_running(self, app):
         async with app.run_test(size=(120, 40)) as pilot:
@@ -194,11 +194,11 @@ class TestRetry:
             running = MagicMock()
             running.done.return_value = False
             app.agent_task = running
-            app.screen._run_agent = MagicMock()  # type: ignore[attr-defined]
+            app.screen._run_agent = MagicMock()
             app.notify = MagicMock()
             await dispatch_command(app, "/retry")
             assert any("still running" in t.lower() for t in _notify_texts(app))
-            app.screen._run_agent.assert_not_called()  # type: ignore[attr-defined]
+            app.screen._run_agent.assert_not_called()
 
 
 class TestExport:

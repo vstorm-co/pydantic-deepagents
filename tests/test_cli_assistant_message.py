@@ -26,10 +26,15 @@ def test_linkify_wraps_bare_urls_only() -> None:
 
 
 def test_chat_screen_binds_copy_selection() -> None:
+    from textual.binding import Binding
+
     from apps.cli.screens.chat import ChatScreen
 
-    actions = {b.action for b in ChatScreen.BINDINGS}
-    keys = {b.key for b in ChatScreen.BINDINGS}
+    # BINDINGS items are typed as Binding | tuple; narrow to Binding before
+    # reading .action/.key (they're all Binding(...) at runtime anyway).
+    bindings = [b for b in ChatScreen.BINDINGS if isinstance(b, Binding)]
+    actions = {b.action for b in bindings}
+    keys = {b.key for b in bindings}
     assert "copy_text" in actions
     assert "ctrl+shift+c" in keys
 

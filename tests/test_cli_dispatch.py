@@ -228,3 +228,18 @@ class TestExport:
             assert "general kenobi" in content
             assert "## You" in content and "## Assistant" in content
             assert any("Exported" in t for t in _notify_texts(app))
+
+    async def test_default_path_in_cwd(self, app, tmp_path, monkeypatch):
+        from apps.cli.widgets.message_list import MessageList
+
+        # Run with cwd pointed at tmp so the default conversation-*.md lands there.
+        monkeypatch.chdir(tmp_path)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.screen.query_one(MessageList).append_user_message("hi")
+            await pilot.pause()
+            app.notify = MagicMock()
+            await dispatch_command(app, "/export")
+            exports = list(tmp_path.glob("conversation-*.md"))
+            assert len(exports) == 1
+            assert "hi" in exports[0].read_text(encoding="utf-8")

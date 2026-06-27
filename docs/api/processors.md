@@ -232,7 +232,7 @@ Function type for custom token counting.
 Large tool outputs are evicted to the backend *before* they enter history by
 [`EvictionCapability`][pydantic_deep.features.eviction.EvictionCapability]
 (documented under [Capabilities](capabilities.md)), enabled by default via
-`create_deep_agent(eviction_token_limit=...)`. See [Eviction](../advanced/eviction.md).
+`create_deep_agent(eviction_token_limit=...)`. See [Eviction](../advanced/context-management.md).
 
 ::: pydantic_deep.features.eviction.create_content_preview
     options:
@@ -280,7 +280,7 @@ Most users do not construct it directly — set `context_manager=True` (default)
 and configure it via the `context_manager_max_tokens`, `on_context_update`,
 `on_before_compress`, and `on_after_compress` parameters of `create_deep_agent`.
 
-See [History Processors](../advanced/processors.md) for details.
+See [History Processors](../advanced/context-management.md) for details.
 
 ---
 

@@ -144,7 +144,7 @@ read_skill_resource(skill_name="code-review", resource_name="template.md")
 
 ### CheckpointToolset
 
-Manual checkpoint controls for conversation state. See [Checkpointing](../advanced/checkpointing.md).
+Manual checkpoint controls for conversation state. See [Checkpointing](../learn/sessions.md).
 
 | Tool | Description |
 |------|-------------|
@@ -174,7 +174,7 @@ agent = create_deep_agent(include_teams=True)
 
 ### MemoryToolset
 
-Persistent agent memory across sessions. See [Memory](../advanced/memory.md).
+Persistent agent memory across sessions. See [Memory](../learn/memory.md).
 
 | Tool | Description |
 |------|-------------|
@@ -201,7 +201,7 @@ agent = create_deep_agent(include_plan=True)  # Default: True
 
 ### ContextToolset
 
-Injects project context files (AGENTS.md, SOUL.md) into the system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions.
+Injects project context files (AGENTS.md, SOUL.md) into the system prompt. See [Context Files](../learn/memory.md). Has no tools — only provides instructions.
 
 ```python
 agent = create_deep_agent(context_discovery=True)  # Auto-discover AGENTS.md, SOUL.md

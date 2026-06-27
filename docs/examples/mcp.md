@@ -80,6 +80,6 @@ The `MCP` capability handles:
 
 ## Learn More
 
-- [MCP Guide](../advanced/mcp.md) -- Full MCP documentation
+- [MCP Guide](../learn/web-and-mcp.md) -- Full MCP documentation
 - [pydantic-ai MCP docs](https://ai.pydantic.dev/mcp/) -- Upstream reference
 - [modelcontextprotocol.io](https://modelcontextprotocol.io/) -- MCP specification

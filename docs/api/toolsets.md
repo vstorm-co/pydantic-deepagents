@@ -372,7 +372,7 @@ class SkillsDirectory:
 
 ## CheckpointToolset
 
-Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
+Manual checkpoint controls. See [Checkpointing](../learn/sessions.md).
 
 ### Tools
 
@@ -448,7 +448,7 @@ Or via `create_deep_agent(include_teams=True)`.
 
 ## MemoryToolset
 
-Persistent agent memory. See [Memory](../advanced/memory.md).
+Persistent agent memory. See [Memory](../learn/memory.md).
 
 ### Tools
 
@@ -528,7 +528,7 @@ Or via `create_deep_agent(include_plan=True)` (default).
 
 ## ContextToolset
 
-Injects project context files into system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions via `get_instructions()`.
+Injects project context files into system prompt. See [Context Files](../learn/memory.md). Has no tools — only provides instructions via `get_instructions()`.
 
 ### Constructor
 

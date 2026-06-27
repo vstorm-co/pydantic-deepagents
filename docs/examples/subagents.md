@@ -264,5 +264,5 @@ SubAgentConfig(
 ## Next Steps
 
 - [Skills Example](skills.md) - Another way to extend capabilities
-- [Concepts: Subagents](../advanced/subagents.md) - Deep dive
+- [Concepts: Subagents](../learn/subagents.md) - Deep dive
 - [Custom Tools](custom-tools.md) - Add your own tools

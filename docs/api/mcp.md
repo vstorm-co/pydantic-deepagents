@@ -3,7 +3,7 @@
 Model Context Protocol (MCP) client support. Build MCP server toolsets and attach
 them to an agent via the `mcp_servers` parameter of
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[MCP servers](../advanced/mcp.md) for the conceptual overview.
+[MCP servers](../learn/web-and-mcp.md) for the conceptual overview.
 
 ## build_mcp_server
 

@@ -3,7 +3,7 @@
 Conversation checkpointing lets an agent snapshot its state and rewind to an
 earlier turn. Enable it via `include_checkpoints=True` on
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[Checkpointing](../advanced/checkpointing.md) for the conceptual overview.
+[Checkpointing](../learn/sessions.md) for the conceptual overview.
 
 ## Checkpoint
 

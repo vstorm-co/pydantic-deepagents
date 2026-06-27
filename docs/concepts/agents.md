@@ -144,7 +144,7 @@ agent = create_deep_agent(
 agent = create_deep_agent(context_discovery=True)
 ```
 
-See [Context Files](../advanced/context-files.md) for more details.
+See [Context Files](../learn/memory.md) for more details.
 
 ### Persistent Memory
 
@@ -157,7 +157,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [Memory](../advanced/memory.md) for more details.
+See [Memory](../learn/memory.md) for more details.
 
 ### Checkpointing
 
@@ -174,7 +174,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [Checkpointing](../advanced/checkpointing.md) for more details.
+See [Checkpointing](../learn/sessions.md) for more details.
 
 ### Agent Teams
 
@@ -232,7 +232,7 @@ agent = create_deep_agent(
 ```
 
 To gate sensitive tools behind approval, use `interrupt_on` (see
-[Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/middleware.md)
+[Human-in-the-Loop](#human-in-the-loop)). See [Capabilities](../advanced/capabilities.md)
 for more details.
 
 ### Eviction
@@ -244,7 +244,7 @@ Automatically save large tool outputs to files (handled by
 agent = create_deep_agent(eviction_token_limit=20000)
 ```
 
-See [Eviction](../advanced/eviction.md) for more details.
+See [Eviction](../advanced/context-management.md) for more details.
 
 ### Context Manager
 
@@ -258,7 +258,7 @@ agent = create_deep_agent(
 )
 ```
 
-See [History Processors](../advanced/processors.md) for more details.
+See [History Processors](../advanced/context-management.md) for more details.
 
 ### Human-in-the-Loop
 
@@ -292,7 +292,7 @@ result = await agent.run("Analyze this task: implement auth", deps=deps)
 print(result.output.priority)  # Type-safe access
 ```
 
-See [Structured Output](../advanced/structured-output.md) for more details.
+See [Structured Output](../learn/structured-output.md) for more details.
 
 ### Context Management
 
@@ -309,7 +309,7 @@ processor = create_summarization_processor(
 agent = create_deep_agent(history_processors=[processor])
 ```
 
-See [History Processors](../advanced/processors.md) for more details.
+See [History Processors](../advanced/context-management.md) for more details.
 
 ### Advanced Agent Configuration
 

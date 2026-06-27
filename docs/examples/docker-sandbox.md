@@ -345,5 +345,5 @@ The script successfully calculated and printed the first 10 Fibonacci numbers.
 ## Next Steps
 
 - [Concepts: Backends](../concepts/backends.md) - Deep dive
-- [Human-in-the-Loop](../advanced/human-in-the-loop.md) - Approval workflows
+- [Human-in-the-Loop](../learn/human-in-the-loop.md) - Approval workflows
 - [API Reference](../api/backends.md) - SandboxProtocol API

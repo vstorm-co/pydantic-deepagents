@@ -3,7 +3,7 @@
 Project context files (DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md) are auto-discovered
 and injected into the system prompt. Enable discovery via `context_discovery=True`
 on [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[Context Files](../advanced/context-files.md) for the conceptual overview.
+[Context Files](../learn/memory.md) for the conceptual overview.
 
 ## ContextFile
 

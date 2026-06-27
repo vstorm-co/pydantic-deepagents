@@ -3,7 +3,7 @@
 Live Run Forking lets an agent explore multiple solution branches in parallel and
 merge the best result. Enable it via `forking=True` on
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[Live Run Forking](../capabilities/live-fork.md) for the conceptual overview.
+[Live Run Forking](../advanced/forking.md) for the conceptual overview.
 
 ## LiveForkCapability
 

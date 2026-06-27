@@ -3,7 +3,7 @@
 Persistent agent memory gives an agent a long-lived `MEMORY.md` file it can read
 and update across runs. Enable it via `include_memory=True` (default) on
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[Memory](../advanced/memory.md) for the conceptual overview.
+[Memory](../learn/memory.md) for the conceptual overview.
 
 ## MemoryFile
 

@@ -4,7 +4,7 @@ Capabilities hook into the agent lifecycle via pydantic-ai's native
 [`AbstractCapability`](https://ai.pydantic.dev/) API. They are registered through
 the `capabilities` parameter of
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent], or enabled through
-dedicated feature flags. See [Capabilities](../advanced/middleware.md) for the
+dedicated feature flags. See [Capabilities](../advanced/capabilities.md) for the
 conceptual overview.
 
 ## SkillsCapability

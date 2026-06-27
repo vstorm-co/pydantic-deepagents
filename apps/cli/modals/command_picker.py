@@ -15,6 +15,7 @@ from apps.cli.modals._filter_input import FilterInput as _FilterInput
 
 # Built-in commands with descriptions
 COMMANDS: list[tuple[str, str]] = [
+    ("/bug", "Open the GitHub issues page"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compress context (LLM summarization)"),
     ("/context", "Show context window usage"),

@@ -33,6 +33,7 @@ _HELP_TEXT = """\
   [bold cyan]/retry[/bold cyan]       Re-run the last prompt (drops the previous turn)
   [bold cyan]/save[/bold cyan]        Show save status
   [bold cyan]/settings[/bold cyan]    Open settings (edit config.toml)
+  [bold cyan]/shells[/bold cyan]      List background shells (run_in_background)
   [bold cyan]/skills[/bold cyan]      List available skills
   [bold cyan]/todos[/bold cyan]       Toggle todo panel
   [bold cyan]/tokens[/bold cyan]      Show message count

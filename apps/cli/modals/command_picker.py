@@ -43,6 +43,7 @@ COMMANDS: list[tuple[str, str]] = [
     ("/save", "Save current session"),
     ("/screenshot", "Export the current screen as an SVG image"),
     ("/settings", "Change settings (toggle features, model, theme)"),
+    ("/shells", "List background shells (run_in_background processes)"),
     ("/skills", "List available skills"),
     ("/theme", "Switch color theme"),
     ("/todos", "Show todo list"),

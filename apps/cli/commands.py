@@ -390,6 +390,38 @@ async def _cmd_tokens(app: DeepApp, arg: str) -> None:
     )
 
 
+async def _cmd_shells(app: DeepApp, arg: str) -> None:
+    """List background shells started via run_in_background."""
+    deps = getattr(app, "deps", None)
+    backend = getattr(deps, "backend", None)
+    lister = getattr(backend, "list_background", None)
+    if not callable(lister):
+        app.notify("Background shells aren't supported by this backend", severity="warning")
+        return
+    try:
+        shells = list(lister())
+    except Exception:
+        app.notify("Could not read background shells", severity="error")
+        return
+    if not shells:
+        app.notify("No background shells")
+        return
+
+    running = sum(1 for s in shells if getattr(s, "running", False))
+    lines: list[str] = []
+    for s in shells[:8]:
+        if getattr(s, "running", False):
+            state = "running"
+        else:
+            state = f"exit {getattr(s, 'exit_code', '?')}"
+        cmd = " ".join(str(getattr(s, "command", "")).split())[:40]
+        lines.append(f"{getattr(s, 'shell_id', '?')} [{state}] {cmd}")
+    if len(shells) > 8:
+        lines.append(f"… +{len(shells) - 8} more")
+    summary = f"{running} running / {len(shells)} total\n" + "\n".join(lines)
+    app.notify(summary, timeout=8)
+
+
 async def _cmd_todos(app: DeepApp, arg: str) -> None:
     # The TODO list is now pinned above the input whenever tasks exist, so this
     # just reports the current state.
@@ -727,6 +759,7 @@ _COMMANDS: dict[str, CommandHandler] = {
     "/cost": _cmd_cost,
     "/tokens": _cmd_tokens,
     "/todos": _cmd_todos,
+    "/shells": _cmd_shells,
     "/paste": _cmd_paste,
     "/mcp": _cmd_mcp,
     "/skills": _cmd_skills,

@@ -106,6 +106,40 @@ class TestAliases:
             app.exit.assert_called_once()
 
 
+class TestShells:
+    async def test_no_shells_notifies(self, app, tmp_path):
+        from pydantic_ai_backends import LocalBackend
+
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.deps = type("D", (), {"backend": LocalBackend(root_dir=str(tmp_path))})()
+            app.notify = MagicMock()
+            await dispatch_command(app, "/shells")
+            assert any("no background shells" in t.lower() for t in _notify_texts(app))
+
+    async def test_unsupported_backend_warns(self, app):
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.deps = type("D", (), {"backend": object()})()
+            app.notify = MagicMock()
+            await dispatch_command(app, "/shells")
+            assert any("aren't supported" in t.lower() for t in _notify_texts(app))
+
+    async def test_lists_running_shells(self, app, tmp_path):
+        from pydantic_ai_backends import LocalBackend
+
+        backend = LocalBackend(root_dir=str(tmp_path))
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.deps = type("D", (), {"backend": backend})()
+            backend.execute_background("sleep 30")
+            app.notify = MagicMock()
+            await dispatch_command(app, "/shells")
+            texts = _notify_texts(app)
+            assert any("1 running" in t and "sleep 30" in t for t in texts)
+            backend.kill_all_background()
+
+
 class TestUndoSyncsWidgets:
     async def test_undo_removes_visible_turn(self, app):
         from apps.cli.widgets.assistant_message import AssistantMessage

@@ -62,6 +62,12 @@ uv run python examples/<example_name>.py
 </div>
 
 <div class="feature-card" markdown>
+<h3 markdown="span">:material-magnify: Xquik Search Tool</h3>
+<p>Connect a custom tool to Xquik's public X post search API.</p>
+<a href="xquik-search/">View Example →</a>
+</div>
+
+<div class="feature-card" markdown>
 <h3 markdown="span">:material-upload: File Uploads</h3>
 <p>Upload files for agent processing with run_with_files() or deps.upload_file().</p>
 <a href="file-uploads/">View Example →</a>

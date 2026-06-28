@@ -303,6 +303,7 @@ nav:
     - Agent Features:
       - examples/subagents.md
       - examples/custom-tools.md
+      - examples/xquik-search.md
       - examples/skills.md
       - examples/file-uploads.md
       - examples/thinking.md

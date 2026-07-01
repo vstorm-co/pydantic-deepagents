@@ -115,10 +115,11 @@ class TestExecuteHeadless:
         mock_result.output = "Task completed successfully"
         mock_usage = MagicMock()
         mock_usage.total_tokens = 1000
-        mock_usage.request_tokens = 800
-        mock_usage.response_tokens = 200
+        mock_usage.input_tokens = 800
+        mock_usage.output_tokens = 200
         mock_usage.requests = 3
-        mock_result.usage.return_value = mock_usage
+        # pydantic-ai 2.0: `result.usage` is a property, not a method.
+        mock_result.usage = mock_usage
         agent.run = AsyncMock(return_value=mock_result)
         return agent
 
@@ -299,8 +300,8 @@ class TestBuildJsonOutput:
     def test_builds_output(self) -> None:
         usage = MagicMock()
         usage.total_tokens = 500
-        usage.request_tokens = 400
-        usage.response_tokens = 100
+        usage.input_tokens = 400
+        usage.output_tokens = 100
         usage.requests = 2
 
         result = _build_json_output("Done", usage)

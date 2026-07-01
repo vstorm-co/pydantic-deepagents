@@ -4,11 +4,11 @@ These wrap pydantic-deep's toolsets as pydantic-ai capabilities,
 enabling clean composition via `Agent(capabilities=[...])`.
 """
 
-from pydantic_deep.capabilities.browser import BrowserCapability
-from pydantic_deep.capabilities.context import ContextFilesCapability
-from pydantic_deep.capabilities.hooks import HooksCapability
-from pydantic_deep.capabilities.memory import MemoryCapability
-from pydantic_deep.capabilities.message_queue import (
+from pydantic_deep.features.browser import BrowserCapability
+from pydantic_deep.features.context import ContextFilesCapability
+from pydantic_deep.features.hooks import HooksCapability
+from pydantic_deep.features.memory import MemoryCapability
+from pydantic_deep.features.message_queue import (
     MessageQueue,
     MessageQueueCapability,
     QueuedMessage,
@@ -16,17 +16,15 @@ from pydantic_deep.capabilities.message_queue import (
     format_steering,
     run_with_queue,
 )
-from pydantic_deep.capabilities.periodic_reminder import (
+from pydantic_deep.features.periodic_reminder import (
     LLMReminderGenerator,
     PeriodicReminderCapability,
     PeriodicReminderConfig,
     ReminderGenerator,
     make_config_for_mode,
 )
-from pydantic_deep.capabilities.plan import PlanCapability
-from pydantic_deep.capabilities.skills import SkillsCapability
-from pydantic_deep.capabilities.stuck_loop import StuckLoopDetection, StuckLoopError
-from pydantic_deep.capabilities.teams import TeamCapability
+from pydantic_deep.features.skills import SkillsCapability
+from pydantic_deep.features.stuck_loop import StuckLoopDetection, StuckLoopError
 
 __all__ = [
     "BrowserCapability",
@@ -38,13 +36,11 @@ __all__ = [
     "MessageQueueCapability",
     "PeriodicReminderCapability",
     "PeriodicReminderConfig",
-    "PlanCapability",
     "QueuedMessage",
     "ReminderGenerator",
     "SkillsCapability",
     "StuckLoopDetection",
     "StuckLoopError",
-    "TeamCapability",
     "format_follow_up",
     "format_steering",
     "make_config_for_mode",

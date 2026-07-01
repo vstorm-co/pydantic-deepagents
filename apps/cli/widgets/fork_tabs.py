@@ -13,7 +13,7 @@ from textual.widgets import Static
 from apps.cli.widgets.fork_state import state_icon
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchCost, BranchStatus
+    from pydantic_deep.features.forking.types import BranchCost, BranchStatus
 
 OVERVIEW_TAB_ID = "__overview__"
 """Sentinel branch id returned by :class:`ForkTabsWidget.BranchTabSelected` for the `+` tab."""

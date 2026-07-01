@@ -824,7 +824,7 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
                     data = b64.b64decode(att["data"])
 
                     # Save to container first
-                    upload_path = session.deps.upload_file(name, data)
+                    upload_path = await session.deps.upload_file(name, data)
                     logger.info(f"Attachment saved: {name} ({len(data)} bytes) -> {upload_path}")
 
                     if media_type.startswith("image/"):
@@ -1349,7 +1349,7 @@ async def upload_file(
 
         logger.info(f"Uploading file: {filename} ({len(content)} bytes) to session {session_id}")
 
-        path = session.deps.upload_file(filename, content)
+        path = await session.deps.upload_file(filename, content)
         logger.info(f"File uploaded to: {path}")
 
         return JSONResponse(

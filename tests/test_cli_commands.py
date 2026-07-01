@@ -192,7 +192,7 @@ class TestThreadsDelete:
         threads_dir = tmp_path / "threads"
         threads_dir.mkdir()
 
-        from pydantic_deep.toolsets.checkpointing import Checkpoint, FileCheckpointStore
+        from pydantic_deep.features.checkpointing import Checkpoint, FileCheckpointStore
 
         # Create a session subdirectory with a checkpoint
         session_dir = threads_dir / "abc12345abcd"

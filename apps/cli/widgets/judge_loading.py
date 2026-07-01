@@ -27,8 +27,8 @@ from textual.widgets import Static
 from apps.cli.widgets.spinner import Spinner
 
 if TYPE_CHECKING:
-    from pydantic_deep.toolsets.forking.coordinator import ForkCoordinator
-    from pydantic_deep.types import MergeStrategy
+    from pydantic_deep.features.forking.coordinator import ForkCoordinator
+    from pydantic_deep.features.forking.types import MergeStrategy
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class JudgeLoadingScreen(ModalScreen["Any | Exception"]):
     success or with an :class:`Exception` on failure / user abort.
 
     When `passive=True` the screen does **not** call
-    :meth:`~pydantic_deep.toolsets.forking.coordinator.ForkCoordinator.resolve`
+    :meth:`~pydantic_deep.features.forking.coordinator.ForkCoordinator.resolve`
     itself — the judge is being run by the agent's `merge_or_select` tool
     inside the same asyncio event loop. The screen shows the spinner while
     the tool awaits the judge LLM and is dismissed externally by the

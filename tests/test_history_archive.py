@@ -20,7 +20,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from pydantic_deep.processors.history_archive import (
+from pydantic_deep.features.history_archive.toolset import (
     SEARCH_HISTORY_DESCRIPTION,
     _bm25_rank,
     _compute_idf,
@@ -766,3 +766,49 @@ class TestBm25Rank:
         result = await fn(ctx, "BackendProtocol")
         assert "[score:" in result
         assert "When NOT to use" in SEARCH_HISTORY_DESCRIPTION
+
+
+class TestLoadMessagesB6:
+    """B6: a corrupt archive is logged + treated as empty, not silently 'no history'."""
+
+    def test_missing_file_is_silent_empty(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level("WARNING"):
+            assert _load_messages(str(tmp_path / "nope.json")) == []
+        assert not caplog.records  # absence is normal, not warned
+
+    def test_corrupt_file_logs_and_returns_empty(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        p = tmp_path / "messages.json"
+        p.write_text("{not valid json at all")
+        with caplog.at_level("WARNING"):
+            assert _load_messages(str(p)) == []
+        assert any("failed to parse" in r.getMessage() for r in caplog.records)
+
+    def test_unreadable_path_logs_and_returns_empty(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # A directory where a file is expected: exists() is True but read_bytes raises.
+        d = tmp_path / "messages.json"
+        d.mkdir()
+        with caplog.at_level("WARNING"):
+            assert _load_messages(str(d)) == []
+        assert any("Could not read" in r.getMessage() for r in caplog.records)
+
+
+class TestSearchIndexesFullContentB14:
+    """B14: terms past the display cutoff are still findable (index on full text)."""
+
+    def test_term_past_500_char_cutoff_is_indexed(self) -> None:
+        long_content = "x " * 400 + "UNIQUEZEBRATERM tail"  # the term sits well past 500 chars
+        msg = ModelRequest(
+            parts=[ToolReturnPart(tool_name="grep", content=long_content, tool_call_id="c1")]
+        )
+        index_lines = _format_messages([msg], truncate=False)
+        display_lines = _format_messages([msg], truncate=True)
+
+        assert "UNIQUEZEBRATERM" in index_lines[0]  # full text indexed
+        assert "UNIQUEZEBRATERM" not in display_lines[0]  # truncated for display
+        assert _bm25_rank("UNIQUEZEBRATERM", index_lines)  # findable

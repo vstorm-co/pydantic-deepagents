@@ -16,9 +16,9 @@ _STATUS_GLYPHS = {
 }
 
 _STATUS_COLORS = {
-    "pending": "",
-    "in_progress": "bold",
-    "completed": "dim",
+    "pending": "$text-muted",
+    "in_progress": "$accent",
+    "completed": "$success",
 }
 
 
@@ -28,32 +28,39 @@ class TodosWidget(Widget):
     DEFAULT_CSS = """
     TodosWidget {
         height: auto;
-        padding: 1;
-        border: tall $surface-lighten-2;
+        padding: 0;
+    }
+    TodosWidget #todos-title {
+        color: $text-muted;
+        text-style: bold;
     }
     """
 
     todos: reactive[list[Any]] = reactive(list, always_update=True)
 
     def compose(self) -> ComposeResult:
-        yield Static("[bold]TODOs[/bold]", id="todos-title")
+        yield Static("TODOs", id="todos-title")
         yield Static("", id="todos-list")
 
     def watch_todos(self, todos: list[Any]) -> None:
-        content = self.query_one("#todos-list", Static)
+        # Collapse entirely when empty — this widget is pinned above the input,
+        # so an empty placeholder would just take a permanent row.
+        self.display = bool(todos)
         if not todos:
-            content.update("[dim]No tasks yet[/dim]")
             return
+        content = self.query_one("#todos-list", Static)
+        done = sum(1 for t in todos if getattr(t, "status", "") == "completed")
+        self.query_one("#todos-title", Static).update(f"TODOs  [$text-muted]{done}/{len(todos)}[/]")
 
         lines = []
         for todo in todos:
             status = getattr(todo, "status", "pending")
             text = getattr(todo, "content", str(todo))
             glyph = _STATUS_GLYPHS.get(status, "○")
-            style = _STATUS_COLORS.get(status, "")
-            if style:
-                lines.append(f"[{style}]  {glyph} {text}[/{style}]")
+            color = _STATUS_COLORS.get(status, "$text-muted")
+            if status == "completed":
+                lines.append(f"[$text-muted]{glyph} {text}[/]")
             else:
-                lines.append(f"  {glyph} {text}")
+                lines.append(f"[{color}]{glyph}[/] {text}")
 
         content.update("\n".join(lines))

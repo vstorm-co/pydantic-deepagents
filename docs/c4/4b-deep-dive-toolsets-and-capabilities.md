@@ -65,7 +65,7 @@ Toolsets are `FunctionToolset` or `AbstractToolset` instances registered on the 
 
 ### 4. SkillsToolset
 
-**Source:** `pydantic_deep/toolsets/skills/`
+**Source:** `pydantic_deep/features/skills/`
 
 **Tools:**
 - `list_skills` — List all discovered skills
@@ -167,7 +167,7 @@ class BackendSkillScriptExecutor:
 
 ### 5. PlanToolset
 
-**Source:** `pydantic_deep/toolsets/plan/`
+**Source:** `pydantic_deep/features/plan/`
 
 **Tools:**
 - `ask_user` — Ask questions with predefined options (2-4 required)
@@ -195,7 +195,7 @@ class BackendSkillScriptExecutor:
 
 ### 6. CheckpointToolset
 
-**Source:** `pydantic_deep/toolsets/checkpointing.py`
+**Source:** `pydantic_deep/features/checkpointing.py`
 
 **Tools:**
 - `save_checkpoint` — Save a named checkpoint of conversation state
@@ -266,7 +266,7 @@ This exception propagates out of `agent.run()` because pydantic-ai only catches 
 
 ### 7. ContextToolset
 
-**Source:** `pydantic_deep/toolsets/context.py`
+**Source:** `pydantic_deep/features/context/`
 
 **Tools:** None — instruction injection only
 
@@ -290,7 +290,7 @@ class ContextToolset(FunctionToolset[Any]):
 
 ### 8. MemoryToolset
 
-**Source:** `pydantic_deep/toolsets/memory.py`
+**Source:** `pydantic_deep/features/memory/`
 
 **Tools:**
 - `read_memory` — Read full MEMORY.md content
@@ -316,7 +316,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
 
 ### 9. TeamToolset
 
-**Source:** `pydantic_deep/toolsets/teams.py`
+**Source:** `pydantic_deep/features/teams.py`
 
 **Tools:**
 - `spawn_team` — Create and start an agent team
@@ -403,7 +403,7 @@ class XxxCapability(AbstractCapability[Any]):
 
 ### 1. ContextFilesCapability
 
-**Source:** `pydantic_deep/capabilities/context.py`
+**Source:** `pydantic_deep/features/context/capability.py`
 
 Wraps `ContextToolset` as a capability with automatic instruction injection.
 
@@ -417,7 +417,7 @@ Wraps `ContextToolset` as a capability with automatic instruction injection.
 
 ### 2. HooksCapability
 
-**Source:** `pydantic_deep/capabilities/hooks.py`
+**Source:** `pydantic_deep/features/hooks/capability.py`
 
 Claude Code-style lifecycle hooks with 8 events:
 
@@ -467,7 +467,7 @@ class HookResult:
 
 ### 3. MemoryCapability
 
-**Source:** `pydantic_deep/capabilities/memory.py`
+**Source:** `pydantic_deep/features/memory/capability.py`
 
 Wraps `AgentMemoryToolset` with both tools and instruction injection.
 
@@ -491,7 +491,7 @@ Wraps `create_plan_toolset()` providing `ask_user` and `save_plan` tools.
 
 ### 5. SkillsCapability
 
-**Source:** `pydantic_deep/capabilities/skills.py`
+**Source:** `pydantic_deep/features/skills/capability.py`
 
 Wraps `SkillsToolset` with skill discovery, loading, and instruction injection.
 
@@ -564,7 +564,7 @@ Raw History
 
 ### 1. `patch_tool_calls_processor` (sync)
 
-**Source:** `pydantic_deep/processors/patch.py`
+**Source:** `pydantic_deep/features/patch/capability.py`
 
 Fixes broken message history from interrupted conversations.
 
@@ -603,7 +603,7 @@ def _find_orphaned_results(messages) -> set[tuple[int, str]]:
 
 ### 2. `EvictionProcessor` (async)
 
-**Source:** `pydantic_deep/processors/eviction.py`
+**Source:** `pydantic_deep/features/eviction/capability.py`
 
 Saves large tool outputs to the backend and replaces them with a preview.
 
@@ -640,7 +640,7 @@ Preview (head/tail):
 
 ### 3. `create_history_search_toolset` (toolset)
 
-**Source:** `pydantic_deep/processors/history_archive.py`
+**Source:** `pydantic_deep/features/history_archive/toolset.py`
 
 Provides the `search_conversation_history` tool for finding details in compressed-away messages.
 

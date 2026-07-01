@@ -1,13 +1,13 @@
 <h1 align="center">Pydantic Deep Agents</h1>
 
 <p align="center">
-  <b>The deep agent that forks itself.</b><br>
-  Split one task into <b>N parallel branches</b>, let an AI judge merge the winner —<br>
-  in your terminal, or in <b>one function call</b>. 100% type-safe. Any model. Self-hosted.
+  <b>Open-source Claude Code — that you can also build on.</b><br>
+  A self-hosted <b>terminal AI assistant</b> <i>and</i> the <b>Python framework</b> behind it.<br>
+  Use it today, or ship your own agent in <b>one function call</b>. Any model. 100% type-safe. MIT.
 </p>
 
 <p align="center">
-  <img src="assets/cli_demo.gif" alt="Pydantic Deep Agents CLI demo" width="800">
+  <img src="assets/cli_demo_v2.gif" alt="Pydantic Deep Agents CLI demo" width="800">
 </p>
 
 <p align="center">
@@ -36,21 +36,40 @@
 
 ---
 
-Most agents give you **one shot** at a task. They pick an approach, commit to it, and if it's wrong you start over.
+**Pydantic Deep Agents is two things in one repo:**
 
-**Pydantic Deep Agents can fork mid-run.** One `agent.run()` splits into several branches that each try a different approach in parallel — isolated filesystems, separate budgets, independent reasoning. An AI judge (or you) picks the winner, and its history becomes the run's continuation. It's `git branch` for an agent's thinking.
+🖥️ **A terminal AI assistant** — a self-hosted, open-source alternative to Claude Code. Install it, point it at any model, and it plans, edits files, runs commands, searches the web, remembers across sessions, spawns sub-agents, and connects to MCP servers. Almost everything Claude Code does — on the model *you* choose.
 
-That's one feature. There are forty more — planning, multi-agent swarms, persistent memory, sandboxed execution, skills, MCP, checkpoints, cost tracking — all batteries-included, all behind a single function call, all **100% type-safe**.
+🐍 **A Python framework** — the *exact same harness* behind a single function call. `create_deep_agent()` hands a model a filesystem, shell, planning, memory, sub-agents, sandboxed execution, MCP, and unlimited context. Build your own assistant, research agent, or coding tool without rewiring the plumbing every time.
+
+Both run on **[Pydantic AI](https://github.com/pydantic/pydantic-ai)**, work with **any model** (Claude, GPT, Gemini, local), and are **100% type-safe** and MIT-licensed — and they share one trick nothing else has: [**Live Run Forking**](#-live-run-forking--the-feature-no-one-else-has), splitting a single run into parallel branches an AI judge merges back together.
+
+## Two ways to use it
+
+### 🖥️ 1. Use the assistant
+
+A Claude-Code-style TUI in your terminal, on **any** model — no Python setup (the script installs `uv` + the CLI for you):
 
 ```bash
-# Terminal AI assistant — no Python setup required
 curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
 pydantic-deep
 ```
 
+> Windows / manual: `pip install "pydantic-deep[cli]"`
+
+### 🐍 2. Build your own
+
+One function call gives you a full deep agent:
+
 ```bash
-# Or build your own agent
 pip install pydantic-deep
+```
+
+```python
+from pydantic_deep import create_deep_agent
+
+agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
+result = await agent.run("Build a REST API for auth")
 ```
 
 ---

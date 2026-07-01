@@ -1,166 +1,192 @@
-# Agent Teams
+# Agent teams
 
-Agent teams enable multi-agent collaboration with **shared TODO lists**, **peer-to-peer messaging**, and **real agent execution** via the subagent engine. Unlike plain subagents (parent-child delegation), teams are flat groups of agents that coordinate through shared state.
+Spin up a flat group of peer agents that work the same problem together — sharing a TODO list, messaging each other, and running in parallel.
 
-## Quick Start
+[Subagents](../learn/subagents.md) give you a *hierarchy*: a parent hands a subtask down to a child, waits, and gets one answer back. A **team** is the other shape — a group of equals tackling a problem side by side. Reach for a team when the work isn't "do this for me" but "let's split this up and coordinate."
 
 ```python
 from pydantic_deep import create_deep_agent
 
 agent = create_deep_agent(
     include_teams=True,
-    include_subagents=True,  # required for execution
+    include_subagents=True,  # teams run on the subagent engine
 )
 ```
 
-The agent gets five team management tools:
+## Run it
 
-| Tool | Description |
-|------|-------------|
-| `spawn_team` | Create a team, register members as subagents |
-| `assign_task` | Assign a task and start execution in background |
-| `check_teammates` | Show member status, results, and shared tasks |
-| `message_teammate` | Send a direct message to a team member |
-| `dissolve_team` | Shut down the team and clean up |
+That single flag gives the agent five new tools and the machinery behind them. Ask it to do something collaborative:
 
-## How It Works
+<div class="termy">
 
-Teams delegate execution to the subagent engine. When the agent calls `spawn_team`, each member is registered as a subagent. When `assign_task` is called, the subagent `task()` tool runs the member's agent in the background.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Main Agent                           │
-│                                                          │
-│  spawn_team(members) ──> registers on DynamicAgentRegistry
-│  assign_task(member, description) ──> subagent task(async)
-│  check_teammates() ──> reads TaskManager status          │
-│  dissolve_team() ──> cleans up registry + team state     │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────────────┐              │
-│  │ SharedTodoList│  │  TeamMessageBus      │              │
-│  │  (coordination) │  │  (peer-to-peer)      │              │
-│  └──────────────┘  └──────────────────────┘              │
-│                                                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
-│  │ Member A │ │ Member B │ │ Member C │  (real agents)   │
-│  │ (running)│ │ (idle)   │ │ (done)   │                  │
-│  └──────────┘ └──────────┘ └──────────┘                 │
-└─────────────────────────────────────────────────────────┘
+```console
+$ python main.py
 ```
 
-When `include_subagents=True`, team members are created as **deep agents** with filesystem and todo tools. Each member runs independently in the background.
+</div>
 
-## Custom Agent Factory
+The agent spawns a named team, assigns each member a task, lets them run in the background, polls them with `check_teammates`, and dissolves the team when the work is done. You wrote none of the coordination.
 
-By default, team members are created as deep agents with `include_filesystem=True` and `include_todo=True`. You can customize this via `agent_factory`:
+!!! note "Why `include_subagents=True`?"
+    Teams don't have their own execution engine — they *delegate* to the
+    subagent system. Each team member is registered as a subagent and runs as a
+    real deep agent in the background. Without subagents enabled, `spawn_team`
+    creates the team but `assign_task` has nothing to run.
+
+## The five team tools
+
+Enabling teams registers one toolset on the agent. Here's what the model can reach for:
+
+| Tool | What it does |
+|------|--------------|
+| `spawn_team` | Create a team and register each member as a subagent. One team active at a time. |
+| `assign_task` | Hand a task to a member and start it running in the background. |
+| `check_teammates` | Report every member's status, a result preview, and the shared task list. |
+| `message_teammate` | Send a direct message to one member. |
+| `dissolve_team` | Stop all members and release resources. |
+
+A typical flow is `spawn_team` → `assign_task` (per member) → `check_teammates` (repeat until done) → `dissolve_team`. Members run concurrently, so two `assign_task` calls mean two agents working at once.
+
+!!! tip "Specialists, not clones"
+    Each member carries its own `name`, `role`, `description`, `instructions`,
+    and `model`. The payoff comes from *specialization* — one member writes the
+    code, another writes the tests, a third reviews — not from running the same
+    agent three times.
+
+## How it fits together
+
+When the agent calls `spawn_team`, the toolset builds an [`AgentTeam`][pydantic_deep.features.teams.AgentTeam] holding two pieces of shared state and registers each [`TeamMember`][pydantic_deep.features.teams.TeamMember] as a subagent. `assign_task` then drops the task onto the shared TODO list and kicks off the subagent's `task()` tool in async mode.
+
+```
+                    Main Agent
+                        │
+   spawn_team ──► AgentTeam ──► register members as subagents
+   assign_task ──► shared TODO + subagent task(async)
+   check_teammates ──► reads TaskManager status
+   dissolve_team ──► cancels tasks, unregisters everyone
+                        │
+        ┌───────────────┴───────────────┐
+   SharedTodoList                  TeamMessageBus
+   (who does what)                 (peer-to-peer chat)
+        │                                │
+   ┌────┴────┬─────────┬──────────┐
+ Member A  Member B  Member C   (real agents, running)
+```
+
+The two shared objects — the TODO list and the message bus — are what make a team more than parallel subagents. Let's look at each.
+
+## Shared TODOs with dependencies
+
+[`SharedTodoList`][pydantic_deep.features.teams.SharedTodoList] is an asyncio-safe task tracker. Unlike the regular todo list, its items can be *claimed* by a member and *blocked* on other items — so a team can express "this can't start until that finishes."
 
 ```python
-from pydantic_deep.toolsets.teams import create_team_toolset
-
-def my_factory(config):
-    return create_deep_agent(
-        model=config.get("model", "anthropic:claude-sonnet-4-6"),
-        instructions=config["instructions"],
-        include_filesystem=True,
-        include_todo=True,
-        web_search=True, web_fetch=True,  # give members web access
-    )
-
-team_toolset = create_team_toolset(
-    registry=registry,
-    agent_factory=my_factory,
-    task_fn=task_function,
-    task_manager=task_manager,
-)
-```
-
-## Shared TODO List
-
-The [`SharedTodoList`][pydantic_deep.toolsets.teams.SharedTodoList] is an asyncio-safe task tracker with claiming and dependencies.
-
-```python
-from pydantic_deep.toolsets.teams import SharedTodoList
+from pydantic_deep.features.teams import SharedTodoList
 
 todos = SharedTodoList()
 
-# Add tasks
 task_a = await todos.add("Design the API schema", created_by="lead")
 task_b = await todos.add(
-    "Implement endpoints",
-    blocked_by=[task_a],  # Can't start until task_a completes
+    "Implement the endpoints",
+    blocked_by=[task_a],          # waits for task_a
     created_by="lead",
 )
 
-# Claim and complete
-await todos.claim(task_a, "alice")    # True -- alice owns it
-await todos.claim(task_b, "bob")      # False -- blocked by task_a
+await todos.claim(task_a, "alice")   # True  — alice owns it
+await todos.claim(task_b, "bob")     # False — still blocked by task_a
 await todos.complete(task_a)
-await todos.claim(task_b, "bob")      # True -- dependency resolved
+await todos.claim(task_b, "bob")     # True  — dependency cleared
 ```
 
-### SharedTodoItem Fields
+`claim()` returns `False` (not an error) when an item is already taken, not pending, or blocked by something unfinished — so members can poll for work without stepping on each other. Use [`get_available()`][pydantic_deep.features.teams.SharedTodoList] to list exactly the items a member is allowed to pick up right now.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `str` | Auto-generated (uuid4 hex[:8]) |
-| `content` | `str` | Task description |
-| `status` | `str` | `"pending"`, `"in_progress"`, or `"completed"` |
-| `assigned_to` | `str \| None` | Name of the agent that claimed this task |
-| `blocked_by` | `list[str]` | IDs of tasks that must complete first |
-| `created_by` | `str \| None` | Who created this task |
+Each [`SharedTodoItem`][pydantic_deep.features.teams.SharedTodoItem] carries the coordination fields:
 
-## Message Bus
+| Field | Type | Meaning |
+|-------|------|---------|
+| `id` | `str` | Auto-generated short id. |
+| `content` | `str` | The task description. |
+| `status` | `str` | `"pending"`, `"in_progress"`, or `"completed"`. |
+| `assigned_to` | `str \| None` | The member that claimed it. |
+| `blocked_by` | `list[str]` | IDs that must complete first. |
+| `created_by` | `str \| None` | Who added it. |
 
-The [`TeamMessageBus`][pydantic_deep.toolsets.teams.TeamMessageBus] provides peer-to-peer messaging between registered agents.
+## The message bus
+
+[`TeamMessageBus`][pydantic_deep.features.teams.TeamMessageBus] is peer-to-peer: any registered member can message any other, or broadcast to everyone. Each member has its own asyncio inbox.
 
 ```python
-from pydantic_deep.toolsets.teams import TeamMessageBus
+from pydantic_deep.features.teams import TeamMessageBus
 
 bus = TeamMessageBus()
 bus.register("alice")
 bus.register("bob")
 
-# Direct message
 await bus.send("alice", "bob", "Can you review my changes?")
+await bus.broadcast("alice", "Starting on the API schema")  # everyone but alice
 
-# Broadcast to all except sender
-await bus.broadcast("alice", "I'm starting on the API schema")
-
-# Read inbox
-messages = await bus.receive("bob")
-for msg in messages:
+for msg in await bus.receive("bob"):
     print(f"{msg.sender}: {msg.content}")
 ```
 
-## Shared TODOs via deps
+`receive()` drains whatever is waiting and returns immediately; pass `timeout=` to block for a message when the inbox is empty. `send()` raises `KeyError` if the recipient was never registered — so members can't message someone who isn't on the team. Behind the `message_teammate` tool, the lead sends as `"team_lead"`.
 
-For simpler use cases, you can share the parent agent's TODO list with subagents using `share_todos`:
+## A short example
+
+Here's the whole loop the agent runs on your behalf, written out by hand so you can see the shape:
+
+```python hl_lines="6 12 17"
+from pydantic_deep.features.teams import AgentTeam, TeamMember
+
+team = AgentTeam(
+    name="api-build",
+    members=[
+        TeamMember(name="builder", role="dev",  description="writes code",  instructions="Implement the endpoints."),
+        TeamMember(name="tester",  role="qa",   description="writes tests", instructions="Write pytest coverage."),
+    ],
+)
+
+await team.spawn()                              # register members + inboxes
+await team.assign("builder", "Build /users")    # add to shared todos, claim it
+await team.assign("tester", "Test /users")
+await team.broadcast("Kickoff — ship by EOD")   # message every member
+results = await team.wait_all()                 # block until both finish
+await team.dissolve()                           # cancel + clean up
+```
+
+In a real run the model calls the *tools* (`spawn_team`, `assign_task`, …) rather than this API directly, and execution flows through the subagent engine. But the primitives are public, so you can drive a team programmatically too.
+
+!!! info "Customizing how members are built"
+    By default each member becomes a deep agent with filesystem and todo tools.
+    To give members web access, different toolsets, or a different setup, pass an
+    `agent_factory` to
+    [`create_team_toolset`][pydantic_deep.features.teams.create_team_toolset] —
+    it's called with each member's config to build that member's agent.
+
+## A lighter option: shared todos via deps
+
+If you don't need a full team and just want subagents to see the parent's todo list, set `share_todos` on your deps instead:
 
 ```python
-from pydantic_deep import DeepAgentDeps
-from pydantic_ai_backends import StateBackend
+from pydantic_deep import DeepAgentDeps, StateBackend
 
 deps = DeepAgentDeps(
     backend=StateBackend(),
-    share_todos=True,  # Subagents share parent's todo list
+    share_todos=True,   # subagents share the parent's todo list
 )
 ```
 
-## Components
+This is the lightweight middle ground between isolated subagents and a coordinating team.
 
-| Component | Description |
-|-----------|-------------|
-| [`SharedTodoItem`][pydantic_deep.toolsets.teams.SharedTodoItem] | Task with assignment, dependencies, and status |
-| [`SharedTodoList`][pydantic_deep.toolsets.teams.SharedTodoList] | Asyncio-safe task list with claiming and blocking |
-| [`TeamMessage`][pydantic_deep.toolsets.teams.TeamMessage] | Message between team members |
-| [`TeamMessageBus`][pydantic_deep.toolsets.teams.TeamMessageBus] | Peer-to-peer message routing |
-| [`TeamMember`][pydantic_deep.toolsets.teams.TeamMember] | Member definition (name, role, instructions) |
-| [`TeamMemberHandle`][pydantic_deep.toolsets.teams.TeamMemberHandle] | Runtime handle to a team member |
-| [`AgentTeam`][pydantic_deep.toolsets.teams.AgentTeam] | Team coordinator with shared state |
-| [`create_team_toolset`][pydantic_deep.toolsets.teams.create_team_toolset] | Factory for team management tools |
+## Recap
 
-## Next Steps
+- A **team** is a flat group of peer agents working one problem; a **subagent** is a child doing one delegated subtask. Pick the team when the work needs coordination, not just delegation.
+- `include_teams=True` (plus `include_subagents=True`) adds five tools: `spawn_team`, `assign_task`, `check_teammates`, `message_teammate`, `dissolve_team`.
+- [`SharedTodoList`][pydantic_deep.features.teams.SharedTodoList] gives the team claimable, dependency-aware tasks; `claim()` returns `False` rather than failing when an item isn't available.
+- [`TeamMessageBus`][pydantic_deep.features.teams.TeamMessageBus] is peer-to-peer messaging with per-member inboxes and broadcast.
+- Need less? `share_todos=True` lets subagents share the parent's todo list without a team.
 
-- [Subagents](subagents.md) -- Parent-child delegation
-- [Hooks](hooks.md) -- Claude Code-style lifecycle hooks
-- [Checkpointing](checkpointing.md) -- Save and rewind conversation state
+Where to go next:
+
+- [Subagents →](../learn/subagents.md) — parent-child delegation, the other shape.
+- [Hooks →](hooks.md) — react to tool events across the lifecycle.
+- [Forking →](forking.md) — branch a live run into parallel explorations.

@@ -8,7 +8,7 @@ from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, Static
 
-from pydantic_deep.improve.types import ImprovementReport, ProposedChange
+from pydantic_deep.features.improve.types import ImprovementReport, ProposedChange
 
 
 class ImproveReviewModal(ModalScreen[list[ProposedChange] | None]):

@@ -30,7 +30,7 @@ from textual.widgets import Static
 from apps.cli.modals.merge_picker import MergePickerModal
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchDiffReport, BranchStatus
+    from pydantic_deep.features.forking.types import BranchDiffReport, BranchStatus
 
 
 @dataclass(frozen=True)
@@ -172,7 +172,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
             self._enabled = {bid: True for bid in ordered}
         self._include_parent: bool = True
 
-    # ── Composition ───────────────────────────────────────────────
+    # Composition
 
     def compose(self) -> ComposeResult:
         with Vertical(id="diff-container"):
@@ -260,8 +260,6 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
             "[dim]·  Esc cancel[/dim]"
         )
 
-    # ── Actions ───────────────────────────────────────────────────
-
     def action_move_path_up(self) -> None:
         if not self._paths:
             return
@@ -329,8 +327,6 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
     def action_cancel(self) -> None:
         self.dismiss(None)
 
-    # ── Internal helpers ──────────────────────────────────────────
-
     def _refresh_paths(self) -> None:
         for i in range(len(self._paths)):
             with contextlib.suppress(Exception):  # pragma: no cover - defensive
@@ -358,7 +354,7 @@ class DiffPickerModal(ModalScreen["DiffPickerResult | None"]):
             actions.update(text)
             self.set_timer(2.0, lambda: actions.update(self._render_action_hint()))
 
-    # ── Testing helpers ───────────────────────────────────────────
+    # Testing helpers
 
     @property
     def selected_path(self) -> str | None:

@@ -69,8 +69,8 @@ async def example_direct_upload():
     deps = DeepAgentDeps(backend=StateBackend())
 
     # Upload multiple files
-    deps.upload_file("config.json", b'{"debug": true, "max_workers": 4}')
-    deps.upload_file(
+    await deps.upload_file("config.json", b'{"debug": true, "max_workers": 4}')
+    await deps.upload_file(
         "settings.json",
         b'{"theme": "dark", "language": "en"}',
         upload_dir="/configs",  # Custom upload directory
@@ -114,7 +114,7 @@ async def example_large_file():
 
     log_data = "\n".join(log_lines).encode("utf-8")
 
-    deps.upload_file("app.log", log_data)
+    await deps.upload_file("app.log", log_data)
 
     print("\nUploaded files:")
     for path, info in deps.uploads.items():
@@ -142,7 +142,7 @@ async def example_binary_file():
 
     # Upload a binary file (e.g., image header simulation)
     binary_data = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])  # PNG header
-    deps.upload_file("image.png", binary_data)
+    await deps.upload_file("image.png", binary_data)
 
     print("\nUploaded files:")
     for path, info in deps.uploads.items():

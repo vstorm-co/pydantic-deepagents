@@ -3,184 +3,184 @@
 Live Run Forking lets an agent explore multiple solution branches in parallel and
 merge the best result. Enable it via `forking=True` on
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]. See
-[Live Run Forking](../capabilities/live-fork.md) for the conceptual overview.
+[Live Run Forking](../advanced/forking.md) for the conceptual overview.
 
 ## LiveForkCapability
 
-::: pydantic_deep.capabilities.forking.LiveForkCapability
+::: pydantic_deep.features.forking.capability.LiveForkCapability
     options:
       show_source: false
 
 ## ForkCoordinator
 
-::: pydantic_deep.toolsets.forking.ForkCoordinator
+::: pydantic_deep.features.forking.ForkCoordinator
     options:
       show_source: false
 
 ## create_fork_toolset
 
-::: pydantic_deep.toolsets.forking.create_fork_toolset
+::: pydantic_deep.features.forking.create_fork_toolset
     options:
       show_source: false
 
 ## ForkStateStore
 
-::: pydantic_deep.toolsets.forking.ForkStateStore
+::: pydantic_deep.features.forking.ForkStateStore
     options:
       show_source: false
 
 ## InMemoryForkStateStore
 
-::: pydantic_deep.toolsets.forking.InMemoryForkStateStore
+::: pydantic_deep.features.forking.InMemoryForkStateStore
     options:
       show_source: false
 
 ## build_diff_report
 
-::: pydantic_deep.toolsets.forking.build_diff_report
+::: pydantic_deep.features.forking.build_diff_report
     options:
       show_source: false
 
 ## JudgeAgent
 
-::: pydantic_deep.toolsets.forking.JudgeAgent
+::: pydantic_deep.features.forking.JudgeAgent
     options:
       show_source: false
 
 ## compute_confidence
 
-::: pydantic_deep.toolsets.forking.compute_confidence
+::: pydantic_deep.features.forking.compute_confidence
     options:
       show_source: false
 
 ## Coordinator
 
-::: pydantic_deep.toolsets.forking.coordinator.ForkBranchLimitError
+::: pydantic_deep.features.forking.coordinator.ForkBranchLimitError
     options:
       show_source: false
 
-::: pydantic_deep.toolsets.forking.coordinator.ForkDepthLimitError
+::: pydantic_deep.features.forking.coordinator.ForkDepthLimitError
     options:
       show_source: false
 
 ## Isolation
 
-::: pydantic_deep.toolsets.forking.isolation.BranchOverlay
+::: pydantic_deep.features.forking.isolation.BranchOverlay
     options:
       show_source: false
 
-::: pydantic_deep.toolsets.forking.isolation.clone_for_branch
+::: pydantic_deep.features.forking.isolation.clone_for_branch
     options:
       show_source: false
 
 ## Editor
 
-::: pydantic_deep.toolsets.forking.editor.EditorDetector
+::: pydantic_deep.features.forking.editor.EditorDetector
     options:
       show_source: false
 
 ## Judge
 
-::: pydantic_deep.toolsets.forking.judge.count_retry_parts
+::: pydantic_deep.features.forking.judge.count_retry_parts
     options:
       show_source: false
 
-::: pydantic_deep.toolsets.forking.judge.count_stuck_loop_hits
+::: pydantic_deep.features.forking.judge.count_stuck_loop_hits
     options:
       show_source: false
 
 ## Materializer
 
-::: pydantic_deep.toolsets.forking.materializer.ForkMaterializer
+::: pydantic_deep.features.forking.materializer.ForkMaterializer
     options:
       show_source: false
 
 ## Forking Types
 
-::: pydantic_deep.types.BranchSpec
+::: pydantic_deep.features.forking.types.BranchSpec
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchState
+::: pydantic_deep.features.forking.types.BranchState
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchStatus
+::: pydantic_deep.features.forking.types.BranchStatus
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchOutcome
+::: pydantic_deep.features.forking.types.BranchOutcome
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchIsolation
+::: pydantic_deep.features.forking.types.BranchIsolation
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchChange
+::: pydantic_deep.features.forking.types.BranchChange
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchCost
+::: pydantic_deep.features.forking.types.BranchCost
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchDiffAgreement
+::: pydantic_deep.features.forking.types.BranchDiffAgreement
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchDiffOperation
+::: pydantic_deep.features.forking.types.BranchDiffOperation
     options:
       show_source: false
 
-::: pydantic_deep.types.BranchDiffReport
+::: pydantic_deep.features.forking.types.BranchDiffReport
     options:
       show_source: false
 
-::: pydantic_deep.types.ConfidenceSignals
+::: pydantic_deep.features.forking.types.ConfidenceSignals
     options:
       show_source: false
 
-::: pydantic_deep.types.DiffSummary
+::: pydantic_deep.features.forking.types.DiffSummary
     options:
       show_source: false
 
-::: pydantic_deep.types.FileChange
+::: pydantic_deep.features.forking.types.FileChange
     options:
       show_source: false
 
-::: pydantic_deep.types.FlushError
+::: pydantic_deep.features.forking.types.FlushError
     options:
       show_source: false
 
-::: pydantic_deep.types.FlushReport
+::: pydantic_deep.features.forking.types.FlushReport
     options:
       show_source: false
 
-::: pydantic_deep.types.ForkCostSummary
+::: pydantic_deep.features.forking.types.ForkCostSummary
     options:
       show_source: false
 
-::: pydantic_deep.types.ForkHandle
+::: pydantic_deep.features.forking.types.ForkHandle
     options:
       show_source: false
 
-::: pydantic_deep.types.JudgeVerdict
+::: pydantic_deep.features.forking.types.JudgeVerdict
     options:
       show_source: false
 
-::: pydantic_deep.types.MergeResult
+::: pydantic_deep.features.forking.types.MergeResult
     options:
       show_source: false
 
-::: pydantic_deep.types.MergeStrategy
+::: pydantic_deep.features.forking.types.MergeStrategy
     options:
       show_source: false
 
-::: pydantic_deep.types.PathDiff
+::: pydantic_deep.features.forking.types.PathDiff
     options:
       show_source: false
 
-::: pydantic_deep.types.ResolveOutcome
+::: pydantic_deep.features.forking.types.ResolveOutcome
     options:
       show_source: false

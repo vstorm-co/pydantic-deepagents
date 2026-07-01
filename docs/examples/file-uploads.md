@@ -319,4 +319,4 @@ class UploadedFile(TypedDict):
 
 - [Basic Usage](basic-usage.md) - Core functionality
 - [Docker Sandbox](docker-sandbox.md) - Execute code on uploaded files
-- [Structured Output](../advanced/structured-output.md) - Type-safe results
+- [Structured Output](../learn/structured-output.md) - Type-safe results

@@ -9,20 +9,18 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from pydantic_deep.improve.analyzer import DEFAULT_CONTEXT_FILES, ImprovementAnalyzer
-from pydantic_deep.improve.extractor import (
+from pydantic_deep.features.improve.analyzer import DEFAULT_CONTEXT_FILES, ImprovementAnalyzer
+from pydantic_deep.features.improve.extractor import (
     SessionExtractor,
-    _dict_to_session_insights,
     _extract_timestamp,
-    _parse_json_response,
 )
-from pydantic_deep.improve.prompts import (
+from pydantic_deep.features.improve.prompts import (
     CHUNK_MERGE_PROMPT,
     EXTRACTION_PROMPT,
     SYNTHESIS_PROMPT,
 )
-from pydantic_deep.improve.synthesizer import InsightSynthesizer
-from pydantic_deep.improve.types import (
+from pydantic_deep.features.improve.synthesizer import InsightSynthesizer
+from pydantic_deep.features.improve.types import (
     AgentLearningInsight,
     ContextInsight,
     DecisionInsight,
@@ -160,137 +158,6 @@ class TestExtractTimestamp:
 
     def test_empty_messages(self) -> None:
         assert _extract_timestamp([]) == ""
-
-
-class TestParseJsonResponse:
-    def test_valid_json(self) -> None:
-        text = '{"session_id": "abc", "message_count": 5}'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-        assert result["message_count"] == 5
-
-    def test_json_with_code_fences(self) -> None:
-        text = '```json\n{"session_id": "abc"}\n```'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-
-    def test_fence_without_newline(self) -> None:
-        # A bare fence with no newline must not raise ValueError.
-        text = '```{"session_id": "abc"}```'
-        result = _parse_json_response(text, "fallback", "ts")
-        assert result["session_id"] == "abc"
-
-    def test_bare_fence_only(self) -> None:
-        # A lone fence with no newline falls back to empty insights.
-        result = _parse_json_response("```", "fb_id", "fb_ts")
-        assert result["session_id"] == "fb_id"
-
-    def test_invalid_json_uses_fallbacks(self) -> None:
-        result = _parse_json_response("not json", "fb_id", "fb_ts")
-        assert result["session_id"] == "fb_id"
-        assert result["timestamp"] == "fb_ts"
-        assert result["user_facts"] == []
-        assert result["agent_learnings"] == []
-
-    def test_defaults_applied(self) -> None:
-        result = _parse_json_response("{}", "id", "ts")
-        assert result["failures"] == []
-        assert result["patterns"] == []
-        assert result["preferences"] == []
-        assert result["project_context"] == []
-        assert result["decisions"] == []
-
-
-class TestDictToSessionInsights:
-    def test_minimal(self) -> None:
-        data = {"session_id": "x", "timestamp": "t", "message_count": 1, "tool_calls_count": 0}
-        si = _dict_to_session_insights(data)
-        assert si.session_id == "x"
-        assert si.message_count == 1
-
-    def test_with_user_facts(self) -> None:
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "user_facts": [{"fact": "Name is Kacper", "category": "identity", "confidence": 1.0}],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.user_facts) == 1
-        assert si.user_facts[0].fact == "Name is Kacper"
-
-    def test_with_agent_learnings(self) -> None:
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "agent_learnings": [
-                {
-                    "learning": "uv run pytest",
-                    "category": "build_command",
-                    "evidence": "output",
-                    "confidence": 0.9,
-                }
-            ],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.agent_learnings) == 1
-        assert si.agent_learnings[0].learning == "uv run pytest"
-
-    def test_with_all_insight_types(self) -> None:
-        data = {
-            "session_id": "full",
-            "timestamp": "ts",
-            "message_count": 10,
-            "tool_calls_count": 5,
-            "failures": [
-                {
-                    "description": "err",
-                    "root_cause": "bug",
-                    "resolution": "fix",
-                    "tool_calls": ["execute"],
-                }
-            ],
-            "patterns": [{"pattern": "read->edit", "frequency": 2, "context": "coding"}],
-            "preferences": [{"preference": "concise", "evidence": "user said"}],
-            "project_context": [{"fact": "uses pytest", "confidence": 0.8}],
-            "decisions": [{"decision": "use uv", "reasoning": "fast", "confirmed": True}],
-            "user_facts": [{"fact": "Name", "category": "identity", "confidence": 1.0}],
-            "agent_learnings": [
-                {"learning": "test", "category": "other", "evidence": "e", "confidence": 0.7}
-            ],
-        }
-        si = _dict_to_session_insights(data)
-        assert len(si.failures) == 1
-        assert len(si.patterns) == 1
-        assert len(si.preferences) == 1
-        assert len(si.project_context) == 1
-        assert len(si.decisions) == 1
-        assert len(si.user_facts) == 1
-        assert len(si.agent_learnings) == 1
-
-    def test_with_already_typed_objects(self) -> None:
-        """When values are already typed objects (not dicts), pass through."""
-        uf = UserFactInsight(fact="test", category="other", confidence=0.5)
-        data = {
-            "session_id": "x",
-            "timestamp": "",
-            "message_count": 0,
-            "tool_calls_count": 0,
-            "user_facts": [uf],
-            "agent_learnings": [
-                AgentLearningInsight(learning="l", category="other", evidence="e", confidence=0.5)
-            ],
-            "failures": [FailureInsight(description="d", root_cause="r", resolution="")],
-            "patterns": [PatternInsight(pattern="p", frequency=1, context="c")],
-            "preferences": [PreferenceInsight(preference="p", evidence="e")],
-            "project_context": [ContextInsight(fact="f", confidence=0.5)],
-            "decisions": [DecisionInsight(decision="d", reasoning="r", confirmed=False)],
-        }
-        si = _dict_to_session_insights(data)
-        assert si.user_facts[0] is uf
 
 
 # ── SessionExtractor ─────────────────────────────────────────────
@@ -507,6 +374,50 @@ class TestSessionExtractor:
         assert "force=True" in result
         assert "value=None" in result
 
+    def test_load_tool_log_unreadable_returns_empty(self, tmp_path: Path) -> None:
+        """A read error (e.g. the path is a directory) yields "", not a crash (B12)."""
+        ext = SessionExtractor(model="test")
+        (tmp_path / "tool_log.jsonl").mkdir()  # exists() is True, read_text raises OSError
+        assert ext._load_tool_log(tmp_path) == ""
+
+    def test_load_tool_log_skips_malformed_lines(self, tmp_path: Path) -> None:
+        """A bad-JSON or non-numeric-`elapsed` line must not discard the rest (B12)."""
+        ext = SessionExtractor(model="test")
+        good_a = {"tool": "read", "elapsed": 0.1, "error": False, "result_length": 10}
+        bad_elapsed = {"tool": "ls", "elapsed": "soon", "error": False}
+        good_b = {"tool": "grep", "elapsed": 0.2, "error": False, "result_length": 5}
+        (tmp_path / "tool_log.jsonl").write_text(
+            "\n".join(
+                [
+                    json.dumps(good_a),
+                    "this is not json",
+                    json.dumps(bad_elapsed),
+                    json.dumps(good_b),
+                ]
+            )
+        )
+        result = ext._load_tool_log(tmp_path)
+        # Both well-formed records survive the malformed lines between them.
+        assert "read(" in result
+        assert "grep(" in result
+        assert "ls(" not in result
+
+    def test_truncate_tiny_budget_no_overflow(self) -> None:
+        """A tiny `max_chars` must not produce output longer than the input (B7)."""
+        ext = SessionExtractor(model="test")
+        content = "x" * 1000
+        result = ext._truncate_tool_output(content, max_chars=40)
+        assert "truncated" in result
+        assert len(result) < len(content)
+
+    def test_prepare_chunk_text_truncates_huge_user_prompt(self) -> None:
+        """An oversized user prompt is truncated so one message can't blow the budget (B5)."""
+        ext = SessionExtractor(model="test")
+        messages = [{"parts": [{"part_kind": "user-prompt", "content": "U" * 20000}]}]
+        text = ext._prepare_chunk_text(messages)
+        assert "truncated" in text
+        assert len(text) < 20000
+
     def test_load_tool_log_error_no_preview(self, tmp_path: Path) -> None:
         ext = SessionExtractor(model="test")
         record = {
@@ -555,10 +466,10 @@ class TestSessionExtractor:
             '{"tool": "read", "elapsed": 0.1, "error": false, "result_length": 10, "args": {}}\n'
         )
 
-        mock_output = json.dumps(
-            {"session_id": "session_tl", "message_count": 1, "tool_calls_count": 0}
+        mock_output = SessionInsights(
+            session_id="session_tl", timestamp="", message_count=1, tool_calls_count=0
         )
-        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_result = AsyncMock()
             mock_result.output = mock_output
@@ -585,15 +496,14 @@ class TestSessionExtractor:
         ]
         (session / "messages.json").write_text(json.dumps(messages))
 
-        mock_output = json.dumps(
-            {
-                "session_id": "session2",
-                "message_count": 1,
-                "tool_calls_count": 0,
-                "user_facts": [{"fact": "test", "category": "other", "confidence": 0.5}],
-            }
+        mock_output = SessionInsights(
+            session_id="session2",
+            timestamp="",
+            message_count=1,
+            tool_calls_count=0,
+            user_facts=[UserFactInsight(fact="test", category="other", confidence=0.5)],
         )
-        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_result = AsyncMock()
             mock_result.output = mock_output
@@ -622,10 +532,10 @@ class TestSessionExtractor:
         (session / "messages.json").write_text(json.dumps(messages))
 
         # Model reports bogus counts - they must be ignored in favour of exact ones.
-        mock_output = json.dumps(
-            {"session_id": "session_counts", "message_count": 99, "tool_calls_count": 99}
+        mock_output = SessionInsights(
+            session_id="session_counts", timestamp="", message_count=99, tool_calls_count=99
         )
-        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_result = AsyncMock()
             mock_result.output = mock_output
@@ -645,10 +555,10 @@ class TestSessionExtractor:
         ]
         (session / "messages.json").write_text(json.dumps(messages))
 
-        mock_output = json.dumps(
-            {"session_id": "session3", "message_count": 2, "tool_calls_count": 0}
+        mock_output = SessionInsights(
+            session_id="session3", timestamp="", message_count=2, tool_calls_count=0
         )
-        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_result = AsyncMock()
             mock_result.output = mock_output
@@ -659,20 +569,20 @@ class TestSessionExtractor:
 
     async def test_merge_single_chunk(self) -> None:
         ext = SessionExtractor(model="test")
-        data = {"session_id": "x", "timestamp": "t", "message_count": 1, "tool_calls_count": 0}
+        data = SessionInsights(session_id="x", timestamp="t", message_count=1, tool_calls_count=0)
         result = await ext._merge_chunk_insights([data])
         assert result.session_id == "x"
 
     async def test_merge_multiple_chunks(self) -> None:
         ext = SessionExtractor(model="test:test")
         chunks = [
-            {"session_id": "x", "timestamp": "t", "message_count": 5, "tool_calls_count": 2},
-            {"session_id": "x", "timestamp": "t", "message_count": 5, "tool_calls_count": 3},
+            SessionInsights(session_id="x", timestamp="t", message_count=5, tool_calls_count=2),
+            SessionInsights(session_id="x", timestamp="t", message_count=5, tool_calls_count=3),
         ]
-        mock_output = json.dumps(
-            {"session_id": "x", "timestamp": "t", "message_count": 10, "tool_calls_count": 5}
+        mock_output = SessionInsights(
+            session_id="x", timestamp="t", message_count=10, tool_calls_count=5
         )
-        with patch("pydantic_deep.improve.extractor.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.extractor.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_result = AsyncMock()
             mock_result.output = mock_output
@@ -724,7 +634,7 @@ class TestInsightSynthesizer:
         synth = InsightSynthesizer(model="test:test")
         si = SessionInsights(session_id="x", timestamp="", message_count=1, tool_calls_count=0)
 
-        with patch("pydantic_deep.improve.synthesizer.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.synthesizer.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_output = AsyncMock()
             mock_output.output.proposed_changes = []
@@ -737,7 +647,7 @@ class TestInsightSynthesizer:
         synth = InsightSynthesizer(model="test:test")
         si = SessionInsights(session_id="x", timestamp="", message_count=1, tool_calls_count=0)
 
-        with patch("pydantic_deep.improve.synthesizer.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.synthesizer.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_output = AsyncMock()
             mock_output.output.proposed_changes = []
@@ -753,7 +663,7 @@ class TestInsightSynthesizer:
         synth = InsightSynthesizer(model="test:test")
         si = SessionInsights(session_id="x", timestamp="", message_count=1, tool_calls_count=0)
 
-        with patch("pydantic_deep.improve.synthesizer.Agent") as MockAgent:
+        with patch("pydantic_deep.features.improve.synthesizer.Agent") as MockAgent:
             mock_agent = MockAgent.return_value
             mock_output = AsyncMock()
             mock_output.output.proposed_changes = []
@@ -992,6 +902,26 @@ class TestImprovementAnalyzer:
         assert "appended" in content
         assert "content" in content  # Original preserved
 
+    async def test_apply_changes_update_no_section_match_warns(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Falling back from update to append is logged, not silent (B16)."""
+        (tmp_path / "SOUL.md").write_text("# Existing\n\ncontent")
+        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
+        changes = [
+            ProposedChange(
+                target_file="SOUL.md",
+                change_type="update",
+                section="# Nonexistent",
+                content="appended",
+                reason="test",
+                confidence=0.9,
+            )
+        ]
+        with caplog.at_level("WARNING"):
+            await a.apply_changes(changes)
+        assert any("not found" in r.getMessage() for r in caplog.records)
+
     async def test_apply_changes_update_trailing_section(self, tmp_path: Path) -> None:
         # Section is the LAST heading in the file (no following heading). Its body
         # must be replaced without losing the heading or anything else.
@@ -1071,23 +1001,6 @@ class TestImprovementAnalyzer:
         ]
         await a.apply_changes(changes)
         assert (tmp_path / "SOUL.md").read_text() == "created"
-
-    async def test_apply_changes_unknown_type(self, tmp_path: Path) -> None:
-        a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
-        changes = [
-            ProposedChange(
-                target_file="SOUL.md",
-                change_type="unknown",
-                section=None,
-                content="test",
-                reason="test",
-                confidence=0.9,
-            )
-        ]
-        with pytest.raises(ValueError, match="Unknown change_type 'unknown'"):
-            await a.apply_changes(changes)
-        # The unrecognized change must not be silently written.
-        assert not (tmp_path / "SOUL.md").exists()
 
     def test_get_last_improve_time_no_file(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
@@ -1249,28 +1162,28 @@ class TestImprovementAnalyzer:
 
 class TestImproveToolset:
     def test_init(self) -> None:
-        from pydantic_deep.toolsets.improve import ImproveToolset
+        from pydantic_deep.features.improve import ImproveToolset
 
         ts = ImproveToolset(model="test")
         assert ts._model == "test"
         assert ts._context_files is None
 
     def test_init_with_context_files(self) -> None:
-        from pydantic_deep.toolsets.improve import ImproveToolset
+        from pydantic_deep.features.improve import ImproveToolset
 
         custom = {"MEMORY.md": "custom/MEMORY.md"}
         ts = ImproveToolset(model="test", context_files=custom)
         assert ts._context_files == custom
 
     def test_instructions_is_list(self) -> None:
-        from pydantic_deep.toolsets.improve import ImproveToolset
+        from pydantic_deep.features.improve import ImproveToolset
 
         ts = ImproveToolset(model="test")
         assert isinstance(ts._instructions, list)
         assert len(ts._instructions) == 1
 
     def test_format_report_no_changes(self) -> None:
-        from pydantic_deep.toolsets.improve import _format_report
+        from pydantic_deep.features.improve.toolset import _format_report
 
         report = ImprovementReport(analyzed_sessions=3, time_range="last 7 days", total_chunks=5)
         result = _format_report(report)
@@ -1278,7 +1191,7 @@ class TestImproveToolset:
         assert "No changes" in result
 
     def test_format_report_with_changes(self) -> None:
-        from pydantic_deep.toolsets.improve import _format_report
+        from pydantic_deep.features.improve.toolset import _format_report
 
         report = ImprovementReport(
             analyzed_sessions=2,
@@ -1302,7 +1215,7 @@ class TestImproveToolset:
         assert "1.00" in result
 
     def test_format_report_change_without_sources(self) -> None:
-        from pydantic_deep.toolsets.improve import _format_report
+        from pydantic_deep.features.improve.toolset import _format_report
 
         report = ImprovementReport(
             analyzed_sessions=1,
@@ -1326,13 +1239,13 @@ class TestImproveToolset:
         assert "..." in result  # Content truncated
 
     def test_format_status_never_run(self) -> None:
-        from pydantic_deep.toolsets.improve import _format_status
+        from pydantic_deep.features.improve.toolset import _format_status
 
         result = _format_status(None, {})
         assert "never been run" in result
 
     def test_format_status_with_data(self) -> None:
-        from pydantic_deep.toolsets.improve import _format_status
+        from pydantic_deep.features.improve.toolset import _format_status
 
         last_run = datetime.now(timezone.utc)
         state = {"last_run_sessions": 5, "last_run_changes": 3, "total_runs": 2}
@@ -1343,7 +1256,7 @@ class TestImproveToolset:
     def test_format_status_hours_ago(self) -> None:
         from datetime import timedelta
 
-        from pydantic_deep.toolsets.improve import _format_status
+        from pydantic_deep.features.improve.toolset import _format_status
 
         last_run = datetime.now(timezone.utc) - timedelta(hours=5)
         result = _format_status(last_run, {})
@@ -1352,14 +1265,14 @@ class TestImproveToolset:
     def test_format_status_days_ago(self) -> None:
         from datetime import timedelta
 
-        from pydantic_deep.toolsets.improve import _format_status
+        from pydantic_deep.features.improve.toolset import _format_status
 
         last_run = datetime.now(timezone.utc) - timedelta(days=3)
         result = _format_status(last_run, {})
         assert "days ago" in result
 
     def test_toolset_has_tools(self) -> None:
-        from pydantic_deep.toolsets.improve import ImproveToolset
+        from pydantic_deep.features.improve import ImproveToolset
 
         ts = ImproveToolset(model="test")
         # FunctionToolset registers tools during __init__
@@ -1368,7 +1281,7 @@ class TestImproveToolset:
     async def test_improve_tool_run(self, tmp_path: Path) -> None:
         from unittest.mock import MagicMock
 
-        from pydantic_deep.toolsets.improve import ImproveToolset
+        from pydantic_deep.features.improve import ImproveToolset
 
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
@@ -1380,7 +1293,7 @@ class TestImproveToolset:
         mock_ctx.deps = MagicMock()
         mock_ctx.deps.working_dir = str(tmp_path)
 
-        with patch("pydantic_deep.toolsets.improve.ImprovementAnalyzer") as MockAnalyzer:
+        with patch("pydantic_deep.features.improve.toolset.ImprovementAnalyzer") as MockAnalyzer:
             mock_analyzer = MockAnalyzer.return_value
             mock_report = ImprovementReport(
                 analyzed_sessions=0, time_range="last 7 days", total_chunks=0, timestamp="ts"
@@ -1390,7 +1303,7 @@ class TestImproveToolset:
 
             # Call the internal tool function directly
             # Get the improve function from the toolset
-            from pydantic_deep.improve.analyzer import ImprovementAnalyzer as RealAnalyzer
+            from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer as RealAnalyzer
 
             analyzer = RealAnalyzer(model="test", sessions_dir=sessions_dir, working_dir=tmp_path)
             with patch.object(analyzer, "_discover_sessions", return_value=[]):
@@ -1398,8 +1311,8 @@ class TestImproveToolset:
             assert report.analyzed_sessions == 0
 
     async def test_get_improvement_status_no_state(self, tmp_path: Path) -> None:
-        from pydantic_deep.improve.analyzer import ImprovementAnalyzer
-        from pydantic_deep.toolsets.improve import _format_status
+        from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
+        from pydantic_deep.features.improve.toolset import _format_status
 
         analyzer = ImprovementAnalyzer(model="test", working_dir=tmp_path)
         last_run = analyzer.get_last_improve_time()

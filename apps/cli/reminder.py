@@ -30,7 +30,7 @@ def _build_reminder_config(
     mode = reminder_mode or config.reminder_mode or "llm"
     if mode == "off":
         return None
-    from pydantic_deep.capabilities.periodic_reminder import (
+    from pydantic_deep.features.periodic_reminder import (
         LLMReminderGenerator,
         make_config_for_mode,
     )
@@ -61,7 +61,7 @@ def _resolve_reminder_model(app: DeepApp) -> str | None:
 
 def _apply_reminder_mode(app: DeepApp, mode: str) -> None:
     """Update the running agent's PeriodicReminderCapability without restart."""
-    from pydantic_deep.capabilities.periodic_reminder import PeriodicReminderCapability
+    from pydantic_deep.features.periodic_reminder import PeriodicReminderCapability
 
     agent = app.agent
     if agent is None:
@@ -78,7 +78,7 @@ def _apply_reminder_mode(app: DeepApp, mode: str) -> None:
         app.notify("Selected reminder mode: off")
         return
 
-    from pydantic_deep.capabilities.periodic_reminder import (
+    from pydantic_deep.features.periodic_reminder import (
         LLMReminderGenerator,
         make_config_for_mode,
     )

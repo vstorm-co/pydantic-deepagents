@@ -1,383 +1,115 @@
-# CLI
+# CLI — the terminal assistant
 
-The pydantic-deep CLI gives you a Claude Code-style AI coding assistant in your terminal — powered by the full [pydantic-deep](../index.md) framework.
+pydantic-deep ships its own terminal assistant: a Claude-Code-style coding agent that lives in your shell, built entirely on top of the [framework](../index.md) you've been reading about. You run it, it reads and writes your files, runs commands, searches the web, and remembers what you're working on — all inside a rich terminal UI.
 
-## Installation
+It's the same agent you'd assemble with [`create_deep_agent`][pydantic_deep.create_deep_agent], wrapped in a [Textual](https://textual.textualize.io/) interface. Nothing is hidden behind a SaaS — it's your code, your machine, your model key.
 
-### One command (macOS & Linux — recommended)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
-```
-
-Installs [uv](https://docs.astral.sh/uv/) if needed, then runs `uv tool install "pydantic-deep[cli]"`. No Python knowledge required.
-
-### pip / uv
+## Install
 
 ```bash
 pip install "pydantic-deep[cli]"
-# or
-uv tool install "pydantic-deep[cli]"
 ```
 
-## Quick Start
+That's the whole install. The `[cli]` extra pulls in Textual and the TUI dependencies on top of the core framework.
+
+!!! tip "One-line installer"
+    On macOS and Linux you can also run the bootstrap script, which installs
+    [uv](https://docs.astral.sh/uv/) for you and then does the rest:
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+    ```
+
+## Launch it
+
+From any project directory, just run the command:
+
+<div class="termy">
+
+```console
+$ cd my-project
+$ pydantic-deep
+```
+
+</div>
+
+The TUI opens. On the very first run it walks you through picking a provider and pasting an API key, then drops you into a chat. Type a request and watch the agent plan, edit files, and run commands live:
+
+<div class="termy">
+
+```console
+$ pydantic-deep
+
+> Find the failing test in tests/ and fix it
+
+  ● write_todos    drafting a 3-step plan
+  ● grep           "def test_" in tests/
+  ● read           tests/test_auth.py
+  ● edit           src/auth.py  (+4 -1)
+  ● execute        pytest tests/test_auth.py  ✓ 1 passed
+
+  Fixed it — the token check compared against the wrong field. Tests pass now.
+```
+
+</div>
+
+You wrote one sentence. The planning, file editing, shell, and todo tracking all came for free — that's the framework doing the work.
+
+## A tour of what it can do
+
+The assistant is the framework's features made interactive. Here's the breadth:
+
+- **Chat with a real coding agent.** Streaming responses, visible thinking, and every tool call rendered as it happens — no black box.
+- **Files and the shell.** It reads, writes, edits, globs, and greps your project, and runs commands. Prefix a line with `!` to run a shell command yourself (`!git status`), or drop `@path/to/file` into a prompt to pull a file's contents in.
+- **Subagents.** Big tasks get delegated to focused subagents that work in parallel, so the main thread stays clean.
+- **MCP servers.** Connect [Model Context Protocol](sessions-forking-mcp.md) servers to give the agent extra tools — databases, issue trackers, your own services. Manage them live with `/mcp`.
+- **Sessions.** Every conversation auto-saves. Resume any past one with `/load`, or manage them from the shell with `pydantic-deep threads list`.
+- **Live forking.** Branch a running conversation to explore an alternative without losing your place — `/fork` to split, `/merge` to bring a branch back. See [Sessions, forking & MCP](sessions-forking-mcp.md).
+- **Attachments and images.** Paste an image straight into the prompt (`/paste`) and the agent sees it; reference files with `@`.
+- **Themes.** Four built-in color themes — switch instantly with `/theme ocean`.
+- **Memory that sticks.** `/remember` saves a note across sessions; `/improve` reviews past sessions and proposes updates to your `AGENTS.md`, `SOUL.md`, and `MEMORY.md`.
+
+!!! note "Headless too"
+    The same agent runs non-interactively for CI, benchmarks, and scripts:
+
+    ```bash
+    pydantic-deep run "Fix the failing test in tests/test_auth.py" --json
+    ```
+
+    It prints the result (and usage stats with `--json`) and exits. See
+    [Commands](commands.md) for the full `run` reference.
+
+!!! tip "Sandbox it"
+    Add `--sandbox docker` to either `pydantic-deep` or `pydantic-deep run` and
+    every file and shell operation executes inside a container, with your
+    working directory mounted at `/workspace`. Your code stays on disk; side
+    effects stay in the box.
+
+## Configure it
+
+Settings live in `.pydantic-deep/config.toml` in your project, and the same
+defaults drive both the TUI and headless runs. Change them from inside the app
+with `/settings`, or from the shell:
 
 ```bash
-pydantic-deep
-```
-
-This launches the Textual-based TUI — a rich interactive interface with streaming chat, tool call visualization, session management, and slash commands.
-
-## Commands
-
-### Default — Launch TUI
-
-```bash
-pydantic-deep                        # Launch TUI (default)
-pydantic-deep tui                    # Explicit TUI command
-pydantic-deep tui --model anthropic:claude-sonnet-4-6
-pydantic-deep tui --working-dir /path/to/project
-```
-
-### `run` — Headless Execution
-
-```bash
-pydantic-deep run "Fix the failing test in test_auth.py"
-pydantic-deep run --task-file task.md --json
-pydantic-deep run "Refactor utils.py" --max-turns 50 --timeout 300
-pydantic-deep run -f task.md -w /path/to/project -m openai:gpt-5.4
-pydantic-deep run "Fix bug" --no-web-search --no-web-fetch --thinking false
-pydantic-deep run "Analyze data" --sandbox docker
-```
-
-Executes a single task non-interactively and prints the result to stdout. Designed for benchmarks (Terminal Bench), CI/CD pipelines, and scripted automation.
-
-All feature flags default from `.pydantic-deep/config.toml` — the same defaults as the TUI. Use flags to override specific features.
-
-| Option | Description |
-|--------|-------------|
-| `TASK` (argument) | Task description |
-| `--task-file`, `-f` | Read task from file |
-| `--model`, `-m` | Model override (from config) |
-| `--working-dir`, `-w` | Working directory (default: cwd) |
-| `--json` | Output result as JSON with usage stats |
-| `--max-turns` | Maximum number of agent turns |
-| `--timeout` | Timeout in seconds |
-| `--temperature` | Sampling temperature (default: 0.0 in headless) |
-| `--web-search` / `--no-web-search` | Web search (from config) |
-| `--web-fetch` / `--no-web-fetch` | Web fetch (from config) |
-| `--thinking` | Thinking effort: minimal/low/medium/high/xhigh/false (from config) |
-| `--todo` / `--no-todo` | Task planning (from config) |
-| `--subagents` / `--no-subagents` | Subagent delegation (from config) |
-| `--skills` / `--no-skills` | Skills system (from config) |
-| `--plan` / `--no-plan` | Plan mode (from config) |
-| `--memory` / `--no-memory` | Persistent memory (from config) |
-| `--teams` / `--no-teams` | Agent teams (from config) |
-| `--context` / `--no-context` | Auto-discover AGENTS.md/SOUL.md (from config) |
-| `--sandbox`, `-s` | Sandbox backend: `local` or `docker` (from config) |
-| `--browser` / `--no-browser` | Enable Playwright browser automation (from config, requires `pydantic-deep[browser]`) |
-| `--browser-headless` / `--browser-headed` | Run browser hidden or with visible window (default: headed) |
-
-JSON output includes the agent's response and token usage:
-
-```json
-{
-  "output": "Fixed the test by...",
-  "usage": {
-    "total_tokens": 15420,
-    "request_tokens": 12300,
-    "response_tokens": 3120,
-    "requests": 8
-  }
-}
-```
-
-### `init` — Initialize Project
-
-```bash
-pydantic-deep init
-```
-
-Creates `AGENTS.md`, `SOUL.md`, and `.pydantic-deep/` directory in the current project.
-
-### `skills` — Manage Skills
-
-```bash
-pydantic-deep skills list                     # List built-in + user skills
-pydantic-deep skills info code-review         # Show skill details
-pydantic-deep skills create my-skill          # Scaffold a new SKILL.md
-```
-
-### `threads` — Manage Sessions
-
-```bash
-pydantic-deep threads list                    # List saved sessions
-pydantic-deep threads delete abc12345         # Delete by ID prefix
-pydantic-deep threads export abc12345         # Export as markdown
-pydantic-deep threads export abc12345 -f json # Export as JSON
-```
-
-### `config` — Configuration
-
-```bash
-pydantic-deep config show                     # Show current config
 pydantic-deep config set model anthropic:claude-sonnet-4-6
 ```
 
-### `update` — Self-Update
+API keys are stored separately in `.pydantic-deep/keys.toml`, managed through
+the `/provider` command. CLI flags always win over config-file values. Full
+details in [Settings & themes](settings.md).
 
-```bash
-pydantic-deep update
-```
+## Recap
 
-Upgrades to the latest PyPI release. Uses `uv tool upgrade` when uv is available, otherwise falls back to pip.
+- The CLI is a self-hosted, Claude-Code-style terminal assistant built on the very same `create_deep_agent` you've been learning.
+- Install it with `pip install "pydantic-deep[cli]"` and launch it by running `pydantic-deep` in any project.
+- Out of the box it gives you streaming chat, file and shell tools, subagents, MCP, auto-saved sessions, live forking, image attachments, themes, and persistent memory.
+- Run the same agent headlessly with `pydantic-deep run`, and sandbox either mode with `--sandbox docker`.
 
-When a newer version is available, pydantic-deep shows a one-line notification at startup:
+### Where to go next
 
-```
-Update available: v0.3.6 → v0.3.7  Run: pydantic-deep update
-```
-
-The version check is cached for 24 hours — PyPI is never queried more than once per day.
-
-## TUI Features
-
-### Slash Commands
-
-| Command | Description |
-|---------|-------------|
-| `/help` | Show all commands and shortcuts |
-| `/clear` | Clear conversation history |
-| `/compact` | Compress context (LLM summarization or quick trim) |
-| `/context` | Show context usage with progress bar |
-| `/config` | View or change config (e.g., `/config set model ...`) |
-| `/copy` | Copy last response to clipboard |
-| `/copy-all` | Copy entire conversation to clipboard |
-| `/cost` | Show accumulated cost |
-| `/diff` | Show git diff |
-| `/improve` | Analyze past sessions and self-improve context files |
-| `/load` | Browse and resume a previous session |
-| `/model` | Switch model (interactive picker) |
-| `/provider` | Configure AI provider and API keys |
-| `/remember` | Save note to persistent memory |
-| `/save` | Session auto-save info |
-| `/settings` | Open settings screen |
-| `/skills` | List available skills |
-| `/theme` | Switch color theme |
-| `/todos` | Toggle TODO side panel |
-| `/tokens` | Show message and token stats |
-| `/undo` | Remove last turn |
-| `/version` | Show version |
-| `/quit` | Exit |
-
-### File References
-
-Type `@filename` in your prompt to include file contents. The TUI expands `@` references automatically.
-
-### Shell Commands
-
-Prefix with `!` to run shell commands directly:
-
-```
-!git status
-!make test
-```
-
-### Tool Approval
-
-When the agent calls sensitive tools (like `execute`), an approval modal shows:
-- Tool name and arguments
-- **Y** — approve once
-- **A** — auto-approve all
-- **N** — deny
-- **Esc** — cancel
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `/` | Open command picker |
-| `@` | Open file picker |
-| `Ctrl+J` | Toggle multiline input |
-| `Ctrl+K` | Toggle TODO panel |
-| `Ctrl+L` | Clear screen |
-| `Ctrl+R` | Search messages |
-| `Ctrl+C` | Interrupt agent |
-| `Ctrl+D` | Quit |
-| `F1` | Help |
-| `F2` | Settings |
-| `F5` | Context info |
-
-### Self-Improvement (`/improve`)
-
-The `/improve` command analyzes past conversation sessions and proposes updates to context files:
-
-- **MEMORY.md** — user facts (name, role, expertise), agent learnings (effective commands, file locations)
-- **SOUL.md** — communication preferences (language, style, tone)
-- **AGENTS.md** — project conventions and architecture facts
-
-Each proposed change shows confidence score and source sessions. You review and approve individually.
-
-### Themes
-
-Four built-in color themes:
-
-| Theme | Description |
-|-------|-------------|
-| `default` | Emerald green primary |
-| `ocean` | Blue primary |
-| `rose` | Pink/red primary |
-| `minimal` | Monochrome |
-
-Switch with `/theme ocean` or save to config.
-
-## Docker Sandbox
-
-Run the agent inside a Docker container for isolated code execution.
-The TUI stays in your terminal but all file operations and shell commands
-execute inside the container. Your working directory is mounted at
-`/workspace` so project files are shared.
-
-```bash
-# TUI with Docker sandbox (ephemeral — clean container every time)
-pydantic-deep tui --sandbox docker
-
-# Headless with Docker sandbox
-pydantic-deep run "Install pandas and analyze data.csv" --sandbox docker
-```
-
-Requires Docker to be running and `pydantic-ai-backend[docker]` installed:
-
-```bash
-pip install pydantic-ai-backend[docker]
-```
-
-### Named Containers (Reusable)
-
-By default, each session gets a fresh container. Use `--container <name>`
-to create a named container that persists between sessions — installed
-packages, caches, and other filesystem state survive restarts:
-
-```bash
-# Create/reuse a named container
-pydantic-deep tui --container ml-env
-pydantic-deep run "Train the model" --container ml-env
-
-# Different container for different workloads
-pydantic-deep tui --container web-dev
-```
-
-`--container` implies `--sandbox docker` automatically.
-
-### Container Management
-
-```bash
-# List containers for this project
-pydantic-deep sandbox list
-
-# Stop a named container
-pydantic-deep sandbox stop ml-env
-
-# Stop and remove all containers for this project
-pydantic-deep sandbox stop all --rm
-```
-
-### Config
-
-Set as default in config:
-
-```toml
-sandbox = "docker"
-sandbox_image = "python:3.12-slim"
-```
-
-The working directory is mounted read-write, so file changes always
-persist on the host. Shell commands, package installs, and other side
-effects stay inside the container.
-
-## Configuration
-
-Config file: `.pydantic-deep/config.toml`
-
-```toml
-model = "anthropic:claude-sonnet-4-6"
-include_skills = true
-include_plan = true
-include_memory = true
-include_subagents = true
-web_search = true
-web_fetch = true
-approve_tools = ["execute"]
-sandbox = "local"
-sandbox_image = "python:3.12-slim"
-include_browser = false       # opt-in: requires pydantic-deep[browser]
-browser_headless = false      # show browser window (default)
-```
-
-API keys: `.pydantic-deep/keys.toml` (managed via `/provider` command)
-
-CLI arguments always override config file values.
-
-## Debug Logging
-
-Per-session debug logs are saved to `.pydantic-deep/logs/`:
-
-```
-.pydantic-deep/logs/
-├── session-abc123.log     # Per-session log
-└── latest.log             # Symlink to current session
-```
-
-Logs include agent lifecycle events, tool calls with timing, command dispatches, notifications, subagent outputs, and errors with tracebacks. Last 20 session logs are kept automatically. All `app.notify()` calls (errors, warnings, info) are automatically logged.
-
-## Architecture
-
-```
-apps/cli/
-├── main.py              — Typer entry point (tui, run, init, skills, threads, config, update)
-├── update.py            — Version checking and self-update (PyPI cache, uv/pip upgrade)
-├── run.py               — Headless runner (execute_headless)
-├── tui.py               — TUI launcher (run_tui, run_preview)
-├── app.py               — DeepApp (Textual App root)
-├── commands.py          — Slash command dispatcher
-├── agent.py             — create_cli_agent() factory
-├── config.py            — Config system (.pydantic-deep/config.toml)
-├── prompts.py           — System prompt builder
-├── init.py              — Project initialization
-├── local_context.py     — Git/directory context detection
-├── debug_log.py         — Per-session debug logging
-├── keystore.py          — API key storage (keys.toml)
-├── messages.py          — Textual message types
-├── screens/
-│   ├── chat.py          — Main chat screen (streaming, tool calls, approval)
-│   ├── settings.py      — Settings form
-│   └── onboarding.py    — First-run provider setup
-├── modals/
-│   ├── command_picker.py
-│   ├── model_picker.py
-│   ├── session_picker.py
-│   ├── improve_review.py
-│   ├── approval.py
-│   ├── context_view.py
-│   ├── compact.py
-│   ├── diff_view.py
-│   ├── skills_view.py
-│   ├── help_view.py
-│   ├── remember.py
-│   ├── search.py
-│   └── file_picker.py
-├── widgets/
-│   ├── header.py
-│   ├── message_list.py
-│   ├── assistant_message.py
-│   ├── user_message.py
-│   ├── tool_call.py
-│   ├── input_area.py
-│   ├── status_bar.py
-│   ├── side_panel.py
-│   └── ...
-├── styles/
-│   ├── app.tcss          — Textual CSS
-│   └── themes.py         — Theme system
-└── skills/               — Built-in SKILL.md files
-```
+- [Install & first run →](getting-started.md) — set up a provider and send your first message.
+- [Commands →](commands.md) — every slash command and `pydantic-deep` subcommand.
+- [Keys & input →](keybindings.md) — shortcuts, `@` files, `!` shell, multiline input.
+- [Settings & themes →](settings.md) — config file, providers, themes, sandboxing.
+- [Sessions, forking & MCP →](sessions-forking-mcp.md) — save, resume, branch, and extend the assistant.

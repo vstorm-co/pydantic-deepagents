@@ -265,5 +265,5 @@ See the [Interactive Chat](interactive-chat.md) example for a complete implement
 ## Next Steps
 
 - [Interactive Chat](interactive-chat.md) - Full CLI chatbot with streaming
-- [Advanced: Streaming](../advanced/streaming.md) - Deep dive
+- [Advanced: Streaming](../learn/streaming.md) - Deep dive
 - [Full App](full-app.md) - WebSocket streaming in FastAPI

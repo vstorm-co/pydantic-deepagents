@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from pydantic_deep.toolsets.skills.exceptions import (
+from pydantic_deep.features.skills.exceptions import (
     SkillException,
     SkillNotFoundError,
     SkillResourceLoadError,
@@ -17,7 +17,7 @@ from pydantic_deep.toolsets.skills.exceptions import (
     SkillScriptExecutionError,
     SkillValidationError,
 )
-from pydantic_deep.toolsets.skills.local import (
+from pydantic_deep.features.skills.local import (
     CallableSkillScriptExecutor,
     FileBasedSkillResource,
     FileBasedSkillScript,
@@ -25,7 +25,7 @@ from pydantic_deep.toolsets.skills.local import (
     create_file_based_resource,
     create_file_based_script,
 )
-from pydantic_deep.toolsets.skills.types import (
+from pydantic_deep.features.skills.types import (
     SKILL_NAME_PATTERN,
     Skill,
     SkillResource,
@@ -685,7 +685,7 @@ class TestFileBasedSkillResourceYamlError:
 
     async def test_load_yaml_without_pyyaml(self, tmp_path: Path) -> None:
         """YAML file loaded without pyyaml returns raw content."""
-        import pydantic_deep.toolsets.skills.local as local_mod
+        import pydantic_deep.features.skills.local as local_mod
 
         yaml_file = tmp_path / "data.yaml"
         yaml_file.write_text("key: value")

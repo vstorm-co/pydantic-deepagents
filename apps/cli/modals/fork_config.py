@@ -38,6 +38,7 @@ from textual.widgets import Button, Input, Select, Static
 from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
 from apps.cli.forking import resolve_capability
 from apps.cli.modals.model_picker import ModelPickerModal
+from pydantic_deep.models import DEFAULT_JUDGE_MODEL
 
 if TYPE_CHECKING:
     from apps.cli.app import DeepApp
@@ -169,9 +170,7 @@ class ForkConfigModal(ModalScreen[None]):
         self._branch_budgets = self._pad(list(app.fork_branch_budgets), None)
         self._agent_model = str(getattr(app, "model_name", "")) or "default"
         self._merge_strategy = str(getattr(app, "fork_merge_strategy", "auto_with_fallback"))
-        self._judge_model = str(
-            getattr(app, "fork_judge_model", "anthropic:claude-haiku-4-5-20251001")
-        )
+        self._judge_model = str(getattr(app, "fork_judge_model", DEFAULT_JUDGE_MODEL))
         self._confidence_threshold = float(getattr(app, "fork_confidence_threshold", 0.80))
 
     def _pad(self, items: list, fill: object) -> list:
@@ -180,7 +179,7 @@ class ForkConfigModal(ModalScreen[None]):
             return items + [fill] * (self._branch_count - len(items))
         return items[: self._branch_count]
 
-    # ── compose ────────────────────────────────────────────────────────
+    # compose
 
     def compose(self) -> ComposeResult:
         self._snapshot_app_state()
@@ -264,12 +263,12 @@ class ForkConfigModal(ModalScreen[None]):
     def _fmt_float(value: float | None) -> str:
         return "" if value is None else f"{value}"
 
-    # ── focus management ───────────────────────────────────────────────
+    # focus management
 
     def on_mount(self) -> None:
         self.query_one("#fork-config-count", Input).focus()
 
-    # ── input helpers ──────────────────────────────────────────────────
+    # input helpers
 
     def _input(self, suffix: str) -> Input:
         return self.query_one(f"#{suffix}", Input)
@@ -304,7 +303,7 @@ class ForkConfigModal(ModalScreen[None]):
             return f"Must be positive, got {value}"
         return value
 
-    # ── resize ─────────────────────────────────────────────────────────
+    # resize
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "fork-config-count":
@@ -530,7 +529,7 @@ class ForkConfigModal(ModalScreen[None]):
     def action_cancel(self) -> None:
         self.dismiss(None)
 
-    # ── helpers ────────────────────────────────────────────────────────
+    # helpers
 
     def _app(self) -> DeepApp:
         return self.app  # type: ignore[return-value]

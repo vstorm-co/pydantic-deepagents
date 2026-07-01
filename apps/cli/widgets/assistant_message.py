@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 
@@ -22,6 +23,23 @@ _THINKING_TAIL_LINES = 6
 def _esc(text: str) -> str:
     """Escape `[` so Rich markup can't mis-pair tags inside model output."""
     return text.replace("[", r"\[")
+
+
+# A bare http(s) URL not already part of a markdown link `](url)` / autolink
+# `<url>` / attribute. Captured ones are wrapped as CommonMark autolinks so Rich
+# renders them as OSC-8 hyperlinks (cmd/ctrl+click to open in modern terminals).
+_BARE_URL_RE = re.compile(r"""(?<![\(<\]="'])\bhttps?://[^\s<>)\]]+""")
+
+
+def _linkify_bare_urls(text: str) -> str:
+    """Wrap bare URLs in `<...>` so Markdown turns them into clickable links."""
+
+    def repl(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        url = raw.rstrip(".,;:!?")
+        return f"<{url}>{raw[len(url) :]}"
+
+    return _BARE_URL_RE.sub(repl, text)
 
 
 def _fmt_tokens(count: int) -> str:
@@ -81,7 +99,7 @@ class AssistantMessage(Widget):
     def compose(self) -> ComposeResult:
         time_str = self._timestamp.strftime("%H:%M")
         self._label_widget = Static(
-            f"[bold green]Assistant[/bold green]  [dim]{time_str}[/dim]",
+            f"[$primary b]Assistant[/]  [$text-muted]{time_str}[/]",
             classes="assistant-label",
         )
         yield self._label_widget
@@ -179,6 +197,11 @@ class AssistantMessage(Widget):
         self._render_text()
 
     @property
+    def text(self) -> str:
+        """The accumulated assistant text (public accessor for copy commands)."""
+        return self._text
+
+    @property
     def is_empty(self) -> bool:
         """True when the message has no visible content."""
         return not self._text.strip() and not self._thinking.strip() and not self._tool_widgets
@@ -208,6 +231,6 @@ class AssistantMessage(Widget):
             return
         text = self._text.strip()
         if text:
-            self._text_widget.update(Markdown(text))
+            self._text_widget.update(Markdown(_linkify_bare_urls(text)))
         else:
             self._text_widget.update("")

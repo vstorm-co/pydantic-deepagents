@@ -257,7 +257,7 @@ class Skill:
 ```
 
 `Skill` also provides `@skill.resource` and `@skill.script` decorators for
-attaching callables. See [`Skill`][pydantic_deep.toolsets.skills.types.Skill].
+attaching callables. See [`Skill`][pydantic_deep.features.skills.types.Skill].
 
 ### SkillsDirectory
 
@@ -276,9 +276,9 @@ class SkillsDirectory:
     ) -> None: ...
 ```
 
-See [`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory].
+See [`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory].
 For non-local backends, use
-[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory].
+[`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory].
 
 ---
 

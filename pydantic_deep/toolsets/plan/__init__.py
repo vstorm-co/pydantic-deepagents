@@ -1,21 +1,34 @@
-"""Plan toolset for interactive implementation planning.
+"""Deprecated import location for the plan feature.
 
-Provides Claude Code-style plan mode with:
-- `ask_user`: Ask questions with predefined options during planning
-- `save_plan`: Save implementation plans to markdown files
-- Built-in planner subagent instructions
+The implementation moved to :mod:`pydantic_deep.features.plan` (see the
+CHANGELOG). This module re-exports the public names for backward compatibility
+and will be removed in the next minor release. Import from
+``pydantic_deep.features.plan`` or the top-level ``pydantic_deep`` instead.
 """
 
-from pydantic_deep.toolsets.plan.toolset import (
+from __future__ import annotations
+
+import warnings
+
+from pydantic_deep.features.plan import (
     DEFAULT_PLANS_DIR,
     PLANNER_DESCRIPTION,
     PLANNER_INSTRUCTIONS,
+    PlanOption,
     create_plan_toolset,
 )
 
 __all__ = [
-    "create_plan_toolset",
+    "DEFAULT_PLANS_DIR",
     "PLANNER_DESCRIPTION",
     "PLANNER_INSTRUCTIONS",
-    "DEFAULT_PLANS_DIR",
+    "PlanOption",
+    "create_plan_toolset",
 ]
+
+warnings.warn(
+    "pydantic_deep.toolsets.plan has moved to pydantic_deep.features.plan; "
+    "update your imports (this shim will be removed in the next minor release).",
+    DeprecationWarning,
+    stacklevel=2,
+)

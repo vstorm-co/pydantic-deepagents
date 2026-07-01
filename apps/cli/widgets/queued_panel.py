@@ -15,9 +15,12 @@ class QueuedWidget(Widget):
     DEFAULT_CSS = """
     QueuedWidget {
         height: auto;
-        padding: 1;
-        border: tall $surface-lighten-2;
+        padding: 0;
         margin: 1 0 0 0;
+    }
+    QueuedWidget #queued-title {
+        color: $text-muted;
+        text-style: bold;
     }
     """
 
@@ -25,7 +28,7 @@ class QueuedWidget(Widget):
     follow_up_count: reactive[int] = reactive(0)
 
     def compose(self) -> ComposeResult:
-        yield Static("[bold]Queued[/bold]", id="queued-title")
+        yield Static("Queued", id="queued-title")
         yield Static("", id="queued-list")
 
     def watch_steering_count(self) -> None:
@@ -58,11 +61,11 @@ class QueuedWidget(Widget):
 
         lines: list[str] = []
         if self.steering_count > 0:
-            lines.append(f"  {self.steering_count} steering")
+            lines.append(f"[$accent]{self.steering_count}[/] steering")
         if self.follow_up_count > 0:
-            lines.append(f"  {self.follow_up_count} follow-up")
+            lines.append(f"[$accent]{self.follow_up_count}[/] follow-up")
 
+        # Collapse when nothing is queued — this widget is pinned above the input.
+        self.display = bool(lines)
         if lines:
-            content.update("\n".join(lines))
-        else:
-            content.update("[dim]No queued messages[/dim]")
+            content.update("  ".join(lines))

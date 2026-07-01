@@ -15,20 +15,22 @@ from apps.cli.modals._filter_input import FilterInput as _FilterInput
 
 # Built-in commands with descriptions
 COMMANDS: list[tuple[str, str]] = [
+    ("/bug", "Open the GitHub issues page"),
     ("/clear", "Clear conversation history"),
     ("/compact", "Compress context (LLM summarization)"),
-    ("/config", "View or change settings (e.g., /config set model ...)"),
     ("/context", "Show context window usage"),
     ("/copy", "Copy last response to clipboard"),
     ("/copy-all", "Copy entire conversation to clipboard"),
     ("/cost", "Show accumulated cost"),
     ("/diff", "Show git diff"),
+    ("/export", "Export the conversation to a Markdown file (/export [path])"),
     ("/fork", "Spawn parallel branches from current state"),
     ("/fork diff", "Pick file + branches to open in external diff tool (PyCharm/VS Code)"),
     ("/fork-config", "Configure /fork branches, models, and budgets (persisted)"),
     ("/goal", "Keep working toward a condition (/goal <condition>, /goal clear)"),
     ("/help", "Show commands and shortcuts"),
     ("/improve", "Analyze sessions and self-improve"),
+    ("/info", "Show what's wired into the agent (tools, backend, MCP, context)"),
     ("/load", "Load a saved session"),
     ("/mcp", "Manage MCP servers (connect, login, test)"),
     ("/merge", "Resolve active fork — pick a winning branch"),
@@ -38,9 +40,11 @@ COMMANDS: list[tuple[str, str]] = [
     ("/quit", "Exit pydantic-deep"),
     ("/remember", "Add note to persistent memory"),
     ("/remind", "Switch periodic reminder mode"),
+    ("/retry", "Re-run the last prompt (drops the previous turn)"),
     ("/save", "Save current session"),
     ("/screenshot", "Export the current screen as an SVG image"),
-    ("/settings", "Open settings"),
+    ("/settings", "Change settings (toggle features, model, theme)"),
+    ("/shells", "List background shells (run_in_background processes)"),
     ("/skills", "List available skills"),
     ("/theme", "Switch color theme"),
     ("/todos", "Show todo list"),
@@ -167,21 +171,15 @@ class CommandPickerModal(ModalScreen[str | None]):
         self.query_one("#picker-filter", _FilterInput).focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        query = event.value.strip().lower()
-        if query:
-            filtered_cmds = [
-                (cmd, desc)
-                for cmd, desc in self._all_commands
-                if query in cmd.lower() or query in desc.lower()
-            ]
-            filtered_skills = [
-                (cmd, desc)
-                for cmd, desc in self._skill_commands
-                if query in cmd.lower() or query in desc.lower()
-            ]
-        else:
-            filtered_cmds = self._all_commands
-            filtered_skills = self._skill_commands
+        from apps.cli.fuzzy import fuzzy_filter
+
+        # Match against "cmd desc" so a query can hit either the command name or
+        # its description, then rank best matches first.
+        def _key(item: tuple[str, str]) -> str:
+            return f"{item[0]} {item[1]}"
+
+        filtered_cmds = fuzzy_filter(event.value, self._all_commands, key=_key)
+        filtered_skills = fuzzy_filter(event.value, self._skill_commands, key=_key)
 
         option_list = self.query_one("#picker-list", OptionList)
         option_list.clear_options()

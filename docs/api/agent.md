@@ -32,7 +32,7 @@
 | `styles_dir` | `str \| list[str] \| None` | `None` | Directories for custom style files |
 | `tools` | `Sequence[Tool \| Any] \| None` | `None` | Additional custom tools |
 | `toolsets` | `Sequence[AbstractToolset] \| None` | `None` | Additional toolsets |
-| `mcp_servers` | `Sequence[AbstractToolset] \| None` | `None` | MCP server toolsets to attach. See [MCP](../advanced/mcp.md) |
+| `mcp_servers` | `Sequence[AbstractToolset] \| None` | `None` | MCP server toolsets to attach. See [MCP](../learn/web-and-mcp.md) |
 | `capabilities` | `Sequence[AbstractCapability] \| None` | `None` | Additional capabilities to register |
 | `backend` | `BackendProtocol \| None` | `StateBackend()` | File storage backend |
 | `output_type` | `OutputSpec \| None` | `None` | Pydantic model for structured output |
@@ -129,7 +129,7 @@
 |-----------|------|---------|-------------|
 | `interrupt_on` | `dict[str, bool] \| None` | `None` | Tools requiring approval |
 | `plans_dir` | `str \| None` | `"/plans"` | Directory for plan files |
-| `message_queue` | `MessageQueue \| None` | `None` | Steering/follow-up message queue. See [Message Queue](../capabilities/message-queue.md) |
+| `message_queue` | `MessageQueue \| None` | `None` | Steering/follow-up message queue. See [Message Queue](../advanced/message-queue.md) |
 | `periodic_reminder` | `PeriodicReminderConfig \| bool \| None` | `None` | Periodic task reminders. See [Periodic Reminder](../advanced/periodic-reminder.md) |
 | `history_messages_path` | `str` | `".pydantic-deep/messages.json"` | Path for the message history archive |
 | `**agent_kwargs` | `Any` | - | Additional Agent constructor args |

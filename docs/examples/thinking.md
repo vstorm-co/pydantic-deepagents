@@ -1,6 +1,8 @@
 # Thinking Example
 
-This example demonstrates the thinking/reasoning capability for different complexity levels.
+Hard problems deserve more deliberation than easy ones. This example shows how to
+dial the agent's reasoning effort up or down — trading latency and tokens for
+deeper thinking when the task warrants it.
 
 ## Source Code
 

@@ -17,10 +17,10 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import ExecuteResponse, SandboxProtocol, StateBackend
+from pydantic_ai_backends import ExecuteResponse, SandboxProtocol, StateBackend, ensure_async
 
 from pydantic_deep import DeepAgentDeps, create_deep_agent, default_security_hook
-from pydantic_deep.capabilities.hooks import (
+from pydantic_deep.features.hooks.capability import (
     DEFAULT_BLOCKED_COMMANDS,
     DEFAULT_BLOCKED_READ_PATHS,
     DEFAULT_BLOCKED_WRITE_PATHS,
@@ -342,7 +342,8 @@ class TestParseCommandResult:
 
 class TestExecuteCommandHook:
     async def test_basic_command(self):
-        backend = FakeSandboxBackend({"checker": ExecuteResponse(output="", exit_code=0)})
+        raw_backend = FakeSandboxBackend({"checker": ExecuteResponse(output="", exit_code=0)})
+        backend = ensure_async(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="checker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -351,11 +352,12 @@ class TestExecuteCommandHook:
         )
         result = await _execute_command_hook(hook, hook_input, backend)
         assert result.allow is True
-        assert len(backend.executed) == 1
-        assert "checker" in backend.executed[0]
+        assert len(raw_backend.executed) == 1
+        assert "checker" in raw_backend.executed[0]
 
     async def test_command_receives_json_stdin(self):
-        backend = FakeSandboxBackend()
+        raw_backend = FakeSandboxBackend()
+        backend = ensure_async(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="my-checker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -363,13 +365,16 @@ class TestExecuteCommandHook:
             tool_input={"command": "ls"},
         )
         await _execute_command_hook(hook, hook_input, backend)
-        cmd = backend.executed[0]
+        cmd = raw_backend.executed[0]
         assert "printf" in cmd
         assert "my-checker" in cmd
         assert "execute" in cmd  # tool_name in JSON
 
     async def test_command_deny(self):
-        backend = FakeSandboxBackend({"blocker": ExecuteResponse(output="Blocked!", exit_code=2)})
+        raw_backend = FakeSandboxBackend(
+            {"blocker": ExecuteResponse(output="Blocked!", exit_code=2)}
+        )
+        backend = ensure_async(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="blocker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -381,11 +386,12 @@ class TestExecuteCommandHook:
         assert result.reason == "Blocked!"
 
     async def test_command_with_timeout(self):
-        backend = FakeSandboxBackend()
+        raw_backend = FakeSandboxBackend()
+        backend = ensure_async(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="slow-check", timeout=60)
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
         await _execute_command_hook(hook, hook_input, backend)
-        assert len(backend.executed) == 1
+        assert len(raw_backend.executed) == 1
 
 
 class TestExecuteHandlerHook:
@@ -425,7 +431,7 @@ class TestExecuteHandlerHook:
 
 class TestRunHook:
     async def test_command_hook(self):
-        backend = FakeSandboxBackend()
+        backend = ensure_async(FakeSandboxBackend())
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
         result = await _run_hook(hook, hook_input, backend)
@@ -488,7 +494,7 @@ class TestGetSandboxBackend:
     def test_sandbox_backend(self):
         backend = FakeSandboxBackend()
         deps = DeepAgentDeps(backend=backend)
-        assert _get_sandbox_backend(deps) is backend
+        assert _get_sandbox_backend(deps) is deps.backend
 
 
 class TestHooksCapability:

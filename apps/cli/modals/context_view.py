@@ -94,5 +94,5 @@ class ContextViewModal(ModalScreen[str | None]):
         if event.button.id == "btn-compact":
             self.dismiss("compact")
 
-    def action_dismiss(self) -> None:
+    def action_dismiss(self, result: object = None) -> None:
         self.dismiss(None)

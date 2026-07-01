@@ -10,7 +10,8 @@ from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, ToolReturnPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
 
-from pydantic_deep.capabilities.message_queue import (
+from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.message_queue import (
     MessageQueue,
     MessageQueueCapability,
     QueuedMessage,
@@ -18,7 +19,6 @@ from pydantic_deep.capabilities.message_queue import (
     format_steering,
     run_with_queue,
 )
-from pydantic_deep.deps import DeepAgentDeps
 
 _MODEL = TestModel()
 

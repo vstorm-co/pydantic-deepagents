@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import subprocess
 
 from textual.app import ComposeResult
@@ -58,60 +60,46 @@ class DiffViewModal(ModalScreen[None]):
 
     def compose(self) -> ComposeResult:
         with VerticalScroll(id="diff-container"):
-            try:
-                # Get branch
-                branch_result = subprocess.run(
-                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                    capture_output=True,
-                    text=True,
-                    cwd=self._working_dir,
-                    timeout=5,
-                )
-                branch = branch_result.stdout.strip() if branch_result.returncode == 0 else "?"
-
-                # Get stat
-                stat = subprocess.run(
-                    ["git", "diff", "--stat"],
-                    capture_output=True,
-                    text=True,
-                    cwd=self._working_dir,
-                    timeout=10,
-                )
-
-                # Get full diff
-                diff = subprocess.run(
-                    ["git", "diff"],
-                    capture_output=True,
-                    text=True,
-                    cwd=self._working_dir,
-                    timeout=10,
-                )
-
-                yield Static(f"[bold]Git Changes[/bold]  [dim]{branch}[/dim]\n")
-
-                if stat.stdout.strip():
-                    yield Static(stat.stdout.strip() + "\n")
-                else:
-                    yield Static("[dim]No uncommitted changes[/dim]\n")
-
-                # Also show staged changes
-                staged = subprocess.run(
-                    ["git", "diff", "--cached", "--stat"],
-                    capture_output=True,
-                    text=True,
-                    cwd=self._working_dir,
-                    timeout=10,
-                )
-                if staged.stdout.strip():
-                    yield Static(f"\n[bold]Staged[/bold]\n{staged.stdout.strip()}\n")
-
-                if diff.stdout.strip():
-                    yield Static(f"\n{_colorize_diff(diff.stdout)}")
-
-            except Exception as e:
-                yield Static(f"[bold]Git Changes[/bold]\n\n[red]Error: {e}[/red]")
-
+            yield Static("[dim]Loading diff…[/dim]", id="diff-content")
             yield Static("\n[dim]Esc or q to close[/dim]")
 
-    def action_dismiss(self) -> None:
+    def on_mount(self) -> None:
+        # git can be slow on big repos — gather the diff off the event loop so
+        # opening the modal never freezes the UI.
+        self.run_worker(self._load_diff(), exclusive=True)
+
+    async def _load_diff(self) -> None:
+        try:
+            text = await asyncio.to_thread(self._gather_diff)
+        except Exception as e:  # pragma: no cover - defensive
+            text = f"[bold]Git Changes[/bold]\n\n[red]Error: {e}[/red]"
+        with contextlib.suppress(Exception):
+            self.query_one("#diff-content", Static).update(text)
+
+    def _git(self, *args: str, timeout: int = 10) -> str:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            cwd=self._working_dir,
+            timeout=timeout,
+        )
+        return result.stdout
+
+    def _gather_diff(self) -> str:
+        """Run the git commands (blocking) and return the colorized markup."""
+        branch = self._git("rev-parse", "--abbrev-ref", "HEAD", timeout=5).strip() or "?"
+        stat = self._git("diff", "--stat").strip()
+        staged = self._git("diff", "--cached", "--stat").strip()
+        diff = self._git("diff")
+
+        parts = [f"[bold]Git Changes[/bold]  [dim]{branch}[/dim]\n"]
+        parts.append(stat + "\n" if stat else "[dim]No uncommitted changes[/dim]\n")
+        if staged:
+            parts.append(f"\n[bold]Staged[/bold]\n{staged}\n")
+        if diff.strip():
+            parts.append(f"\n{_colorize_diff(diff)}")
+        return "\n".join(parts)
+
+    def action_dismiss(self, result: object = None) -> None:
         self.dismiss(None)

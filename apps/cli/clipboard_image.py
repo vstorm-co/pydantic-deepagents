@@ -25,7 +25,7 @@ ClipboardImage = tuple[bytes, str]
 def _grab_via_pillow() -> ClipboardImage | None:
     """Cross-platform grab using Pillow's ImageGrab, if installed."""
     try:
-        from PIL import ImageGrab  # type: ignore[import-untyped]
+        from PIL import ImageGrab
     except Exception:
         return None
     try:

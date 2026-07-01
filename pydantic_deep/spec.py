@@ -46,6 +46,7 @@ from pydantic_ai_backends import StateBackend
 
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.checkpointing import CheckpointFrequency
 
 
 class DeepAgentSpec(BaseModel):
@@ -57,21 +58,14 @@ class DeepAgentSpec(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-
-    # Core
     model: str | None = None
     fallback_model: str | list[str] | None = None
-    base_prompt: str | None = None
     instructions: str | None = None
     output_style: str | None = None
     styles_dir: str | list[str] | None = None
     retries: int = 3
-
-    # Subagents
     subagents: list[dict[str, Any]] | None = None
     skill_directories: list[str] | None = None
-
-    # Include flags
     include_todo: bool = True
     include_filesystem: bool = True
     include_subagents: bool = True
@@ -82,60 +76,36 @@ class DeepAgentSpec(BaseModel):
     include_memory: bool = True
     include_checkpoints: bool = False
     include_teams: bool = False
+    include_monitoring: bool = True
     include_improve: bool = False
     include_liteparse: bool = False
     stuck_loop_detection: bool = True
     periodic_reminder: bool | None = None
     forking: bool = False
+    tool_search: bool = False
     web_search: bool = True
     web_fetch: bool = True
     thinking: bool | str = "high"
     include_history_archive: bool = True
-
-    # Subagent config
     max_nesting_depth: int = 1
-
-    # Interrupt
     interrupt_on: dict[str, bool] | None = None
-
-    # Processors
     eviction_token_limit: int | None = 20_000
     max_binary_content: int | None = 3
     patch_tool_calls: bool = True
-
-    # Filesystem
     edit_format: str = "hashline"
-
-    # Context management
     context_manager: bool = True
     context_manager_max_tokens: int | None = None
     summarization_model: str | None = None
-
-    # Context files
     context_files: list[str] | None = None
     context_discovery: bool = False
-
-    # Memory
     memory_dir: str | None = None
-
-    # Checkpointing
-    checkpoint_frequency: str = "every_tool"
+    checkpoint_frequency: CheckpointFrequency = "every_tool"
     max_checkpoints: int = 20
-
-    # History archive
     history_messages_path: str = ".pydantic-deep/messages.json"
-
-    # Cost tracking
     cost_tracking: bool = True
     cost_budget_usd: float | None = None
-
-    # Plans
     plans_dir: str | None = None
-
-    # Model settings
     model_settings: dict[str, Any] | None = None
-
-    # Instrumentation
     instrument: bool | None = None
 
 

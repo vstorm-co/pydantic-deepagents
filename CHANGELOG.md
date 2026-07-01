@@ -5,7 +5,118 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.34] - 2026-06-27
+
+A large release: a full CLI/TUI overhaul, a vertical-slice re-organization of the
+framework into `features/`, a new **Monitor** capability, broad edge-case
+hardening, and a documentation rewrite.
+
+### Added
+
+#### Framework
+
+- **Monitor — watch & react** (`pydantic_deep/features/monitoring/`). The agent starts a long-lived command (log tail, CI poll, file watch, dev server) with `start_monitor` / `list_monitors` / `stop_monitor`; each new line of matching output is pushed back into the conversation via the message queue, so the agent reacts without polling. `MonitorManager` drains the process on an interval, filters lines by an optional regex, and emits `MonitorEvent` batches through an `on_event` sink. Enabled by default (`include_monitoring=True`); needs a background-capable backend.
+- **Background process tools** surfaced from `pydantic-ai-backend` 0.2.15 (`run_in_background` / `read_output` / `kill_shell` / `list_shells`), so dev servers and watchers outlive a single `execute()` call (which kills its whole process tree on timeout).
+- **`ToolSearch` capability** (`pydantic_deep/features/tool_search/`) — defer situational toolsets so the model discovers them on demand. Off by default in the library, on in the CLI.
+- A built-in **`general-purpose` subagent** so the agent can delegate arbitrary multi-step work.
+
+#### CLI / TUI
+
+- New slash commands: **`/retry`** (re-run the last prompt, dropping the previous turn), **`/export [path]`** (save the conversation to Markdown), **`/shells`** (list background processes).
+- **Ctrl+P input-history picker** with fuzzy search; **fuzzy subsequence matching** in the `/` command and `@` file pickers (new `apps/cli/fuzzy.py`).
+- **Background-shells panel** pinned in the activity dock.
+- **Multi-line paste** switches the input to multiline, preserving code blocks.
+- Visible **attachment chips** + **drag-and-drop** files onto the input; clipboard image paste; quoted **`@"path with spaces"`** so spaced screenshots attach as images.
+- Interactive **`/settings`** modal (changes apply immediately) and an **`/info`** modal; `/help` and the command picker now list every command, guarded by a coverage test.
+- Warm **amber (Tau-inspired) default theme** with theme-aware chrome (header, status line, input, tool calls, diffs), animated welcome, and a boxed prompt.
+
+### Changed
+
+- **`@file` references now pass the path** (backticked) to the agent instead of inlining the whole file — the agent decides how to read it (full, sliced, or grep). Images still attach as multimodal content.
+- **`!shell` and `/diff` run off the event loop** (no UI freeze on long commands or large repos); the **`/load` session picker** loads asynchronously, sorts by modification time, and fuzzy-filters.
+- **Lean behavioral prompt** sections when `tool_search` is on (tools carry their own descriptions); folders-first directory tree in the context prompt.
+- **Prompt caching enabled on the OpenRouter path** (previously only the Anthropic cache keys were set), cutting cost on multi-turn / subagent runs.
+- Left sidebar replaced by activity panels pinned above the input; session + workspace moved to a footer; the status line carries live metrics.
+- Broad **type hardening** and de-duplication across the framework (pydantic models for improve insights, `Literal` status/action enums, typed deps/callbacks/coordinators, tightened public exports, drift guards on `DeepAgentSpec` and overloads); default models sourced from `pydantic_deep.models`.
+- **Pinned `pydantic-ai-backend>=0.2.15`** (background processes, read output ceiling, glob mtime sort, edit staleness guard, image downscaling, Python grep build-dir skip, `AsyncCompositeBackend`) and **`subagents-pydantic-ai>=0.2.8`** (dropping the local `RunUsage` shim); added `pillow` to the `cli` extra for image downscaling.
+- **Documentation rewritten in the FastAPI tutorial style** and restructured around FastAPI's Learn → Advanced → Reference model. New step-by-step **Tutorial — User Guide** (`docs/learn/`, 13 pages), a rewritten **Advanced User Guide** (`docs/advanced/`, 19 pages including new goal-loop and monitor pages), a full **CLI guide** (`docs/cli/`, 6 pages), an **Applications** section covering the reference apps (`docs/apps/`: DeepResearch, ACP/Zed, Harbor), and new API-reference pages (monitoring, goal, tool-search, message-queue). Concept/example/landing pages carry the same voice; the real Pydantic logo is used in the navbar/favicon; pages superseded by the tutorial were retired and cross-links updated. `mkdocs build --strict` passes clean. `CLAUDE.md` reflects the `features/` layout.
+- **Reorganized features into vertical-slice packages under `pydantic_deep/features/`.** Each feature now lives in one folder (`capability.py` + `toolset.py` + `service.py`/`types.py`) instead of being smeared across `toolsets/` and `capabilities/`. Top-level imports (`from pydantic_deep import …`) are unchanged. The old deep import paths remain as deprecation shims (emitting `DeprecationWarning`) and will be removed in the next minor release.
+  - `memory`: `pydantic_deep.toolsets.memory` / `pydantic_deep.capabilities.memory` → `pydantic_deep.features.memory`.
+  - `context`: `pydantic_deep.toolsets.context` / `pydantic_deep.capabilities.context` → `pydantic_deep.features.context`.
+  - `browser`: `pydantic_deep.toolsets.browser` / `pydantic_deep.capabilities.browser` → `pydantic_deep.features.browser`.
+  - `eviction`: `pydantic_deep.processors.eviction` → `pydantic_deep.features.eviction`.
+  - `patch`: `pydantic_deep.processors.patch` → `pydantic_deep.features.patch`.
+  - `history_archive`: `pydantic_deep.processors.history_archive` → `pydantic_deep.features.history_archive`.
+  - `stuck_loop`: `pydantic_deep.capabilities.stuck_loop` → `pydantic_deep.features.stuck_loop`.
+  - `periodic_reminder`: `pydantic_deep.capabilities.periodic_reminder` → `pydantic_deep.features.periodic_reminder`.
+  - `hooks`: `pydantic_deep.capabilities.hooks` → `pydantic_deep.features.hooks`.
+  - `message_queue`: `pydantic_deep.capabilities.message_queue` → `pydantic_deep.features.message_queue`.
+  - `teams`: `pydantic_deep.toolsets.teams` → `pydantic_deep.features.teams`.
+  - `plan`: `pydantic_deep.toolsets.plan` → `pydantic_deep.features.plan`.
+  - `checkpointing`: `pydantic_deep.toolsets.checkpointing` → `pydantic_deep.features.checkpointing`.
+  - `improve`: `pydantic_deep.improve` / `pydantic_deep.toolsets.improve` → `pydantic_deep.features.improve`.
+  - `skills`: `pydantic_deep.toolsets.skills` / `pydantic_deep.capabilities.skills` → `pydantic_deep.features.skills`.
+  - `forking`: `pydantic_deep.toolsets.forking` / `pydantic_deep.capabilities.forking` → `pydantic_deep.features.forking`.
+  - `liteparse`: `pydantic_deep.toolsets.liteparse` → `pydantic_deep.features.liteparse`.
+
+### Fixed
+
+- **Subagents crashing with `'RunUsage' object is not callable`** under pydantic-ai 2.0 (usage became a property), fixed upstream in `subagents-pydantic-ai` 0.2.8 and re-pinned here.
+- **Context-usage warning spammed on every update** — it now warns once per crossing above 90% with hysteresis (re-arms below 85%), instead of on every `ContextUpdated`.
+- **`/undo` left the removed turn on screen** — it now removes the turn's widgets too (`MessageList.remove_last_turn`), keeping the transcript in sync with history. `/retry` reuses the same path.
+- **Status bar overflow** that ghosted text beside the input.
+- Numerous edge cases: forking auto/vote merge and abort deadlocks; skills frontmatter / path containment / reserved words; eviction preview-on-write-failure and collision-safe ids; patch tool-call rebuild preserving `ModelRequest` fields; MCP stdio/stderr screen leaks; dropped uploads; corrupt-archive recovery; and Python warnings leaking onto the TUI.
+- CI: docs build (stale `eviction.create_content_preview` reference) and `mypy` errors.
+
+## [0.3.33] - 2026-06-26
+
+### Fixed
+
+- **Agent memory injection now keeps the most recent lines, not the oldest** ([#157](https://github.com/vstorm-co/pydantic-deepagents/issues/157)) (`pydantic_deep/toolsets/memory.py`). `format_memory_prompt` truncated an over-budget `MEMORY.md` by keeping the first `max_lines`, but `write_memory` appends new content to the end of the file, so the newest observations were the first to drop out. Truncation now keeps the recency tail (the dropped-line marker moves above the kept tail). Two additions from the same report: authors can pin a foundational head with a `<!-- deep:pin-end -->` marker (`DEFAULT_PIN_END_MARKER`), which is always injected in full so it survives truncation; and injection can be budgeted in approximate tokens via a new `max_tokens` that takes precedence over `max_lines` (reusing the `NUM_CHARS_PER_TOKEN` heuristic). `AgentMemoryToolset` and `MemoryCapability` gain `max_tokens` / `pin_marker`; subagents accept `extra.memory_max_tokens` / `extra.memory_pin_marker`.
+- **Subagent delegation no longer fails with a `read_memory` tool name collision** ([#155](https://github.com/vstorm-co/pydantic-deepagents/issues/155)) (`pydantic_deep/agent.py`). With `include_memory=True` and `include_subagents=True` (both default), the default subagent factory passed `include_memory=True` into each subagent's own `create_deep_agent`, which registered a second `AgentMemoryToolset` ('deep-memory', under the wrong "main" namespace) on top of the one `_inject_subagent_memory_toolset` already injects — a regression since 0.3.30 that made every delegation fail with `AgentMemoryToolset 'deep-memory' defines a tool whose name conflicts ...: 'read_memory'`. The factory no longer creates its own memory toolset; the injected one, correctly namespaced to the subagent, is the single source.
+
+## [0.3.32] - 2026-06-26
+
+### Changed
+
+- **Migrated to pydantic-ai 2.0.** pydantic-ai 2.0 removed the deprecated `Agent(history_processors=...)` parameter and the `pydantic_ai.usage.Usage` class. User-supplied `history_processors` are now wrapped in `ProcessHistory` capabilities and registered via the capabilities API (`pydantic_deep/agent.py`); the `history_processors=` argument to `create_deep_agent()` is unchanged. The CLI headless runner now uses `RunUsage` instead of `Usage` (`apps/cli/run.py`); its JSON output keys (`request_tokens` / `response_tokens`) are unchanged, sourced from `RunUsage.input_tokens` / `output_tokens`.
+- **`WebSearch` / `WebFetch` keep their local fallback under pydantic-ai 2.0** (`pydantic_deep/agent.py`). 2.0 changed the capability default to `local=None` (native-only), so a model whose provider lacks a native `WebFetchTool` now errored (`Native tool(s) ['WebFetchTool'] not supported by this model`) instead of falling back. We now pass `WebSearch(local="duckduckgo")` and `WebFetch(local=True)` to restore the pre-2.0 behaviour: the native tool is used when the provider supports it, and the local fallback kicks in otherwise.
+
+### Fixed
+
+- **`PatchToolCallsCapability` no longer drops a trailing `ModelRequest` left empty after stripping orphaned tool results** (`pydantic_deep/processors/patch.py`). Phase 2 removes `ToolReturnPart`s that have no matching `ToolCallPart`, then discarded any `ModelRequest` left with no parts. When that request was the **last** message — a resumed or interrupted history whose tail holds only orphaned results — dropping it left the history ending on a `ModelResponse`, which trips pydantic-ai's `Processed history must end with a `ModelRequest`` validation (`UserError`). This is the same class of bug as the upstream `LimitWarnerProcessor` fix. The stripped request is now kept as an empty `ModelRequest` structural placeholder (the shape pydantic-ai uses when resuming without a prompt) when it is the final message; interior empty requests are still dropped.
+
+### Dependencies
+
+- **Bumped `pydantic-ai-slim` to `>=2.0.0`** (`pyproject.toml`). pydantic-deep now targets the pydantic-ai 2.0 line (see *Changed* above). Consumers still pinned to pydantic-ai 1.x must stay on pydantic-deep 0.3.31.
+- **Bumped `summarization-pydantic-ai` to `>=0.1.10`** (`pyproject.toml`). Picks up two history-rewriting fixes of the same trailing-`ModelRequest` class: `LimitWarnerProcessor` no longer drops the already-empty trailing `ModelRequest` that pydantic-ai appends when resuming without a prompt, and `SlidingWindowProcessor` no longer trims history down to empty on a zero `keep`.
+
+## [0.3.31] - 2026-06-22
+
+### Changed
+
+- **Migrated all backend I/O from the sync `BackendProtocol` to the async `AsyncBackendProtocol`** ([#142](https://github.com/vstorm-co/pydantic-deepagents/pull/142), closes [#129](https://github.com/vstorm-co/pydantic-deepagents/issues/129)). Backends implemented over the network (HTTP/gRPC/etc.) can now be natively async instead of being forced through `asyncio.run(...)`. `DeepAgentDeps.__post_init__` auto-wraps any sync backend with `ensure_async()` (from `pydantic-ai-backend`), so **existing sync backends like `StateBackend` / `LocalBackend` keep working unchanged** — consumer code can always `await backend.X()`. Hooks, forking internals, skills discovery, context files, memory, eviction, and the examples were all updated to the async API (`pydantic_deep/deps.py`, `capabilities/hooks.py`, `toolsets/forking/*`, `toolsets/skills/backend.py`, `toolsets/context.py`, `toolsets/memory.py`, `toolsets/liteparse.py`, `processors/eviction.py`).
+
+  **Breaking changes for code that touched the backend directly:**
+  - `DeepAgentDeps.upload_file()` and `upload_files()` are now `async` — callers must `await` them.
+  - `ctx.deps.backend` is now an `AsyncBackendProtocol` (a wrapping `AsyncBackendAdapter` for sync backends). Direct calls like `ctx.deps.backend.read_bytes(path)` must become `await ctx.deps.backend.read_bytes(path)`. Code that needs the raw sync backend (e.g. backend-specific attributes, `BranchOverlay`'s synchronous overlay ops) should use the new `unwrap_backend()` helper in `pydantic_deep/deps.py`.
+  - `load_memory()` and related memory helpers in `pydantic_deep/toolsets/memory.py` are now `async`.
+
+### Dependencies
+
+- **Bumped vstorm-co packages** ([#156](https://github.com/vstorm-co/pydantic-deepagents/pull/156), Renovate) (`pyproject.toml`). `pydantic-ai-backend` to `>=0.2.14` (async backend adapter support: `ensure_async`, `AsyncBackendProtocol` / `AsyncSandboxProtocol`, `AsyncBackendAdapter` / `AsyncSandboxAdapter` — the foundation the async migration above is built on), and `summarization-pydantic-ai` to `>=0.1.9` (`ContextManagerCapability.after_tool_execute` no longer stringifies a `ToolReturn`, so large binary tool results are no longer inlined and rejected by the provider).
+
+## [0.3.30] - 2026-06-18
+
+### Fixed
+
+- **`subagent_extra_toolsets` now reaches immediate (depth-1) subagents** ([#141](https://github.com/vstorm-co/pydantic-deepagents/issues/141)) (`pydantic_deep/agent.py`). The parameter was forwarded into the subagent factory's `create_deep_agent()` call, but the factory builds subagents with `include_subagents=False`, so the toolsets were only ever consumed by nested sub-agents (depth 2+) — the immediate subagent never received them. The extra toolsets are now injected into each subagent's config `toolsets` (new `_inject_subagent_extra_toolsets()`, mirroring the context/memory injection helpers) and the factory reads them back via `extra_toolsets=`, so depth-1 subagents get the toolsets as intended.
+- **`write_todos` now persists to `deps.todos`** ([#148](https://github.com/vstorm-co/pydantic-deepagents/issues/148)) (`pydantic_deep/agent.py`). The todo tools are `tool_plain`, so the shared `_DepsTodoProxy` is their only channel to the per-run deps. The proxy was bound in `dynamic_instructions`, which pydantic-ai resolves in a throwaway `contextvars` context, so `write_todos` saw no deps and silently dropped every write (`read_todos` returned "No todos", `deps.todos` stayed `[]`). A new `_TodoProxyBinder` capability re-binds the proxy in `before_tool_execute` — in the tool's own context — so writes land while keeping per-run isolation.
+- **`--verbose` mode now runs tool calls** ([#147](https://github.com/vstorm-co/pydantic-deepagents/issues/147)) (`apps/cli/run.py`). `_run_verbose` broke out of the model-request stream on `FinalResultEvent` and abandoned it mid-flight, truncating the model turn so the agent never reached its tool-call nodes — `--verbose` printed a summary but applied no fixes. The stream now iterates to natural completion, matching the non-verbose path, so tool calls execute.
+
+### Changed
+
+- **Bumped vstorm-co packages** ([#151](https://github.com/vstorm-co/pydantic-deepagents/pull/151), Renovate) (`pyproject.toml`). `pydantic-ai-backend` to `>=0.2.13` (Windows CRLF doubling fix in `LocalBackend.write()` / `edit()`), `pydantic-ai-todo` to `>=0.2.6` (`asyncpg` is now an optional `[postgres]` extra), and `summarization-pydantic-ai` to `>=0.1.8` (`ContextManagerCapability` compress hooks now reflect what actually happened).
 
 ## [0.3.29] - 2026-06-12
 

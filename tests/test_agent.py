@@ -79,10 +79,8 @@ class TestCreateDeepAgent:
         defaults = dict(
             model=TEST_MODEL,
             edit_format=None,
-            subagent_extra_toolsets=None,
             context_files=None,
             context_discovery=False,
-            include_memory=False,
             memory_dir=None,
             web_search=False,
             web_fetch=False,
@@ -147,6 +145,46 @@ class TestCreateDeepAgent:
             # Caller's dict stays pristine across calls.
             assert "agent_factory" not in cfg
             assert cfg["toolsets"] == []
+
+    def test_subagent_factory_single_memory_toolset(self):
+        """Regression for #155: the default subagent factory must not register a
+        second AgentMemoryToolset.
+
+        `_inject_subagent_memory_toolset` adds one memory toolset under the
+        subagent's own name; the factory previously also passed
+        `include_memory=True`, so `create_deep_agent` added a second 'deep-memory'
+        toolset (under the wrong "main" name), causing a `read_memory` collision.
+        """
+        from pydantic_deep.agent import _inject_subagent_memory_toolset
+        from pydantic_deep.toolsets.memory import AgentMemoryToolset
+
+        cfg: SubAgentConfig = SubAgentConfig(
+            name="researcher", description="explores", instructions="explore", toolsets=[]
+        )
+        _inject_subagent_memory_toolset(cfg, None)
+
+        sub_agent = self._default_factory()(cfg)
+
+        seen: set[int] = set()
+        found: list[Any] = []
+
+        def _walk(toolsets: Any) -> None:
+            for ts in toolsets:
+                if id(ts) in seen:
+                    continue
+                seen.add(id(ts))
+                found.append(ts)
+                for attr in ("toolsets", "_toolsets", "wrapped"):
+                    inner = getattr(ts, attr, None)
+                    if isinstance(inner, (list, tuple)):
+                        _walk(inner)
+                    elif inner is not None and inner is not ts:
+                        _walk([inner])
+
+        _walk(list(getattr(sub_agent, "toolsets", []) or []))
+        memory_toolsets = [t for t in found if isinstance(t, AgentMemoryToolset)]
+        assert len(memory_toolsets) == 1
+        assert memory_toolsets[0]._agent_name == "researcher"
 
     def test_create_with_interrupt_on(self):
         """Test creating an agent with interrupt_on config."""
@@ -258,7 +296,7 @@ class TestCreateDefaultDeps:
         deps = create_default_deps()
 
         assert deps is not None
-        assert isinstance(deps.backend, StateBackend)
+        assert isinstance(deps.backend.unwrap(), StateBackend)
         assert deps.todos == []
         assert deps.subagents == {}
 
@@ -267,7 +305,7 @@ class TestCreateDefaultDeps:
         backend = StateBackend()
         deps = create_default_deps(backend=backend)
 
-        assert deps.backend is backend
+        assert deps.backend.unwrap() is backend
 
 
 class TestDeepAgentDeps:
@@ -341,7 +379,7 @@ class TestDeepAgentDeps:
 
     def test_checkpoint_store_set(self):
         """checkpoint_store can be passed to constructor."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         deps = DeepAgentDeps(checkpoint_store=store)
@@ -349,25 +387,25 @@ class TestDeepAgentDeps:
 
     def test_clone_for_subagent_propagates_checkpoint_store(self):
         """checkpoint_store is shared with subagent deps."""
-        from pydantic_deep.toolsets.checkpointing import InMemoryCheckpointStore
+        from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 
         store = InMemoryCheckpointStore()
         original = DeepAgentDeps(checkpoint_store=store)
         cloned = original.clone_for_subagent()
         assert cloned.checkpoint_store is store
 
-    def test_upload_file(self):
+    async def test_upload_file(self):
         """Test uploading a file."""
         deps = DeepAgentDeps(backend=StateBackend())
 
         content = b"id,name,value\n1,foo,100\n2,bar,200\n"
-        path = deps.upload_file("data.csv", content)
+        path = await deps.upload_file("data.csv", content)
 
         # Check path is correct
         assert path == "/uploads/data.csv"
 
         # Check file is in backend
-        file_data = deps.backend.read(path)
+        file_data = await deps.backend.read(path)
         assert file_data is not None
         assert "id,name,value" in file_data
 
@@ -377,17 +415,17 @@ class TestDeepAgentDeps:
         assert deps.uploads[path]["size"] == len(content)
         assert deps.uploads[path]["line_count"] == 3
 
-    def test_upload_file_custom_dir(self):
+    async def test_upload_file_custom_dir(self):
         """Test uploading a file to a custom directory."""
         deps = DeepAgentDeps(backend=StateBackend())
 
         content = b"test content"
-        path = deps.upload_file("test.txt", content, upload_dir="/custom/dir")
+        path = await deps.upload_file("test.txt", content, upload_dir="/custom/dir")
 
         assert path == "/custom/dir/test.txt"
         assert path in deps.uploads
 
-    def test_upload_file_binary(self):
+    async def test_upload_file_binary(self):
         """Test uploading a binary file (non-UTF-8)."""
         from unittest.mock import patch
 
@@ -396,29 +434,32 @@ class TestDeepAgentDeps:
         # Binary content - mock chardet to return no encoding (platform-dependent)
         content = bytes([0x80, 0x81, 0x82, 0xFF])
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
-            path = deps.upload_file("binary.dat", content)
+            path = await deps.upload_file("binary.dat", content)
 
         assert path == "/uploads/binary.dat"
         # Binary files should have line_count = None
         assert deps.uploads[path]["line_count"] is None
 
-    def test_upload_files_skips_failures(self):
-        """A failing file should not abort the rest of the batch."""
+    async def test_upload_files_skips_failures(self, caplog):
+        """A failing file should not abort the rest of the batch (and is logged, B9)."""
         from unittest.mock import patch
 
         deps = DeepAgentDeps(backend=StateBackend())
 
         real_upload_file = deps.upload_file
 
-        def flaky_upload_file(name, content, *, upload_dir="/uploads"):
+        async def flaky_upload_file(name, content, *, upload_dir="/uploads"):
             # Simulate a non-RuntimeError failure mid-batch (e.g. an
             # encoding/metadata error or a backend that raises directly).
             if name == "bad.bin":
                 raise ValueError("boom")
-            return real_upload_file(name, content, upload_dir=upload_dir)
+            return await real_upload_file(name, content, upload_dir=upload_dir)
 
-        with patch.object(deps, "upload_file", side_effect=flaky_upload_file):
-            paths = deps.upload_files(
+        with (
+            patch.object(deps, "upload_file", side_effect=flaky_upload_file),
+            caplog.at_level("WARNING"),
+        ):
+            paths = await deps.upload_files(
                 [
                     ("good1.csv", b"a,b\n1,2\n"),
                     ("bad.bin", b"\x00\x01"),
@@ -428,6 +469,8 @@ class TestDeepAgentDeps:
 
         # The bad file is skipped, the good ones still upload.
         assert paths == ["/uploads/good1.csv", "/uploads/good2.txt"]
+        # The skip is surfaced, not silent (B9).
+        assert any("bad.bin" in r.getMessage() for r in caplog.records)
 
     def test_get_uploads_summary_empty(self):
         """Test uploads summary with no uploads."""
@@ -436,12 +479,12 @@ class TestDeepAgentDeps:
 
         assert summary == ""
 
-    def test_get_uploads_summary_with_files(self):
+    async def test_get_uploads_summary_with_files(self):
         """Test uploads summary with uploaded files."""
         deps = DeepAgentDeps(backend=StateBackend())
 
-        deps.upload_file("data.csv", b"a,b,c\n1,2,3\n")
-        deps.upload_file("config.json", b'{"key": "value"}')
+        await deps.upload_file("data.csv", b"a,b,c\n1,2,3\n")
+        await deps.upload_file("config.json", b'{"key": "value"}')
 
         summary = deps.get_uploads_summary()
 
@@ -451,7 +494,7 @@ class TestDeepAgentDeps:
         assert "2 lines" in summary  # data.csv has 2 lines
         assert "read_file" in summary  # instruction about how to use files
 
-    def test_get_uploads_summary_with_binary_files(self):
+    async def test_get_uploads_summary_with_binary_files(self):
         """Test uploads summary with binary files (no line count)."""
         from unittest.mock import patch
 
@@ -459,7 +502,7 @@ class TestDeepAgentDeps:
 
         # Binary file - mock chardet to return no encoding (platform-dependent)
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
-            deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
+            await deps.upload_file("binary.dat", bytes([0x80, 0x81, 0x82]))
 
         summary = deps.get_uploads_summary()
 
@@ -748,3 +791,43 @@ class TestTodoProxyBinder:
             eviction_token_limit=None,
         )
         assert agent is not None
+
+
+class TestInjectSubagentExtraToolsets:
+    """Tests for _inject_subagent_extra_toolsets helper."""
+
+    def test_noop_when_empty(self):
+        """Empty extra_toolsets should be a no-op."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        sa_config: dict[str, Any] = {"name": "test", "instructions": "test"}
+        _inject_subagent_extra_toolsets(sa_config, ())
+        assert sa_config.get("toolsets") is None
+
+    def test_injects_into_config_without_toolsets(self):
+        """Extra toolsets should be added even when config has no toolsets key."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        class _FakeToolset:
+            pass
+
+        sa_config: dict[str, Any] = {"name": "test", "instructions": "test"}
+        toolset = _FakeToolset()
+        _inject_subagent_extra_toolsets(sa_config, (toolset,))
+        assert sa_config["toolsets"] == [toolset]
+
+    def test_extends_existing_toolsets(self):
+        """Extra toolsets should be appended to existing ones."""
+        from pydantic_deep.agent import _inject_subagent_extra_toolsets
+
+        class _FakeToolset:
+            pass
+
+        sa_config: dict[str, Any] = {
+            "name": "test",
+            "instructions": "test",
+            "toolsets": ["existing"],
+        }
+        toolset = _FakeToolset()
+        _inject_subagent_extra_toolsets(sa_config, (toolset,))
+        assert sa_config["toolsets"] == ["existing", toolset]

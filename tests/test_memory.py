@@ -6,7 +6,7 @@ from typing import Any
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend, WriteResult
+from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -86,38 +86,38 @@ class TestGetMemoryPath:
 class TestLoadMemory:
     """Tests for load_memory function."""
 
-    def test_load_existing(self):
+    async def test_load_existing(self):
         """Test loading an existing memory file."""
         backend = StateBackend()
         backend.write("/.deep/memory/main/MEMORY.md", "# Memory\n- item 1")
 
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert mem.agent_name == "main"
         assert mem.path == "/.deep/memory/main/MEMORY.md"
         assert "item 1" in mem.content
 
-    def test_load_missing(self):
+    async def test_load_missing(self):
         """Test loading a missing memory file returns None."""
         backend = StateBackend()
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is None
 
-    def test_load_utf8(self):
+    async def test_load_utf8(self):
         """Test loading memory with non-ASCII content."""
         backend = StateBackend()
         backend.write("/.deep/memory/main/MEMORY.md", "Polskie znaki: ąęćżź")
 
-        mem = load_memory(backend, "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert "ąęćżź" in mem.content
 
-    def test_load_default_agent_name(self):
+    async def test_load_default_agent_name(self):
         """Test load_memory with default agent_name."""
         backend = StateBackend()
         backend.write("/mem/MEMORY.md", "content")
 
-        mem = load_memory(backend, "/mem/MEMORY.md")
+        mem = await load_memory(ensure_async(backend), "/mem/MEMORY.md")
         assert mem is not None
         assert mem.agent_name == "main"
 
@@ -136,17 +136,93 @@ class TestFormatMemoryPrompt:
         assert "line3" in result
         assert "more lines" not in result
 
-    def test_truncation(self):
-        """Test that long memory is truncated."""
+    def test_truncation_keeps_most_recent_lines(self):
+        """Long memory keeps the most recent lines (the tail), not the oldest.
+
+        Regression for #157: `write_memory` appends, so the newest entries are
+        at the bottom of the file and must survive truncation.
+        """
         lines = [f"line {i}" for i in range(300)]
         content = "\n".join(lines)
         mem = MemoryFile(agent_name="main", path="/m", content=content)
         result = format_memory_prompt(mem, max_lines=100)
 
         assert "## Agent Memory (main)" in result
-        assert "line 0" in result
-        assert "line 99" in result
+        assert "line 299" in result  # newest kept
+        assert "line 200" in result  # start of the kept tail (last 100 lines)
+        assert "line 0" not in result  # oldest dropped
+        assert "line 199" not in result  # just before the tail, dropped
         assert "200 more lines in memory" in result
+
+    def test_pinned_head_survives_truncation(self):
+        """Content above the pin marker is always injected; the body is tailed."""
+        from pydantic_deep.features.memory import DEFAULT_PIN_END_MARKER
+
+        head = f"# Identity\nfoundational note\n{DEFAULT_PIN_END_MARKER}\n"
+        body = "\n".join(f"obs {i}" for i in range(50))
+        mem = MemoryFile(agent_name="main", path="/m", content=head + body)
+        result = format_memory_prompt(mem, max_lines=3)
+
+        assert "# Identity" in result  # pinned head kept
+        assert "foundational note" in result
+        assert "obs 49" in result  # newest body line kept
+        assert "obs 0" not in result  # oldest body line dropped
+        assert DEFAULT_PIN_END_MARKER not in result  # marker itself not injected
+        assert "47 more lines in memory" in result
+
+    def test_pinned_head_only_empty_body(self):
+        """A file that is only a pinned head injects the head with no marker."""
+        from pydantic_deep.features.memory import DEFAULT_PIN_END_MARKER
+
+        mem = MemoryFile(
+            agent_name="main",
+            path="/m",
+            content=f"# Identity\nonly head here\n{DEFAULT_PIN_END_MARKER}",
+        )
+        result = format_memory_prompt(mem, max_lines=3)
+
+        assert "# Identity" in result
+        assert "only head here" in result
+        assert "more lines in memory" not in result
+
+    def test_max_tokens_takes_precedence(self):
+        """`max_tokens` budgets the body and overrides `max_lines`."""
+        lines = [f"line {i}" for i in range(300)]
+        mem = MemoryFile(agent_name="main", path="/m", content="\n".join(lines))
+        # ~7 chars/line, NUM_CHARS_PER_TOKEN=4 → 10 tokens ≈ 40 chars ≈ 5 lines.
+        result = format_memory_prompt(mem, max_lines=300, max_tokens=10)
+
+        assert "line 299" in result  # newest kept
+        assert "line 0" not in result  # oldest dropped despite max_lines=300
+        assert "more lines in memory" in result
+
+    def test_max_tokens_large_budget_keeps_all(self):
+        """A generous `max_tokens` keeps the whole body untruncated."""
+        mem = MemoryFile(agent_name="main", path="/m", content="a\nb\nc")
+        result = format_memory_prompt(mem, max_lines=2, max_tokens=10_000)
+
+        assert "a" in result and "b" in result and "c" in result
+        assert "more lines in memory" not in result
+
+    def test_max_tokens_keeps_at_least_one_line(self):
+        """A single line larger than the token budget is still kept."""
+        mem = MemoryFile(
+            agent_name="main",
+            path="/m",
+            content="old\n" + "x" * 1000,
+        )
+        result = format_memory_prompt(mem, max_lines=200, max_tokens=1)
+
+        assert "x" * 1000 in result  # newest line kept even though it overflows
+        assert "1 more lines in memory" in result
+
+    def test_zero_max_lines_drops_all_body(self):
+        """`max_lines=0` keeps no body lines, only the dropped-count marker."""
+        mem = MemoryFile(agent_name="main", path="/m", content="a\nb\nc")
+        result = format_memory_prompt(mem, max_lines=0)
+
+        assert "3 more lines in memory" in result
+        assert "## Agent Memory (main)" in result
 
     def test_exact_limit(self):
         """Test content at exactly max_lines."""
@@ -273,6 +349,7 @@ class TestMemoryTools:
 
         assert "Memory updated" in result
         # Verify file was created
+        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
         raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"First entry" in raw
@@ -594,24 +671,25 @@ def _denied_backend_and_dir(tmp_path: Path) -> tuple[Any, str]:
 class TestMemoryFailureSurfacing:
     """Issue #135 — backend write/permission failures must be visible."""
 
-    def test_load_memory_raises_on_denied_path(self, tmp_path):
+    async def test_load_memory_raises_on_denied_path(self, tmp_path):
         """A denied path raises MemoryAccessError, not a silent None."""
         from pydantic_deep import MemoryAccessError
 
         backend, memory_dir = _denied_backend_and_dir(tmp_path)
+        async_backend = ensure_async(backend)
         path = get_memory_path(memory_dir, "main")
         try:
-            load_memory(backend, path, "main")
+            await load_memory(async_backend, path, "main")
             raise AssertionError("expected MemoryAccessError")
         except MemoryAccessError as exc:
             assert "denied" in str(exc).lower() or "outside" in str(exc).lower()
 
-    def test_load_memory_empty_existing_file_returns_none(self):
+    async def test_load_memory_empty_existing_file_returns_none(self):
         """An empty (but accessible) file is missing/empty memory, not an error."""
         backend = StateBackend()
         path = get_memory_path(DEFAULT_MEMORY_DIR, "main")
         backend.write(path, b"")
-        assert load_memory(backend, path, "main") is None
+        assert await load_memory(ensure_async(backend), path, "main") is None
 
     async def test_read_memory_surfaces_denied_access(self, tmp_path):
         """read_memory reports an error instead of 'No memory saved yet.'."""

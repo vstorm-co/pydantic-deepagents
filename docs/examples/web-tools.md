@@ -1,6 +1,8 @@
 # Web Tools Example
 
-This example demonstrates web search and fetch capabilities with independent control.
+Let the agent reach past its training cutoff. This example turns on web search
+and fetch — independently, so you can allow one without the other — and shows the
+agent answering with live information.
 
 ## Source Code
 

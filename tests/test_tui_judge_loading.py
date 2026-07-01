@@ -23,7 +23,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Static
 
 from apps.cli.widgets.judge_loading import JudgeAborted, JudgeLoadingScreen
-from pydantic_deep.types import MergeStrategy
+from pydantic_deep.features.forking.types import MergeStrategy
 
 
 class _ProbeApp(App[None]):

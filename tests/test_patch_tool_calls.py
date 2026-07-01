@@ -311,6 +311,27 @@ class TestPatchToolCallsProcessor:
         assert isinstance(result[1], ModelResponse)
         assert isinstance(result[2], ModelResponse)
 
+    def test_orphaned_tool_result_all_stripped_at_end_keeps_placeholder(self):
+        """A trailing request of only orphaned results survives as an empty placeholder.
+
+        Dropping the final message would leave the history ending on a
+        `ModelResponse`, tripping pydantic-ai's "Processed history must end with
+        a `ModelRequest`" validation. The stripped request is kept as an empty
+        `ModelRequest` — the structural placeholder pydantic-ai uses when
+        resuming without a prompt.
+        """
+        messages = [
+            ModelRequest(parts=[UserPromptPart(content="hello")]),
+            ModelResponse(parts=[TextPart(content="no tool calls here")]),
+            # Trailing request holding only an orphaned tool result.
+            ModelRequest(parts=[ToolReturnPart(tool_name="t1", content="r1", tool_call_id="c1")]),
+        ]
+        result = patch_tool_calls_processor(messages)
+        assert len(result) == 3
+        last = result[-1]
+        assert isinstance(last, ModelRequest)
+        assert last.parts == []
+
     def test_mixed_valid_and_orphaned_results(self):
         """Some ToolReturnParts have matching calls, some don't."""
         messages = [
@@ -492,3 +513,50 @@ class TestPatchExports:
         assert patch_tool_calls_processor is not None
         assert PatchToolCallsCapability is not None
         assert CANCELLED_MESSAGE == "Tool call was cancelled."
+
+
+class TestPatchPreservesRequestFieldsB3:
+    """B3: rebuilt ModelRequests keep instructions (and other fields), not dropped."""
+
+    def test_orphaned_call_prepend_preserves_instructions(self) -> None:
+        msgs: list[Any] = [
+            ModelResponse(parts=[ToolCallPart(tool_name="t", args={}, tool_call_id="c1")]),
+            ModelRequest(parts=[UserPromptPart(content="next")], instructions="SYSTEM"),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        reqs = [m for m in out if isinstance(m, ModelRequest)]
+        assert any(getattr(m, "instructions", None) == "SYSTEM" for m in reqs)
+
+    def test_orphaned_result_strip_preserves_instructions(self) -> None:
+        msgs: list[Any] = [
+            ModelRequest(
+                parts=[
+                    UserPromptPart(content="hi"),
+                    ToolReturnPart(tool_name="t", content="r", tool_call_id="ghost"),
+                ],
+                instructions="SYSTEM2",
+            ),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        assert len(out) == 1
+        assert isinstance(out[0], ModelRequest)
+        assert out[0].instructions == "SYSTEM2"
+        assert all(not isinstance(p, ToolReturnPart) for p in out[0].parts)
+
+
+class TestPatchBlankToolCallIdB11:
+    """B11: a blank tool_call_id isn't treated as an orphan (consistent with phase 2)."""
+
+    def test_blank_id_call_gets_no_synthetic_return(self) -> None:
+        msgs: list[Any] = [
+            ModelResponse(parts=[ToolCallPart(tool_name="t", args={}, tool_call_id="")]),
+        ]
+        out = patch_tool_calls_processor(msgs)
+        injected = [
+            p
+            for m in out
+            if isinstance(m, ModelRequest)
+            for p in m.parts
+            if isinstance(p, ToolReturnPart)
+        ]
+        assert injected == []

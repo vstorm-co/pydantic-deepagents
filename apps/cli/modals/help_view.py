@@ -11,16 +11,21 @@ from textual.widgets import Static
 _HELP_TEXT = """\
 [bold]Commands[/bold]
 
+  [bold cyan]/bug[/bold cyan]         Open the GitHub issues page
   [bold cyan]/clear[/bold cyan]       Clear conversation history
   [bold cyan]/compact[/bold cyan]     Compress context (LLM summarization)
   [bold cyan]/context[/bold cyan]     Show context window usage
   [bold cyan]/copy[/bold cyan]        Copy last response to clipboard
+  [bold cyan]/copy-all[/bold cyan]    Copy the entire conversation to clipboard
   [bold cyan]/cost[/bold cyan]        Show accumulated cost
   [bold cyan]/diff[/bold cyan]        Show git diff
+  [bold cyan]/export[/bold cyan]      Export the conversation to a Markdown file
   [bold cyan]/fork[/bold cyan]        Spawn N parallel branches (Live Run Forking)
   [bold cyan]/fork-config[/bold cyan]  Configure /fork branches, models, and budgets (persisted)
   [bold cyan]/goal[/bold cyan]        Keep working toward a condition (/goal clear to stop)
   [bold cyan]/help[/bold cyan]        Show this help
+  [bold cyan]/improve[/bold cyan]     Analyze past sessions and self-improve
+  [bold cyan]/info[/bold cyan]        Show what's wired in (tools, backend, MCP, context)
   [bold cyan]/load[/bold cyan]        Load a saved session
   [bold cyan]/mcp[/bold cyan]         Manage MCP servers (connect, login, import from Claude Code)
   [bold cyan]/merge[/bold cyan]       Resolve the active fork (pick a winner)
@@ -29,9 +34,13 @@ _HELP_TEXT = """\
   [bold cyan]/provider[/bold cyan]    Configure AI provider
   [bold cyan]/remember[/bold cyan]    Add note to persistent memory
   [bold cyan]/remind[/bold cyan]      Switch periodic reminder mode (off / first / context / llm)
+  [bold cyan]/retry[/bold cyan]       Re-run the last prompt (drops the previous turn)
   [bold cyan]/save[/bold cyan]        Show save status
+  [bold cyan]/screenshot[/bold cyan]  Export the current screen as an SVG image
   [bold cyan]/settings[/bold cyan]    Open settings (edit config.toml)
+  [bold cyan]/shells[/bold cyan]      List background shells (run_in_background)
   [bold cyan]/skills[/bold cyan]      List available skills
+  [bold cyan]/theme[/bold cyan]       Switch color theme
   [bold cyan]/todos[/bold cyan]       Toggle todo panel
   [bold cyan]/tokens[/bold cyan]      Show message count
   [bold cyan]/undo[/bold cyan]        Undo last turn
@@ -48,6 +57,8 @@ _HELP_TEXT = """\
   [bold]Ctrl+V[/bold]       Attach image from clipboard
   [bold]Ctrl+K[/bold]       Toggle todos panel
   [bold]Ctrl+L[/bold]       Clear screen
+  [bold]Ctrl+P[/bold]       Search input history
+  [bold]Ctrl+R[/bold]       Search messages
   [bold]Ctrl+C[/bold]       Interrupt / exit
   [bold]Ctrl+D[/bold]       Exit
   [bold]PgUp/PgDn[/bold]    Scroll messages
@@ -92,5 +103,5 @@ class HelpModal(ModalScreen[None]):
             yield Static(_HELP_TEXT)
             yield Static("[dim]Esc or q to close[/dim]")
 
-    def action_dismiss(self) -> None:
+    def action_dismiss(self, result: object = None) -> None:
         self.dismiss(None)

@@ -18,6 +18,7 @@ from pydantic_deep import (
     SharedTodoList,
     TeamMember,
     TeamMemberHandle,
+    TeamMemberSpec,
     TeamMessage,
     TeamMessageBus,
     create_deep_agent,
@@ -774,8 +775,8 @@ class TestCreateTeamToolset:
             ctx,
             "engineering",
             [
-                {"name": "alice", "role": "dev", "description": "Frontend dev"},
-                {"name": "bob", "role": "tester"},
+                TeamMemberSpec(name="alice", role="dev", description="Frontend dev"),
+                TeamMemberSpec(name="bob", role="tester"),
             ],
         )
         assert "engineering" in result
@@ -786,8 +787,10 @@ class TestCreateTeamToolset:
         """spawn_team errors if team already exists."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
-        result = await toolset.tools["spawn_team"].function(ctx, "team2", [{"name": "bob"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
+        result = await toolset.tools["spawn_team"].function(
+            ctx, "team2", [TeamMemberSpec(name="bob")]
+        )
         assert "Error" in result
         assert "already active" in result
 
@@ -795,7 +798,7 @@ class TestCreateTeamToolset:
         """assign_task creates and assigns a shared todo."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["assign_task"].function(ctx, "alice", "Build the homepage")
         assert "alice" in result
         assert "ID:" in result
@@ -812,7 +815,7 @@ class TestCreateTeamToolset:
         """assign_task errors for unknown member."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["assign_task"].function(ctx, "nobody", "Build something")
         assert "Error" in result
         assert "not found" in result
@@ -823,7 +826,7 @@ class TestCreateTeamToolset:
         toolset = create_team_toolset()
         ctx = _make_ctx()
         await toolset.tools["spawn_team"].function(
-            ctx, "team1", [{"name": "alice"}, {"name": "bob"}]
+            ctx, "team1", [TeamMemberSpec(name="alice"), TeamMemberSpec(name="bob")]
         )
         result = await toolset.tools["check_teammates"].function(ctx)
         assert "team1" in result
@@ -841,7 +844,7 @@ class TestCreateTeamToolset:
         """check_teammates shows shared tasks."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         await toolset.tools["assign_task"].function(ctx, "alice", "Build feature")
         result = await toolset.tools["check_teammates"].function(ctx)
         assert "Build feature" in result
@@ -851,7 +854,7 @@ class TestCreateTeamToolset:
         """message_teammate sends a message."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["message_teammate"].function(
             ctx, "alice", "Please review this"
         )
@@ -870,7 +873,7 @@ class TestCreateTeamToolset:
         """message_teammate errors for unknown member."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["message_teammate"].function(ctx, "nobody", "Hello")
         assert "Error" in result
         assert "not found" in result
@@ -879,7 +882,7 @@ class TestCreateTeamToolset:
         """dissolve_team cleans up the team."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["dissolve_team"].function(ctx)
         assert "team1" in result
         assert "dissolved" in result
@@ -895,9 +898,11 @@ class TestCreateTeamToolset:
         """Can spawn a new team after dissolving."""
         toolset = create_team_toolset()
         ctx = _make_ctx()
-        await toolset.tools["spawn_team"].function(ctx, "team1", [{"name": "alice"}])
+        await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         await toolset.tools["dissolve_team"].function(ctx)
-        result = await toolset.tools["spawn_team"].function(ctx, "team2", [{"name": "bob"}])
+        result = await toolset.tools["spawn_team"].function(
+            ctx, "team2", [TeamMemberSpec(name="bob")]
+        )
         assert "team2" in result
         assert "bob" in result
 

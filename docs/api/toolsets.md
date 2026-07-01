@@ -265,7 +265,7 @@ Modular capability tools.
 `SkillsToolset` is constructed directly (there is no separate factory function):
 
 ```python
-from pydantic_deep.toolsets.skills import SkillsToolset
+from pydantic_deep.features.skills import SkillsToolset
 
 toolset = SkillsToolset(
     skills=[...],
@@ -334,7 +334,7 @@ Read a resource file from a skill.
 #### Skill
 
 `Skill` is a dataclass (accessed via attributes, not dict keys). See
-[`Skill`][pydantic_deep.toolsets.skills.types.Skill] and the
+[`Skill`][pydantic_deep.features.skills.types.Skill] and the
 [Types reference](types.md#skill).
 
 ```python
@@ -354,7 +354,7 @@ class Skill:
 #### SkillsDirectory
 
 A filesystem skill source. See
-[`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory].
+[`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory].
 
 ```python
 class SkillsDirectory:
@@ -372,7 +372,7 @@ class SkillsDirectory:
 
 ## CheckpointToolset
 
-Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
+Manual checkpoint controls. See [Checkpointing](../learn/sessions.md).
 
 ### Tools
 
@@ -385,7 +385,7 @@ Manual checkpoint controls. See [Checkpointing](../advanced/checkpointing.md).
 ### Constructor
 
 ```python
-from pydantic_deep.toolsets.checkpointing import CheckpointToolset
+from pydantic_deep.features.checkpointing import CheckpointToolset
 
 toolset = CheckpointToolset(
     descriptions={
@@ -424,7 +424,7 @@ Multi-agent team management. See [Teams](../advanced/teams.md).
 ### Factory
 
 ```python
-from pydantic_deep.toolsets.teams import create_team_toolset
+from pydantic_deep.features.teams import create_team_toolset
 
 toolset = create_team_toolset(
     id="deep-team",
@@ -448,7 +448,7 @@ Or via `create_deep_agent(include_teams=True)`.
 
 ## MemoryToolset
 
-Persistent agent memory. See [Memory](../advanced/memory.md).
+Persistent agent memory. See [Memory](../learn/memory.md).
 
 ### Tools
 
@@ -461,7 +461,7 @@ Persistent agent memory. See [Memory](../advanced/memory.md).
 ### Constructor
 
 ```python
-from pydantic_deep.toolsets.memory import AgentMemoryToolset
+from pydantic_deep.features.memory import AgentMemoryToolset
 
 toolset = AgentMemoryToolset(
     agent_name="main",
@@ -500,7 +500,7 @@ Interactive planning with ask_user and save_plan. See [Plan Mode](../advanced/pl
 ### Factory
 
 ```python
-from pydantic_deep.toolsets.plan import create_plan_toolset
+from pydantic_deep.features.plan import create_plan_toolset
 
 toolset = create_plan_toolset(
     plans_dir="/plans",
@@ -520,7 +520,7 @@ toolset = create_plan_toolset(
 
 Or via `create_deep_agent(include_plan=True)` (default).
 
-::: pydantic_deep.toolsets.plan.create_plan_toolset
+::: pydantic_deep.features.plan.create_plan_toolset
     options:
       show_source: false
 
@@ -528,12 +528,12 @@ Or via `create_deep_agent(include_plan=True)` (default).
 
 ## ContextToolset
 
-Injects project context files into system prompt. See [Context Files](../advanced/context-files.md). Has no tools — only provides instructions via `get_instructions()`.
+Injects project context files into system prompt. See [Context Files](../learn/memory.md). Has no tools — only provides instructions via `get_instructions()`.
 
 ### Constructor
 
 ```python
-from pydantic_deep.toolsets.context import ContextToolset
+from pydantic_deep.features.context import ContextToolset
 
 toolset = ContextToolset(
     context_files=["/AGENTS.md", "/SOUL.md"],
@@ -548,14 +548,14 @@ toolset = ContextToolset(
 ## Skill Discovery
 
 Skill discovery is handled by the
-[`SkillsDirectory`][pydantic_deep.toolsets.skills.directory.SkillsDirectory] and
-[`BackendSkillsDirectory`][pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory]
+[`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory] and
+[`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory]
 classes (frontmatter parsing and directory traversal are internal implementation
 details). Pass these directly to `SkillsToolset` or to `create_deep_agent` via
 `skill_directories`:
 
 ```python
-from pydantic_deep.toolsets.skills import SkillsDirectory, SkillsToolset
+from pydantic_deep.features.skills import SkillsDirectory, SkillsToolset
 
 source = SkillsDirectory(path="~/.pydantic-deep/skills")
 skills = source.get_skills()  # dict[str, Skill]
@@ -565,19 +565,19 @@ toolset = SkillsToolset(directories=[source])
 
 ### Skill
 
-::: pydantic_deep.toolsets.skills.types.Skill
+::: pydantic_deep.features.skills.types.Skill
     options:
       show_source: false
 
 ### SkillsDirectory
 
-::: pydantic_deep.toolsets.skills.directory.SkillsDirectory
+::: pydantic_deep.features.skills.directory.SkillsDirectory
     options:
       show_source: false
 
 ### BackendSkillsDirectory
 
-::: pydantic_deep.toolsets.skills.backend.BackendSkillsDirectory
+::: pydantic_deep.features.skills.backend.BackendSkillsDirectory
     options:
       show_source: false
 

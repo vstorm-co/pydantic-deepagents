@@ -1,172 +1,152 @@
-# Browser Automation
+# Browser
 
-`BrowserCapability` gives agents full control of a real browser via [Playwright](https://playwright.dev/python/) — navigate URLs, click elements, fill forms, run JavaScript, and take screenshots.
+Give your agent a real headless browser. It can navigate, read rendered pages, click, fill forms, scroll, run JavaScript, and take screenshots — everything `WebFetch` can't do because the page needs a real browser to come alive.
 
-## Installation
+`WebFetch` reads static HTML. The browser drives an actual Chromium instance through [Playwright](https://playwright.dev/python/), so the agent can reach pages behind logins, JavaScript-heavy single-page apps, and interactive multi-step flows.
+
+## Install it
+
+The browser ships as an optional extra. Install it, then download the Chromium binary:
 
 ```bash
 pip install 'pydantic-deep[browser]'
 playwright install chromium
 ```
 
-Or install everything at once:
+!!! tip "Auto-install"
+    Forget the second step? No problem. On the first browser call, the agent runs
+    `playwright install chromium` for you (using your current interpreter, so
+    virtualenvs are respected) and retries. Set `auto_install=False` to turn that off.
 
-```bash
-pip install 'pydantic-deep[all]'
-playwright install chromium
-```
+## Turn it on
 
-## Quick Start
+The browser is a [capability](capabilities.md). Add one to your agent and the tools appear:
 
-```python
-from pydantic_deep import create_deep_agent
-from pydantic_deep.capabilities.browser import BrowserCapability
+```python hl_lines="2 5"
+from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep.features.browser import BrowserCapability
 
 agent = create_deep_agent(
     capabilities=[BrowserCapability()],
 )
+
+deps = DeepAgentDeps(backend=StateBackend())
 ```
 
-By default the browser window is **visible** (`headless=False`). To run without a window:
+## Run it
 
 ```python
-agent = create_deep_agent(
-    capabilities=[BrowserCapability(headless=True)],
+result = await agent.run(
+    "Go to https://example.com and tell me the page heading.",
+    deps=deps,
 )
+print(result.output)
 ```
 
-## CLI
+The agent calls `navigate`, reads the rendered page back as Markdown, and answers — all without a browser window popping up, because the browser runs **headless by default**.
 
-Browser automation is opt-in in the CLI:
+!!! example "Check it"
+    Pass `BrowserCapability(headless=False)` and run it again. This time Chromium
+    opens a real window and you can watch the agent drive it.
 
-```bash
-# TUI with browser
-pydantic-deep tui --browser
+## What just happened
 
-# Headless run with browser
-pydantic-deep run "Go to example.com and summarize the content" --browser
+`BrowserCapability` does two things:
 
-# Use headless mode (no visible window)
-pydantic-deep run "Scrape the table" --browser --browser-headless
+- It registers the **browser toolset** — the nine tools below — on your agent.
+- It manages the **browser lifecycle**. Chromium launches lazily on the *first* browser tool call and closes in a `finally` block when the run ends — on success, on error, or on cancellation. A run that never touches a browser tool pays zero Playwright overhead. No subprocess, no window.
 
-# Explicitly disable browser
-pydantic-deep run "Fix bug" --no-browser
-```
+A single tab is used throughout. If a link opens a popup or new tab, it's redirected back into the current tab.
 
-Or set as the default in config:
+## The tools
 
-```toml
-include_browser = true
-browser_headless = false   # visible window (default)
-```
+The agent gets nine tools. Page content comes back as Markdown, truncated to roughly `max_content_tokens` so a giant page can't blow your context.
 
-## BrowserCapability Options
+| Tool | What it does |
+|------|--------------|
+| `navigate` | Go to a URL; returns title, URL, and page content as Markdown |
+| `click` | Click a CSS selector (`button#submit`) or pixel coordinates (`'450,300'`) |
+| `type_text` | Fill an input field (replaces its value) |
+| `get_text` | Get full-page Markdown, or the text of one element by selector |
+| `screenshot` | Capture the page as a base64 PNG (`full_page=True` for the whole scroll) |
+| `scroll` | Scroll `up`, `down`, `left`, or `right` |
+| `go_back` / `go_forward` | Move through browser history |
+| `execute_js` | Run a JavaScript expression and get the result back |
+
+!!! note "The agent already knows when to reach for it"
+    `BrowserCapability` injects instructions telling the model to prefer the
+    lightweight `web_search` / `web_fetch` tools for static lookups, and to use the
+    browser only when a page needs login, JavaScript rendering, or interaction.
+
+## Configure it
+
+Every option is a constructor argument:
 
 ```python
 BrowserCapability(
-    headless=False,            # Show browser window (default)
-    allowed_domains=None,      # Restrict to these domains (None = all allowed)
-    screenshot_on_navigate=False,  # Auto-screenshot on every navigate call
-    max_content_tokens=4000,   # Truncate page content to ~N tokens
-    timeout_ms=30_000,         # Default timeout for navigation/interactions
+    headless=True,                 # no visible window (default)
+    allowed_domains=None,          # None = every domain allowed
+    screenshot_on_navigate=False,  # attach a screenshot to each navigate
+    max_content_tokens=4000,       # truncate page content to ~this many tokens
+    timeout_ms=30_000,             # navigation/interaction timeout
+    auto_install=True,             # auto-run `playwright install chromium`
 )
 ```
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `headless` | `bool` | `False` | Run browser without a visible window |
-| `allowed_domains` | `list[str] \| None` | `None` | Restrict navigation to these domains. Subdomains are allowed. |
-| `screenshot_on_navigate` | `bool` | `False` | Automatically take a screenshot after every `navigate` call |
-| `max_content_tokens` | `int` | `4000` | Truncate page text content to approximately this many tokens |
-| `timeout_ms` | `int` | `30000` | Default timeout in milliseconds for navigation and interactions |
+### Lock it down with a domain allowlist
 
-## Available Tools
+Hand an agent a browser and it can go anywhere — unless you say otherwise. `allowed_domains` confines it:
 
-The agent gets 9 browser tools:
-
-| Tool | Description |
-|------|-------------|
-| `navigate` | Go to a URL |
-| `click` | Click an element by CSS selector or text |
-| `type_text` | Type text into an input element |
-| `get_text` | Get text content of the current page |
-| `screenshot` | Take a screenshot (returns base64 PNG) |
-| `scroll` | Scroll the page by pixels |
-| `go_back` | Navigate to the previous page |
-| `go_forward` | Navigate to the next page |
-| `execute_js` | Execute arbitrary JavaScript and return result |
-
-## Domain Allowlist
-
-Restrict the agent to specific domains for security:
-
-```python
+```python hl_lines="2"
 BrowserCapability(
     allowed_domains=["docs.python.org", "github.com"],
 )
 ```
 
-Subdomains are automatically allowed — `github.com` also allows `api.github.com`, `gist.github.com`, etc.
+Subdomains come along for free — `github.com` also permits `api.github.com` and `gist.github.com`.
 
-## Lifecycle
+!!! info "Enforced at the network layer"
+    The allowlist isn't just checked in the `navigate` tool. It's enforced on every
+    top-level navigation request, so the agent can't slip past it by clicking a
+    cross-domain link, setting `location.href` from `execute_js`, or following a
+    popup. Off-limits pages never reach the model.
 
-The browser is started and stopped automatically around each agent run:
+## From the CLI
 
-```
-agent.run("...") starts
-  → Playwright launches Chromium
-  → BrowserCapability populates page reference
-  → Agent tools use the page
-  → Browser closes (on success, exception, or cancellation)
-agent.run() returns
-```
+The CLI bundles the browser too. It's **on by default** (and headless by default):
 
-A single browser tab is used. If the page navigates to a popup/new tab, it is automatically redirected into the same tab.
+```bash
+# Headless run with the browser available
+pydantic-deep run "Go to example.com and summarize it"
 
-## Examples
+# Watch it work in a real window
+pydantic-deep run "Scrape the pricing table" --browser-headed
 
-### Summarize a page
+# Launch the TUI with a visible browser
+pydantic-deep tui --browser-headed
 
-```python
-result = await agent.run(
-    "Go to https://docs.pydantic.dev and summarize the main features."
-)
-```
-
-### Fill a form
-
-```python
-result = await agent.run(
-    "Go to https://example.com/login, enter username 'test' and password 'pass', "
-    "then click the login button and tell me what happens."
-)
+# Turn the browser off entirely
+pydantic-deep run "Fix the bug" --no-browser
 ```
 
-### Screenshot and describe
+Or set the defaults in your config file:
 
-```python
-result = await agent.run(
-    "Take a screenshot of https://example.com and describe the layout."
-)
+```toml
+include_browser = true
+browser_headless = true   # headless (default); set false to show the window
 ```
 
-### Scrape data
+## Recap
 
-```python
-result = await agent.run(
-    "Go to https://example.com/table, extract all rows from the first table, "
-    "and return them as a JSON list."
-)
-```
+- `BrowserCapability` gives the agent a real Chromium browser via Playwright — beyond what `WebFetch` can read.
+- Install with `pip install 'pydantic-deep[browser]'` and `playwright install chromium` (or let `auto_install` handle the second step).
+- Add `capabilities=[BrowserCapability()]` and nine tools appear: navigate, click, type, screenshot, get_text, scroll, go_back/forward, execute_js.
+- Chromium launches lazily and is **headless by default**; runs that never use it pay nothing.
+- `allowed_domains` locks the agent to specific domains, enforced at the network layer.
+- The CLI ships it on by default — control it with `--browser` / `--no-browser` and `--browser-headed`.
 
-## Requirements
+Where to go next:
 
-- `playwright>=1.40.0` (bundled in `pydantic-deep[browser]`)
-- Chromium browser: `playwright install chromium`
-- `html2text>=2020.1` (optional — improves page content extraction)
-
-## Next Steps
-
-- [Web Tools](web-tools.md) — Lightweight read-only web access (WebSearch, WebFetch)
-- [Hooks](hooks.md) — Intercept browser tool calls for logging or access control
-- [Capabilities](middleware.md) — Overview of the Capabilities API
+- [Web search & MCP](../learn/web-and-mcp.md) — the lightweight read-only web tools.
+- [Capabilities & lifecycle](capabilities.md) — how capabilities like this one hook into a run.
+- [Hooks](hooks.md) — intercept browser tool calls for logging or access control.

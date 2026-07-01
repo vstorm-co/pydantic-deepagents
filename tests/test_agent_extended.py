@@ -12,8 +12,8 @@ from pydantic_deep import (
     StateBackend,
     create_deep_agent,
 )
-from pydantic_deep.toolsets.skills import Skill as SkillDataclass
-from pydantic_deep.toolsets.skills import SkillsToolset
+from pydantic_deep.features.skills import Skill as SkillDataclass
+from pydantic_deep.features.skills import SkillsToolset
 
 TEST_MODEL = TestModel()
 
@@ -267,7 +267,7 @@ class TestDeepAgentDepsExtended:
         """Test that __post_init__ works with non-StateBackend."""
         # This covers the branch where backend is NOT a StateBackend
         deps = DeepAgentDeps(backend=local_backend)
-        assert deps.backend is local_backend
+        assert deps.backend.unwrap() is local_backend
         # files dict should remain empty (not synced from backend)
         assert deps.files == {}
 
@@ -444,7 +444,7 @@ class TestFallbackModel:
         assert not isinstance(agent.model, FallbackModel)
 
     async def test_fallback_hook_dispatched_on_model_api_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -473,7 +473,7 @@ class TestFallbackModel:
         assert received[0].tool_input["primary"] is not None
 
     async def test_fallback_hook_not_triggered_for_non_api_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -501,7 +501,7 @@ class TestFallbackModel:
         assert received == []
 
     async def test_fallback_hook_not_triggered_for_auth_error(self) -> None:
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -561,7 +561,7 @@ class TestFallbackModel:
 
     async def test_hook_not_fired_for_last_model_in_exhausted_chain(self) -> None:
         """When the last model in the chain fails, no MODEL_FALLBACK_TRIGGERED hook fires."""
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -599,7 +599,7 @@ class TestFallbackModel:
         request, same coroutine context) must reset hop to 0 and fire the hook
         for the primary again - covering the auto-reset branch.
         """
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         received: list[HookInput] = []
 
@@ -640,7 +640,7 @@ class TestFallbackModel:
         from pydantic_ai_backends import StateBackend
 
         from pydantic_deep.agent import _fallback_hop_cv, _wrap_with_fallback_and_hooks
-        from pydantic_deep.capabilities.hooks import Hook, HookEvent, HookInput, HookResult
+        from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 
         seen_hops: list[int] = []
 
@@ -697,6 +697,44 @@ class TestFallbackModel:
         assert len(received) == 2
         pairs = {(r.tool_input["primary"], r.tool_input["fallback"]) for r in received}
         assert len(pairs) == 1, f"primary→fallback pair drifted across requests: {pairs}"
+
+    async def test_model_fallback_command_hook_wraps_sync_sandbox_backend(self) -> None:
+        """Regression: fallback command hooks receive the factory's sync backend.
+
+        The async migration made command hook dispatch require an async sandbox;
+        the fallback wrapper must normalize the sync sandbox before dispatching.
+        """
+        from pydantic_ai_backends import ExecuteResponse
+
+        from pydantic_deep.agent import _wrap_with_fallback_and_hooks
+        from pydantic_deep.features.hooks import Hook, HookEvent
+
+        class _CommandBackend(StateBackend):  # type: ignore[misc]
+            id = "command-backend"
+
+            def __init__(self) -> None:
+                super().__init__()
+                self.executed: list[str] = []
+
+            def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse:
+                self.executed.append(command)
+                return ExecuteResponse(output="", exit_code=0)
+
+        backend = _CommandBackend()
+        model = _wrap_with_fallback_and_hooks(
+            TestModel(),
+            [TestModel()],
+            [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
+            backend,
+        )
+
+        _fallback_on = cast(
+            "Awaitable[bool]",
+            model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
+        )
+        assert await _fallback_on is True
+        assert len(backend.executed) == 1
+        assert "model_fallback_triggered" in backend.executed[0]
 
     async def test_request_stream_resets_hop_counter(self) -> None:
         """`request_stream` must also zero the per-context hop counter."""

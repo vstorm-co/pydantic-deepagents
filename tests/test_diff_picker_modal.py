@@ -18,7 +18,7 @@ from textual.widgets import Static
 from apps.cli.app import DeepApp
 from apps.cli.modals.diff_picker import DiffPickerModal, DiffPickerResult
 from pydantic_deep import DeepAgentDeps, create_deep_agent
-from pydantic_deep.types import (
+from pydantic_deep.features.forking.types import (
     BranchChange,
     BranchDiffReport,
     BranchStatus,

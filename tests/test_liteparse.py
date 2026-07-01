@@ -9,7 +9,7 @@ import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
-from pydantic_deep.toolsets.liteparse import (
+from pydantic_deep.features.liteparse.toolset import (
     _NOT_INSTALLED_MSG,
     PARSE_DOCUMENT_DESCRIPTION,
     SCREENSHOT_DOCUMENT_DESCRIPTION,
@@ -94,7 +94,7 @@ class TestModuleImportGuards:
         original = sys.modules.get("liteparse")
         sys.modules["liteparse"] = fake_liteparse
         try:
-            import pydantic_deep.toolsets.liteparse as mod
+            import pydantic_deep.features.liteparse.toolset as mod
 
             importlib.reload(mod)
             assert mod._HAS_LITEPARSE is False
@@ -114,7 +114,7 @@ class TestGetParser:
     def test_lazy_init(self) -> None:
         ts = LiteparseToolset()
         mock_parser = MagicMock()
-        with patch("pydantic_deep.toolsets.liteparse._LiteParse", return_value=mock_parser):
+        with patch("pydantic_deep.features.liteparse.toolset._LiteParse", return_value=mock_parser):
             parser = ts._get_parser()
             assert parser is mock_parser
             assert ts._parser is mock_parser
@@ -134,7 +134,7 @@ class TestParseDocument:
     async def test_not_installed(self) -> None:
         ts = LiteparseToolset()
         ctx = _ctx()
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", False):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", False):
             result = await ts.tools["parse_document"].function(ctx, path="/doc.pdf")
         assert result == _NOT_INSTALLED_MSG
 
@@ -142,9 +142,9 @@ class TestParseDocument:
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = None
+        backend.read_bytes = AsyncMock(return_value=None)
         ctx = _ctx(backend)
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/missing.pdf")
         assert "File not found" in result
         assert "/missing.pdf" in result
@@ -153,7 +153,7 @@ class TestParseDocument:
     async def test_success(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"%PDF-1.4 fake content"
+        backend.read_bytes = AsyncMock(return_value=b"%PDF-1.4 fake content")
         ctx = _ctx(backend)
 
         mock_result = MagicMock()
@@ -164,7 +164,7 @@ class TestParseDocument:
         mock_parser.parse_async = AsyncMock(return_value=mock_result)
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/doc.pdf")
 
         assert "[3 page(s)]" in result
@@ -182,14 +182,14 @@ class TestParseDocument:
     async def test_cli_not_found_error(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"data"
+        backend.read_bytes = AsyncMock(return_value=b"data")
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
         mock_parser.parse_async = AsyncMock(side_effect=LiteparseCliNotFoundError("CLI missing"))
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/doc.pdf")
 
         assert "LiteParse CLI not found" in result
@@ -199,14 +199,14 @@ class TestParseDocument:
     async def test_generic_exception(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"data"
+        backend.read_bytes = AsyncMock(return_value=b"data")
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
         mock_parser.parse_async = AsyncMock(side_effect=RuntimeError("boom"))
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/doc.pdf")
 
         assert "Parse error" in result
@@ -221,7 +221,7 @@ class TestScreenshotDocument:
     async def test_not_installed(self) -> None:
         ts = LiteparseToolset()
         ctx = _ctx()
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", False):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", False):
             result = await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf")
         assert result == _NOT_INSTALLED_MSG
 
@@ -229,9 +229,9 @@ class TestScreenshotDocument:
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = None
+        backend.read_bytes = AsyncMock(return_value=None)
         ctx = _ctx(backend)
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/missing.pdf")
         assert "File not found" in result
 
@@ -239,7 +239,8 @@ class TestScreenshotDocument:
     async def test_success(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"pdfdata"
+        backend.read_bytes = AsyncMock(return_value=b"pdfdata")
+        backend.write = AsyncMock(return_value=MagicMock(error=None, path="/ok"))
         ctx = _ctx(backend)
 
         shot1 = MagicMock()
@@ -257,7 +258,7 @@ class TestScreenshotDocument:
         mock_parser.screenshot_async = AsyncMock(return_value=ss_result)
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(
                 ctx, path="/doc.pdf", output_dir="/screenshots"
             )
@@ -272,7 +273,7 @@ class TestScreenshotDocument:
     async def test_no_screenshots_generated(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"pdfdata"
+        backend.read_bytes = AsyncMock(return_value=b"pdfdata")
         ctx = _ctx(backend)
 
         ss_result = MagicMock()
@@ -282,7 +283,7 @@ class TestScreenshotDocument:
         mock_parser.screenshot_async = AsyncMock(return_value=ss_result)
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf")
 
         assert result == "No screenshots generated."
@@ -292,7 +293,7 @@ class TestScreenshotDocument:
         """Screenshots with no image_bytes are skipped."""
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"pdfdata"
+        backend.read_bytes = AsyncMock(return_value=b"pdfdata")
         ctx = _ctx(backend)
 
         shot = MagicMock()
@@ -307,7 +308,7 @@ class TestScreenshotDocument:
         mock_parser.screenshot_async = AsyncMock(return_value=ss_result)
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf")
 
         assert result == "No screenshots saved."
@@ -316,7 +317,7 @@ class TestScreenshotDocument:
     async def test_target_pages_forwarded(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"pdfdata"
+        backend.read_bytes = AsyncMock(return_value=b"pdfdata")
         ctx = _ctx(backend)
 
         shot = MagicMock()
@@ -330,7 +331,7 @@ class TestScreenshotDocument:
         mock_parser.screenshot_async = AsyncMock(return_value=ss_result)
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf", target_pages="1-3")
 
         call_kwargs = mock_parser.screenshot_async.call_args.kwargs
@@ -340,14 +341,14 @@ class TestScreenshotDocument:
     async def test_cli_not_found_error(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"data"
+        backend.read_bytes = AsyncMock(return_value=b"data")
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
         mock_parser.screenshot_async = AsyncMock(side_effect=LiteparseCliNotFoundError("no CLI"))
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf")
 
         assert "LiteParse CLI not found" in result
@@ -356,14 +357,14 @@ class TestScreenshotDocument:
     async def test_generic_exception(self) -> None:
         ts = LiteparseToolset()
         backend = MagicMock()
-        backend.read_bytes.return_value = b"data"
+        backend.read_bytes = AsyncMock(return_value=b"data")
         ctx = _ctx(backend)
 
         mock_parser = MagicMock()
         mock_parser.screenshot_async = AsyncMock(side_effect=OSError("disk full"))
         ts._parser = mock_parser
 
-        with patch("pydantic_deep.toolsets.liteparse._HAS_LITEPARSE", True):
+        with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/doc.pdf")
 
         assert "Screenshot error" in result

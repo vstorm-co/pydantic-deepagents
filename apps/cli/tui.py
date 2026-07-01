@@ -30,6 +30,17 @@ def run_tui(
     anyway without an agent so the user can configure via /provider or /settings.
     """
 
+    # Stop fastmcp/mcp/httpx from logging to the terminal — under the TUI their
+    # Rich/console handlers paint over the live screen (e.g. MCP `tools/list`).
+    # captureWarnings routes warnings.warn() to the (nulled) py.warnings logger
+    # instead of its default stderr print.
+    import logging as _logging
+
+    from apps.cli.debug_log import quiet_console_logging
+
+    _logging.captureWarnings(True)
+    quiet_console_logging()
+
     # Load saved API keys from keys.toml → os.environ
     load_keys()
 
@@ -73,6 +84,7 @@ def run_tui(
 
             _app.current_cost = run_cost
             _app.total_cost = total_cost
+            _app.cost_known = True
             # Post to current screen (not app) - Textual messages bubble up, not down
             if _app.screen is not None:
                 _app.screen.post_message(

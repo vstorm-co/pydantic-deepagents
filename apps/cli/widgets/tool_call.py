@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import os
+import re
 from typing import Any
 
 from rich.console import Group, RenderableType
@@ -11,6 +12,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.reactive import reactive
+from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import Static
 
@@ -83,23 +85,15 @@ def _highlight(content: str, lang: str) -> Syntax:
     )
 
 
-# Per-tool glyphs shown in the header for instant visual scanning.
-_TOOL_ICONS: dict[str, str] = {
-    "read_file": "\U0001f4d6",  # 📖
-    "write_file": "✍️",  # ✍️
-    "edit_file": "✏️",  # ✏️
-    "execute": "⚡",  # ⚡
-    "grep": "\U0001f50d",  # 🔍
-    "glob": "\U0001f4c1",  # 📁
-    "task": "\U0001f916",  # 🤖
-    "web_search": "\U0001f310",  # 🌐
-    "web_fetch": "\U0001f517",  # 🔗
-}
+# A single monochrome marker for every tool call — cohesive with the minimalist
+# theme and width-stable (unlike emoji, whose cell width varies by terminal).
+# The tool name carries the meaning; status (spinner/✓/✗) shows progress.
+_TOOL_MARKER = "›"
 
 
 def _tool_icon(tool_name: str) -> str:
-    """Return a leading glyph for a tool, defaulting to the diamond marker."""
-    return _TOOL_ICONS.get(tool_name, "◆")  # ◆
+    """Return the leading marker for a tool call."""
+    return _TOOL_MARKER
 
 
 def _rich_escape(text: str) -> str:
@@ -133,17 +127,52 @@ def _diff_lines(
             for line in old_lines[i1:i2]:
                 removed += 1
                 if len(rendered) < limit:
-                    rendered.append(f"{prefix}    ⎿  [red]- {_rich_escape(line)}[/red]")
+                    rendered.append(f"{prefix}    ⎿  [$error]- {_rich_escape(line)}[/]")
         if tag in ("replace", "insert"):
             for line in new_lines[j1:j2]:
                 added += 1
                 if len(rendered) < limit:
-                    rendered.append(f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]")
+                    rendered.append(f"{prefix}    ⎿  [$success]+ {_rich_escape(line)}[/]")
 
     shown = added + removed
     if shown > limit:
         rendered.append(f"[dim]{prefix}    ⎿  ... ({shown - limit} more changed lines)[/dim]")
     return rendered, added, removed
+
+
+_DISCOVERED_NAME_RE = re.compile(r"""['"]name['"]\s*:\s*['"]([^'"]+)['"]""")
+
+
+def _discovered_tool_names(result: str) -> list[str]:
+    """Names from a `search_tools` result (handles JSON or Python dict-repr)."""
+    if "discovered_tools" not in result:
+        return []
+    return _DISCOVERED_NAME_RE.findall(result)
+
+
+def _special_args_preview(tool_name: str, args: dict[str, Any]) -> str | None:
+    """Compact header for background-shell / web / search tools.
+
+    Returns ``None`` when ``tool_name`` is not one of these, so the caller falls
+    through to the main dispatch. Kept separate so :func:`_format_args_preview`
+    stays under the complexity budget.
+    """
+    if tool_name == "run_in_background":
+        one_line = " ".join(str(args.get("command", "?")).split())
+        return one_line[:79] + "…" if len(one_line) > 80 else one_line
+    if tool_name in ("read_output", "kill_shell"):
+        return str(args.get("shell_id", "?"))
+    if tool_name == "list_shells":
+        return ""
+    if tool_name in ("web_search", "web_fetch"):
+        query = args.get("query") or args.get("url", "?")
+        return f'"{query[:50]}"'
+    if tool_name == "search_tools":
+        queries = args.get("queries") or []
+        if isinstance(queries, list) and queries:
+            return ", ".join(f'"{q}"' for q in queries[:3])
+        return ""
+    return None
 
 
 def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
@@ -152,6 +181,9 @@ def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
     The header is a single line, so long values are trimmed here only; the
     full value (command, diff, content) is rendered in the body/expanded view.
     """
+    special = _special_args_preview(tool_name, args)
+    if special is not None:
+        return special
     if tool_name == "read_file":
         path = args.get("file_path") or args.get("path", "?")
         parts = [str(path)]
@@ -187,9 +219,6 @@ def _format_args_preview(tool_name: str, args: dict[str, Any]) -> str:
         name = args.get("subagent_type") or args.get("name", "?")
         desc = args.get("description", "")
         return f'{name}, "{desc[:40]}"'
-    elif tool_name in ("web_search", "web_fetch"):
-        query = args.get("query") or args.get("url", "?")
-        return f'"{query[:50]}"'
     elif tool_name in (
         "read_todos",
         "write_todos",
@@ -248,7 +277,7 @@ class ToolCallWidget(Widget):
     elapsed: reactive[float] = reactive(0.0)
     expanded: reactive[bool] = reactive(False)
 
-    _timer_handle: object | None = None
+    _timer_handle: Timer | None = None
 
     def __init__(
         self,
@@ -393,7 +422,7 @@ class ToolCallWidget(Widget):
                     )
                 return Group(*parts)
             body = [
-                f"{prefix}    ⎿  [green]+ {_rich_escape(line)}[/green]"
+                f"{prefix}    ⎿  [$success]+ {_rich_escape(line)}[/]"
                 for line in content_lines[:_PREVIEW_LIMIT]
             ]
             if len(content_lines) > _PREVIEW_LIMIT:
@@ -419,6 +448,35 @@ class ToolCallWidget(Widget):
                 )
             return "\n".join([*cmd_lines, *body])
 
+        # Background launch: show the command (▷) then the start confirmation.
+        if self.tool_name == "run_in_background":
+            cmd = str(self.args.get("command", ""))
+            cmd_lines = [
+                f"{prefix}    ⎿  [bold $accent]▷ {_rich_escape(line)}[/]"
+                for line in cmd.splitlines()
+            ]
+            out_lines = result.strip().splitlines()
+            body = [
+                f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]"
+                for line in out_lines[:_PREVIEW_LIMIT]
+            ]
+            return "\n".join([*cmd_lines, *body])
+
+        # Tool search: show the discovered tool names as accent chips, not raw JSON.
+        if self.tool_name == "search_tools":
+            names = _discovered_tool_names(result)
+            if names:
+                count = len(names)
+                head = (
+                    f"[dim]{prefix}    ⎿  discovered {count} tool{'s' if count != 1 else ''}[/dim]"
+                )
+                shown = names[:_PREVIEW_LIMIT]
+                chips = "  ".join(f"[$accent]{_rich_escape(n)}[/]" for n in shown)
+                more = (
+                    f"  [dim]+{count - _PREVIEW_LIMIT} more[/dim]" if count > _PREVIEW_LIMIT else ""
+                )
+                return f"{head}\n{prefix}       {chips}{more}"
+
         # Default: first lines of the result
         lines = result.strip().splitlines()
         if lines:
@@ -434,9 +492,9 @@ class ToolCallWidget(Widget):
         """Compact ``+N -M`` badge for edit/write tools (empty when no change)."""
         parts = []
         if self._added:
-            parts.append(f"[green]+{self._added}[/green]")
+            parts.append(f"[$success]+{self._added}[/]")
         if self._removed:
-            parts.append(f"[red]-{self._removed}[/red]")
+            parts.append(f"[$error]-{self._removed}[/]")
         return ("  " + " ".join(parts)) if parts else ""
 
     def _refresh_header(self) -> None:
@@ -455,24 +513,22 @@ class ToolCallWidget(Widget):
             else:
                 call_str = self.tool_name
             if self._cancelling:
-                header.update(
-                    f"{prefix}[yellow]{icon}[/yellow] {call_str}  [yellow]⏹ stopping…[/yellow]"
-                )
+                header.update(f"{prefix}[$warning]{icon}[/] {call_str}  [$warning]⏹ stopping…[/]")
             else:
                 frame = self._spinner.frame
-                right = f"{frame} {self._spinner.elapsed:.1f}s"
-                header.update(f"{prefix}{icon} {call_str}  {right}")
+                right = f"[$accent]{frame}[/] [$text-muted]{self._spinner.elapsed:.1f}s[/]"
+                header.update(f"{prefix}[$accent]{icon}[/] {call_str}  {right}")
         elif self.status == "success":
             call_str = f"{self.tool_name}({args_preview})" if args_preview else self.tool_name
             header.update(
-                f"{prefix}[green]{icon}[/green] {call_str}{badge}"
-                f"  [dim]{self.elapsed:.1f}s[/dim] [bold green]✓[/bold green]"
+                f"{prefix}[$success]{icon}[/] {call_str}{badge}"
+                f"  [$text-muted]{self.elapsed:.1f}s[/] [$success b]✓[/]"
             )
         elif self.status == "error":
             call_str = f"{self.tool_name}({args_preview})" if args_preview else self.tool_name
             header.update(
-                f"{prefix}[red]{icon}[/red] {call_str}{badge}"
-                f"  [dim]{self.elapsed:.1f}s[/dim] [bold red]✗[/bold red]"
+                f"{prefix}[$error]{icon}[/] {call_str}{badge}"
+                f"  [$text-muted]{self.elapsed:.1f}s[/] [$error b]✗[/]"
             )
 
     def _refresh_output(self) -> None:

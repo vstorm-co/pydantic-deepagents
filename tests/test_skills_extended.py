@@ -12,7 +12,7 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
 from pydantic_deep import create_deep_agent
-from pydantic_deep.toolsets.skills import (
+from pydantic_deep.features.skills import (
     Skill,
     SkillNotFoundError,
     SkillResource,
@@ -20,16 +20,17 @@ from pydantic_deep.toolsets.skills import (
     SkillsToolset,
     SkillValidationError,
 )
-from pydantic_deep.toolsets.skills.directory import (
+from pydantic_deep.features.skills.directory import (
     _discover_resources,
     _discover_scripts,
     _discover_skills,
+    _extract_skill_fields,
     _find_skill_files,
     _parse_skill_md,
     _parse_skill_md_regex,
     _validate_skill_metadata,
 )
-from pydantic_deep.toolsets.skills.local import LocalSkillScriptExecutor
+from pydantic_deep.features.skills.local import LocalSkillScriptExecutor
 
 # Directory — _parse_skill_md_regex (fallback parser)
 
@@ -827,7 +828,7 @@ class TestDirectoryCoverageEdgeCases:
 
     def test_parse_skill_md_regex_line_without_colon(self) -> None:
         """Regex parser handles lines without colon in frontmatter."""
-        import pydantic_deep.toolsets.skills.directory as dir_module
+        import pydantic_deep.features.skills.directory as dir_module
 
         original = dir_module._HAS_YAML
         try:
@@ -848,7 +849,7 @@ class TestDirectoryCoverageEdgeCases:
 
     def test_parse_skill_md_no_yaml(self) -> None:
         """Test fallback to regex parser when pyyaml unavailable."""
-        import pydantic_deep.toolsets.skills.directory as dir_module
+        import pydantic_deep.features.skills.directory as dir_module
 
         original = dir_module._HAS_YAML
         try:
@@ -889,7 +890,7 @@ class TestDirectoryCoverageEdgeCases:
         symlink = skill_dir / "evil.py"
         symlink.symlink_to(outside)
 
-        from pydantic_deep.toolsets.skills.local import LocalSkillScriptExecutor
+        from pydantic_deep.features.skills.local import LocalSkillScriptExecutor
 
         executor = LocalSkillScriptExecutor(timeout=10)
 
@@ -938,7 +939,7 @@ class TestToolsetCoverageEdgeCases:
             content="stuff",
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert 'description="API docs"' in xml
 
     def test_build_resource_xml_with_function_schema(self) -> None:
@@ -953,22 +954,22 @@ class TestToolsetCoverageEdgeCases:
             function_schema=mock_schema,
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert "parameters=" in xml
         assert "dynamic" in xml
 
     def test_build_script_xml_with_description(self) -> None:
-        from pydantic_deep.toolsets.skills import SkillScript
+        from pydantic_deep.features.skills import SkillScript
 
         script = SkillScript(name="run.py", uri="file:///run.py", description="Runs tests")
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert 'description="Runs tests"' in xml
 
     def test_build_script_xml_with_function_schema(self) -> None:
         from unittest.mock import MagicMock
 
-        from pydantic_deep.toolsets.skills import SkillScript
+        from pydantic_deep.features.skills import SkillScript
 
         mock_schema = MagicMock()
         mock_schema.json_schema = {"type": "object", "properties": {}}
@@ -979,7 +980,7 @@ class TestToolsetCoverageEdgeCases:
             function_schema=mock_schema,
         )
         toolset = SkillsToolset(skills=[], id="test")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert "parameters=" in xml
 
     def test_build_resource_xml_escapes_special_chars(self) -> None:
@@ -990,7 +991,7 @@ class TestToolsetCoverageEdgeCases:
             content="stuff",
         )
         toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
-        xml = toolset._build_resource_xml(resource)
+        xml = toolset._build_node_xml(resource, "resource")
         assert "<inject>" not in xml
         assert "&lt;inject&gt;" in xml
         # The closing of the resource tag is not broken by an injected quote.
@@ -998,7 +999,7 @@ class TestToolsetCoverageEdgeCases:
 
     def test_build_script_xml_escapes_special_chars(self) -> None:
         """Script name/description with XML-special chars are escaped."""
-        from pydantic_deep.toolsets.skills import SkillScript
+        from pydantic_deep.features.skills import SkillScript
 
         script = SkillScript(
             name='x"><evil>',
@@ -1006,7 +1007,7 @@ class TestToolsetCoverageEdgeCases:
             description="a & b <c>",
         )
         toolset = SkillsToolset(skills=[Skill(name="s", description="d", content="c")], id="t")
-        xml = toolset._build_script_xml(script)
+        xml = toolset._build_node_xml(script, "script")
         assert "<evil>" not in xml
         assert "&lt;evil&gt;" in xml
         assert "&amp;" in xml
@@ -1089,7 +1090,7 @@ class TestToolsetCoverageEdgeCases:
 
     async def test_find_script_with_multiple_scripts(self) -> None:
         """Find a script when skill has multiple scripts (loop iterates)."""
-        from pydantic_deep.toolsets.skills import SkillScript
+        from pydantic_deep.features.skills import SkillScript
 
         skill = Skill(
             name="test",
@@ -1161,7 +1162,7 @@ class TestToolsetCoverageEdgeCases:
 
     async def test_load_skill_with_scripts(self) -> None:
         """Load skill tool includes script XML."""
-        from pydantic_deep.toolsets.skills import SkillScript
+        from pydantic_deep.features.skills import SkillScript
 
         skill = Skill(
             name="test",
@@ -1217,7 +1218,7 @@ class TestToolsetCoverageEdgeCases:
 
     async def test_run_skill_script_via_tool(self, tmp_path: Path) -> None:
         """run_skill_script tool executes script and returns output."""
-        from pydantic_deep.toolsets.skills.local import (
+        from pydantic_deep.features.skills.local import (
             FileBasedSkillScript,
             LocalSkillScriptExecutor,
         )
@@ -1258,3 +1259,54 @@ class TestToolsetCoverageEdgeCases:
             tools["run_skill_script"],
         )
         assert "hello from script" in result
+
+
+class TestMalformedFrontmatterB1:
+    """B1: a malformed SKILL.md must not abort discovery of every other skill."""
+
+    def test_non_dict_frontmatter_normalised_to_empty(self) -> None:
+        fm, instr = _parse_skill_md("---\njust a bare string\n---\nBody text")
+        assert fm == {}
+        assert "Body text" in instr
+
+    def test_extract_fields_coerces_non_str_name_and_description(self) -> None:
+        fields = _extract_skill_fields(
+            {"name": 123, "description": 45},
+            "body",
+            validate=False,
+            name_fallback="fallback",
+            skill_file_label="x/SKILL.md",
+            stacklevel=2,
+        )
+        assert fields is not None
+        assert fields["name"] == "123"
+        assert fields["description"] == "45"
+
+    def test_validate_metadata_survives_non_str_name(self) -> None:
+        # Must not raise TypeError on len()/regex.
+        _validate_skill_metadata({"name": 123, "description": 0}, "ok")
+
+    def test_one_bad_skill_does_not_abort_scan(self, tmp_path: Path) -> None:
+        good = tmp_path / "good"
+        good.mkdir()
+        (good / "SKILL.md").write_text("---\nname: good-skill\ndescription: fine\n---\nDo good.")
+        bad = tmp_path / "bad"
+        bad.mkdir()
+        (bad / "SKILL.md").write_text("---\njust a string, not a mapping\n---\nbody")
+        skills = _discover_skills(tmp_path, validate=False)
+        assert any(s.name == "good-skill" for s in skills)
+
+
+class TestReservedWordSegmentMatchB15:
+    """B15: reserved-word check matches hyphen-segments, not substrings."""
+
+    def test_substring_lookalike_not_flagged(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # any warning -> test failure
+            assert _validate_skill_metadata({"name": "claudette-helper"}, "ok") is True
+
+    def test_reserved_segment_is_flagged(self) -> None:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _validate_skill_metadata({"name": "claude-helper"}, "ok")
+        assert any("reserved word" in str(w.message) for w in caught)

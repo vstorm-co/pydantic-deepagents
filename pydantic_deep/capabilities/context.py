@@ -1,56 +1,22 @@
-"""Context files capability for pydantic-deep agents."""
+"""Deprecated import location for `ContextFilesCapability`.
+
+The implementation moved to :mod:`pydantic_deep.features.context` (see the
+CHANGELOG). This module re-exports it for backward compatibility and will be
+removed in the next minor release. Import from
+``pydantic_deep.features.context`` or the top-level ``pydantic_deep`` instead.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+import warnings
 
-from pydantic_ai import RunContext
-from pydantic_ai.capabilities import AbstractCapability
+from pydantic_deep.features.context.capability import ContextFilesCapability
 
-from pydantic_deep.toolsets.context import ContextToolset
+__all__ = ["ContextFilesCapability"]
 
-
-@dataclass
-class ContextFilesCapability(AbstractCapability[Any]):
-    """Capability that injects project context files into the agent's system prompt.
-
-    Loads files like AGENTS.md, SOUL.md and injects their content
-    as instructions.
-
-    Example:
-        ```python
-        from pydantic_ai import Agent
-        from pydantic_deep.capabilities.context import ContextFilesCapability
-
-        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[ContextFilesCapability(
-            context_files=["/workspace/AGENTS.md"],
-        )])
-        ```
-    """
-
-    context_files: list[str] | None = None
-    context_discovery: bool = False
-    is_subagent: bool = False
-    max_chars: int = 20_000
-    _toolset: ContextToolset | None = field(default=None, init=False, repr=False)
-
-    def __post_init__(self) -> None:
-        if self.context_files or self.context_discovery:
-            self._toolset = ContextToolset(
-                context_files=self.context_files,
-                context_discovery=self.context_discovery,
-                is_subagent=self.is_subagent,
-                max_chars=self.max_chars,
-            )
-
-    def get_instructions(self) -> Any:
-        toolset = self._toolset
-
-        async def _instructions(ctx: RunContext[Any]) -> str | None:
-            if toolset is None or not hasattr(ctx.deps, "backend"):
-                return None
-            parts = await toolset.get_instructions(ctx)  # pragma: no cover
-            return "\n\n".join(p.content for p in parts) if parts else None  # pragma: no cover
-
-        return _instructions
+warnings.warn(
+    "pydantic_deep.capabilities.context has moved to pydantic_deep.features.context; "
+    "update your imports (this shim will be removed in the next minor release).",
+    DeprecationWarning,
+    stacklevel=2,
+)

@@ -15,14 +15,13 @@ from typing import Any
 from pydantic_ai import Agent
 from pydantic_ai._agent_graph import End, UserPromptNode
 from pydantic_ai.messages import (
-    FinalResultEvent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartDeltaEvent,
     TextPartDelta,
     ThinkingPartDelta,
 )
-from pydantic_ai.usage import Usage
+from pydantic_ai.usage import RunUsage
 
 from apps.cli.agent import create_cli_agent
 from apps.cli.init import ensure_initialized
@@ -153,7 +152,7 @@ async def execute_headless(  # noqa: C901
             result = await run_coro
 
         if output_json:
-            output = _build_json_output(result.output, result.usage())
+            output = _build_json_output(result.output, result.usage)
             print(json.dumps(output, indent=2, default=str))
         else:
             print(result.output)
@@ -165,11 +164,8 @@ async def execute_headless(  # noqa: C901
             deps.backend.stop()
 
 
-async def _run_verbose(  # noqa: C901
-    agent: Any, task: str, deps: Any, run_kwargs: dict[str, Any]
-) -> Any:
+async def _run_verbose(agent: Any, task: str, deps: Any, run_kwargs: dict[str, Any]) -> Any:
     """Run agent with verbose progress on stderr."""
-
     _log = lambda msg: print(msg, file=sys.stderr, flush=True)  # noqa: E731
     start = _time.monotonic()
 
@@ -191,8 +187,6 @@ async def _run_verbose(  # noqa: C901
                                 thinking_chars += len(event.delta.content_delta or "")
                             elif isinstance(event.delta, TextPartDelta):
                                 text_chars += len(event.delta.content_delta or "")
-                        elif isinstance(event, FinalResultEvent):
-                            break
                     if thinking_chars:
                         t = _time.monotonic() - start
                         _log(f"[{t:6.1f}s]   thinking: {thinking_chars} chars")
@@ -217,22 +211,22 @@ async def _run_verbose(  # noqa: C901
 
     assert run.result is not None
     total = _time.monotonic() - start
-    usage = run.result.usage()
+    usage = run.result.usage
     _log(
         f"[{total:6.1f}s] done — "
-        f"in:{usage.request_tokens} out:{usage.response_tokens} reqs:{usage.requests}"
+        f"in:{usage.input_tokens} out:{usage.output_tokens} reqs:{usage.requests}"
     )
     return run.result
 
 
-def _build_json_output(output: str, usage: Usage) -> dict[str, Any]:
+def _build_json_output(output: str, usage: RunUsage) -> dict[str, Any]:
     """Build a JSON-serializable output dict."""
     return {
         "output": output,
         "usage": {
             "total_tokens": usage.total_tokens,
-            "request_tokens": usage.request_tokens,
-            "response_tokens": usage.response_tokens,
+            "request_tokens": usage.input_tokens,
+            "response_tokens": usage.output_tokens,
             "requests": usage.requests,
         },
     }

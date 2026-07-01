@@ -190,7 +190,7 @@ class MCPViewModal(ModalScreen[None]):
                 id="mcp-help",
             )
 
-    # ── rendering ────────────────────────────────────────────────────────
+    # rendering
 
     def _servers(self) -> list[MCPServerConfig]:
         return self._registry.list_servers()
@@ -227,7 +227,7 @@ class MCPViewModal(ModalScreen[None]):
             return None
         return servers[self._index]
 
-    # ── actions ────────────────────────────────────────────────────────────
+    # actions
 
     def action_move(self, delta: int) -> None:
         servers = self._servers()

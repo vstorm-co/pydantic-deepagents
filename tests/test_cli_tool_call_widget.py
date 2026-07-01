@@ -7,6 +7,7 @@ from rich.syntax import Syntax
 
 from apps.cli.widgets.tool_call import (
     _diff_lines,
+    _discovered_tool_names,
     _format_args_preview,
     _highlight,
     _lang_for_path,
@@ -14,10 +15,51 @@ from apps.cli.widgets.tool_call import (
 )
 
 
+def test_discovered_tool_names_json_and_repr() -> None:
+    json_form = '{"discovered_tools": [{"name": "task"}, {"name": "check_task"}]}'
+    repr_form = "{'discovered_tools': [{'name': 'task'}, {'name': 'fork_run'}]}"
+    assert _discovered_tool_names(json_form) == ["task", "check_task"]
+    assert _discovered_tool_names(repr_form) == ["task", "fork_run"]
+    assert _discovered_tool_names("not a discovery result") == []
+
+
+def test_search_tools_args_preview_shows_queries() -> None:
+    out = _format_args_preview("search_tools", {"queries": ["subagent delegation"]})
+    assert out == '"subagent delegation"'
+    assert _format_args_preview("search_tools", {}) == ""
+
+
+async def test_search_tools_preview_renders_chips_not_json() -> None:
+    from textual.app import App, ComposeResult
+
+    from apps.cli.widgets.tool_call import ToolCallWidget
+
+    captured: dict[str, ToolCallWidget] = {}
+
+    class _Harness(App[None]):
+        def compose(self) -> ComposeResult:
+            w = ToolCallWidget("search_tools", {"queries": ["x"]}, "s1")
+            captured["w"] = w
+            yield w
+
+    app = _Harness()
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        w = captured["w"]
+        w.complete("{'discovered_tools': [{'name': 'task'}, {'name': 'check_task'}]}", 0.0)
+        await pilot.pause()
+        preview = w.result_preview
+        assert isinstance(preview, str)
+        assert "discovered 2 tools" in preview
+        assert "task" in preview and "check_task" in preview
+        assert "discovered_tools" not in preview  # raw JSON not shown
+
+
 def test_tool_icon_known_and_default() -> None:
-    assert _tool_icon("execute") == "⚡"
-    assert _tool_icon("read_file") == "\U0001f4d6"
-    assert _tool_icon("totally_unknown") == "◆"
+    # One monochrome marker for every tool (cohesive minimalist theme).
+    assert _tool_icon("execute") == "›"
+    assert _tool_icon("read_file") == "›"
+    assert _tool_icon("totally_unknown") == "›"
 
 
 def test_lang_for_path_by_extension_name_and_unknown() -> None:
@@ -39,14 +81,14 @@ def test_diff_lines_counts_and_colors() -> None:
     lines, added, removed = _diff_lines("a\nb\nc", "a\nB\nc", "")
     assert added == 1
     assert removed == 1
-    assert any("[red]- b" in line for line in lines)
-    assert any("[green]+ B" in line for line in lines)
+    assert any("[$error]- b" in line for line in lines)
+    assert any("[$success]+ B" in line for line in lines)
 
 
 def test_diff_lines_pure_insert() -> None:
     lines, added, removed = _diff_lines("", "x\ny", "")
     assert (added, removed) == (2, 0)
-    assert all("[green]+" in line for line in lines)
+    assert all("[$success]+" in line for line in lines)
 
 
 def test_diff_lines_truncates_over_limit() -> None:
@@ -104,8 +146,8 @@ async def test_widget_edit_diff_and_header_badge() -> None:
         assert "-1" in w._diff_badge()
         preview = w.result_preview
         assert isinstance(preview, str)
-        assert "[red]- foo" in preview
-        assert "[green]+ bar" in preview
+        assert "[$error]- foo" in preview
+        assert "[$success]+ bar" in preview
 
 
 async def test_widget_write_file_preview_and_execute_command() -> None:
@@ -180,8 +222,8 @@ async def test_widget_write_file_overwrite_shows_minus_diff() -> None:
         assert w._added >= 1
         preview = w.result_preview
         assert isinstance(preview, str)
-        assert "[red]- # Python" in preview
-        assert "[green]+ # JavaScript" in preview
+        assert "[$error]- # Python" in preview
+        assert "[$success]+ # JavaScript" in preview
         assert "updated" in preview
 
 
@@ -236,7 +278,7 @@ async def test_widget_write_file_unknown_ext_falls_back_to_text() -> None:
         w.complete("wrote", 0.1)
         await pilot.pause()
         assert isinstance(w.result_preview, str)
-        assert "[green]+ a" in w.result_preview
+        assert "[$success]+ a" in w.result_preview
 
 
 async def test_widget_subagent_write_keeps_text_nesting() -> None:
@@ -266,7 +308,7 @@ async def test_widget_subagent_write_keeps_text_nesting() -> None:
         await pilot.pause()
         assert isinstance(w.result_preview, str)
         assert "│" in w.result_preview
-        assert "[green]+ x = 1" in w.result_preview
+        assert "[$success]+ x = 1" in w.result_preview
 
 
 async def test_widget_mark_cancelling() -> None:

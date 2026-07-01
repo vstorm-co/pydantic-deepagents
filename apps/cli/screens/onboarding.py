@@ -12,14 +12,10 @@ from textual.widgets import Button, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
 from apps.cli.keystore import save_key
+from apps.cli.providers import PROVIDERS
 
-_PROVIDERS = [
-    ("openrouter", "OpenRouter", "OPENROUTER_API_KEY", "https://openrouter.ai/keys"),
-    ("anthropic", "Anthropic (Claude)", "ANTHROPIC_API_KEY", "https://console.anthropic.com/"),
-    ("openai", "OpenAI (GPT)", "OPENAI_API_KEY", "https://platform.openai.com/api-keys"),
-    ("google", "Google (Gemini)", "GOOGLE_API_KEY", "https://aistudio.google.com/apikey"),
-    ("ollama", "Ollama (local, free)", "", ""),
-]
+#: (id, name, env_var, key_url) tuples, derived from the shared provider table (C14).
+_PROVIDERS = [(p.id, p.name, p.env_var, p.key_url) for p in PROVIDERS]
 
 
 def _check_provider_status() -> list[tuple[str, str, str, bool]]:
@@ -58,6 +54,13 @@ class ProviderPickerModal(ModalScreen[str | None]):
         max-height: 10;
         margin: 1 0;
     }
+    ProviderPickerModal .onboard-tagline {
+        color: $text-muted;
+        margin: 0 0 1 0;
+    }
+    ProviderPickerModal .onboard-band {
+        margin: 0 0 1 0;
+    }
     """
 
     BINDINGS = [
@@ -65,22 +68,30 @@ class ProviderPickerModal(ModalScreen[str | None]):
     ]
 
     def compose(self) -> ComposeResult:
+        from apps.cli.widgets.ambient import AmbientBand
+
         providers = _check_provider_status()
 
         with Vertical(id="provider-container"):
-            yield Static("[bold]Select AI Provider[/bold]\n")
+            yield Static("[$accent]◆[/] [bold]pydantic-deep[/bold]")
+            yield Static("deep agents · orchestrated end to end", classes="onboard-tagline")
+            yield AmbientBand(count=20, classes="onboard-band")
+            yield Static("[bold]Select an AI provider to begin[/bold]\n")
             options: list[Option] = []
             for provider_id, name, env_var, has_key in providers:
                 if has_key:
-                    label = f"[green]✓[/green] {name}"
+                    label = f"[$success]✓[/] {name}"
                 elif env_var:
-                    label = f"[red]✗[/red] {name}  [dim]({env_var} not set)[/dim]"
+                    label = f"[$error]✗[/] {name}  [$text-muted]({env_var} not set)[/]"
                 else:
                     label = f"  {name}"
                 options.append(Option(label, id=provider_id))
 
             yield OptionList(*options, id="provider-list")
-            yield Static("\n[dim]↑↓ navigate  Enter select  Esc cancel[/dim]")
+            yield Static(
+                "\n[$text-muted][$accent]↑↓[/] navigate  "
+                "[$accent]Enter[/] select  [$accent]Esc[/] cancel[/]"
+            )
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         self.dismiss(str(event.option.id) if event.option.id else None)

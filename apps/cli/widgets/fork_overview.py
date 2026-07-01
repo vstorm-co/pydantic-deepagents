@@ -14,7 +14,7 @@ from apps.cli.widgets.fork_state import state_word
 from apps.cli.widgets.spinner import Spinner
 
 if TYPE_CHECKING:
-    from pydantic_deep.types import BranchStatus
+    from pydantic_deep.features.forking.types import BranchStatus
 
 
 class ForkOverviewWidget(Vertical):

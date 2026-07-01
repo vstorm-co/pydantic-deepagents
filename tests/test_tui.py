@@ -283,6 +283,59 @@ class TestReconfigureAgent:
         assert cast(object, app.deps) == "DEPS"
 
 
+class TestDeferredAgentFactory:
+    """`agent_factory` must run in on_mount (inside Textual's loop), not at
+    construction time — so MCP stdio transports created by subagent factories
+    bind to the running loop."""
+
+    async def test_factory_invoked_in_running_loop(self):
+        import asyncio
+
+        captured: dict[str, object] = {}
+
+        def factory() -> tuple[object, object]:
+            captured["loop"] = asyncio.get_running_loop()
+            return ("AGENT", "DEPS")
+
+        app = DeepApp(model="test", version="0.0.0", agent_factory=factory)
+        assert app.agent is None
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+
+        assert "loop" in captured
+        assert cast(object, app.agent) == "AGENT"
+        assert cast(object, app.deps) == "DEPS"
+
+    async def test_factory_failure_sets_startup_error(self):
+        def factory() -> tuple[object, object]:
+            raise RuntimeError("no api key")
+
+        app = DeepApp(model="test", version="0.0.0", agent_factory=factory)
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+
+        assert app.agent is None
+        assert app._startup_error == "no api key"
+
+    async def test_prebuilt_agent_skips_factory(self):
+        called = False
+
+        def factory() -> tuple[object, object]:
+            nonlocal called
+            called = True
+            return ("AGENT", "DEPS")
+
+        app = DeepApp(model="test", version="0.0.0", agent="PREBUILT", agent_factory=factory)
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+
+        assert called is False
+        assert cast(object, app.agent) == "PREBUILT"
+
+
 class TestSearchModal:
     async def test_search_modal_opens(self, app):
         async with app.run_test(size=(120, 35)) as pilot:

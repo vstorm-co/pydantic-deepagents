@@ -117,12 +117,10 @@ def run_tui(
         except Exception:
             pass
 
-    # Try to create the agent - if it fails (missing API key etc.)
-    # we still launch the TUI so the user can fix it from /provider
-    try:
+    def _build_agent() -> tuple[Any, Any]:
         from apps.cli.agent import create_cli_agent
 
-        agent, deps = create_cli_agent(
+        return create_cli_agent(
             model=effective_model,
             working_dir=str(working_dir) if working_dir else None,
             on_cost_update=_on_cost_update,
@@ -132,12 +130,6 @@ def run_tui(
             workspace=workspace,
             **kwargs,
         )
-    except Exception as exc:
-        startup_error = str(exc)
-        # Log startup error (logger may not be initialized yet, so use basic logging)
-        import logging
-
-        logging.getLogger("pydantic_deep.tui").error("Agent creation failed at startup: %s", exc)
 
     app = DeepApp(
         agent=agent,
@@ -149,12 +141,13 @@ def run_tui(
         on_cost_update=_on_cost_update,
         on_context_update=_on_context_update,
         on_reminder=_on_reminder,
+        agent_factory=_build_agent,
     )
     app_ref[0] = app
     try:
         app.run()
     finally:
-        # Stop Docker container if sandbox backend was used
+        deps = app.deps
         if deps is not None and hasattr(deps.backend, "stop"):
             deps.backend.stop()
 

@@ -91,6 +91,16 @@ commands, a prompt/reminder overhaul, and a Terminal-Bench harness.
   `httpx.HTTPError`, and `json.JSONDecodeError` from a non-JSON gateway body) and
   exits 0 so downstream verification can still grade the filesystem, instead of a
   hard non-zero crash.
+- **MCP subagents failed in the TUI with `[Errno 9] Bad file descriptor`**
+  (#167). `run_tui()` built the agent before `app.run()`, so a subagent
+  `agent_factory` that spins up an `MCPToolset(StdioTransport(...))` bound
+  `fastmcp`'s async primitives to the orphaned pre-`app.run()` event loop; when a
+  `task()` delegation later used them inside Textual's loop, the stdio connection
+  died instantly. Agent construction is now deferred to `DeepApp.on_mount`
+  (`agent_factory` built via `_build_deferred_agent`, before the chat screen
+  mounts) so those transports bind to the running Textual loop. The "launch the
+  TUI anyway on failure so the key can be fixed via `/provider`" behaviour is
+  preserved.
 
 ## [0.3.34] - 2026-06-27
 

@@ -9,13 +9,13 @@ from typing import Any, Literal
 from pydantic_ai_backends import LocalBackend
 
 from apps.cli.config import load_config
-from apps.cli.prompts import build_cli_instructions
 from apps.cli.reminder import _build_reminder_config
-from pydantic_deep.agent import DEFAULT_INSTRUCTIONS, create_deep_agent
+from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.forking.capability import LiveForkCapability
 from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.features.message_queue import MessageQueue
+from pydantic_deep.prompts import build_system_prompt
 
 
 def _detect_fork_test_command(backend: Any) -> str | None:
@@ -279,23 +279,13 @@ def create_cli_agent(  # noqa: C901
     if extra_middleware:
         middleware.extend(extra_middleware)
 
-    instructions = (
-        DEFAULT_INSTRUCTIONS
-        + "\n\n"
-        + build_cli_instructions(
-            non_interactive=non_interactive,
-            lean=lean,
-        )
-    )
-
     # When using Docker sandbox, the agent operates inside the container at /workspace
     instruction_root = "/workspace" if effective_sandbox == "docker" else str(root.resolve())
-    working_dir_section = (
-        f"\n\n## Working Directory\n\n"
-        f"You are operating in: `{instruction_root}`\n\n"
-        f"All file paths must be absolute, starting with `{instruction_root}`."
+    instructions = build_system_prompt(
+        non_interactive=non_interactive,
+        lean=lean,
+        working_dir=instruction_root,
     )
-    instructions += working_dir_section
 
     if extra_instructions:
         instructions += "\n\n" + extra_instructions
@@ -314,7 +304,15 @@ def create_cli_agent(  # noqa: C901
     # 3. Project-level skills (.pydantic-deep/skills/)
     # 4. Explicit override (--skills-dir flag)
     skill_dirs: list[str] = []
-    if include_skills:
+    # Gate on the *resolved* skills setting (config default when the flag is
+    # unset), mirroring `effective_skills` below. Gating on the raw
+    # `include_skills` meant headless `pydantic-deep run` — which passes
+    # `include_skills=None` — silently discovered no skill directories, so
+    # skills never loaded despite being enabled by config.
+    _skills_enabled = (
+        include_skills if include_skills is not None else config.include_skills
+    ) and not lean
+    if _skills_enabled:
         # Bundled skills (always available)
         bundled = Path(__file__).resolve().parent / "skills"
         if bundled.is_dir():

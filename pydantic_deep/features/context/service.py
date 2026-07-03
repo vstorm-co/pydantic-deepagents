@@ -78,6 +78,19 @@ async def load_context_files(
     return result
 
 
+def _context_path(search_path: str, name: str) -> str:
+    """Join a search root and filename into a backend-readable path.
+
+    At the backend root, use a *relative* path (``AGENTS.md``, no leading
+    slash). `LocalBackend` resolves relative paths against its ``root_dir`` but
+    treats ``/AGENTS.md`` as a host-absolute path outside the root — so the
+    leading slash silently found nothing. `StateBackend` normalises both forms,
+    so the relative path works on both.
+    """
+    prefix = search_path.rstrip("/")
+    return f"{prefix}/{name}" if prefix else name
+
+
 async def discover_context_files(
     backend: AsyncBackendProtocol,
     search_path: str = "/",
@@ -96,7 +109,7 @@ async def discover_context_files(
     filenames = filenames or DEFAULT_CONTEXT_FILENAMES
     found: list[str] = []
     for name in filenames:
-        path = f"{search_path.rstrip('/')}/{name}"
+        path = _context_path(search_path, name)
         raw = await backend.read_bytes(path)
         if raw:
             found.append(path)
@@ -124,7 +137,7 @@ async def _discover_and_load(
     filenames = filenames or DEFAULT_CONTEXT_FILENAMES
     result: list[ContextFile] = []
     for name in filenames:
-        path = f"{search_path.rstrip('/')}/{name}"
+        path = _context_path(search_path, name)
         raw = await backend.read_bytes(path)
         if not raw:
             continue

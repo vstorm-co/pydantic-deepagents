@@ -267,16 +267,16 @@ class TestBasePrompt:
 
         assert isinstance(BASE_PROMPT, str)
         assert len(BASE_PROMPT) > 100
-        assert "Core Behavior" in BASE_PROMPT
+        assert "You are a Deep Agent" in BASE_PROMPT
 
     def test_base_prompt_content(self):
-        """BASE_PROMPT contains key sections."""
+        """BASE_PROMPT contains the core sections."""
         from pydantic_deep.prompts import BASE_PROMPT
 
-        assert "Tool Usage" in BASE_PROMPT
-        assert "Workflow" in BASE_PROMPT
-        assert "Error Handling" in BASE_PROMPT
-        assert "Subagent Delegation" in BASE_PROMPT
+        assert "# Tool usage" in BASE_PROMPT
+        assert "# Doing tasks" in BASE_PROMPT
+        assert "# Acting with care" in BASE_PROMPT
+        assert "# Communicating" in BASE_PROMPT
 
 
 class TestImageSupport:

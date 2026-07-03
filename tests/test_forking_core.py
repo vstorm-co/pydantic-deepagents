@@ -2900,10 +2900,10 @@ def test_merge_or_select_docstring_marks_required():
 
 
 def test_base_prompt_has_forking_section():
-    """`BASE_PROMPT` must include a `## Forking` section."""
+    """`BASE_PROMPT` must include a `# Forking` section."""
     from pydantic_deep.prompts import BASE_PROMPT
 
-    assert "## Forking" in BASE_PROMPT
+    assert "# Forking" in BASE_PROMPT
 
 
 # ---------------------------------------------------------------------------

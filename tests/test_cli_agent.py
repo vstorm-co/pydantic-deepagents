@@ -248,32 +248,30 @@ class TestBuildCliInstructions:
 
     def test_full_prompt_includes_all_sections(self) -> None:
         result = build_cli_instructions()
-        assert "CLI Environment" in result
-        assert "Exactness Requirements" in result
-        assert "Writing Code" in result
-        assert "Before Declaring Done" in result
-        # BASE_PROMPT is NOT included — added by create_deep_agent()
-        assert "Core Behavior" not in result
+        # Now a shim over build_system_prompt — returns the full consolidated prompt.
+        assert "You are a Deep Agent" in result
+        assert "# Doing tasks" in result
+        assert "# Acting with care" in result
+        assert "# Verifying your work" in result
 
     def test_deprecated_params_accepted(self) -> None:
-        """Deprecated params are accepted for backwards compatibility."""
+        """Deprecated params are accepted (and ignored) for backwards compatibility."""
         result = build_cli_instructions(
             include_execute=False, include_todo=False, include_subagents=False
         )
-        # All sections included regardless — params are deprecated
-        assert "CLI Environment" in result
-        assert "Exactness Requirements" in result
+        assert "# Doing tasks" in result
+        assert "# Tool usage" in result
 
     def test_non_interactive_adds_autonomy_section(self) -> None:
         result = build_cli_instructions(non_interactive=True)
-        assert "Autonomy and Persistence" in result
-        assert "Output Style" in result
+        assert "# Autonomous mode" in result
+        assert "# Exactness" in result
 
     def test_lean_non_interactive_is_minimal(self) -> None:
         result = build_cli_instructions(non_interactive=True, lean=True)
-        assert "autonomous agent" in result
-        # Lean mode skips the full CLI sections
-        assert "CLI Environment" not in result
+        assert "autonomous coding agent" in result
+        # Lean mode skips the full core sections.
+        assert "# Acting with care" not in result
 
     def test_backwards_compat_cli_system_prompt(self) -> None:
         full = build_cli_instructions()

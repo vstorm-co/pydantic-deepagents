@@ -140,16 +140,27 @@ async def execute_headless(  # noqa: C901
         else:
             run_coro = agent.run(task, deps=deps, **run_kwargs)
 
-        if timeout is not None:
-            import asyncio
+        from pydantic_ai.exceptions import UnexpectedModelBehavior
 
-            try:
-                result = await asyncio.wait_for(run_coro, timeout=timeout)
-            except asyncio.TimeoutError:
-                _print_error("Timed out", output_json)
-                return 1
-        else:
-            result = await run_coro
+        try:
+            if timeout is not None:
+                import asyncio
+
+                try:
+                    result = await asyncio.wait_for(run_coro, timeout=timeout)
+                except asyncio.TimeoutError:
+                    _print_error("Timed out", output_json)
+                    return 1
+            else:
+                result = await run_coro
+        except UnexpectedModelBehavior as exc:
+            # A late model hiccup (e.g. an empty response that exhausts the
+            # output-retry limit) shouldn't discard the work the agent already
+            # wrote to disk. In headless/benchmark mode we exit 0 so downstream
+            # verification can still grade the filesystem instead of the whole
+            # run counting as a hard failure.
+            _print_error(f"Model behavior error, ending run early: {exc}", output_json)
+            return 0
 
         if output_json:
             output = _build_json_output(result.output, result.usage)

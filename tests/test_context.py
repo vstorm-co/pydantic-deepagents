@@ -120,7 +120,8 @@ class TestDiscoverContextFiles:
         backend.write("/AGENTS.md", "# Agents")
 
         found = await discover_context_files(ensure_async(backend))
-        assert "/AGENTS.md" in found
+        # Root discovery yields relative paths (readable by both Local and State backends).
+        assert "AGENTS.md" in found
 
     async def test_discover_partial(self):
         """Test discovering when only some files exist."""
@@ -128,13 +129,26 @@ class TestDiscoverContextFiles:
         backend.write("/AGENTS.md", "# Agents")
 
         found = await discover_context_files(ensure_async(backend))
-        assert found == ["/AGENTS.md"]
+        assert found == ["AGENTS.md"]
 
     async def test_discover_none_found(self):
         """Test discovering when no files exist."""
         backend = StateBackend()
         found = await discover_context_files(ensure_async(backend))
         assert found == []
+
+    async def test_discover_at_root_works_with_local_backend(self, tmp_path):
+        """Regression: root discovery must find files under a real LocalBackend.
+
+        A leading-slash path (`/AGENTS.md`) resolves outside LocalBackend's
+        root and silently found nothing — so AGENTS.md/CLAUDE.md/SOUL.md were
+        never injected in the CLI or benchmark.
+        """
+        from pydantic_ai_backends import LocalBackend
+
+        (tmp_path / "AGENTS.md").write_text("# Project rules")
+        found = await discover_context_files(ensure_async(LocalBackend(root_dir=str(tmp_path))))
+        assert found == ["AGENTS.md"]
 
     async def test_discover_custom_filenames(self):
         """Test discovering with custom filenames."""
@@ -145,8 +159,8 @@ class TestDiscoverContextFiles:
         found = await discover_context_files(
             ensure_async(backend), filenames=["CUSTOM.md", "RULES.md", "MISSING.md"]
         )
-        assert "/CUSTOM.md" in found
-        assert "/RULES.md" in found
+        assert "CUSTOM.md" in found
+        assert "RULES.md" in found
         assert len(found) == 2
 
     async def test_discover_custom_search_path(self):
@@ -430,8 +444,8 @@ class TestContextToolset:
 
         assert result is not None
         # Found files must be read exactly once, not once to test existence and
-        # again to load contents.
-        assert read_counts["/AGENTS.md"] == 1
+        # again to load contents. Discovery uses the relative path at root.
+        assert read_counts["AGENTS.md"] == 1
 
 
 class TestCreateDeepAgentContext:

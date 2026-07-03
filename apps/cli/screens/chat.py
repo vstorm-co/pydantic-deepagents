@@ -305,9 +305,8 @@ class ChatScreen(Screen):
             yield InputArea()
 
     def on_mount(self) -> None:
-        """Show welcome banner, init session, bootstrap context files, focus input."""
+        """Show welcome banner, init session, focus input."""
         self._init_session()
-        self._bootstrap_context_files()
         self._init_subagents()
         self.call_later(self._show_welcome)
         self.query_one(InputArea).focus_input()
@@ -359,93 +358,6 @@ class ChatScreen(Screen):
         self._known_subagents: list[str] = [d["name"] for d in defaults]
         sa_widget.agents = defaults
         self._sync_activity_dock()
-
-    def _bootstrap_context_files(self) -> None:
-        """Create AGENTS.md, SOUL.md and MEMORY.md if they don't exist."""
-
-        working_dir = Path(self.app.working_dir).resolve()
-        created: list[str] = []
-
-        # AGENTS.md - project conventions (visible to agent + subagents)
-        agents_path = working_dir / "AGENTS.md"
-        if not agents_path.exists():
-            try:
-                from apps.cli.local_context import (
-                    detect_language,
-                    detect_package_manager,
-                    detect_test_command,
-                )
-
-                lang = detect_language(working_dir) or "Unknown"
-                pkg = detect_package_manager(working_dir) or ""
-                test_cmd = detect_test_command(working_dir) or ""
-            except Exception:
-                lang, pkg, test_cmd = "Unknown", "", ""
-
-            sections = [
-                "# AGENTS.md",
-                "",
-                "Project conventions and context for the AI assistant.",
-                "",
-            ]
-            sections.append("## Project")
-            sections.append("")
-            if lang:
-                sections.append(f"- Language: {lang}")
-            if pkg:
-                sections.append(f"- Package manager: {pkg}")
-            if test_cmd:
-                sections.append(f"- Test command: `{test_cmd}`")
-            sections.append("")
-            sections.append("## Conventions")
-            sections.append("")
-            sections.append("<!-- Add your project conventions here -->")
-            sections.append("")
-
-            agents_path.write_text("\n".join(sections))
-            created.append("AGENTS.md")
-
-        # SOUL.md - user preferences (main agent only)
-        soul_path = working_dir / "SOUL.md"
-        if not soul_path.exists():
-            soul_content = "\n".join(
-                [
-                    "# SOUL.md",
-                    "",
-                    "Agent personality and user preferences.",
-                    "",
-                    "## Communication Style",
-                    "",
-                    "- Be concise and direct",
-                    "- Use the same language as the user",
-                    "",
-                    "## Preferences",
-                    "",
-                    "<!-- The /improve command will populate this over time -->",
-                    "",
-                ]
-            )
-            soul_path.write_text(soul_content)
-            created.append("SOUL.md")
-
-        # MEMORY.md - persistent memory
-        memory_dir = working_dir / ".pydantic-deep" / "main"
-        memory_path = memory_dir / "MEMORY.md"
-        if not memory_path.exists():
-            memory_dir.mkdir(parents=True, exist_ok=True)
-            memory_content = "\n".join(
-                [
-                    "# Memory",
-                    "",
-                    "Persistent observations from past sessions.",
-                    "",
-                ]
-            )
-            memory_path.write_text(memory_content)
-            created.append("MEMORY.md")
-
-        if created:
-            self._bootstrapped_files = created
 
     def _init_session(self) -> None:
         """Create a session directory for this conversation."""

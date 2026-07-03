@@ -1,7 +1,9 @@
 """Project initialization for pydantic-deep CLI.
 
-Creates the `.pydantic-deep/` directory structure with scaffolding:
-config, memory template, skills (copied from built-in), sessions dir.
+Creates the `.pydantic-deep/` directory structure with scaffolding: config,
+skills (copied from built-in), sessions dir. Context files (AGENTS.md, SOUL.md,
+MEMORY.md) are intentionally NOT scaffolded — the agent creates them when it
+decides to, via `/init`, or the user makes them by hand.
 """
 
 from __future__ import annotations
@@ -9,26 +11,6 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
-
-_AGENTS_MD_TEMPLATE = """\
-
-Describe your project here. This file is read by pydantic-deep at startup
-to understand the project context.
-
-## Tech Stack
-
-- ...
-
-## Key Files
-
-- ...
-"""
-
-_MEMORY_MD_TEMPLATE = """\
-
-This file is automatically maintained by pydantic-deep.
-The agent reads and updates this file across sessions.
-"""
 
 # No `model` line here on purpose: the model is a user-level choice made during
 # onboarding and stored in ~/.pydantic-deep/config.toml. Its absence from a fresh
@@ -67,21 +49,11 @@ def init_project(root: Path | None = None, *, quiet: bool = False) -> Path:
     # Copy built-in skills (skip if already populated)
     _copy_builtin_skills(pd_dir / "skills", quiet=quiet)
 
-    # Create memory template
-    memory_dir = pd_dir / "main"
-    memory_dir.mkdir(exist_ok=True)
-    memory_file = memory_dir / "MEMORY.md"
-    if not memory_file.exists():
-        memory_file.write_text(_MEMORY_MD_TEMPLATE)
-        if not quiet:
-            _log(f"Created {memory_file.relative_to(root)}")
-
-    # Create AGENTS.md in project root (if doesn't exist)
-    agent_md = root / "AGENTS.md"
-    if not agent_md.exists():
-        agent_md.write_text(_AGENTS_MD_TEMPLATE)
-        if not quiet:
-            _log(f"Created {agent_md.name}")
+    # Memory dir exists so the agent can write MEMORY.md there on demand, but the
+    # file itself is NOT scaffolded. AGENTS.md / SOUL.md / MEMORY.md are created
+    # by the agent when it decides to (write_memory / write_file), by `/init`, or
+    # by the user — never auto-generated on launch.
+    (pd_dir / "main").mkdir(exist_ok=True)
 
     # Create default config.toml (if doesn't exist)
     config_file = pd_dir / "config.toml"

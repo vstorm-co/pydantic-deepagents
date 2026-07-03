@@ -11,9 +11,9 @@ Usage::
     export GOOGLE_CLOUD_LOCATION=us-central1
     export LOGFIRE_TOKEN=...
     harbor run -d terminal-bench/terminal-bench-2 \\
-        -m google-vertex/gemini-3.1-pro-preview \\
-        --agent-import-path apps.harbor.agent:PydanticDeepAgent \\
-        -k 5
+        -m google-cloud/gemini-3.1-pro-preview \\
+        -a apps.harbor.agent:PydanticDeepAgent \\
+        -l 5 -n 1
 
 See ``apps/harbor/README.md`` for the full setup, the two Google auth paths,
 and the analyse-traces → improve loop.
@@ -278,11 +278,13 @@ class PydanticDeepAgent(BaseInstalledAgent):
 def convert_model_name(harbor_name: str, *, vertex: bool | None = None) -> str:
     """Convert Harbor `provider/model` to a pydantic-ai `provider:model` string.
 
-    Google needs special handling: pydantic-ai has no bare ``google:`` provider,
-    only ``google-gla:`` (Gemini Developer API) and ``google-vertex:`` (Vertex
-    AI). A ``google/``, ``gemini/`` or ``vertex/`` prefix is routed to whichever
-    Google provider matches the credentials in play — ``vertex`` when explicitly
-    requested or when Vertex env vars are present, otherwise the Developer API.
+    Google needs special handling. In pydantic-ai 2.x the Google providers are
+    ``google:`` (GoogleProvider — the Gemini Developer API, always non-Vertex)
+    and ``google-cloud:`` (GoogleCloudProvider — Vertex AI, using
+    ``GOOGLE_CLOUD_PROJECT`` / ``GOOGLE_CLOUD_LOCATION`` + ADC). A ``google/``,
+    ``gemini/``, ``vertex/`` or ``google-cloud/`` prefix is routed to whichever
+    matches the credentials — Vertex when explicitly requested or when Vertex
+    env vars are present, otherwise the Developer API.
 
     Args:
         harbor_name: Harbor model id (``provider/model``), a full pydantic-ai
@@ -294,11 +296,11 @@ def convert_model_name(harbor_name: str, *, vertex: bool | None = None) -> str:
         >>> convert_model_name("anthropic/claude-opus-4-6")
         'anthropic:claude-opus-4-6'
         >>> convert_model_name("google/gemini-3.1-pro-preview", vertex=True)
-        'google-vertex:gemini-3.1-pro-preview'
+        'google-cloud:gemini-3.1-pro-preview'
         >>> convert_model_name("gemini/gemini-3.1-pro-preview", vertex=False)
-        'google-gla:gemini-3.1-pro-preview'
+        'google:gemini-3.1-pro-preview'
         >>> convert_model_name("vertex/gemini-3.5-flash")
-        'google-vertex:gemini-3.5-flash'
+        'google-cloud:gemini-3.5-flash'
         >>> convert_model_name("openai:gpt-5.4")
         'openai:gpt-5.4'
         >>> convert_model_name("gpt-5.4")
@@ -312,14 +314,14 @@ def convert_model_name(harbor_name: str, *, vertex: bool | None = None) -> str:
     provider, model = harbor_name.split("/", 1)
     provider_lc = provider.lower()
 
-    if provider_lc in ("google", "gemini", "vertex", "google-vertex", "google-gla"):
-        if provider_lc == "google-gla":
-            return f"google-gla:{model}"
-        if provider_lc in ("vertex", "google-vertex"):
-            return f"google-vertex:{model}"
+    if provider_lc in ("google", "gemini", "vertex", "google-vertex", "google-cloud"):
+        # Vertex → google-cloud; Developer API → google.
+        if provider_lc in ("vertex", "google-vertex", "google-cloud"):
+            return f"google-cloud:{model}"
+        if provider_lc == "gemini":
+            return f"google:{model}"
         use_vertex = vertex if vertex is not None else _vertex_enabled()
-        prefix = "google-vertex" if use_vertex else "google-gla"
-        return f"{prefix}:{model}"
+        return f"{'google-cloud' if use_vertex else 'google'}:{model}"
 
     return f"{provider}:{model}"
 

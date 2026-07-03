@@ -35,7 +35,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=~/keys/vstorm-vertex-sa.json
 #     — no env var needed, the default ADC path is auto-detected.
 ```
 
-Model id: `-m google-vertex/gemini-3.1-pro-preview` (or `vertex/…`).
+Model id: `-m google-cloud/gemini-3.1-pro-preview` (or `vertex/…`).
 
 ### B. Gemini Developer API (simplest)
 
@@ -43,11 +43,13 @@ Model id: `-m google-vertex/gemini-3.1-pro-preview` (or `vertex/…`).
 export GEMINI_API_KEY=...
 ```
 
-Model id: `-m google-gla/gemini-3.1-pro-preview`. Note: preview models may not
-be exposed on the Developer API — Vertex is the confirmed path.
+Model id: `-m gemini/gemini-3.1-pro-preview` (maps to the `google:` provider).
+Note: preview models may not be exposed on the Developer API — Vertex is the
+confirmed path.
 
-> A bare `-m google/…` auto-routes to Vertex when `GOOGLE_GENAI_USE_VERTEXAI` or
-> `GOOGLE_CLOUD_PROJECT` is set, otherwise to the Developer API.
+> A bare `-m google/…` auto-routes to Vertex (`google-cloud:`) when
+> `GOOGLE_GENAI_USE_VERTEXAI` or `GOOGLE_CLOUD_PROJECT` is set, otherwise to the
+> Developer API (`google:`).
 
 ## Logfire (required for the improve loop)
 
@@ -75,11 +77,11 @@ and tags every span via OTEL resource attributes (Logfire honours these):
 # Smoke test the harness (oracle solutions):
 harbor run -d terminal-bench/terminal-bench-2 -a oracle -l 5
 
-# 5 tasks with our agent on Gemini 3.1 Pro / Vertex:
+# 5 tasks with our agent on Gemini 3.1 Pro / Vertex (-l = task limit, -n = concurrency):
 harbor run -d terminal-bench/terminal-bench-2 \
-  -m google-vertex/gemini-3.1-pro-preview \
-  --agent-import-path apps.harbor.agent:PydanticDeepAgent \
-  -k 5
+  -m google-cloud/gemini-3.1-pro-preview \
+  -a apps.harbor.agent:PydanticDeepAgent \
+  -l 5 -n 1
 
 # Target a single task:
 harbor run ... --include-task-name "<task-name>"

@@ -111,25 +111,32 @@ class TestConvertModelName:
         assert convert_model_name("openai/o3-2025-04-16") == "openai:o3-2025-04-16"
 
     def test_google_vertex_explicit(self) -> None:
+        # Vertex → pydantic-ai `google-cloud:` provider.
         assert (
             convert_model_name("google/gemini-3.1-pro-preview", vertex=True)
-            == "google-vertex:gemini-3.1-pro-preview"
+            == "google-cloud:gemini-3.1-pro-preview"
         )
 
     def test_google_gla_explicit(self) -> None:
+        # Developer API → pydantic-ai `google:` provider.
         assert (
             convert_model_name("gemini/gemini-3.1-pro-preview", vertex=False)
-            == "google-gla:gemini-3.1-pro-preview"
+            == "google:gemini-3.1-pro-preview"
         )
 
     def test_vertex_prefix_always_vertex(self) -> None:
-        assert convert_model_name("vertex/gemini-3.5-flash") == "google-vertex:gemini-3.5-flash"
+        assert convert_model_name("vertex/gemini-3.5-flash") == "google-cloud:gemini-3.5-flash"
+
+    def test_google_cloud_prefix_passthrough(self) -> None:
+        assert convert_model_name("google-cloud/gemini-3.1-pro-preview") == (
+            "google-cloud:gemini-3.1-pro-preview"
+        )
 
     def test_google_autodetect_vertex_from_env(self) -> None:
         with patch.dict(os.environ, {"GOOGLE_CLOUD_PROJECT": "vstorm-495409"}, clear=True):
             assert (
                 convert_model_name("google/gemini-3.1-pro-preview")
-                == "google-vertex:gemini-3.1-pro-preview"
+                == "google-cloud:gemini-3.1-pro-preview"
             )
 
     def test_google_autodetect_gla_when_flag_false(self) -> None:
@@ -140,7 +147,7 @@ class TestConvertModelName:
         ):
             assert (
                 convert_model_name("google/gemini-3.1-pro-preview")
-                == "google-gla:gemini-3.1-pro-preview"
+                == "google:gemini-3.1-pro-preview"
             )
 
 

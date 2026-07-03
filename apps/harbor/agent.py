@@ -181,6 +181,7 @@ class PydanticDeepAgent(BaseInstalledAgent):
 
     async def install(self, environment: BaseEnvironment) -> None:
         """Install pydantic-deep and dependencies in the container."""
+        _load_dotenv()  # honour PYDANTIC_DEEP_GIT_REF from a local .env
         git_ref = os.environ.get("PYDANTIC_DEEP_GIT_REF", _DEFAULT_GIT_REF)
         install_script = _build_install_script(git_ref)
         await self.exec_as_root(environment, command=install_script)
@@ -338,15 +339,22 @@ def _vertex_enabled() -> bool:
     return bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
 
 
-def collect_env_vars() -> dict[str, str]:
-    """Collect API key env vars from the host environment."""
+def _load_dotenv() -> None:
+    """Load a local ``.env`` into ``os.environ`` (best-effort, no-op if absent).
+
+    Lets host-side settings like ``PYDANTIC_DEEP_GIT_REF`` and the API keys be
+    configured via ``.env`` rather than requiring shell exports.
+    """
     try:
         from dotenv import load_dotenv
-
-        load_dotenv()
     except ImportError:
-        pass
+        return
+    load_dotenv()
 
+
+def collect_env_vars() -> dict[str, str]:
+    """Collect API key env vars from the host environment."""
+    _load_dotenv()
     return {var: val for var in _API_KEY_VARS if (val := os.environ.get(var, ""))}
 
 

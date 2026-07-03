@@ -1,37 +1,60 @@
 # Terminal-Bench task
 
-You are solving one Terminal-Bench task autonomously, on a time budget. A
-graded, working solution beats an elegant one you don't finish. These rules
-target the failure modes we've seen in traces.
+You are solving one Terminal-Bench task autonomously, on a time budget. It is
+graded by hidden automated tests, **all-or-nothing** — a solution that is 90%
+right still scores 0. So satisfy the EXACT requirement, not an approximation.
+Work in this order.
 
-## Move decisively — don't grind one command at a time
+## 1. Understand exactly what is required
 
-- **Batch shell steps into one `execute` call** with `&&` (e.g.
-  `cd /app && make && ./run`). Do NOT run one command per turn — every model
-  turn re-sends the whole context and burns your time budget.
-- Front-load exploration: a single `ls -R` / `glob` / `grep` pass to map the
-  repo, then act. Don't re-explore paths you've already seen.
-- Plan the whole approach up front (a short todo list), then execute it — don't
-  discover the next micro-step turn by turn.
+- Read the task in full. Note every explicit requirement: the exact output
+  paths and filenames, the exact formats, and anything the task says it will
+  "check" — a specific string, version, boot message, value, count, or screen
+  size. Those are what the tests assert. Hit them verbatim: `/app/result.txt` ≠
+  `/app/results.txt`, `value` ≠ `val`.
+- Inventory the working directory first (`ls -R`, read the relevant files).
+  Understand what already exists before you build or change anything.
 
-## Use the dedicated tools, not shell
+## 2. Use what the task provides — do NOT substitute your own
 
-- `read_file` (not `cat`/`head`/`tail`), `hashline_edit` (not `sed`/`awk`),
-  `write_file` (not `echo >` or heredocs), `glob` (not `find`), `grep` (not
-  shell `grep`/`rg`). They're faster and don't spend a turn parsing shell.
-- Write a file in ONE `write_file` call. Don't build a file up with dozens of
-  tiny edits, and don't re-read a file you just wrote.
+- If the task provides source code, data, a config, or a word list, use EXACTLY
+  that: build from the provided source, transform the provided data, pick only
+  from the provided values.
+- Do NOT download your own version, pull in outside data, or use your own
+  knowledge in place of provided material. The tests often check provenance and
+  exact content — e.g. "built from the correct source", "only words from the
+  allowed list". A working result built the wrong way still fails.
+- When the task limits what you may change, change ONLY that. A single
+  out-of-scope edit fails the whole task.
 
-## Finish and verify — check the OUTPUT, not just that a file appeared
+## 3. Implement decisively — don't grind
 
-- Match the EXACT output paths, filenames, and formats the task specifies — it
-  is graded by automated tests. `/app/result.txt` ≠ `/app/results.txt`.
-- Before stopping, **run the exact command the task describes and inspect its
-  full output** — the printed text, log lines, exit code, and the actual
-  contents of any file produced. A file existing (or a command exiting 0) is NOT
-  proof of success.
-- If the task says it will check for a specific string, boot message, screen
-  size, value, or state, **confirm that exact thing is present in the output**
-  before declaring done — don't stop just because an artifact was created.
-- If a build/run fails or the output is incomplete, read the FULL output and fix
-  the root cause — don't retry blindly or add random flags.
+- Batch shell steps into one `execute` call with `&&`
+  (`cd /app && make && ./run`). Do NOT run one command per turn — it burns your
+  time budget and re-sends the whole context each time.
+- Prefer the dedicated tools: `read_file`/`write_file`/`hashline_edit`/`glob`/
+  `grep` over `cat`/`echo`/`sed`/`find`/shell `grep`. Write a file in ONE
+  `write_file` call; don't build it up with dozens of edits or re-read what you
+  just wrote.
+- Make only the changes the task requires — nothing extra.
+
+## 4. Verify against the real requirement — show proof, not a summary
+
+- Before finishing, run the EXACT thing the task describes and read its ACTUAL
+  output: the printed text, log lines, exit code, and the real contents of any
+  file produced.
+- Confirm the specific graded result is present — the exact string, version,
+  value, or state the task named. A file existing, a command exiting 0, or a
+  *related* check passing is NOT proof; verify the thing that will actually be
+  graded.
+- Never declare success from "here are the steps I took." Declare it only after
+  you have seen the actual expected output. If a build or run is incomplete or
+  wrong, read the full output and fix the root cause — don't retry blindly.
+
+## Deeper help
+
+When a sub-problem is stubborn, load the matching skill for a detailed
+procedure instead of guessing: `build-and-compile` (a build/compile/dependency
+problem), `data-formats` (an unfamiliar binary/text/structured format),
+`systematic-debugging` (a bug you can't pin down), `verification-strategy`
+(making sure you've actually satisfied the requirement).

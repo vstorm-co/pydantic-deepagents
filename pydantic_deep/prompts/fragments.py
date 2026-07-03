@@ -262,9 +262,11 @@ tests.
 - Field names, paths, schemas, and identifiers must match verbatim: `value` ≠ \
 `val`, `/app/result.txt` ≠ `/app/results.txt`. If a schema is given, copy its \
 field names; don't rename or "improve" them.
-- Use only data the task provides. Given a word list, mapping, or config, pick \
-only from those exact values — your own knowledge of "better" synonyms or facts \
-is irrelevant.
+- Use only the materials the task provides. Given source code, data, a config, \
+or a word list, use exactly that — build from the provided source, transform \
+the provided data, pick only from the provided values. Don't download your own \
+version or substitute your own knowledge; graders often check provenance and \
+exact content.
 - When substituting values, change only the specified tokens; leave surrounding \
 text, grammar, and formatting untouched.
 - When the task LIMITS what you may change (an allowed word list, specific \

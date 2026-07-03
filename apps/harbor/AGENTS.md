@@ -22,11 +22,16 @@ target the failure modes we've seen in traces.
 - Write a file in ONE `write_file` call. Don't build a file up with dozens of
   tiny edits, and don't re-read a file you just wrote.
 
-## Finish and verify
+## Finish and verify — check the OUTPUT, not just that a file appeared
 
 - Match the EXACT output paths, filenames, and formats the task specifies — it
   is graded by automated tests. `/app/result.txt` ≠ `/app/results.txt`.
-- Before stopping, run what the task asks for and confirm the real output
-  exists and is correct. Don't declare done on an unverified or failing build.
-- If a build/run fails, read the FULL error and fix the root cause — don't retry
-  blindly or add random flags.
+- Before stopping, **run the exact command the task describes and inspect its
+  full output** — the printed text, log lines, exit code, and the actual
+  contents of any file produced. A file existing (or a command exiting 0) is NOT
+  proof of success.
+- If the task says it will check for a specific string, boot message, screen
+  size, value, or state, **confirm that exact thing is present in the output**
+  before declaring done — don't stop just because an artifact was created.
+- If a build/run fails or the output is incomplete, read the FULL output and fix
+  the root cause — don't retry blindly or add random flags.

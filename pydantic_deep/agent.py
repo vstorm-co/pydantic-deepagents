@@ -971,6 +971,14 @@ def create_deep_agent(  # noqa: C901
     backend = backend or StateBackend()
     interrupt_on = interrupt_on or {}
 
+    # Submodels inherit the primary model when not explicitly set — never a
+    # hardcoded provider-specific default, which breaks on a single-provider
+    # setup (e.g. a Vertex-only run with no Anthropic key). Captured here as a
+    # string before the primary is (optionally) wrapped in a FallbackModel.
+    _primary_model_name = model if isinstance(model, str) else None
+    if _primary_model_name is not None:
+        summarization_model = summarization_model or _primary_model_name
+
     # Wrap primary model with FallbackModel when requested.
     if fallback_model is not None:
         _fallbacks: list[str | Model] = (

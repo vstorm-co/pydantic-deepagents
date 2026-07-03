@@ -512,7 +512,14 @@ def create_cli_agent(  # noqa: C901
         # Message queue for mid-run steering and follow-up delivery
         message_queue=queue,
         periodic_reminder=_build_reminder_config(
-            periodic_reminder, reminder_mode, config, on_reminder, reminder_model
+            periodic_reminder,
+            reminder_mode,
+            config,
+            on_reminder,
+            # Inherit the runtime model, not config.model (the TOML default,
+            # which may be a different provider than `-m` — e.g. Anthropic while
+            # running on Vertex, which then crashes with no ANTHROPIC_API_KEY).
+            reminder_model or config.reminder_model or effective_model,
         ),
     )
 

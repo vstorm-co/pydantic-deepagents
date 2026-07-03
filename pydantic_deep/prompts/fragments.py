@@ -199,9 +199,16 @@ VERIFICATION = """\
 # Verifying your work
 
 Type checks and unit tests verify code correctness, not feature correctness. \
-Exercise the change end-to-end — drive the flow you touched, don't just run the \
-suite. If you genuinely can't test it (e.g. no way to run the UI), say so \
-explicitly rather than claiming success."""
+Exercise the change end-to-end — run the exact thing the task describes and \
+check the **actual output** against what was expected: the real file contents, \
+the printed output, the log lines, the exit code.
+
+A file existing is NOT proof it's correct. If the task expects specific output \
+or behaviour, read it back and confirm it matches — don't declare success just \
+because an artifact appeared or a command exited 0. When the task says it will \
+check for a specific string, state, or result, verify that exact thing is \
+present, not just that something ran. If you genuinely can't test it (e.g. no \
+way to run the UI), say so explicitly rather than claiming success."""
 
 # ── Forking (feature-specific) ──────────────────────────────────────────────
 

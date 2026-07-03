@@ -279,6 +279,38 @@ class TestBasePrompt:
         assert "# Communicating" in BASE_PROMPT
 
 
+class TestSubmodelInheritance:
+    """Submodels inherit the primary model when not explicitly configured."""
+
+    def _capture_summarization(self, monkeypatch, **kwargs) -> str | None:
+        from pydantic_ai_summarization import ContextManagerCapability
+
+        seen: dict[str, str | None] = {}
+        orig = ContextManagerCapability.__init__
+
+        def spy(self, *a, **k):
+            seen["sm"] = k.get("summarization_model")
+            return orig(self, *a, **k)
+
+        monkeypatch.setattr(ContextManagerCapability, "__init__", spy)
+        create_deep_agent(
+            backend=StateBackend(), cost_tracking=False, include_subagents=False, **kwargs
+        )
+        return seen.get("sm")
+
+    def test_summarization_inherits_primary_model(self, monkeypatch):
+        sm = self._capture_summarization(monkeypatch, model="google-cloud:gemini-3.1-pro-preview")
+        assert sm == "google-cloud:gemini-3.1-pro-preview"
+
+    def test_explicit_summarization_model_wins(self, monkeypatch):
+        sm = self._capture_summarization(
+            monkeypatch,
+            model="google-cloud:gemini-3.1-pro-preview",
+            summarization_model="google-cloud:gemini-3.1-flash-lite-preview",
+        )
+        assert sm == "google-cloud:gemini-3.1-flash-lite-preview"
+
+
 class TestImageSupport:
     """Tests that image support is always enabled."""
 

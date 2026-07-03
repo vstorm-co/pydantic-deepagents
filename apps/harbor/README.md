@@ -94,12 +94,19 @@ forwards the agent's full `pydantic-deep run` feature surface — supported keys
 context, browser, browser_headless, liteparse, temperature, sandbox, workspace`.
 
 Defaults: every flag left unset uses the agent's own config default (skills,
-plan, memory, subagents, todo, web_search, web_fetch, context on; teams off;
-thinking `high`), **except `browser` and `liteparse`, which default OFF** here
-(their extras aren't installed and terminal tasks don't need them — pass
-`--ak browser=true` to opt back in). `sandbox`/`workspace` default to unset —
-leave them alone under Terminal-Bench (the agent already runs inside a task
-container; `--sandbox docker` would nest Docker).
+plan, memory, subagents, todo, context on; teams off; thinking `high`), **except
+these, which the adapter forces OFF**:
+
+- `web_search` / `web_fetch` — on Gemini 3 they make pydantic-ai set
+  `include_server_side_tool_invocations`, which **Vertex AI rejects** (crashes
+  every request); TB containers are also usually offline.
+- `browser` / `liteparse` — their extras (Playwright binaries, Node.js) aren't
+  installed and terminal tasks don't need them.
+
+Pass e.g. `--ak web_search=true` to opt any of them back in (e.g. web tools on a
+non-Vertex model). `sandbox`/`workspace` default to unset — leave them alone
+under Terminal-Bench (the agent already runs inside a task container;
+`--sandbox docker` would nest Docker).
 
 Install a specific branch with `PYDANTIC_DEEP_GIT_REF=<branch>` (default `main`).
 

@@ -321,14 +321,15 @@ class TestPydanticDeepAgent:
         assert agent._max_turns == 50
         assert agent._timeout == 300
 
-    def test_browser_and_liteparse_default_off(self) -> None:
-        # Their extras aren't installed in the container, so we force them off.
+    def test_disabled_by_default(self) -> None:
+        # browser/liteparse: extras not installed. web_search/web_fetch: break
+        # Gemini-on-Vertex (include_server_side_tool_invocations).
         agent = PydanticDeepAgent()
-        assert agent._feature_flags["browser"] is False
-        assert agent._feature_flags["liteparse"] is False
+        for flag in ("browser", "liteparse", "web_search", "web_fetch"):
+            assert agent._feature_flags[flag] is False
         cmd = build_run_command(instruction="x", feature_flags=agent._feature_flags)
-        assert "--no-browser" in cmd
-        assert "--no-liteparse" in cmd
+        for flag in ("--no-browser", "--no-liteparse", "--no-web-search", "--no-web-fetch"):
+            assert flag in cmd
 
     async def test_install(self) -> None:
         agent = PydanticDeepAgent()

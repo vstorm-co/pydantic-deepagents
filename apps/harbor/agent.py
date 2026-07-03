@@ -128,8 +128,13 @@ class PydanticDeepAgent(BaseInstalledAgent):
         # Agent feature flags, forwarded to `pydantic-deep run`. `None` keeps the
         # agent's own default; explicit values (incl. "true"/"false" strings from
         # Harbor's `--ak key=value`) override it. One param per CLI feature.
-        web_search: str | bool | None = None,
-        web_fetch: str | bool | None = None,
+        #
+        # web_search/web_fetch default OFF: on Gemini 3 they make pydantic-ai set
+        # `include_server_side_tool_invocations`, which Vertex AI rejects (crashes
+        # every request). Terminal-Bench containers are also usually offline. Pass
+        # `--ak web_search=true` to opt back in (e.g. on a non-Vertex model).
+        web_search: str | bool | None = False,
+        web_fetch: str | bool | None = False,
         thinking: str | None = None,
         todo: str | bool | None = None,
         subagents: str | bool | None = None,

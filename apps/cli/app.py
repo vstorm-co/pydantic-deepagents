@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import os
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -98,11 +99,13 @@ class DeepApp(App):
         on_cost_update: Any | None = None,
         on_context_update: Any | None = None,
         on_reminder: Any | None = None,
+        agent_factory: Callable[[], tuple[Any, Any]] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.agent = agent
         self.deps = deps
+        self._agent_factory = agent_factory
         self.working_dir = str(working_dir)
         self._model = model
         self._version = version
@@ -186,8 +189,29 @@ class DeepApp(App):
         except Exception:  # pragma: no cover - defensive: bad config shouldn't break startup
             pass
 
+    def _build_deferred_agent(self) -> None:
+        """Build the agent from `self._agent_factory` inside Textual's loop.
+
+        Deferred from startup so async primitives created by the factory (e.g.
+        MCP stdio transports spun up by subagent `agent_factory` callables) bind
+        to the running Textual event loop rather than the orphaned pre-`app.run()`
+        one.
+        """
+        if self.agent is not None or self._agent_factory is None:
+            return
+        try:
+            agent, deps = self._agent_factory()
+            self.agent = agent
+            self.deps = deps
+            self.queue = getattr(deps, "message_queue", None)
+            self._startup_error = None
+        except Exception as exc:
+            self._startup_error = str(exc)
+            get_logger().error(f"Agent creation failed at startup: {exc}")
+
     def on_mount(self) -> None:
         self.model_name = self._model
+        self._build_deferred_agent()
         try:
             from apps.cli.config import load_config
 

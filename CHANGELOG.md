@@ -74,6 +74,11 @@ commands, a prompt/reminder overhaul, and a Terminal-Bench harness.
   the old `apps/cli/prompts.py` is now a thin re-export.
 - **Periodic reminder cadence** relaxed to every 15 turns (first after 15, no
   per-run cap) so long tasks aren't nagged as often.
+- **Ctrl+C aligns with Claude Code / Codex** (#154) — it now copies the current
+  text selection to the clipboard when there is one, and an idle Ctrl+C arms exit
+  (a second press within 2 s quits) instead of closing on the first press. A
+  running agent is still interrupted by a single Ctrl+C. Text selection (dragging
+  to highlight agent output) works via Textual's built-in selection.
 
 ### Fixed
 

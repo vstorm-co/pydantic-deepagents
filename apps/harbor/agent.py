@@ -87,9 +87,6 @@ _DEFAULT_ADC_PATH = "~/.config/gcloud/application_default_credentials.json"
 _OTEL_SERVICE_NAME = "pydantic-deep-tb"
 _OTEL_ENVIRONMENT = "terminal-bench"
 
-# logs_dir path components that never make a useful task label.
-_GENERIC_LOG_DIRS = frozenset({"agent", "logs", "command-0", "output", ""})
-
 # Single source of truth for the agent features the harness controls. Each entry
 # mirrors a `pydantic-deep run` option (apps/cli/main.py); keeping the full CLI
 # surface here is what guarantees we forward every feature the agent exposes.
@@ -216,18 +213,20 @@ class PydanticDeepAgent(BaseInstalledAgent):
         )
 
     def _build_otel_env(self) -> dict[str, str]:
-        """OTEL resource attributes that tag this task's Logfire trace.
+        """OTEL resource attributes that tag this run's Logfire trace.
 
         Logfire honours the standard ``OTEL_SERVICE_NAME`` and
-        ``OTEL_RESOURCE_ATTRIBUTES`` env vars, so a per-task ``task.id`` lands on
-        every span of the run — the correlation key for querying traces per task
-        in the analyse → improve loop.
+        ``OTEL_RESOURCE_ATTRIBUTES`` env vars, so these land on every span of the
+        run. ``tb.task`` groups all trials of one benchmark task (the key you
+        query in the analyse → improve loop); ``tb.trial`` is unique per attempt.
         """
         logs_dir = getattr(self, "logs_dir", None)
-        task_id = _task_label(logs_dir)
+        trial, task = _trial_and_task(getattr(self, "session_id", None), logs_dir)
         attrs = [f"deployment.environment={_OTEL_ENVIRONMENT}"]
-        if task_id:
-            attrs.append(f"task.id={task_id}")
+        if task:
+            attrs.append(f"tb.task={task}")
+        if trial:
+            attrs.append(f"tb.trial={trial}")
         if logs_dir is not None:
             attrs.append(f"tb.logs_path={logs_dir}")
         return {
@@ -236,25 +235,40 @@ class PydanticDeepAgent(BaseInstalledAgent):
         }
 
     def populate_context_post_run(self, context: AgentContext) -> None:
-        """Parse agent output for cost and usage information."""
-        log_path = self.logs_dir / "command-0" / "stdout.txt"
-        if not log_path.exists():
+        """Populate token/cost fields on the context from the agent's output.
+
+        Maps our `--json` usage block onto the real `AgentContext` fields
+        (`n_input_tokens` / `n_output_tokens` / `cost_usd`).
+        """
+        text = self._read_run_log()
+        if text is None:
             return
 
-        text = log_path.read_text()
-
-        # Try JSON output first (--json mode)
         json_result = parse_json_output(text)
         if json_result is not None:
             usage = json_result.get("usage", {})
-            total_tokens = usage.get("total_tokens")
-            if total_tokens is not None:
-                context.total_tokens = total_tokens
+            if (value := usage.get("request_tokens")) is not None:
+                context.n_input_tokens = value
+            if (value := usage.get("response_tokens")) is not None:
+                context.n_output_tokens = value
 
-        # Try regex fallback for cost
         cost = parse_cost(text)
         if cost is not None:
             context.cost_usd = cost
+
+    def _read_run_log(self) -> str | None:
+        """Read the agent's captured stdout, if present.
+
+        Prefers our own tee'd file (`<logs_dir>/pydantic-deep.txt`) and falls
+        back to Harbor's per-command capture.
+        """
+        for candidate in (
+            self.logs_dir / "pydantic-deep.txt",
+            self.logs_dir / "command-0" / "stdout.txt",
+        ):
+            if candidate.exists():
+                return candidate.read_text()
+        return None
 
 
 def convert_model_name(harbor_name: str, *, vertex: bool | None = None) -> str:
@@ -333,21 +347,26 @@ def collect_env_vars() -> dict[str, str]:
     return {var: val for var in _API_KEY_VARS if (val := os.environ.get(var, ""))}
 
 
-def _task_label(logs_dir: Any | None) -> str | None:
-    """Derive a task identifier from Harbor's per-task logs directory.
+def _trial_and_task(session_id: str | None, logs_dir: Any | None) -> tuple[str | None, str | None]:
+    """Resolve ``(trial_name, task_name)`` from Harbor's identifiers.
 
-    Walks up from ``logs_dir`` and returns the first path component that isn't a
-    generic bucket (``agent``, ``logs``, ``command-0``, …) — for a typical
-    ``.../<task-name>/<trial>/agent`` layout that is the task name.
+    Harbor names each trial ``f"{task_name[:32]}__{shortuuid}"`` and sets the
+    agent's ``session_id`` to ``f"{trial_name}__agent"`` (harbor trial.py /
+    models/trial/config.py). We take the trial name from ``session_id``
+    (authoritative), falling back to the parent dir of ``logs_dir`` — which is
+    ``<trials_dir>/<trial_name>/agent``. The task name is the trial name with its
+    trailing ``__<uuid>`` stripped, so retries of one task share it.
     """
-    if logs_dir is None:
-        return None
-    from pathlib import Path
+    trial: str | None = None
+    if session_id:
+        trial = session_id[: -len("__agent")] if session_id.endswith("__agent") else session_id
+    if trial is None and logs_dir is not None:
+        from pathlib import Path
 
-    for part in reversed(Path(str(logs_dir)).parts):
-        if part.lower() not in _GENERIC_LOG_DIRS:
-            return part
-    return None
+        trial = Path(str(logs_dir)).parent.name or None
+
+    task = trial.rsplit("__", 1)[0] if trial and "__" in trial else trial
+    return trial, task
 
 
 def _build_gcp_credentials_env() -> dict[str, str]:

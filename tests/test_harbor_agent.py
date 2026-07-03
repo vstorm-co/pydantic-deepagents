@@ -22,9 +22,13 @@ def _install_harbor_stubs() -> tuple[type, type, type, Any]:
         pass
 
     class _AgentContext:
+        # Mirrors the real harbor AgentContext fields we populate.
         def __init__(self) -> None:
+            self.n_input_tokens: int | None = None
+            self.n_output_tokens: int | None = None
+            self.n_cache_tokens: int | None = None
             self.cost_usd: float | None = None
-            self.total_tokens: int | None = None
+            self.metadata: dict[str, Any] | None = None
 
     class _BaseInstalledAgent:
         model_name: str | None = None
@@ -82,6 +86,7 @@ from apps.harbor.agent import (  # noqa: E402
     PydanticDeepAgent,
     _build_install_script,
     _format_feature_flag,
+    _trial_and_task,
     build_run_command,
     collect_env_vars,
     convert_model_name,
@@ -390,7 +395,8 @@ class TestPydanticDeepAgent:
 
         context = _AgentContext()
         agent.populate_context_post_run(context)
-        assert context.total_tokens == 5000
+        assert context.n_input_tokens == 4000
+        assert context.n_output_tokens == 1000
 
     def test_populate_context_with_cost(self, tmp_path: Path) -> None:
         agent = PydanticDeepAgent()
@@ -413,7 +419,45 @@ class TestPydanticDeepAgent:
         context = _AgentContext()
         agent.populate_context_post_run(context)
         assert context.cost_usd is None
-        assert context.total_tokens is None
+        assert context.n_input_tokens is None
+
+    def test_populate_context_prefers_tee_file(self, tmp_path: Path) -> None:
+        # Our own tee'd file wins over Harbor's command capture.
+        agent = PydanticDeepAgent()
+        agent.logs_dir = tmp_path
+        data = {"output": "Done", "usage": {"request_tokens": 7, "response_tokens": 3}}
+        (tmp_path / "pydantic-deep.txt").write_text(json.dumps(data))
+
+        context = _AgentContext()
+        agent.populate_context_post_run(context)
+        assert context.n_input_tokens == 7
+        assert context.n_output_tokens == 3
+
+
+class TestTrialAndTask:
+    def test_from_session_id(self) -> None:
+        # Harbor sets session_id = f"{trial_name}__agent".
+        trial, task = _trial_and_task("sparql-university__Ab3Xy9q__agent", None)
+        assert trial == "sparql-university__Ab3Xy9q"
+        assert task == "sparql-university"
+
+    def test_from_logs_dir(self) -> None:
+        trial, task = _trial_and_task(None, Path("/runs/job1/hello-world__Zz9Qw2p/agent"))
+        assert trial == "hello-world__Zz9Qw2p"
+        assert task == "hello-world"
+
+    def test_session_id_wins_over_logs_dir(self) -> None:
+        trial, task = _trial_and_task("real-task__Uuu1234__agent", Path("/x/other__Vvv/agent"))
+        assert trial == "real-task__Uuu1234"
+        assert task == "real-task"
+
+    def test_task_name_with_double_underscore_preserved(self) -> None:
+        # Only the trailing __<uuid> is stripped; task names keep inner "__".
+        trial, task = _trial_and_task("foo__bar__Uuu1234__agent", None)
+        assert task == "foo__bar"
+
+    def test_none_when_no_identifiers(self) -> None:
+        assert _trial_and_task(None, None) == (None, None)
 
     async def test_run_with_feature_flags(self) -> None:
         agent = PydanticDeepAgent(

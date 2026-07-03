@@ -204,6 +204,101 @@ async def _cmd_model(app: DeepApp, arg: str) -> None:
     app.push_screen(ModelPickerModal(app.model_name), _handle_model)
 
 
+_THINKING_LEVELS = ("false", "minimal", "low", "medium", "high", "xhigh")
+
+
+def _apply_thinking(app: DeepApp, value: str) -> None:
+    """Persist the thinking effort, refresh the footer, and rebuild the agent."""
+    from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+    from apps.cli.widgets.input_area import SessionFooter
+
+    value = value.strip().lower()
+    if value in ("off", "none"):
+        value = "false"
+    if value not in _THINKING_LEVELS:
+        app.notify(
+            f"Unknown effort '{value}'. Use: {', '.join(_THINKING_LEVELS)}",
+            severity="warning",
+        )
+        return
+
+    try:
+        set_config_value(DEFAULT_CONFIG_PATH, "thinking_effort", value)
+    except Exception as exc:
+        app.notify(f"Could not save thinking effort: {exc}", severity="error")
+        return
+
+    with contextlib.suppress(Exception):
+        app.screen.query_one(SessionFooter).refresh_session()
+
+    app.notify(f"Thinking effort: {'off' if value == 'false' else value}")
+    app.reconfigure_agent(model=app.model_name)
+
+
+async def _cmd_thinking(app: DeepApp, arg: str) -> None:
+    """Change reasoning effort. `/thinking [level]` or open a picker with no arg."""
+    if arg.strip():
+        _apply_thinking(app, arg)
+        return
+
+    from apps.cli.config import load_config
+    from apps.cli.modals.thinking_picker import ThinkingPickerModal
+
+    current = str(load_config().thinking_effort or "high")
+
+    async def _handle(result: str | None) -> None:
+        if result:
+            _apply_thinking(app, result)
+
+    app.push_screen(ThinkingPickerModal(current), _handle)
+
+
+_INIT_PROMPT = """\
+Analyze this codebase and create (or update) an AGENTS.md file at the repository \
+root that gives an AI agent the context it needs to work here productively.
+
+First explore: read the directory structure, key entry points, and config files \
+(pyproject.toml, package.json, Makefile, README, existing docs). Use ls/glob/read \
+and run read-only commands as needed. Then identify:
+- What the project is and does — a one-paragraph overview.
+- The tech stack and how the code is organized (top-level directories and their roles).
+- Exact commands to build, test, run, and lint/format.
+- Conventions, patterns, and constraints a contributor must follow.
+- Any non-obvious gotchas.
+
+Write AGENTS.md with those as clear sections — concise and factual, no filler, \
+under ~200 lines. If AGENTS.md already exists, improve it in place instead of \
+duplicating. If a MEMORY.md exists under .pydantic-deep/, append 2-3 durable \
+project facts worth remembering. Finish with a short summary of what you captured."""
+
+
+async def _cmd_init(app: DeepApp, arg: str) -> None:
+    """Analyze the project and write an AGENTS.md (and seed MEMORY.md)."""
+    from apps.cli.widgets.message_list import MessageList
+
+    task = app.agent_task
+    if task is not None and not task.done():
+        app.notify("Agent is busy — wait for it to finish", severity="warning")
+        return
+
+    chat = app.screen
+    if not hasattr(chat, "_run_agent"):
+        app.notify("/init is unavailable here", severity="error")
+        return
+
+    # Make sure the scaffolding (incl. .pydantic-deep/MEMORY.md) exists.
+    with contextlib.suppress(Exception):
+        from apps.cli.init import ensure_initialized
+
+        ensure_initialized()
+
+    with contextlib.suppress(Exception):
+        chat.query_one(MessageList).append_user_message(
+            "/init — analyze this project and write AGENTS.md"
+        )
+    chat._run_agent(_INIT_PROMPT)  # type: ignore[attr-defined]
+
+
 async def _cmd_context(app: DeepApp, arg: str) -> None:
     from apps.cli.modals.context_view import ContextViewModal
 
@@ -696,6 +791,28 @@ async def _cmd_provider(app: DeepApp, arg: str) -> None:
     app.push_screen(ProviderPickerModal(), _handle_provider)
 
 
+async def _cmd_keys(app: DeepApp, arg: str) -> None:
+    """Open a picker over every credential, then enter its value."""
+    from apps.cli.credentials import find_credential
+    from apps.cli.modals.keys_picker import KeysPickerModal
+    from apps.cli.screens.onboarding import ApiKeyModal
+
+    async def _on_pick(env_var: str | None) -> None:
+        if not env_var:
+            return
+        cred = find_credential(env_var)
+        label = cred.label if cred else env_var
+        url = cred.url if cred else ""
+
+        async def _on_key(key: str | None, _env: str = env_var) -> None:
+            if key:
+                app.notify(f"✓ Saved {_env}", severity="information")
+
+        app.push_screen(ApiKeyModal(label, env_var, url), _on_key)
+
+    app.push_screen(KeysPickerModal(), _on_pick)
+
+
 async def _cmd_save(app: DeepApp, arg: str) -> None:
     app.notify("Sessions are auto-saved after each turn")
 
@@ -753,6 +870,9 @@ _COMMANDS: dict[str, CommandHandler] = {
     "/copy": _cmd_copy,
     "/export": _cmd_export,
     "/model": _cmd_model,
+    "/models": _cmd_model,
+    "/thinking": _cmd_thinking,
+    "/init": _cmd_init,
     "/context": _cmd_context,
     "/compact": _cmd_compact,
     "/copy-all": _cmd_copy_all,
@@ -775,6 +895,7 @@ _COMMANDS: dict[str, CommandHandler] = {
     "/help": _cmd_help,
     "/info": _cmd_info,
     "/provider": _cmd_provider,
+    "/keys": _cmd_keys,
     "/save": _cmd_save,
     "/theme": _cmd_theme,
     "/bug": _cmd_bug,

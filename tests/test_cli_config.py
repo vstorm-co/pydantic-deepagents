@@ -491,3 +491,44 @@ class TestSandboxEnvVars:
         config_file = tmp_path / "config.toml"
         with pytest.raises(ValueError, match="KEY=VALUE"):
             set_config_value(config_file, "sandbox_env_vars", "FOO")
+
+
+class TestGlobalProjectMerge:
+    """Global (user-level) config is the base; project config overrides it."""
+
+    def test_load_config_merges_global_then_project(self) -> None:
+        from apps.cli import config as cfg
+
+        cfg.get_global_config_path().write_text('model = "global:m"\ntheme = "dark"\n')
+        cfg.DEFAULT_CONFIG_PATH.write_text('model = "project:m"\n')
+        c = cfg.load_config()
+        assert c.model == "project:m"  # project wins
+        assert c.theme == "dark"  # global base preserved
+
+    def test_explicit_path_ignores_global(self, tmp_path) -> None:
+        from apps.cli import config as cfg
+
+        cfg.get_global_config_path().write_text('model = "global:m"\n')
+        only = tmp_path / "only.toml"
+        only.write_text('theme = "light"\n')
+        c = cfg.load_config(only)
+        assert c.theme == "light"
+        assert c.model != "global:m"  # explicit path is single-file
+
+    def test_config_has_model_and_needs_onboarding(self, monkeypatch) -> None:
+        from apps.cli import config as cfg
+        from apps.cli.onboarding_cli import needs_onboarding
+
+        monkeypatch.delenv("PYDANTIC_DEEP_MODEL", raising=False)
+        assert cfg.config_has_model() is False
+        assert needs_onboarding() is True
+
+        cfg.get_global_config_path().write_text('model = "x:y"\n')
+        assert cfg.config_has_model() is True
+        assert needs_onboarding() is False
+
+    def test_env_model_counts_as_configured(self, monkeypatch) -> None:
+        from apps.cli import config as cfg
+
+        monkeypatch.setenv("PYDANTIC_DEEP_MODEL", "env:m")
+        assert cfg.config_has_model() is True

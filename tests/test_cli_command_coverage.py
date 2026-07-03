@@ -12,7 +12,7 @@ from apps.cli.commands import _COMMANDS
 from apps.cli.modals.command_picker import COMMANDS as PICKER_COMMANDS
 
 # Aliases that intentionally don't get their own picker/help line.
-_ALIASES = {"/exit", "/q"}
+_ALIASES = {"/exit", "/q", "/models"}
 
 
 def _registered() -> set[str]:

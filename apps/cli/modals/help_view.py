@@ -30,8 +30,11 @@ _HELP_TEXT = """\
   [bold cyan]/mcp[/bold cyan]         Manage MCP servers (connect, login, import from Claude Code)
   [bold cyan]/merge[/bold cyan]       Resolve the active fork (pick a winner)
   [bold cyan]/model[/bold cyan]       Change model
+  [bold cyan]/thinking[/bold cyan]    Change reasoning effort (minimal → xhigh)
+  [bold cyan]/init[/bold cyan]        Analyze the project & write AGENTS.md
   [bold cyan]/paste[/bold cyan]       Attach an image from the clipboard
   [bold cyan]/provider[/bold cyan]    Configure AI provider
+  [bold cyan]/keys[/bold cyan]        Set API keys & credentials
   [bold cyan]/remember[/bold cyan]    Add note to persistent memory
   [bold cyan]/remind[/bold cyan]      Switch periodic reminder mode (off / first / context / llm)
   [bold cyan]/retry[/bold cyan]       Re-run the last prompt (drops the previous turn)

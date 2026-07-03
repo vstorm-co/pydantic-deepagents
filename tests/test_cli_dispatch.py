@@ -243,3 +243,17 @@ class TestExport:
             exports = list(tmp_path.glob("conversation-*.md"))
             assert len(exports) == 1
             assert "hi" in exports[0].read_text(encoding="utf-8")
+
+
+class TestModelDisplayRefresh:
+    async def test_model_change_refreshes_session_footer(self, app):
+        # Regression: changing the model must update the line under the input
+        # live, not only after an app restart.
+        from apps.cli.widgets.input_area import SessionFooter
+
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.model_name = "openrouter:qwen/qwen3-8b"
+            await pilot.pause()
+            footer = app.screen.query_one(SessionFooter)
+            assert "qwen3-8b" in str(footer.render())

@@ -603,13 +603,19 @@ class ChatScreen(Screen):
             pass
 
     def _show_welcome(self) -> None:
-        """Initialize the empty welcome state.
-
-        The identity/version live in the top header, so there's no welcome
-        banner in the conversation — it would just duplicate the header. This
-        only refreshes the session footer now that deps are wired.
-        """
+        """Show the welcome hero on a fresh conversation and refresh the footer."""
         self._refresh_session_footer()
+
+        from apps.cli.widgets.hero import HeroBanner
+
+        msg_list = self.query_one(MessageList)
+        # Only for a brand-new conversation — a resumed session already has
+        # messages, and the hero would push them down.
+        if msg_list.children:
+            return
+        version = str(getattr(self.app, "_version", "") or "")
+        with contextlib.suppress(Exception):
+            msg_list.mount(HeroBanner(version=version, id="welcome-hero"))
 
     # User input handling
 

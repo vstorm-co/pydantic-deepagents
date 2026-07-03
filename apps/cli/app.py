@@ -342,6 +342,13 @@ class DeepApp(App):
         except Exception:
             pass
 
+        try:
+            from apps.cli.model_history import record_model_use
+
+            record_model_use(effective)
+        except Exception:
+            pass
+
         msg = f"Agent ready! Model: {effective}"
         if effective_fallback:
             msg += f" → fallback: {effective_fallback}"
@@ -392,6 +399,12 @@ class DeepApp(App):
         with contextlib.suppress(NoMatches, ScreenStackError):
             self.screen.query_one(DeepHeader).model_name = name
             self.screen.query_one(StatusBar).model_name = name
+            # The session line under the input reads app.model_name lazily, so it
+            # needs an explicit refresh — otherwise it shows the old model until
+            # the app restarts.
+            from apps.cli.widgets.input_area import SessionFooter
+
+            self.screen.query_one(SessionFooter).refresh_session()
 
     def watch_is_streaming(self, streaming: bool) -> None:
         with contextlib.suppress(NoMatches, ScreenStackError):

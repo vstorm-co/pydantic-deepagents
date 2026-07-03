@@ -140,7 +140,21 @@ async def execute_headless(  # noqa: C901
         else:
             run_coro = agent.run(task, deps=deps, **run_kwargs)
 
-        from pydantic_ai.exceptions import UnexpectedModelBehavior
+        import httpx
+        from pydantic_ai.exceptions import ModelHTTPError, UnexpectedModelBehavior
+
+        # Transport/gateway failures that are the model provider's fault, not the
+        # agent's: an empty/garbled response, a non-JSON body (some OpenRouter
+        # preview models return an HTML error page — httpx.json() then raises
+        # JSONDecodeError), or a 429/5xx mid-run. In headless/benchmark mode none
+        # of these should hard-crash the trial (NonZeroAgentExitCode) and discard
+        # the work already on disk — exit 0 so the verifier can still grade it.
+        _TRANSPORT_ERRORS = (
+            UnexpectedModelBehavior,
+            ModelHTTPError,
+            httpx.HTTPError,
+            json.JSONDecodeError,
+        )
 
         try:
             if timeout is not None:
@@ -153,13 +167,8 @@ async def execute_headless(  # noqa: C901
                     return 1
             else:
                 result = await run_coro
-        except UnexpectedModelBehavior as exc:
-            # A late model hiccup (e.g. an empty response that exhausts the
-            # output-retry limit) shouldn't discard the work the agent already
-            # wrote to disk. In headless/benchmark mode we exit 0 so downstream
-            # verification can still grade the filesystem instead of the whole
-            # run counting as a hard failure.
-            _print_error(f"Model behavior error, ending run early: {exc}", output_json)
+        except _TRANSPORT_ERRORS as exc:
+            _print_error(f"Model/transport error, ending run early: {exc}", output_json)
             return 0
 
         if output_json:

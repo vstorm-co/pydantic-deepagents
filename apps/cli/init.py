@@ -10,8 +10,6 @@ import shutil
 import sys
 from pathlib import Path
 
-from pydantic_deep.models import DEFAULT_MODEL
-
 _AGENTS_MD_TEMPLATE = """\
 
 Describe your project here. This file is read by pydantic-deep at startup
@@ -32,8 +30,10 @@ This file is automatically maintained by pydantic-deep.
 The agent reads and updates this file across sessions.
 """
 
-_DEFAULT_CONFIG_TOML = f"""\
-model = "{DEFAULT_MODEL}"
+# No `model` line here on purpose: the model is a user-level choice made during
+# onboarding and stored in ~/.pydantic-deep/config.toml. Its absence from a fresh
+# project config is what triggers first-run onboarding.
+_DEFAULT_CONFIG_TOML = """\
 show_cost = true
 show_tokens = true
 

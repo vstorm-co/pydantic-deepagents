@@ -20,10 +20,15 @@ def mock_update_check():
 
 @pytest.fixture(autouse=True)
 def isolate_cli_config(tmp_path: Path) -> Generator[None, None, None]:
-    """Point CLI config to a non-existent temp path so tests are isolated from the real
-    .pydantic-deep/config.toml in the project directory.  load_config() returns CliConfig()
-    defaults when the path does not exist."""
-    with patch("apps.cli.config.DEFAULT_CONFIG_PATH", tmp_path / "config.toml"):
+    """Isolate both the project and user-level config from the real machine.
+
+    load_config() merges the global ~/.pydantic-deep/config.toml with the project
+    one, so both must point at non-existent temp paths for tests to see plain
+    CliConfig() defaults."""
+    with (
+        patch("apps.cli.config.DEFAULT_CONFIG_PATH", tmp_path / "config.toml"),
+        patch("apps.cli.config.get_global_config_path", return_value=tmp_path / "global.toml"),
+    ):
         yield
 
 

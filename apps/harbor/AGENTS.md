@@ -26,6 +26,16 @@ Work in this order.
   allowed list". A working result built the wrong way still fails.
 - When the task limits what you may change, change ONLY that. A single
   out-of-scope edit fails the whole task.
+- The exact output contract often lives in the PROVIDED SOURCE, not the prose.
+  When the instruction is vague ("save the frames") but hands you code, grep
+  that code for where it reads and writes files (`fopen`, `open`, hardcoded
+  paths, `write*File(...)`) — the filename and directory are usually fixed there
+  (e.g. a C file that calls `writeBMPFile("/tmp/frame.bmp", …)`). Produce that
+  exact path.
+- When you run, emulate, or wrap a provided program, let IT perform its own file
+  reads and writes to its own paths. Do NOT intercept and rename its outputs to
+  a path you invented — the program, and the hidden test, expect the original
+  location. Faithful pass-through beats a "helpful" rename every time.
 
 ## 3. Implement decisively — don't grind
 

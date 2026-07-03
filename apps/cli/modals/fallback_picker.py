@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -11,7 +9,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from apps.cli.modals.model_picker import _PROVIDERS_MODELS
+from apps.cli.known_models import provider_sections
 
 _NO_FALLBACK_ID = "__no_fallback__"
 
@@ -71,8 +69,7 @@ class FallbackPickerModal(ModalScreen[str | None]):
             options.append(Option(no_label, id=_NO_FALLBACK_ID))
             options.append(Option("[dim]──────────────────────────[/dim]", disabled=True))
 
-            for env_var, provider_name, models in _PROVIDERS_MODELS:
-                has_key = bool(os.environ.get(env_var))
+            for _prefix, provider_name, has_key, models in provider_sections():
                 status = "[green]✓[/green]" if has_key else "[red]✗[/red]"
                 options.append(Option(f"[dim]── {status} {provider_name} ──[/dim]", disabled=True))
                 for model in models:

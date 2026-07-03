@@ -20,18 +20,20 @@ class TestTUIWidgets:
             await pilot.pause()
             assert app.screen.__class__.__name__ == "ChatScreen"
 
-    async def test_welcome_starts_with_empty_conversation(self, app):
-        """No welcome banner in the conversation — identity lives in the top
-        header, so the message list starts empty (no duplicate hero)."""
+    async def test_welcome_starts_with_hero_and_no_messages(self, app):
+        """A fresh conversation shows the welcome hero and no chat messages yet."""
         async with app.run_test(size=(120, 35)) as pilot:
-            await pilot.pause()
-            await pilot.pause()
+            for _ in range(4):
+                await pilot.pause()
+            from apps.cli.widgets.assistant_message import AssistantMessage
             from apps.cli.widgets.hero import HeroBanner
             from apps.cli.widgets.message_list import MessageList
+            from apps.cli.widgets.user_message import UserMessage
 
             msg_list = app.screen.query_one(MessageList)
-            assert len(msg_list.children) == 0
-            assert len(msg_list.query(HeroBanner)) == 0
+            assert len(msg_list.query(HeroBanner)) == 1  # welcome hero present
+            assert len(msg_list.query(UserMessage)) == 0  # no messages yet
+            assert len(msg_list.query(AssistantMessage)) == 0
 
     def test_quiet_console_logging_strips_terminal_handlers(self):
         """fastmcp/mcp must not log to the terminal under the TUI (it paints over

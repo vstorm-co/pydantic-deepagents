@@ -78,6 +78,12 @@ def _main_callback(
     ] = False,
 ) -> None:
     """Deep Agent CLI — AI coding assistant powered by pydantic-ai."""
+    # Onboarding is needed when no model is configured yet. Capture it before
+    # anything writes config/keys so the signal stays accurate.
+    from apps.cli.onboarding_cli import needs_onboarding
+
+    first_run = needs_onboarding()
+
     try:
         from dotenv import load_dotenv
 
@@ -92,6 +98,11 @@ def _main_callback(
         load_dotenv(Path.home() / ".pydantic-deep" / ".env", override=False)
     except ImportError:  # pragma: no cover
         pass
+
+    # Load stored API keys (~/.pydantic-deep + project) into the environment.
+    from apps.cli.keystore import load_keys
+
+    load_keys()
 
     if not logfire_enabled:
         from apps.cli.config import load_config
@@ -116,7 +127,12 @@ def _main_callback(
     # Default: launch TUI when no subcommand is given
     if ctx.invoked_subcommand is None:
         from apps.cli.init import ensure_initialized
+        from apps.cli.onboarding_cli import run_onboarding
         from apps.cli.tui import run_tui
+
+        # First run (captured before the dir was created): walk through setup.
+        if first_run:
+            run_onboarding()
 
         ensure_initialized()
         run_tui(working_dir=os.getcwd())
@@ -414,6 +430,217 @@ def config_set(
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from None
     typer.echo(f"Set {key} = {value}")
+
+
+# API-key subcommands
+
+keys_app = typer.Typer(name="keys", help="Manage API keys and credentials.", no_args_is_help=True)
+app.add_typer(keys_app)
+
+
+@keys_app.command("list")
+def keys_list() -> None:
+    """List every known credential and whether it is set."""
+    from apps.cli.keys_cmd import iter_key_status
+
+    console = Console()
+    last_category = ""
+    for row in iter_key_status():
+        if row.credential.category != last_category:
+            console.print(f"\n[bold]{row.credential.category}[/bold]")
+            last_category = row.credential.category
+        if row.is_set:
+            src = f" [dim]({row.source})[/dim]" if row.source == "env" else ""
+            console.print(
+                f"  [green]✓[/green] {row.credential.env_var}  [dim]{row.display_value}[/dim]{src}"
+            )
+        else:
+            console.print(f"  [dim]·  {row.credential.env_var}  not set[/dim]")
+    console.print("\n[dim]Set one with:[/dim] pydantic-deep keys set <NAME>")
+
+
+@keys_app.command("set")
+def keys_set(
+    name: Annotated[
+        str | None,
+        typer.Argument(help="Credential env var (e.g. OPENROUTER_API_KEY), or a number"),
+    ] = None,
+    value: Annotated[
+        str | None,
+        typer.Option("--value", help="Value (omit for a hidden interactive prompt)"),
+    ] = None,
+    project: Annotated[
+        bool,
+        typer.Option("--project", help="Store for this project only, not globally"),
+    ] = False,
+) -> None:
+    """Set a credential.
+
+    With no NAME an interactive picker opens (arrow-select, then type the value
+    hidden). Pass NAME (and optionally --value) for a scriptable, non-interactive
+    set.
+    """
+    from apps.cli.credentials import CREDENTIALS, find_credential
+    from apps.cli.keys_cmd import resolve_credential
+    from apps.cli.keystore import save_key
+
+    console = Console()
+
+    if name is None and value is None:
+        # Fully interactive: pick from a list, then a hidden input dialog.
+        from apps.cli.interactive import ask_value, pick
+
+        stored = {r.credential.env_var for r in _set_credentials()}
+        choices = [
+            (c.env_var, f"{'●' if c.env_var in stored else '○'} {c.env_var}  ·  {c.label}")
+            for c in CREDENTIALS
+        ]
+        env_var = pick("Set a credential", "Choose which key to set:", choices)
+        if env_var is None:
+            raise typer.Exit()
+        cred = find_credential(env_var)
+        hint = f"Paste the value.\n{cred.url}" if cred and cred.url else "Paste the value."
+        value = ask_value(env_var, hint, password=cred.secret if cred else True)
+    else:
+        cred = resolve_credential(name) if name else None
+        env_var = cred.env_var if cred else (name or "").strip().upper()
+        if cred and cred.url:
+            console.print(f"[dim]Get one at {cred.url}[/dim]")
+        if value is None:
+            value = typer.prompt(f"Value for {env_var}", hide_input=cred.secret if cred else True)
+
+    if not value or not value.strip():
+        console.print("[yellow]No value entered — nothing saved.[/yellow]")
+        raise typer.Exit(1)
+
+    save_key(env_var, value.strip(), scope="project" if project else "global")
+    where = ".pydantic-deep/keys.toml" if project else "~/.pydantic-deep/keys.toml"
+    console.print(f"[green]✓[/green] Saved [bold]{env_var}[/bold] to {where}")
+
+
+def _set_credentials() -> list:
+    """Rows for credentials currently set (helper for the interactive picker)."""
+    from apps.cli.keys_cmd import iter_key_status
+
+    return [r for r in iter_key_status() if r.is_set]
+
+
+@keys_app.command("remove")
+def keys_remove(
+    name: Annotated[str, typer.Argument(help="Credential env var to remove")],
+    project: Annotated[
+        bool, typer.Option("--project", help="Remove from the project scope")
+    ] = False,
+) -> None:
+    """Remove a stored credential."""
+    from apps.cli.keys_cmd import resolve_credential
+    from apps.cli.keystore import remove_key
+
+    cred = resolve_credential(name)
+    env_var = cred.env_var if cred else name.strip().upper()
+    remove_key(env_var, scope="project" if project else "global")
+    Console().print(f"Removed [bold]{env_var}[/bold]")
+
+
+@app.command()
+def onboard() -> None:
+    """Re-run first-time setup: pick a provider, enter its key, choose a model."""
+    from apps.cli.onboarding_cli import run_onboarding
+
+    run_onboarding()
+
+
+# Model catalogue subcommands
+
+models_app = typer.Typer(name="models", help="Model catalogue and history.", no_args_is_help=True)
+app.add_typer(models_app)
+
+
+@models_app.command("select")
+def models_select() -> None:
+    """Open a picker to choose the default model (recent, providers, OpenRouter)."""
+    from apps.cli.config import get_config_path, set_config_value
+    from apps.cli.interactive import ask_value, pick
+    from apps.cli.model_history import recent_models, record_model_use
+    from apps.cli.providers import PROVIDERS
+
+    console = Console()
+    choices: list[tuple[str, str]] = []
+    for m in recent_models():
+        choices.append((m, f"★ {m}  (recent)"))
+    seen = {m for m, _ in choices}
+    for p in PROVIDERS:
+        if p.default_model and p.default_model not in seen:
+            choices.append((p.default_model, f"  {p.default_model}  ({p.name})"))
+    choices.append(("\x00openrouter", "🔍 Browse OpenRouter models…"))
+    choices.append(("\x00custom", "✏️  Type a custom model…"))
+
+    sel = pick("Choose model", "Select the default model:", choices)
+    if sel is None:
+        raise typer.Exit()
+
+    if sel == "\x00openrouter":
+        from apps.cli.openrouter_models import fetch_openrouter_models
+
+        term = (ask_value("OpenRouter", "Filter by substring (blank = all):") or "").lower()
+        models = [m for m in fetch_openrouter_models() if term in m.id.lower()]
+        or_choices = [
+            (
+                m.model_string,
+                f"{m.id}  (${m.prompt_price * 1e6:.2f}/${m.completion_price * 1e6:.2f} /1M)",
+            )
+            for m in models[:200]
+        ]
+        sel = pick("OpenRouter models", f"{len(models)} match — pick one:", or_choices)
+        if sel is None:
+            raise typer.Exit()
+    elif sel == "\x00custom":
+        sel = ask_value("Custom model", "e.g. openrouter:deepseek/deepseek-v4-flash")
+        if not sel or not sel.strip():
+            raise typer.Exit()
+        sel = sel.strip()
+
+    import contextlib
+
+    record_model_use(sel)
+    with contextlib.suppress(Exception):
+        set_config_value(get_config_path(), "model", sel)
+    console.print(f"[green]✓[/green] Default model set to [bold]{sel}[/bold]")
+
+
+@models_app.command("recent")
+def models_recent() -> None:
+    """Show the models you've used recently."""
+    from apps.cli.model_history import recent_models
+
+    console = Console()
+    rec = recent_models()
+    if not rec:
+        console.print("[dim]No models used yet.[/dim]")
+        return
+    for m in rec:
+        console.print(f"  {m}")
+
+
+@models_app.command("openrouter")
+def models_openrouter(
+    search: Annotated[str | None, typer.Argument(help="Filter by substring")] = None,
+    refresh: Annotated[bool, typer.Option("--refresh", help="Bypass the cache")] = False,
+) -> None:
+    """List OpenRouter models (fetched live, cached 24h). Use these as `-m openrouter/<id>`."""
+    from apps.cli.openrouter_models import fetch_openrouter_models
+
+    console = Console()
+    models = fetch_openrouter_models(force_refresh=refresh)
+    if search:
+        models = [m for m in models if search.lower() in m.id.lower()]
+    for m in models[:60]:
+        console.print(
+            f"  {m.model_string}  [dim]ctx={m.context_length} "
+            f"${m.prompt_price * 1e6:.2f}/${m.completion_price * 1e6:.2f} per 1M[/dim]"
+        )
+    shown = min(len(models), 60)
+    console.print(f"\n[dim]{shown} of {len(models)} models[/dim]")
 
 
 # Sandbox subcommands

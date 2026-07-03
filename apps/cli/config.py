@@ -29,9 +29,26 @@ def get_project_dir() -> Path:
     return Path.cwd() / ".pydantic-deep"
 
 
+def get_global_dir() -> Path:
+    """Return the user-level `~/.pydantic-deep/` directory.
+
+    Holds cross-project user state: API keys, model history, onboarding marker.
+    """
+    return Path.home() / ".pydantic-deep"
+
+
 def get_config_path() -> Path:
-    """Return path to `config.toml`."""
+    """Return path to the project `config.toml`."""
     return get_project_dir() / "config.toml"
+
+
+def get_global_config_path() -> Path:
+    """Return path to the user-level `~/.pydantic-deep/config.toml`.
+
+    Holds cross-project defaults (model, theme, thinking effort). The project
+    config overrides it.
+    """
+    return get_global_dir() / "config.toml"
 
 
 def get_sessions_dir() -> Path:
@@ -206,16 +223,41 @@ def load_config(path: Path | None = None) -> CliConfig:
 
     Precedence: environment variables > config file > defaults.
     """
-    config_path = path or DEFAULT_CONFIG_PATH
-    if not config_path.exists():
-        config = CliConfig()
+    if path is not None:
+        data = _read_toml(path)
     else:
-        with open(config_path, "rb") as f:
-            data = tomllib.load(f)
-        config = _parse_config(data)
+        # User-level config is the base; the project config overrides it.
+        data = {**_read_toml(get_global_config_path()), **_read_toml(DEFAULT_CONFIG_PATH)}
+    config = _parse_config(data) if data else CliConfig()
 
     _apply_env_overrides(config)
     return config
+
+
+def _read_toml(path: Path) -> dict[str, Any]:
+    """Read a TOML file into a dict, or {} when missing or unreadable."""
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except Exception:
+        return {}
+
+
+def config_has_model() -> bool:
+    """Whether a model is defined anywhere (env, project, or global config).
+
+    Used to decide whether first-run onboarding is needed — a user with no model
+    set anywhere hasn't configured the tool yet.
+    """
+    if os.environ.get("PYDANTIC_DEEP_MODEL"):
+        return True
+    for cfg_path in (DEFAULT_CONFIG_PATH, get_global_config_path()):
+        model = _read_toml(cfg_path).get("model")
+        if isinstance(model, str) and model.strip():
+            return True
+    return False
 
 
 def _apply_env_overrides(config: CliConfig) -> None:
@@ -464,7 +506,9 @@ __all__ = [
     "DEFAULT_CONFIG_PATH",
     "DEFAULT_THREADS_DIR",
     "format_config",
+    "config_has_model",
     "get_config_path",
+    "get_global_config_path",
     "get_config_value",
     "get_history_path",
     "get_project_dir",

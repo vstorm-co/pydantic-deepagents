@@ -595,3 +595,56 @@ class TestMessageQueueIntegration:
 
             barrier.set()
             await task
+
+
+class TestCtrlCBehavior:
+    """Ctrl+C: interrupt a run, copy a selection, or double-press to exit."""
+
+    async def test_single_idle_press_arms_second_exits(self, app):
+        from unittest.mock import MagicMock
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            app.exit = MagicMock()
+            app.action_interrupt()  # first idle press → arm, no exit
+            app.exit.assert_not_called()
+            app.action_interrupt()  # second within the window → exit
+            app.exit.assert_called_once()
+
+    async def test_stale_press_re_arms_not_exit(self, app):
+        from unittest.mock import MagicMock
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            app.exit = MagicMock()
+            app.action_interrupt()
+            app._last_ctrl_c -= 60  # window elapsed
+            app.action_interrupt()  # re-arms rather than exits
+            app.exit.assert_not_called()
+
+    async def test_selection_is_copied_not_exit(self, app):
+        from unittest.mock import MagicMock
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            app.exit = MagicMock()
+            app.copy_to_clipboard = MagicMock()
+            app.screen.get_selected_text = lambda: "agent response text"
+            app.action_interrupt()
+            app.copy_to_clipboard.assert_called_once_with("agent response text")
+            app.exit.assert_not_called()
+
+    async def test_running_agent_interrupted_first(self, app):
+        from unittest.mock import MagicMock
+
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            app.exit = MagicMock()
+            app.copy_to_clipboard = MagicMock()
+            task = MagicMock()
+            task.done.return_value = False
+            app.agent_task = task
+            app.action_interrupt()
+            task.cancel.assert_called_once()
+            app.exit.assert_not_called()
+            app.copy_to_clipboard.assert_not_called()

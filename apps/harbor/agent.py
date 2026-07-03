@@ -138,9 +138,12 @@ class PydanticDeepAgent(BaseInstalledAgent):
         memory: str | bool | None = None,
         teams: str | bool | None = None,
         context: str | bool | None = None,
-        browser: str | bool | None = None,
+        # browser/liteparse default OFF: their extras (Playwright browser
+        # binaries, Node.js) are not installed in the benchmark container, and
+        # terminal tasks don't need them. Pass `--ak browser=true` to opt back in.
+        browser: str | bool | None = False,
         browser_headless: str | bool | None = None,
-        liteparse: str | bool | None = None,
+        liteparse: str | bool | None = False,
         temperature: str | float | None = None,
         sandbox: str | None = None,
         workspace: str | None = None,

@@ -86,14 +86,18 @@ harbor run ... --include-task-name "<task-name>"
 ```
 
 Feature flags are passed through Harbor's `--ak key=value` mechanism, e.g.
-`--ak subagents=true --ak thinking=high --ak web_search=false`. The adapter
+`--ak subagents=true --ak thinking=medium --ak web_search=false`. The adapter
 forwards the agent's full `pydantic-deep run` feature surface — supported keys:
 `web_search, web_fetch, thinking, todo, subagents, skills, plan, memory, teams,
 context, browser, browser_headless, liteparse, temperature, sandbox, workspace`.
 
-> `sandbox`/`workspace` are exposed for completeness but default to unset — leave
-> them alone under Terminal-Bench (the agent already runs inside a task
-> container; `--sandbox docker` would nest Docker).
+Defaults: every flag left unset uses the agent's own config default (skills,
+plan, memory, subagents, todo, web_search, web_fetch, context on; teams off;
+thinking `high`), **except `browser` and `liteparse`, which default OFF** here
+(their extras aren't installed and terminal tasks don't need them — pass
+`--ak browser=true` to opt back in). `sandbox`/`workspace` default to unset —
+leave them alone under Terminal-Bench (the agent already runs inside a task
+container; `--sandbox docker` would nest Docker).
 
 Install a specific branch with `PYDANTIC_DEEP_GIT_REF=<branch>` (default `main`).
 

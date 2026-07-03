@@ -314,6 +314,15 @@ class TestPydanticDeepAgent:
         assert agent._max_turns == 50
         assert agent._timeout == 300
 
+    def test_browser_and_liteparse_default_off(self) -> None:
+        # Their extras aren't installed in the container, so we force them off.
+        agent = PydanticDeepAgent()
+        assert agent._feature_flags["browser"] is False
+        assert agent._feature_flags["liteparse"] is False
+        cmd = build_run_command(instruction="x", feature_flags=agent._feature_flags)
+        assert "--no-browser" in cmd
+        assert "--no-liteparse" in cmd
+
     async def test_install(self) -> None:
         agent = PydanticDeepAgent()
         agent.exec_as_root = AsyncMock()

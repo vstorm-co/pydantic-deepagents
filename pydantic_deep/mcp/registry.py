@@ -121,6 +121,9 @@ def build_mcp_server(
     Resolves the auth secret (if any) and injects it as an HTTP header (for
     ``bearer``/``header`` auth) or a subprocess env var (for ``env`` auth).
     Wraps the toolset in a ``PrefixedToolset`` when ``tool_prefix`` is set.
+    When ``config.init_timeout`` is set it is forwarded to the ``MCPToolset``,
+    raising the connect/``initialize`` deadline above pydantic-ai's 5s default
+    for servers that are slow to become ready.
 
     For ``stdio`` servers, the subprocess receives ``config.env`` (plus any
     ``env``-kind auth var) layered on top of the MCP SDK's *safe default*
@@ -149,6 +152,10 @@ def build_mcp_server(
     headers = dict(config.headers)
     env = dict(config.env)
 
+    extra: dict[str, Any] = {}
+    if config.init_timeout is not None:
+        extra["init_timeout"] = config.init_timeout
+
     auth = config.auth
     if auth is not None and auth.kind in _SECRET_AUTH_KINDS:
         token = resolver(auth.secret_key)
@@ -168,7 +175,7 @@ def build_mcp_server(
             env=env or None,
             log_file=_stdio_log_file(config.name),
         )
-        toolset = MCPToolset(transport, id=config.name)
+        toolset = MCPToolset(transport, id=config.name, **extra)
     elif auth is not None and auth.kind == "oauth":  # http/sse interactive OAuth
         url = cast(str, config.url)
         # A persistent token store and/or a custom client name require a real
@@ -181,12 +188,12 @@ def build_mcp_server(
                 oauth_kwargs["token_storage"] = oauth_token_storage
             if auth.client_name:
                 oauth_kwargs["client_name"] = auth.client_name
-            toolset = MCPToolset(url, auth=OAuth(**oauth_kwargs), id=config.name)
+            toolset = MCPToolset(url, auth=OAuth(**oauth_kwargs), id=config.name, **extra)
         else:
-            toolset = MCPToolset(url, auth="oauth", id=config.name)
+            toolset = MCPToolset(url, auth="oauth", id=config.name, **extra)
     else:  # http / sse — FastMCP infers the transport from the URL
         url = cast(str, config.url)
-        toolset = MCPToolset(url, headers=headers or None, id=config.name)
+        toolset = MCPToolset(url, headers=headers or None, id=config.name, **extra)
 
     if config.tool_prefix:
         toolset = PrefixedToolset(toolset, config.tool_prefix)

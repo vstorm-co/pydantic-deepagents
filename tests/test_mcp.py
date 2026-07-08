@@ -337,6 +337,61 @@ def test_build_raises_when_mcp_missing(monkeypatch: pytest.MonkeyPatch) -> None:
         build_mcp_server(cfg)
 
 
+def test_config_init_timeout_defaults_none() -> None:
+    assert MCPServerConfig(name="x", transport="stdio", command="run").init_timeout is None
+
+
+def test_config_init_timeout_roundtrip() -> None:
+    cfg = MCPServerConfig(name="db", transport="stdio", command="run", init_timeout=8.0)
+    assert MCPServerConfig.from_dict(cfg.to_dict()) == cfg
+
+
+def test_config_rejects_non_positive_init_timeout() -> None:
+    with pytest.raises(MCPConfigError):
+        MCPServerConfig(name="x", transport="stdio", command="run", init_timeout=0)
+    with pytest.raises(MCPConfigError):
+        MCPServerConfig(name="x", transport="stdio", command="run", init_timeout=-1)
+
+
+def _spy_mcp_classes(recorder: dict[str, Any]) -> tuple[Any, Any, Any]:
+    """Fake (MCPToolset, PrefixedToolset, StdioTransport) that records kwargs.
+
+    Lets the forwarding tests run without a working ``fastmcp`` client install.
+    """
+
+    class SpyStdioTransport:
+        def __init__(self, command: str, args: list[str], **kwargs: Any) -> None:
+            self.command = command
+            self.args = args
+
+    class SpyMCPToolset:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            recorder["args"] = args
+            recorder["kwargs"] = kwargs
+
+    class SpyPrefixedToolset:
+        def __init__(self, wrapped: Any, prefix: str) -> None:  # pragma: no cover
+            self.wrapped = wrapped
+
+    return SpyMCPToolset, SpyPrefixedToolset, SpyStdioTransport
+
+
+def test_build_forwards_init_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    rec: dict[str, Any] = {}
+    monkeypatch.setattr(registry_mod, "_load_mcp_classes", lambda: _spy_mcp_classes(rec))
+    cfg = MCPServerConfig(name="db", transport="stdio", command="run", init_timeout=8.0)
+    build_mcp_server(cfg)
+    assert rec["kwargs"]["init_timeout"] == 8.0
+
+
+def test_build_omits_init_timeout_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    rec: dict[str, Any] = {}
+    monkeypatch.setattr(registry_mod, "_load_mcp_classes", lambda: _spy_mcp_classes(rec))
+    cfg = MCPServerConfig(name="x", transport="http", url="http://x/mcp")
+    build_mcp_server(cfg)
+    assert "init_timeout" not in rec["kwargs"]
+
+
 # ── MCPRegistry ──────────────────────────────────────────────────────────
 
 

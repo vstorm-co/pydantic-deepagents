@@ -65,7 +65,7 @@ Parsing is powered by [LiteParse](https://github.com/run-llama/liteparse), a Nod
     the toolset drives, so a 2.x install silently degrades to `"Parse error"`
     fallbacks. Pin both to `1.x`: the extra resolves the Python package to
     `>=1.1.0,<2.0.0`, and you should install the CLI with an explicit
-    `@^1.2.0` (or any `1.x`). Don't rely on plain
+    `@^1.2.0`. Don't rely on plain
     `npm install -g @llamaindex/liteparse` — it pulls `latest` (2.x).
 
 !!! tip "First run auto-installs the CLI"

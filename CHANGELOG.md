@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.36] - 2026-07-18
+
+A configurable MCP handshake timeout for slow-starting servers, and LiteParse
+pinned to the 1.x line.
+
+### Added
+
+- **`init_timeout` on `MCPServerConfig` for slow-starting MCP servers** ([#167](https://github.com/vstorm-co/pydantic-deepagents/issues/167), [#171](https://github.com/vstorm-co/pydantic-deepagents/pull/171)) (`pydantic_deep/mcp/config.py`, `pydantic_deep/mcp/registry.py`). pydantic-ai caps the initial connect + `initialize` handshake at 5s, so a server that does real work on startup (e.g. opens a database connection, ~8s) failed with `"Failed to initialize server session"` — and re-wrapping with a longer timeout isn't possible, since `MCPToolset` rejects `init_timeout` alongside a pre-built client. The new optional field (validated positive; `None` keeps the 5s default) is forwarded by `build_mcp_server` to every `MCPToolset` construction (stdio, OAuth, http/sse), only when set, and round-trips through `to_dict`/`from_dict` so the CLI persists it in `mcp.json`. The `/mcp` Test action's probe window now scales with it — `max(10s, init_timeout + 5s)`, OAuth keeps 180s — so a slow server that connects fine at runtime no longer fails its connection test (`apps/cli/modals/mcp_view.py`).
+
+### Fixed
+
+- **LiteParse pinned to the 1.x line** ([#172](https://github.com/vstorm-co/pydantic-deepagents/issues/172), [#173](https://github.com/vstorm-co/pydantic-deepagents/pull/173)) (`pyproject.toml`, `pydantic_deep/features/liteparse/toolset.py`, `docs/advanced/liteparse.md`). The `liteparse` extra's lower bound moves to `>=1.1.0` — the first release of the Python binding that ships the async API (`parse_async`/`screenshot_async`) the toolset uses — and gains a `<2.0.0` cap, since 2.x dropped that API. The npm CLI install command in the toolset docstrings, the runtime "not installed" message, and the docs is pinned to match (`npm install -g @llamaindex/liteparse@^1.2.0`), so auto-install and copy-pasted setup can't pull an incompatible 2.x CLI.
+
 ## [0.3.35] - 2026-07-03
 
 Onboarding and per-user configuration, a dynamic model catalogue in the picker,

@@ -384,6 +384,14 @@ def test_build_forwards_init_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert rec["kwargs"]["init_timeout"] == 8.0
 
 
+def test_build_forwards_init_timeout_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    rec: dict[str, Any] = {}
+    monkeypatch.setattr(registry_mod, "_load_mcp_classes", lambda: _spy_mcp_classes(rec))
+    cfg = MCPServerConfig(name="x", transport="http", url="http://x/mcp", init_timeout=8.0)
+    build_mcp_server(cfg)
+    assert rec["kwargs"]["init_timeout"] == 8.0
+
+
 def test_build_omits_init_timeout_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
     rec: dict[str, Any] = {}
     monkeypatch.setattr(registry_mod, "_load_mcp_classes", lambda: _spy_mcp_classes(rec))

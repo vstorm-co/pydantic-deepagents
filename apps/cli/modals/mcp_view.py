@@ -379,9 +379,11 @@ class MCPViewModal(ModalScreen[None]):
             self._set_test_status(config.name, f"[red]· build error: {exc}[/red]")
             return
         # OAuth servers open a browser and wait for the user to authorize, so
-        # give the probe much longer than the default.
+        # give the probe much longer than the default. For the rest, a raised
+        # init_timeout must fit within the probe window — otherwise a slow
+        # server that connects fine at runtime would still fail the test here.
         is_oauth = config.auth is not None and config.auth.kind == "oauth"
-        timeout = 180.0 if is_oauth else 10.0
+        timeout = 180.0 if is_oauth else max(10.0, (config.init_timeout or 5.0) + 5.0)
         result: MCPProbeResult = await probe_mcp_server(server, timeout=timeout)
         if result.ok:
             self._set_test_status(config.name, f"[green]· ✓ {result.tool_count} tools[/green]")

@@ -122,10 +122,19 @@ class MCPServerConfig:
     description: str = ""
     builtin: bool = False
     auth: MCPAuth | None = None
+    init_timeout: float | None = None
+    """Seconds to wait for the initial connection + ``initialize`` handshake.
+
+    ``None`` uses pydantic-ai's default (5s). Raise it for servers that are slow
+    to become ready (e.g. one that opens a database connection on startup),
+    which would otherwise fail with ``"Failed to initialize server session"``.
+    """
 
     def __post_init__(self) -> None:
         if not self.name:
             raise MCPConfigError("MCP server config requires a non-empty name")
+        if self.init_timeout is not None and self.init_timeout <= 0:
+            raise MCPConfigError(f"MCP server '{self.name}' init_timeout must be positive")
         if self.transport == "stdio":
             if not self.command:
                 raise MCPConfigError(f"stdio MCP server '{self.name}' requires a command")
@@ -163,4 +172,5 @@ class MCPServerConfig:
             description=data.get("description", ""),
             builtin=data.get("builtin", False),
             auth=MCPAuth.from_dict(auth_data) if auth_data is not None else None,
+            init_timeout=data.get("init_timeout"),
         )

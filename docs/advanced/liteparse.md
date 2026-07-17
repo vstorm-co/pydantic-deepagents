@@ -57,14 +57,23 @@ You don't call these yourself — the agent does, when the task calls for it. As
 Parsing is powered by [LiteParse](https://github.com/run-llama/liteparse), a Node.js CLI that the Python wrapper drives via subprocess. So you need three things:
 
 - **Node.js >= 18** on the system.
-- **The LiteParse CLI** — `npm install -g @llamaindex/liteparse`.
+- **The LiteParse CLI** — `npm install -g @llamaindex/liteparse@^1.2.0`.
 - **The Python extra** — `pip install pydantic-deep[liteparse]`.
+
+!!! warning "Pin the CLI to the 1.x line"
+    The `2.x` CLI (and the matching Python `2.x` package) dropped the async API
+    the toolset drives, so a 2.x install silently degrades to `"Parse error"`
+    fallbacks. Pin both to `1.x`: the extra resolves the Python package to
+    `>=1.1.0,<2.0.0`, and you should install the CLI with an explicit
+    `@^1.2.0`. Don't rely on plain
+    `npm install -g @llamaindex/liteparse` — it pulls `latest` (2.x).
 
 !!! tip "First run auto-installs the CLI"
     If the CLI is missing but `npm` is on the `PATH`, LiteParse installs it for
-    you on first use (`install_if_not_available=True`, the default). Handy
-    locally, but for Docker and production, pre-install it in your image so the
-    first request isn't waiting on `npm`.
+    you on first use (`install_if_not_available=True`, the default). It installs
+    the **unpinned** `latest`, though — so pre-install a `1.x` CLI yourself
+    (locally and especially in Docker/production) rather than letting the first
+    request pull a 2.x that breaks parsing.
 
 ### Docker
 
@@ -76,8 +85,8 @@ RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
-# LiteParse CLI, pre-installed so the first request is fast
-RUN npm install -g @llamaindex/liteparse
+# LiteParse CLI (1.x — 2.x dropped the async API), pre-installed so the first request is fast
+RUN npm install -g @llamaindex/liteparse@^1.2.0
 
 COPY . .
 RUN pip install pydantic-deep[liteparse]
@@ -142,7 +151,7 @@ The LiteParse repo ships [reference OCR servers](https://github.com/run-llama/li
 
 - `include_liteparse=True` hands your agent `parse_document` and `screenshot_document` — local document parsing, no cloud.
 - `parse_document` extracts text (with OCR) from PDF, DOCX, XLSX, PPTX, ODF, and images; `screenshot_document` renders PDFs and images to PNGs in the backend.
-- It needs Node.js >= 18, the `@llamaindex/liteparse` CLI, and the `pydantic-deep[liteparse]` extra — pre-install the CLI in Docker.
+- It needs Node.js >= 18, the `@llamaindex/liteparse@^1.2.0` CLI (1.x — 2.x dropped the async API), and the `pydantic-deep[liteparse]` extra — pre-install the CLI in Docker.
 - For OCR language, DPI, or a custom OCR server, build [`LiteparseToolset`][pydantic_deep.LiteparseToolset] directly instead of the flag.
 
 Where to go next:

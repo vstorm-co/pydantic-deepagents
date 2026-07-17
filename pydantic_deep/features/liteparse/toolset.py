@@ -5,7 +5,8 @@ LiteParse Node.js CLI via the `liteparse` Python package.
 
 Requirements:
     - Node.js >= 18 installed on the system
-    - LiteParse CLI: `npm install -g @llamaindex/liteparse`
+    - LiteParse CLI: `npm install -g @llamaindex/liteparse@^1.2.0`
+      (pin to 1.x — the 2.x CLI dropped the async API this toolset uses)
     - Python package: `pip install pydantic-deep[liteparse]`
 """
 
@@ -60,7 +61,7 @@ for _cli_err_module in ("liteparse", "liteparse.types"):
 _NOT_INSTALLED_MSG = (
     "LiteParse is not installed. "
     "Run: pip install pydantic-deep[liteparse] "
-    "and npm install -g @llamaindex/liteparse"
+    "and npm install -g @llamaindex/liteparse@^1.2.0"
 )
 
 PARSE_DOCUMENT_DESCRIPTION = """\
@@ -91,7 +92,9 @@ class LiteparseToolset(FunctionToolset[Any]):
 
     Requirements:
         - Node.js >= 18 on the system
-        - LiteParse CLI (auto-installed via npm on first use if `install_if_not_available=True`)
+        - LiteParse CLI: `npm install -g @llamaindex/liteparse@^1.2.0` — pre-install a 1.x
+          version; the auto-install on first use (`install_if_not_available=True`) pulls the
+          unpinned `latest`, which is an incompatible 2.x
         - `pip install pydantic-deep[liteparse]`
 
     Tools:

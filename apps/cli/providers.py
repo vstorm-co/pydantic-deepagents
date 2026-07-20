@@ -60,7 +60,18 @@ PROVIDERS: tuple[ProviderInfo, ...] = (
         "google-gla:gemini-2.5-pro",
     ),
     ProviderInfo("ollama", "Ollama (local, free)", "", "", "ollama:llama3.3"),
+    ProviderInfo(
+        "openai-compatible",
+        "OpenAI-compatible (local: llama.cpp / LM Studio / vLLM)",
+        "",
+        "",
+        "openai-compatible:local-model",
+    ),
 )
+
+#: Model-string prefix marking an OpenAI-compatible local endpoint. The part
+#: after the prefix is the model name; the endpoint URL lives in `config.base_url`.
+OPENAI_COMPATIBLE_PREFIX = "openai-compatible:"
 
 #: Provider id → default model, derived from :data:`PROVIDERS`.
 PROVIDER_DEFAULT_MODELS: dict[str, str] = {p.id: p.default_model for p in PROVIDERS}

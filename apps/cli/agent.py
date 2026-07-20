@@ -8,7 +8,8 @@ from typing import Any, Literal
 
 from pydantic_ai_backends import LocalBackend
 
-from apps.cli.config import load_config
+from apps.cli.config import CliConfig, load_config
+from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
@@ -107,6 +108,27 @@ def _make_shell_allow_list_hook(allow_list: list[str]) -> Hook:
         handler=_check_command,
         matcher=r"^execute$",
     )
+
+
+def _resolve_openai_compatible_model(model_str: str, config: CliConfig) -> Any:
+    """Turn an `openai-compatible:<name>` model string into an `OpenAIChatModel`.
+
+    Local servers (llama.cpp, LM Studio, vLLM, …) speak the OpenAI wire format but
+    need a `base_url`, which a plain model string can't carry — so the CLI stores
+    the URL in `config.base_url` and marks the model with a sentinel prefix. Most
+    local servers ignore the API key, so a noop stand-in is used when none is set.
+    """
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+
+    if not config.base_url:
+        raise ValueError(
+            "No base_url configured for the OpenAI-compatible endpoint. "
+            "Run /provider, pick OpenAI-compatible, and enter the server URL."
+        )
+    name = model_str[len(OPENAI_COMPATIBLE_PREFIX) :] or "local-model"
+    provider = OpenAIProvider(base_url=config.base_url, api_key=config.local_api_key or "sk-noop")
+    return OpenAIChatModel(name, provider=provider)
 
 
 def create_cli_agent(  # noqa: C901
@@ -446,8 +468,12 @@ def create_cli_agent(  # noqa: C901
         except Exception:
             mcp_servers = []
 
+    model_for_agent: Any = effective_model
+    if isinstance(effective_model, str) and effective_model.startswith(OPENAI_COMPATIBLE_PREFIX):
+        model_for_agent = _resolve_openai_compatible_model(effective_model, config)
+
     agent = create_deep_agent(
-        model=effective_model,
+        model=model_for_agent,
         fallback_model=fallback_model or config.fallback_model or None,
         instructions=instructions,
         backend=effective_backend,

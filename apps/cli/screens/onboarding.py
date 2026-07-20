@@ -30,7 +30,11 @@ def _check_provider_status() -> list[tuple[str, str, str, bool]]:
 
     result: list[tuple[str, str, str, bool]] = []
     for provider_id, name, env_var, _url in _PROVIDERS:
-        has_key = bool(os.environ.get(env_var)) if env_var else provider_id == "ollama"
+        has_key = (
+            bool(os.environ.get(env_var))
+            if env_var
+            else provider_id in ("ollama", "openai-compatible")
+        )
         result.append((provider_id, name, env_var, has_key))
     return result
 
@@ -172,6 +176,82 @@ class ApiKeyModal(ModalScreen[str | None]):
 
     def on_input_submitted(self, _event: Input.Submitted) -> None:
         self._save_and_dismiss()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
+class LocalEndpointModal(ModalScreen[str | None]):
+    """Configure an OpenAI-compatible local endpoint (llama.cpp / LM Studio / vLLM).
+
+    Persists the base URL, optional model name and optional API key to the config
+    file, then dismisses with the `openai-compatible:<name>` model string so the
+    caller can reconfigure the agent.
+    """
+
+    DEFAULT_CSS = """
+    LocalEndpointModal {
+        align: center middle;
+    }
+    LocalEndpointModal > #local-container {
+        width: 72;
+        height: auto;
+        border: tall $primary;
+        background: $surface;
+        padding: 1 2;
+    }
+    LocalEndpointModal > #local-container > Input {
+        margin: 1 0;
+    }
+    LocalEndpointModal > #local-container > #local-actions {
+        margin: 1 0 0 0;
+    }
+    """
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="local-container"):
+            yield Static("[bold]Configure OpenAI-compatible endpoint[/bold]\n")
+            yield Static("Base URL (required):")
+            yield Input(placeholder="http://localhost:8080/v1", id="local-url")
+            yield Static("Model name:")
+            yield Input(placeholder="local-model", id="local-model")
+            yield Static("API key (optional — most local servers ignore it):")
+            yield Input(placeholder="leave blank if unused", password=True, id="local-key")
+            yield Static(
+                "\n[dim]Saved to .pydantic-deep/config.toml. Tool-calling & structured "
+                "output need a model served with a proper chat/tool template.[/dim]"
+            )
+            with Vertical(id="local-actions"):
+                yield Button("Connect", variant="primary", id="btn-connect")
+                yield Button("Cancel", variant="default", id="btn-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one("#local-url", Input).focus()
+
+    def _save_and_dismiss(self) -> None:
+        from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
+        from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX
+
+        base_url = self.query_one("#local-url", Input).value.strip()
+        if not base_url:
+            self.app.notify("Please enter a base URL", severity="warning")
+            return
+        name = self.query_one("#local-model", Input).value.strip() or "local-model"
+        api_key = self.query_one("#local-key", Input).value.strip()
+
+        set_config_value(DEFAULT_CONFIG_PATH, "base_url", base_url)
+        set_config_value(DEFAULT_CONFIG_PATH, "local_api_key", api_key)
+        self.dismiss(f"{OPENAI_COMPATIBLE_PREFIX}{name}")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-connect":
+            self._save_and_dismiss()
+        elif event.button.id == "btn-cancel":
+            self.dismiss(None)
 
     def action_cancel(self) -> None:
         self.dismiss(None)

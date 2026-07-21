@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic_ai.models.openai import OpenAIChatModel
 
 from apps.cli.agent import _resolve_openai_compatible_model, create_cli_agent
+from apps.cli.app import DeepApp
 from apps.cli.config import CliConfig
 from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX, PROVIDER_DEFAULT_MODELS, PROVIDERS
 
@@ -108,13 +110,11 @@ class TestCreateCliAgentLocalModel:
 
 class TestLocalEndpointModal:
     @pytest.fixture
-    def app(self):
-        from apps.cli.app import DeepApp
-
+    def app(self) -> DeepApp:
         return DeepApp(model="test", version="0.0.0")
 
     async def test_connect_persists_and_dismisses_with_model_string(
-        self, app, monkeypatch: pytest.MonkeyPatch
+        self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         from textual.widgets import Input
 
@@ -126,63 +126,66 @@ class TestLocalEndpointModal:
             lambda _p, k, v: saved.append((k, v)),
         )
         result: list[str | None] = []
+        modal = LocalEndpointModal()
         async with app.run_test(size=(120, 40)) as pilot:
-            await app.push_screen(LocalEndpointModal(), lambda r: result.append(r))
+            await app.push_screen(modal, lambda r: result.append(r))
             await pilot.pause()
-            app.screen.query_one("#local-url", Input).value = "http://localhost:8080/v1"
-            app.screen.query_one("#local-model", Input).value = "qwen2.5"
-            app.screen.query_one("#local-key", Input).value = "secret"
-            app.screen._save_and_dismiss()
+            modal.query_one("#local-url", Input).value = "http://localhost:8080/v1"
+            modal.query_one("#local-model", Input).value = "qwen2.5"
+            modal.query_one("#local-key", Input).value = "secret"
+            modal._save_and_dismiss()
             await pilot.pause()
         assert result == ["openai-compatible:qwen2.5"]
         assert ("base_url", "http://localhost:8080/v1") in saved
         assert ("local_api_key", "secret") in saved
 
-    async def test_blank_model_name_defaults(self, app, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_blank_model_name_defaults(
+        self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from textual.widgets import Input
 
         from apps.cli.screens.onboarding import LocalEndpointModal
 
         monkeypatch.setattr("apps.cli.config.set_config_value", lambda _p, _k, _v: None)
         result: list[str | None] = []
+        modal = LocalEndpointModal()
         async with app.run_test(size=(120, 40)) as pilot:
-            await app.push_screen(LocalEndpointModal(), lambda r: result.append(r))
+            await app.push_screen(modal, lambda r: result.append(r))
             await pilot.pause()
-            app.screen.query_one("#local-url", Input).value = "http://localhost:8080/v1"
-            app.screen._save_and_dismiss()
+            modal.query_one("#local-url", Input).value = "http://localhost:8080/v1"
+            modal._save_and_dismiss()
             await pilot.pause()
         assert result == ["openai-compatible:local-model"]
 
-    async def test_blank_url_warns_and_stays_open(self, app) -> None:
+    async def test_blank_url_warns_and_stays_open(self, app: DeepApp) -> None:
         from apps.cli.screens.onboarding import LocalEndpointModal
 
         result: list[str | None] = []
+        modal = LocalEndpointModal()
         async with app.run_test(size=(120, 40)) as pilot:
-            await app.push_screen(LocalEndpointModal(), lambda r: result.append(r))
+            await app.push_screen(modal, lambda r: result.append(r))
             await pilot.pause()
-            app.screen._save_and_dismiss()
+            modal._save_and_dismiss()
             await pilot.pause()
             # Modal did not dismiss — no callback fired yet.
             assert result == []
-            app.screen.action_cancel()
+            modal.action_cancel()
             await pilot.pause()
         assert result == [None]
 
 
 class TestProviderCommandRouting:
     @pytest.fixture
-    def app(self):
-        from apps.cli.app import DeepApp
-
+    def app(self) -> DeepApp:
         return DeepApp(model="test", version="0.0.0")
 
     async def test_openai_compatible_opens_local_endpoint_modal(
-        self, app, monkeypatch: pytest.MonkeyPatch
+        self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         from apps.cli.commands import _cmd_provider
         from apps.cli.screens.onboarding import LocalEndpointModal, ProviderPickerModal
 
-        pushes: list[tuple[object, object]] = []
+        pushes: list[tuple[Any, Any]] = []
         reconfigured: list[str] = []
         monkeypatch.setattr(app, "reconfigure_agent", lambda model=None: reconfigured.append(model))
         async with app.run_test(size=(120, 40)) as pilot:
@@ -203,12 +206,12 @@ class TestProviderCommandRouting:
         assert reconfigured == ["openai-compatible:qwen2.5"]
 
     async def test_openai_compatible_cancel_does_not_reconfigure(
-        self, app, monkeypatch: pytest.MonkeyPatch
+        self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         from apps.cli.commands import _cmd_provider
         from apps.cli.screens.onboarding import LocalEndpointModal
 
-        pushes: list[tuple[object, object]] = []
+        pushes: list[tuple[Any, Any]] = []
         reconfigured: list[str] = []
         monkeypatch.setattr(app, "reconfigure_agent", lambda model=None: reconfigured.append(model))
         async with app.run_test(size=(120, 40)) as pilot:

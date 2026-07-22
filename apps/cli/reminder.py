@@ -6,6 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from pydantic_ai.models import Model
+
     from apps.cli.app import DeepApp
 
 _REMINDER_LABELS: dict[str, str] = {
@@ -21,7 +23,7 @@ def _build_reminder_config(
     reminder_mode: Literal["off", "first", "context", "llm"] | None,
     config: Any,
     on_reminder: Callable[[int, str], None] | None = None,
-    reminder_model: str | None = None,
+    reminder_model: str | Model | None = None,
 ) -> Any:
     """Build a PeriodicReminderConfig (or None) from CLI/config args."""
     enabled = periodic_reminder if periodic_reminder is not None else config.periodic_reminder

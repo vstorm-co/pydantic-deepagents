@@ -764,13 +764,26 @@ async def _cmd_help(app: DeepApp, arg: str) -> None:
 
 async def _cmd_provider(app: DeepApp, arg: str) -> None:
     from apps.cli.providers import PROVIDER_DEFAULT_MODELS as _PROVIDER_DEFAULT_MODELS
-    from apps.cli.screens.onboarding import _PROVIDERS, ApiKeyModal, ProviderPickerModal
+    from apps.cli.screens.onboarding import (
+        _PROVIDERS,
+        ApiKeyModal,
+        LocalEndpointModal,
+        ProviderPickerModal,
+    )
 
     async def _handle_provider(provider_id: str | None) -> None:
         if provider_id is None:
             return
         if provider_id == "ollama":
             app.reconfigure_agent(model="ollama:llama3.3")
+            return
+        if provider_id == "openai-compatible":
+
+            async def _handle_endpoint(model: str | None) -> None:
+                if model:
+                    app.reconfigure_agent(model=model)
+
+            app.push_screen(LocalEndpointModal(), _handle_endpoint)
             return
         for pid, name, env_var, url in _PROVIDERS:
             if pid == provider_id:

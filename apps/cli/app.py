@@ -405,6 +405,13 @@ class DeepApp(App):
         """If the current model's provider key isn't set, pick one that is."""
         from apps.cli.providers import PROVIDERS
 
+        # Keyless providers (Ollama, OpenAI-compatible) are a deliberate local
+        # choice with no key to check — keep them, and before the keyed loop so
+        # "openai-compatible:…" isn't caught by the "openai" prefix.
+        for p in PROVIDERS:
+            if not p.env_var and current.startswith(p.id):
+                return current
+
         # Keyed providers only — a model name starts with its provider id.
         keyed = [p for p in PROVIDERS if p.env_var]
 

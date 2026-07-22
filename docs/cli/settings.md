@@ -71,6 +71,23 @@ fallback_model = "openrouter:anthropic/claude-haiku-4-5"
 
 `fallback_model` is used automatically when the primary model fails on a rate limit or 5xx. Set both from the `/model` picker.
 
+#### Local models
+
+Two ways to run against a local model:
+
+- **Ollama** — pick it in `/provider`, or set a model string with the `ollama:` prefix (e.g. `model = "ollama:llama3.3"`). Ollama must be listening on its default `localhost:11434`.
+- **OpenAI-compatible servers** (llama.cpp / LM Studio / vLLM / text-generation-webui) — these expose an OpenAI-style HTTP endpoint but need a `base_url`, which a plain model string can't carry. Run `/provider`, choose **OpenAI-compatible**, and enter the server URL. The CLI stores it as:
+
+```toml
+model = "openai-compatible:qwen2.5"   # name after the prefix is the served model
+base_url = "http://localhost:8080/v1"
+```
+
+`base_url` is only consulted when `model` carries the `openai-compatible:` prefix, so switching to any other model via `/model` leaves it untouched. If the endpoint needs an API key (e.g. a remote LM Studio or a keyed vLLM deployment), it's stored in the keystore under `OPENAI_COMPATIBLE_API_KEY` — never in `config.toml` — so the project tree never carries the secret. Most local servers ignore the key, so you can leave it blank.
+
+!!! warning "Tool-calling needs a capable model"
+    Deep agents lean on tool-calling and structured output. A local model only handles this well when it's served with a proper chat/tool template — small models without one will fail or loop. This is a model limitation, not a CLI one.
+
 !!! info "Override per launch"
     `PYDANTIC_DEEP_MODEL`, `PYDANTIC_DEEP_THEME`, `PYDANTIC_DEEP_WORKING_DIR`,
     and `PYDANTIC_DEEP_CHARSET` override the file for a single run — handy for

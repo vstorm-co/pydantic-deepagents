@@ -222,8 +222,9 @@ class LocalEndpointModal(ModalScreen[str | None]):
             yield Static("API key (optional — most local servers ignore it):")
             yield Input(placeholder="leave blank if unused", password=True, id="local-key")
             yield Static(
-                "\n[dim]Saved to .pydantic-deep/config.toml. Tool-calling & structured "
-                "output need a model served with a proper chat/tool template.[/dim]"
+                "\n[dim]URL saved to config.toml; the key goes to the keystore. "
+                "Tool-calling & structured output need a model served with a proper "
+                "chat/tool template.[/dim]"
             )
             with Vertical(id="local-actions"):
                 yield Button("Connect", variant="primary", id="btn-connect")
@@ -234,7 +235,7 @@ class LocalEndpointModal(ModalScreen[str | None]):
 
     def _save_and_dismiss(self) -> None:
         from apps.cli.config import DEFAULT_CONFIG_PATH, set_config_value
-        from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX
+        from apps.cli.providers import OPENAI_COMPATIBLE_API_KEY_ENV, OPENAI_COMPATIBLE_PREFIX
 
         base_url = self.query_one("#local-url", Input).value.strip()
         if not base_url:
@@ -244,7 +245,9 @@ class LocalEndpointModal(ModalScreen[str | None]):
         api_key = self.query_one("#local-key", Input).value.strip()
 
         set_config_value(DEFAULT_CONFIG_PATH, "base_url", base_url)
-        set_config_value(DEFAULT_CONFIG_PATH, "local_api_key", api_key)
+        # Key is a secret — keystore, not config.toml (which lives in the project tree).
+        if api_key:
+            save_key(OPENAI_COMPATIBLE_API_KEY_ENV, api_key)
         self.dismiss(f"{OPENAI_COMPATIBLE_PREFIX}{name}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -252,6 +255,9 @@ class LocalEndpointModal(ModalScreen[str | None]):
             self._save_and_dismiss()
         elif event.button.id == "btn-cancel":
             self.dismiss(None)
+
+    def on_input_submitted(self, _event: Input.Submitted) -> None:
+        self._save_and_dismiss()
 
     def action_cancel(self) -> None:
         self.dismiss(None)

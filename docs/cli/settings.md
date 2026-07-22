@@ -81,10 +81,9 @@ Two ways to run against a local model:
 ```toml
 model = "openai-compatible:qwen2.5"   # name after the prefix is the served model
 base_url = "http://localhost:8080/v1"
-local_api_key = ""                     # most local servers ignore it
 ```
 
-`base_url` is only consulted when `model` carries the `openai-compatible:` prefix, so switching to any other model via `/model` leaves it untouched.
+`base_url` is only consulted when `model` carries the `openai-compatible:` prefix, so switching to any other model via `/model` leaves it untouched. If the endpoint needs an API key (e.g. a remote LM Studio or a keyed vLLM deployment), it's stored in the keystore under `OPENAI_COMPATIBLE_API_KEY` — never in `config.toml` — so the project tree never carries the secret. Most local servers ignore the key, so you can leave it blank.
 
 !!! warning "Tool-calling needs a capable model"
     Deep agents lean on tool-calling and structured output. A local model only handles this well when it's served with a proper chat/tool template — small models without one will fail or loop. This is a model limitation, not a CLI one.

@@ -43,8 +43,15 @@ class TestResolveOpenAICompatibleModel:
         with pytest.raises(ValueError, match="No base_url"):
             _resolve_openai_compatible_model("openai-compatible:x", CliConfig())
 
-    def test_custom_api_key_accepted(self) -> None:
-        cfg = CliConfig(base_url="http://localhost:1234/v1", local_api_key="lm-studio")
+    def test_api_key_read_from_keystore_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("OPENAI_COMPATIBLE_API_KEY", "lm-studio")
+        cfg = CliConfig(base_url="http://localhost:1234/v1")
+        model = _resolve_openai_compatible_model("openai-compatible:phi", cfg)
+        assert isinstance(model, OpenAIChatModel)
+
+    def test_no_api_key_still_builds_with_noop(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("OPENAI_COMPATIBLE_API_KEY", raising=False)
+        cfg = CliConfig(base_url="http://localhost:1234/v1")
         model = _resolve_openai_compatible_model("openai-compatible:phi", cfg)
         assert isinstance(model, OpenAIChatModel)
 
@@ -125,6 +132,11 @@ class TestLocalEndpointModal:
             "apps.cli.config.set_config_value",
             lambda _p, k, v: saved.append((k, v)),
         )
+        keys: list[tuple[str, str]] = []
+        monkeypatch.setattr(
+            "apps.cli.screens.onboarding.save_key",
+            lambda k, v: keys.append((k, v)),
+        )
         result: list[str | None] = []
         modal = LocalEndpointModal()
         async with app.run_test(size=(120, 40)) as pilot:
@@ -137,7 +149,8 @@ class TestLocalEndpointModal:
             await pilot.pause()
         assert result == ["openai-compatible:qwen2.5"]
         assert ("base_url", "http://localhost:8080/v1") in saved
-        assert ("local_api_key", "secret") in saved
+        assert keys == [("OPENAI_COMPATIBLE_API_KEY", "secret")]
+        assert not any(k == "local_api_key" for k, _v in saved)
 
     async def test_blank_model_name_defaults(
         self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
@@ -172,6 +185,25 @@ class TestLocalEndpointModal:
             modal.action_cancel()
             await pilot.pause()
         assert result == [None]
+
+    async def test_enter_submits_from_any_field(
+        self, app: DeepApp, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from textual.widgets import Input
+
+        from apps.cli.screens.onboarding import LocalEndpointModal
+
+        monkeypatch.setattr("apps.cli.config.set_config_value", lambda _p, _k, _v: None)
+        result: list[str | None] = []
+        modal = LocalEndpointModal()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await app.push_screen(modal, lambda r: result.append(r))
+            await pilot.pause()
+            url_input = modal.query_one("#local-url", Input)
+            url_input.value = "http://localhost:8080/v1"
+            modal.on_input_submitted(Input.Submitted(url_input, url_input.value))
+            await pilot.pause()
+        assert result == ["openai-compatible:local-model"]
 
 
 class TestProviderCommandRouting:
@@ -233,3 +265,57 @@ class TestOnboardingStatus:
 
         status = {pid: has_key for pid, _n, _e, has_key in _check_provider_status()}
         assert status["openai-compatible"] is True
+
+
+class TestPickAvailableModel:
+    """A keyless local model must survive an implicit reconfigure, not get
+    swapped for a cloud default."""
+
+    def test_openai_compatible_kept_without_openai_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from apps.cli.app import DeepApp
+
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant")
+        assert (
+            DeepApp._pick_available_model("openai-compatible:qwen2.5")
+            == "openai-compatible:qwen2.5"
+        )
+
+    def test_ollama_kept_with_only_cloud_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from apps.cli.app import DeepApp
+
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant")
+        assert DeepApp._pick_available_model("ollama:llama3.3") == "ollama:llama3.3"
+
+    def test_keyed_model_without_key_still_falls_back(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from apps.cli.app import DeepApp
+
+        for var in ("ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "GOOGLE_API_KEY"):
+            monkeypatch.delenv(var, raising=False)
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-openai")
+        assert DeepApp._pick_available_model("anthropic:claude-sonnet-4-6").startswith("openai")
+
+
+class TestReminderModelWiring:
+    """The LLM reminder generator must receive the resolved model, not the raw
+    `openai-compatible:...` string."""
+
+    def test_build_reminder_config_accepts_model_instance(self) -> None:
+        from apps.cli.reminder import _build_reminder_config
+        from pydantic_deep.features.periodic_reminder import LLMReminderGenerator
+
+        cfg = CliConfig(base_url="http://localhost:8080/v1")
+        model = _resolve_openai_compatible_model("openai-compatible:qwen2.5", cfg)
+        reminder_cfg = _build_reminder_config(
+            periodic_reminder=True,
+            reminder_mode="llm",
+            config=cfg,
+            reminder_model=model,
+        )
+        assert isinstance(reminder_cfg.generator, LLMReminderGenerator)
+        assert reminder_cfg.generator.model is model

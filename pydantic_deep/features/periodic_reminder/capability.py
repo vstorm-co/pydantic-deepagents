@@ -26,7 +26,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from typing import Any, Literal, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.capabilities import AbstractCapability
@@ -34,6 +34,9 @@ from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.models import DEFAULT_REMINDER_MODEL
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
 
 logger = logging.getLogger(__name__)
 
@@ -119,12 +122,12 @@ class LLMReminderGenerator:
     and asks a cheap model to produce a single-sentence stay-on-task nudge.
 
     Args:
-        model: pydantic-ai model string (default: claude-haiku).
+        model: pydantic-ai model string or `Model` instance (default: claude-haiku).
         max_context_messages: Number of recent messages included in the
             compact transcript to save tokens.
     """
 
-    model: str = DEFAULT_REMINDER_MODEL
+    model: str | Model = DEFAULT_REMINDER_MODEL
     max_context_messages: int = 10
 
     _agent: Agent[None, str] | None = field(default=None, init=False, repr=False)

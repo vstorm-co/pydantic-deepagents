@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai_backends import LocalBackend
 
 from apps.cli.config import CliConfig, load_config
-from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX
+from apps.cli.providers import OPENAI_COMPATIBLE_API_KEY_ENV, OPENAI_COMPATIBLE_PREFIX
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
@@ -17,6 +18,9 @@ from pydantic_deep.features.forking.capability import LiveForkCapability
 from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.features.message_queue import MessageQueue
 from pydantic_deep.prompts import build_system_prompt
+
+if TYPE_CHECKING:
+    from pydantic_ai.models.openai import OpenAIChatModel
 
 
 def _detect_fork_test_command(backend: Any) -> str | None:
@@ -110,13 +114,15 @@ def _make_shell_allow_list_hook(allow_list: list[str]) -> Hook:
     )
 
 
-def _resolve_openai_compatible_model(model_str: str, config: CliConfig) -> Any:
+def _resolve_openai_compatible_model(model_str: str, config: CliConfig) -> OpenAIChatModel:
     """Turn an `openai-compatible:<name>` model string into an `OpenAIChatModel`.
 
     Local servers (llama.cpp, LM Studio, vLLM, …) speak the OpenAI wire format but
     need a `base_url`, which a plain model string can't carry — so the CLI stores
-    the URL in `config.base_url` and marks the model with a sentinel prefix. Most
-    local servers ignore the API key, so a noop stand-in is used when none is set.
+    the URL in `config.base_url` and marks the model with a sentinel prefix. The
+    API key comes from the keystore (`OPENAI_COMPATIBLE_API_KEY`), never from
+    `config.toml`; most local servers ignore it, so a noop stand-in is used when
+    none is set.
     """
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.openai import OpenAIProvider
@@ -127,7 +133,8 @@ def _resolve_openai_compatible_model(model_str: str, config: CliConfig) -> Any:
             "Run /provider, pick OpenAI-compatible, and enter the server URL."
         )
     name = model_str[len(OPENAI_COMPATIBLE_PREFIX) :] or "local-model"
-    provider = OpenAIProvider(base_url=config.base_url, api_key=config.local_api_key or "sk-noop")
+    api_key = os.environ.get(OPENAI_COMPATIBLE_API_KEY_ENV) or "sk-noop"
+    provider = OpenAIProvider(base_url=config.base_url, api_key=api_key)
     return OpenAIChatModel(name, provider=provider)
 
 
@@ -468,7 +475,7 @@ def create_cli_agent(  # noqa: C901
         except Exception:
             mcp_servers = []
 
-    model_for_agent: Any = effective_model
+    model_for_agent: str | OpenAIChatModel = effective_model
     if isinstance(effective_model, str) and effective_model.startswith(OPENAI_COMPATIBLE_PREFIX):
         model_for_agent = _resolve_openai_compatible_model(effective_model, config)
 
@@ -542,10 +549,10 @@ def create_cli_agent(  # noqa: C901
             reminder_mode,
             config,
             on_reminder,
-            # Inherit the runtime model, not config.model (the TOML default,
-            # which may be a different provider than `-m` — e.g. Anthropic while
-            # running on Vertex, which then crashes with no ANTHROPIC_API_KEY).
-            reminder_model or config.reminder_model or effective_model,
+            # Inherit the resolved runtime model, not config.model (a different
+            # provider than `-m` would crash on a missing key; the raw
+            # `openai-compatible:...` string would break the LLM reminder generator).
+            reminder_model or config.reminder_model or model_for_agent,
         ),
     )
 

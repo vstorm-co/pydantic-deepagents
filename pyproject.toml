@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.36"
+version = "0.3.37"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -41,10 +41,10 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai-slim[web-fetch]>=2.0.0",
-    "pydantic-ai-todo>=0.2.6",
-    "pydantic-ai-backend[console]>=0.2.15",
+    "pydantic-ai-todo>=0.2.7",
+    "pydantic-ai-backend[console]>=0.2.16",
     "summarization-pydantic-ai>=0.1.10",
-    "subagents-pydantic-ai>=0.2.8",
+    "subagents-pydantic-ai>=0.2.9",
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
@@ -52,7 +52,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.15"]
+sandbox = ["pydantic-ai-backend[docker]>=0.2.16"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)

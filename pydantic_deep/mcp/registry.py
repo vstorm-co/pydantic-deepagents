@@ -110,42 +110,23 @@ def auth_satisfied(config: MCPServerConfig, resolver: SecretResolver | None = No
     return bool(resolver(auth.secret_key))
 
 
-def build_mcp_server(
+def _build_raw_mcp_toolset(
     config: MCPServerConfig,
     resolver: SecretResolver | None = None,
     *,
     oauth_token_storage: Any | None = None,
 ) -> AbstractToolset[Any]:
-    """Build a connected pydantic-ai MCP toolset from a config.
+    """Build the bare ``MCPToolset`` for a config (before any prefix wrapping).
 
-    Resolves the auth secret (if any) and injects it as an HTTP header (for
-    ``bearer``/``header`` auth) or a subprocess env var (for ``env`` auth).
-    Wraps the toolset in a ``PrefixedToolset`` when ``tool_prefix`` is set.
-    When ``config.init_timeout`` is set it is forwarded to the ``MCPToolset``,
-    raising the connect/``initialize`` deadline above pydantic-ai's 5s default
-    for servers that are slow to become ready.
-
-    For ``stdio`` servers, the subprocess receives ``config.env`` (plus any
-    ``env``-kind auth var) layered on top of the MCP SDK's *safe default*
-    environment (``PATH``, ``HOME``, …) — the parent process's full environment
-    is intentionally **not** inherited, so secrets like API keys are never
-    leaked to a third-party server. Add anything else a server needs (proxies,
-    ``NODE_EXTRA_CA_CERTS``, …) explicitly via ``config.env``.
-
-    Args:
-        oauth_token_storage: A persistent ``AsyncKeyValue`` store for OAuth
-            tokens (e.g. a disk-backed store). When provided for an ``oauth``
-            server, the token survives restarts and is shared between the
-            connection test and the agent (FastMCP keys tokens by server URL).
-            When ``None``, FastMCP uses in-memory storage (token re-auth per
-            client/restart).
+    Split out from :func:`build_mcp_server` so a resources toolset can bind to the
+    same underlying ``MCPToolset`` instance and share its connection/cache.
 
     Raises:
         MCPNotInstalledError: if the ``mcp`` optional dependency is missing.
     """
     resolver = resolver or _default_resolver
     try:
-        MCPToolset, PrefixedToolset, StdioTransport = _load_mcp_classes()
+        MCPToolset, _PrefixedToolset, StdioTransport = _load_mcp_classes()
     except ImportError as exc:
         raise MCPNotInstalledError(MCP_INSTALL_HINT) from exc
 
@@ -195,9 +176,59 @@ def build_mcp_server(
         url = cast(str, config.url)
         toolset = MCPToolset(url, headers=headers or None, id=config.name, **extra)
 
-    if config.tool_prefix:
-        toolset = PrefixedToolset(toolset, config.tool_prefix)
     return cast("AbstractToolset[Any]", toolset)
+
+
+def _apply_tool_prefix(
+    toolset: AbstractToolset[Any], config: MCPServerConfig
+) -> AbstractToolset[Any]:
+    """Wrap ``toolset`` in a ``PrefixedToolset`` when ``config.tool_prefix`` is set."""
+    if not config.tool_prefix:
+        return toolset
+    _MCPToolset, PrefixedToolset, _StdioTransport = _load_mcp_classes()
+    return cast("AbstractToolset[Any]", PrefixedToolset(toolset, config.tool_prefix))
+
+
+def build_mcp_server(
+    config: MCPServerConfig,
+    resolver: SecretResolver | None = None,
+    *,
+    oauth_token_storage: Any | None = None,
+) -> AbstractToolset[Any]:
+    """Build a connected pydantic-ai MCP toolset from a config.
+
+    Resolves the auth secret (if any) and injects it as an HTTP header (for
+    ``bearer``/``header`` auth) or a subprocess env var (for ``env`` auth).
+    Wraps the toolset in a ``PrefixedToolset`` when ``tool_prefix`` is set.
+    When ``config.init_timeout`` is set it is forwarded to the ``MCPToolset``,
+    raising the connect/``initialize`` deadline above pydantic-ai's 5s default
+    for servers that are slow to become ready.
+
+    Only the server's *tools* are built here. To also expose its resources or
+    ``skill://`` skills to the model, set ``include_resources`` / ``include_skills``
+    on the config and build via :meth:`MCPRegistry.build_active`.
+
+    For ``stdio`` servers, the subprocess receives ``config.env`` (plus any
+    ``env``-kind auth var) layered on top of the MCP SDK's *safe default*
+    environment (``PATH``, ``HOME``, …) — the parent process's full environment
+    is intentionally **not** inherited, so secrets like API keys are never
+    leaked to a third-party server. Add anything else a server needs (proxies,
+    ``NODE_EXTRA_CA_CERTS``, …) explicitly via ``config.env``.
+
+    Args:
+        oauth_token_storage: A persistent ``AsyncKeyValue`` store for OAuth
+            tokens (e.g. a disk-backed store). When provided for an ``oauth``
+            server, the token survives restarts and is shared between the
+            connection test and the agent (FastMCP keys tokens by server URL).
+            When ``None``, FastMCP uses in-memory storage (token re-auth per
+            client/restart).
+
+    Raises:
+        MCPNotInstalledError: if the ``mcp`` optional dependency is missing.
+    """
+    resolver = resolver or _default_resolver
+    raw = _build_raw_mcp_toolset(config, resolver, oauth_token_storage=oauth_token_storage)
+    return _apply_tool_prefix(raw, config)
 
 
 async def _connect_and_list(server: Any) -> list[str]:
@@ -375,9 +406,29 @@ class MCPRegistry:
         which turns out to be unreachable at runtime contributes no tools rather
         than failing the entire agent run. ``on_degraded(name, reason)`` is
         forwarded to each wrapper.
+
+        A server with ``include_resources`` / ``include_skills`` set contributes a
+        second toolset exposing its MCP resources (and ``skill://`` skills) to the
+        model. It binds to the same underlying ``MCPToolset`` so tools and
+        resources share one connection.
         """
         servers: list[AbstractToolset[Any]] = []
         for config in self._configs.values():
-            if self.status(config) == "ready":
-                servers.append(make_resilient(self.build(config), config.name, on_degraded))
+            if self.status(config) != "ready":
+                continue
+            raw = _build_raw_mcp_toolset(
+                config, self._resolver, oauth_token_storage=self._oauth_token_storage
+            )
+            servers.append(
+                make_resilient(_apply_tool_prefix(raw, config), config.name, on_degraded)
+            )
+            if config.include_resources or config.include_skills:
+                from pydantic_deep.mcp.resources import create_mcp_resources_toolset
+
+                resources = create_mcp_resources_toolset(
+                    cast("Any", raw),
+                    server_name=config.name,
+                    include_skills=config.include_skills,
+                )
+                servers.append(make_resilient(resources, config.name, on_degraded))
         return servers

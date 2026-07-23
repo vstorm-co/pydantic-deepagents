@@ -129,6 +129,12 @@ class MCPServerConfig:
     to become ready (e.g. one that opens a database connection on startup),
     which would otherwise fail with ``"Failed to initialize server session"``.
     """
+    include_resources: bool = False
+    """Expose the server's MCP resources to the model via `list_mcp_resources` /
+    `read_mcp_resource`. Off by default — most servers are used for tools only."""
+    include_skills: bool = False
+    """Expose the server's ``skill://.../SKILL.md`` resources via `list_mcp_skills`
+    / `load_mcp_skill` (and enables resource reading). See issue #178."""
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -173,4 +179,6 @@ class MCPServerConfig:
             builtin=data.get("builtin", False),
             auth=MCPAuth.from_dict(auth_data) if auth_data is not None else None,
             init_timeout=data.get("init_timeout"),
+            include_resources=data.get("include_resources", False),
+            include_skills=data.get("include_skills", False),
         )

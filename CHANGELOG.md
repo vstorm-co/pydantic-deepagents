@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.37] - 2026-07-22
+
+A CLI paste fix and raised floors on the vstorm-co packages, bringing backend
+permission-rule hardening, stateful subagent conversations, and a
+cache-friendly todo system prompt upstream.
+
+### Fixed
+
+- **Single-line paste no longer inserts the text twice in the CLI prompt** ([#179](https://github.com/vstorm-co/pydantic-deepagents/pull/179)) (`apps/cli/widgets/input_area.py`). Textual dispatches a `Paste` event to both the subclass and the base-class handler, and `PromptInput._on_paste` additionally called `Input._on_paste` directly — so a plain single-line paste landed once from the direct call and once again when `MessagePump` reached the base handler. The multi-line path (routing to multiline mode) is unchanged; a single-line paste now falls through to normal dispatch and is inserted exactly once. Ships with a regression test. Contributed by [@Sanjays2402](https://github.com/Sanjays2402).
+
+### Changed
+
+- **vstorm-co dependency floors raised** ([#174](https://github.com/vstorm-co/pydantic-deepagents/pull/174)) (`pyproject.toml`):
+  - `pydantic-ai-backend[console]>=0.2.16` (also the `sandbox` extra) — permission rules are now enforced on every content-returning path of `LocalBackend`: `read_bytes` (closes the image/document leak through `read_file`), `grep_raw`, `ls_info`/`glob_info`, and a best-effort path guard on `execute`, so a `deny` rule like `**/restricted/**` can no longer be bypassed.
+  - `subagents-pydantic-ai>=0.2.9` — stateful subagent conversations via `chat_trace_id` (a task result's trace ID can be passed back to resume the same subagent with full history) and rich per-task observability on `TaskHandle` (usage, cost, message history, trace/span IDs), with `check_task`/`wait_tasks` no longer embedding usage details in tool-return text.
+- **`pydantic-ai-todo>=0.2.7`** (`pyproject.toml`) — upstream `TodoCapability` no longer injects the live todo list into the system prompt by default, which was invalidating the provider's prompt-cache prefix on every todo mutation (opt back in with `include_current_todos=True`). pydantic-deep builds its todo instructions through the unchanged `get_todo_system_prompt()` helper, so its own prompt behavior is unaffected by the new default.
+
 ## [0.3.36] - 2026-07-18
 
 A configurable MCP handshake timeout for slow-starting servers, and LiteParse

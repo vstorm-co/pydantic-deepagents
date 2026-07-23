@@ -133,6 +133,20 @@ async def test_multiline_paste_preserves_structure(app: DeepApp) -> None:
         assert ml.text == "def f():\n    return 1\n"
 
 
+async def test_single_line_paste_is_inserted_once(app: DeepApp) -> None:
+    """Textual dispatches paste events through subclass and base handlers."""
+    from textual.events import Paste
+
+    from apps.cli.widgets.input_area import InputArea, PromptInput
+
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        prompt = app.screen.query_one(InputArea).query_one(PromptInput)
+        prompt.post_message(Paste("once"))
+        await pilot.pause()
+        assert prompt.value == "once"
+
+
 async def test_on_paste_routes_multiline(app: DeepApp) -> None:
     """PromptInput._on_paste hands multi-line pastes to multiline mode and lets
     a plain single-line paste fall through to the default insert behaviour."""

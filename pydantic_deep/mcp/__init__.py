@@ -28,6 +28,12 @@ from pydantic_deep.mcp.registry import (
     make_resilient,
     probe_mcp_server,
 )
+from pydantic_deep.mcp.resources import (
+    SKILL_DOC_NAME,
+    SKILL_URI_SCHEME,
+    MCPResourceProvider,
+    create_mcp_resources_toolset,
+)
 
 __all__ = [
     "MCPAuth",
@@ -44,6 +50,10 @@ __all__ = [
     "build_mcp_server",
     "make_resilient",
     "probe_mcp_server",
+    "create_mcp_resources_toolset",
+    "MCPResourceProvider",
+    "SKILL_URI_SCHEME",
+    "SKILL_DOC_NAME",
     "builtin_mcp_servers",
     "BUILTIN_MCP_NAMES",
     "parse_mcp_servers",

@@ -502,6 +502,7 @@ def create_deep_agent(
     skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
+    include_current_todos: bool = False,
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
@@ -584,6 +585,7 @@ def create_deep_agent(
     skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
+    include_current_todos: bool = False,
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
@@ -666,6 +668,7 @@ def create_deep_agent(  # noqa: C901
     skills: list[Skill] | None = None,
     backend: BackendProtocol | None = None,
     include_todo: bool = True,
+    include_current_todos: bool = False,
     include_filesystem: bool = True,
     include_subagents: bool = True,
     include_skills: bool = True,
@@ -770,6 +773,13 @@ def create_deep_agent(  # noqa: C901
         skills: Skill instances to register directly.
         backend: File storage backend (default: StateBackend).
         include_todo: Whether to include the todo toolset.
+        include_current_todos: Inject the live todo list into the system prompt.
+            Off by default: the instructions open the provider's prompt-cache
+            prefix, so re-rendering them on every todo mutation invalidates the
+            whole cached prefix mid-run. The list is already in the append-only
+            message history (`write_todos` carries it in its own tool call), and
+            `read_todos` is there for an explicit check. Turn on only if you need
+            the list in the prompt and accept the cache cost.
         include_filesystem: Whether to include the filesystem toolset.
         include_subagents: Whether to include the subagent toolset.
         include_skills: Whether to include the skills toolset.
@@ -1531,7 +1541,6 @@ def create_deep_agent(  # noqa: C901
     # toolset-owned prompts are emitted automatically by CombinedToolset.
     instruction_providers = build_instruction_providers(
         include_todo=include_todo,
-        todo_proxy=_todo_proxy,
         include_filesystem=include_filesystem,
         edit_format=edit_format,
         include_subagents=include_subagents,
@@ -1539,6 +1548,7 @@ def create_deep_agent(  # noqa: C901
         web_search=web_search,
         web_fetch=web_fetch,
         tool_search=tool_search,
+        include_current_todos=include_current_todos,
     )
 
     @agent.instructions

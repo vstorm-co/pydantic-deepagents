@@ -45,6 +45,7 @@
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `include_todo` | `bool` | `True` | Include TodoToolset |
+| `include_current_todos` | `bool` | `False` | Inject the live todo list into the system prompt (invalidates the provider's prompt cache on every mutation) |
 | `include_filesystem` | `bool` | `True` | Include Console Toolset |
 | `include_subagents` | `bool` | `True` | Include SubAgentToolset |
 | `include_skills` | `bool` | `True` | Include SkillsToolset |

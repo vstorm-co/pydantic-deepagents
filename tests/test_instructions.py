@@ -6,16 +6,17 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from pydantic_ai_backends import StateBackend
+from pydantic_ai_todo import Todo
 
-from pydantic_deep.agent import _DepsTodoProxy
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.instructions import (
     build_instruction_providers,
+    current_todos_section,
     lean_todo_section,
     make_lean_subagent_section,
     make_subagent_section,
-    make_todo_section,
     render_instructions,
+    todo_section,
     uploads_section,
     web_tools_section,
 )
@@ -32,16 +33,32 @@ def _ctx(deps: DeepAgentDeps | None = None) -> RunContext[DeepAgentDeps]:
     )
 
 
+def _todo(content: str, status: str = "in_progress") -> Todo:
+    return Todo(content=content, active_form=f"{content}ing", status=status)
+
+
 class TestSections:
     def test_uploads_empty_when_no_uploads(self) -> None:
         assert uploads_section(_ctx()) == ""
 
-    def test_todo_section_binds_deps(self) -> None:
-        proxy = _DepsTodoProxy()
-        provider = make_todo_section(proxy)
+    def test_todo_section_is_static_across_mutations(self) -> None:
+        """The todo section opens the prompt-cache prefix, so it must not change
+        when a todo does (issue #182)."""
         ctx = _ctx()
-        provider(ctx)
-        assert proxy._deps is ctx.deps
+        before = todo_section(ctx)
+        ctx.deps.todos = [_todo("Write docs")]
+        assert todo_section(ctx) == before
+        assert "## Current Todos" not in before
+
+    def test_current_todos_section_renders_the_live_list(self) -> None:
+        ctx = _ctx()
+        assert current_todos_section(ctx) == ""
+        todo = _todo("Write docs")
+        ctx.deps.todos = [todo]
+        rendered = current_todos_section(ctx)
+        assert "## Current Todos" in rendered
+        assert "Write docs" in rendered
+        assert todo.id in rendered
 
     def test_subagent_section_empty_without_configs(self) -> None:
         provider = make_subagent_section([])
@@ -102,7 +119,6 @@ class TestBuildAndRender:
     def test_all_features_off_keeps_uploads_only(self) -> None:
         providers = build_instruction_providers(
             include_todo=False,
-            todo_proxy=None,
             include_filesystem=False,
             edit_format="hashline",
             include_subagents=False,
@@ -115,7 +131,6 @@ class TestBuildAndRender:
     def test_all_features_on(self) -> None:
         providers = build_instruction_providers(
             include_todo=True,
-            todo_proxy=_DepsTodoProxy(),
             include_filesystem=True,
             edit_format="hashline",
             include_subagents=True,
@@ -130,7 +145,6 @@ class TestBuildAndRender:
         configs: list[SubAgentConfig] = [{"name": "planner", "description": "Plans"}]
         providers = build_instruction_providers(
             include_todo=True,
-            todo_proxy=_DepsTodoProxy(),
             include_filesystem=True,
             edit_format="hashline",
             include_subagents=True,
@@ -145,10 +159,11 @@ class TestBuildAndRender:
         # The verbose per-tool enumeration is gone.
         assert "read_todos" not in rendered
 
-    def test_todo_skipped_when_proxy_missing(self) -> None:
+    def test_todo_prompt_is_stable_across_mutations_by_default(self) -> None:
+        """A todo mutation must not rewrite the instructions, or the provider's
+        prompt-cache prefix is invalidated on every mutating tool call (#182)."""
         providers = build_instruction_providers(
             include_todo=True,
-            todo_proxy=None,
             include_filesystem=False,
             edit_format="hashline",
             include_subagents=False,
@@ -156,12 +171,52 @@ class TestBuildAndRender:
             web_search=False,
             web_fetch=False,
         )
-        assert len(providers) == 1
+        ctx = _ctx()
+        before = render_instructions(ctx, providers)
+        ctx.deps.todos = [_todo("Write docs")]
+        assert render_instructions(ctx, providers) == before
+        assert "## Current Todos" not in before
+
+    def test_current_todos_opt_in_appends_the_live_list(self) -> None:
+        providers = build_instruction_providers(
+            include_todo=True,
+            include_filesystem=False,
+            edit_format="hashline",
+            include_subagents=False,
+            subagents=[],
+            web_search=False,
+            web_fetch=False,
+            include_current_todos=True,
+        )
+        ctx = _ctx()
+        ctx.deps.todos = [_todo("Write docs")]
+        rendered = render_instructions(ctx, providers)
+        assert "## Current Todos" in rendered
+        assert "Write docs" in rendered
+
+    def test_current_todos_opt_in_composes_with_tool_search(self) -> None:
+        """The lean section replaces the tool inventory, not the explicit
+        opt-in to the live list."""
+        providers = build_instruction_providers(
+            include_todo=True,
+            include_filesystem=False,
+            edit_format="hashline",
+            include_subagents=False,
+            subagents=[],
+            web_search=False,
+            web_fetch=False,
+            tool_search=True,
+            include_current_todos=True,
+        )
+        ctx = _ctx()
+        ctx.deps.todos = [_todo("Write docs")]
+        rendered = render_instructions(ctx, providers)
+        assert "Task Tracking" in rendered  # lean base
+        assert "Write docs" in rendered  # live list
 
     def test_render_joins_nonempty_sections(self) -> None:
         providers = build_instruction_providers(
             include_todo=False,
-            todo_proxy=None,
             include_filesystem=True,
             edit_format="hashline",
             include_subagents=False,

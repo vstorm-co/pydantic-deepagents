@@ -144,6 +144,16 @@ CREDENTIALS: tuple[Credential, ...] = (
         "https://www.heroku.com/",
         provider_id="heroku",
     ),
+    # Deliberately no `provider_id`: this credential is optional (most local
+    # servers ignore it) and the provider needs a base URL, not a key, so it
+    # must not appear in the key-first onboarding list built by
+    # `onboarding_cli._provider_credentials`. It is listed here so `keys list`,
+    # `keys set` and `/keys` can see and change what `/provider` wrote.
+    Credential(
+        "OPENAI_COMPATIBLE_API_KEY",
+        "OpenAI-compatible endpoint (local)",
+        "Model providers",
+    ),
     # ── Vertex AI (Gemini via Google Cloud) ────────────────────────────
     Credential(
         "GOOGLE_GENAI_USE_VERTEXAI", "Use Vertex AI (true/false)", "Vertex AI", secret=False

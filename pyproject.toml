@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.37"
+version = "0.3.38"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -41,10 +41,10 @@ classifiers = [
 ]
 dependencies = [
     "pydantic-ai-slim[web-fetch]>=2.0.0",
-    "pydantic-ai-todo>=0.2.6",
-    "pydantic-ai-backend[console]>=0.2.15",
-    "summarization-pydantic-ai>=0.1.10",
-    "subagents-pydantic-ai>=0.2.8",
+    "pydantic-ai-todo>=0.2.7",
+    "pydantic-ai-backend[console]>=0.2.16",
+    "summarization-pydantic-ai>=0.1.11",
+    "subagents-pydantic-ai>=0.2.10",
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
@@ -53,7 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.15"]
+sandbox = ["pydantic-ai-backend[docker]>=0.2.16"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)
@@ -137,7 +137,10 @@ dev = [
     "griffe>=1.15.0",
 ]
 lint = [
-    "ruff>=0.8.0",
+    # Capped below 0.16: that release started formatting code blocks inside
+    # Markdown, which reformats 49 docs/skill files the repo never linted.
+    # Lift the cap in a dedicated commit that reformats them.
+    "ruff>=0.8.0,<0.16",
     "pyright>=1.1.0",
     "mypy>=1.0.0",
     "bandit>=1.8.0",

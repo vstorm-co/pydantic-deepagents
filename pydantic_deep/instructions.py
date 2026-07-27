@@ -18,13 +18,12 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
 from pydantic_ai_backends import get_console_system_prompt
-from pydantic_ai_todo import get_todo_system_prompt
+from pydantic_ai_todo import TODO_SYSTEM_PROMPT
 from subagents_pydantic_ai import get_subagent_system_prompt
 
 if TYPE_CHECKING:
     from pydantic_ai import RunContext
 
-    from pydantic_deep.agent import _DepsTodoProxy
     from pydantic_deep.deps import DeepAgentDeps
     from pydantic_deep.types import SubAgentConfig
 
@@ -37,14 +36,25 @@ def uploads_section(ctx: RunContext[DeepAgentDeps]) -> str:
     return ctx.deps.get_uploads_summary()
 
 
-def make_todo_section(todo_proxy: _DepsTodoProxy) -> InstructionProvider:
-    """Bind the per-run todo proxy and emit the todo-list prompt section."""
+def todo_section(_ctx: RunContext[DeepAgentDeps]) -> str:
+    """Emit the static todo workflow prompt.
 
-    def provider(ctx: RunContext[DeepAgentDeps]) -> str:
-        todo_proxy._deps = ctx.deps
-        return get_todo_system_prompt(todo_proxy)
+    The instructions open the provider's prompt-cache prefix, so re-rendering
+    them with the live task list invalidates the whole cached prefix on every
+    mutating todo call. The list itself is already in the (append-only,
+    cache-friendly) message history — `write_todos` carries it in its own tool
+    call — and `read_todos` is there for an explicit check.
+    """
+    return TODO_SYSTEM_PROMPT
 
-    return provider
+
+def current_todos_section(ctx: RunContext[DeepAgentDeps]) -> str:
+    """Append the run's live task list to the prompt.
+
+    Opt-in only (`include_current_todos=True`): every mutation rewrites the
+    system prompt and costs the provider's cached prefix.
+    """
+    return ctx.deps.get_todo_prompt()
 
 
 def make_console_section(edit_format: str) -> InstructionProvider:
@@ -120,7 +130,6 @@ def web_tools_section(*, web_search: bool, web_fetch: bool) -> str:
 def build_instruction_providers(
     *,
     include_todo: bool,
-    todo_proxy: _DepsTodoProxy | None,
     include_filesystem: bool,
     edit_format: str,
     include_subagents: bool,
@@ -128,6 +137,7 @@ def build_instruction_providers(
     web_search: bool,
     web_fetch: bool,
     tool_search: bool = False,
+    include_current_todos: bool = False,
 ) -> list[InstructionProvider]:
     """Assemble the ordered instruction providers for the enabled features.
 
@@ -136,10 +146,15 @@ def build_instruction_providers(
     sections — the prompt describes how to use the tools, not what they are.
     The console section is kept verbatim either way: it carries the hashline
     edit-format spec the model needs to call `edit_file` correctly.
+
+    The todo section is static unless `include_current_todos` is set, so that
+    todo mutations don't rewrite the prompt-cache prefix mid-run.
     """
     providers: list[InstructionProvider] = [uploads_section]
-    if include_todo and todo_proxy is not None:
-        providers.append(lean_todo_section if tool_search else make_todo_section(todo_proxy))
+    if include_todo:
+        providers.append(lean_todo_section if tool_search else todo_section)
+        if include_current_todos:
+            providers.append(current_todos_section)
     if include_filesystem:
         providers.append(make_console_section(edit_format))
     if include_subagents:

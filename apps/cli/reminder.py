@@ -6,6 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from pydantic_ai.models import Model
+
     from apps.cli.app import DeepApp
 
 _REMINDER_LABELS: dict[str, str] = {
@@ -21,7 +23,7 @@ def _build_reminder_config(
     reminder_mode: Literal["off", "first", "context", "llm"] | None,
     config: Any,
     on_reminder: Callable[[int, str], None] | None = None,
-    reminder_model: str | None = None,
+    reminder_model: str | Model | None = None,
 ) -> Any:
     """Build a PeriodicReminderConfig (or None) from CLI/config args."""
     enabled = periodic_reminder if periodic_reminder is not None else config.periodic_reminder
@@ -37,26 +39,34 @@ def _build_reminder_config(
 
     cfg = make_config_for_mode(mode)
     if mode == "llm":
+        from apps.cli.model_resolve import resolve_cli_model
+
         model = reminder_model or getattr(config, "reminder_model", None) or config.model
-        cfg.generator = LLMReminderGenerator(model=model)
+        # Already-resolved models pass straight through; a raw `config.model`
+        # may still carry the local-endpoint sentinel.
+        cfg.generator = LLMReminderGenerator(model=resolve_cli_model(model, config))
     cfg.on_reminder = on_reminder
     return cfg
 
 
-def _resolve_reminder_model(app: DeepApp) -> str | None:
+def _resolve_reminder_model(app: DeepApp) -> str | Model | None:
     """Resolve the LLM reminder model: configured `reminder_model` or main model.
 
     Mirrors :func:`_build_reminder_config` so live-switching to `"llm"` mode
     uses the same model as the startup configuration instead of the generator
-    default.
+    default — including the resolution step, since `app.model_name` holds the
+    raw CLI string and may carry the local-endpoint sentinel prefix.
     """
+    from apps.cli.model_resolve import resolve_cli_model
+
     try:
         from apps.cli.config import load_config
 
         reminder_model = load_config().reminder_model
     except Exception:  # pragma: no cover - defensive: bad config shouldn't break switching
         reminder_model = None
-    return reminder_model or getattr(app, "model_name", None) or getattr(app, "_model", None)
+    model = reminder_model or getattr(app, "model_name", None) or getattr(app, "_model", None)
+    return resolve_cli_model(model) if model else None
 
 
 def _apply_reminder_mode(app: DeepApp, mode: str) -> None:

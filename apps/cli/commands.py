@@ -676,18 +676,22 @@ async def _cmd_improve(app: DeepApp, arg: str) -> None:  # noqa: C901
             from apps.cli.config import get_sessions_dir
             from apps.cli.keystore import load_keys
             from apps.cli.modals.improve_review import ImproveReviewModal
+            from apps.cli.model_resolve import resolve_cli_model
             from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
 
             # Ensure API keys are available (improve creates its own agents)
             load_keys()
 
             # Use the same model as the current agent
-            model = app.model_name
-            if not model or model in ("test", "preview"):
+            model_str = app.model_name
+            if not model_str or model_str in ("test", "preview"):
                 from apps.cli.config import load_config
                 from pydantic_deep.models import DEFAULT_IMPROVE_MODEL
 
-                model = load_config().model or DEFAULT_IMPROVE_MODEL
+                model_str = load_config().model or DEFAULT_IMPROVE_MODEL
+            # `app.model_name` is the raw CLI string and may carry the
+            # local-endpoint sentinel, which pydantic-ai can't infer.
+            model = resolve_cli_model(model_str)
 
             def _on_progress(stage: str, current: int, total: int) -> None:
                 if stage == "discovering":
@@ -702,7 +706,7 @@ async def _cmd_improve(app: DeepApp, arg: str) -> None:  # noqa: C901
                 elif stage == "done":
                     pass  # Report will be shown in modal
 
-            log.info("Improve starting", model=model, days=days)
+            log.info("Improve starting", model=model_str, days=days)
             analyzer = ImprovementAnalyzer(
                 model=model,
                 sessions_dir=get_sessions_dir(),
@@ -764,13 +768,26 @@ async def _cmd_help(app: DeepApp, arg: str) -> None:
 
 async def _cmd_provider(app: DeepApp, arg: str) -> None:
     from apps.cli.providers import PROVIDER_DEFAULT_MODELS as _PROVIDER_DEFAULT_MODELS
-    from apps.cli.screens.onboarding import _PROVIDERS, ApiKeyModal, ProviderPickerModal
+    from apps.cli.screens.onboarding import (
+        _PROVIDERS,
+        ApiKeyModal,
+        LocalEndpointModal,
+        ProviderPickerModal,
+    )
 
     async def _handle_provider(provider_id: str | None) -> None:
         if provider_id is None:
             return
         if provider_id == "ollama":
             app.reconfigure_agent(model="ollama:llama3.3")
+            return
+        if provider_id == "openai-compatible":
+
+            async def _handle_endpoint(model: str | None) -> None:
+                if model:
+                    app.reconfigure_agent(model=model)
+
+            app.push_screen(LocalEndpointModal(), _handle_endpoint)
             return
         for pid, name, env_var, url in _PROVIDERS:
             if pid == provider_id:

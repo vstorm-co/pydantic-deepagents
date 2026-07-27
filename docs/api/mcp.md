@@ -17,6 +17,54 @@ them to an agent via the `mcp_servers` parameter of
     options:
       show_source: false
 
+## create_mcp_resources_toolset
+
+Most MCP servers are used for their tools, but a server can also publish
+*resources* — docs, templates, or FastMCP `skill://.../SKILL.md` skills. pydantic-ai
+surfaces only the tools to the model, so set `include_resources=True` (or
+`include_skills=True` for skills specifically) on an
+[`MCPServerConfig`][pydantic_deep.mcp.MCPServerConfig] and build with
+[`MCPRegistry.build_active`][pydantic_deep.mcp.MCPRegistry] to attach a second
+toolset that lets the model discover and read them:
+
+```python
+from pydantic_deep.mcp import MCPRegistry, MCPServerConfig
+
+registry = MCPRegistry([
+    MCPServerConfig(
+        name="service",
+        transport="http",
+        url="https://example.com/mcp/",
+        include_skills=True,  # exposes list_mcp_skills / load_mcp_skill
+    ),
+])
+mcp_servers = registry.build_active()  # tools toolset + resources toolset
+```
+
+The resources toolset adds `list_mcp_resources` / `read_mcp_resource`, plus
+`list_mcp_skills` / `load_mcp_skill` when `include_skills` is set. It binds to the
+same underlying `MCPToolset`, so tools and resources share one connection.
+
+Every server's tools carry a prefix, so the example above registers
+`service_list_mcp_skills`, `service_load_mcp_skill` and so on. The prefix is the
+server's `tool_prefix` when set, otherwise its name — without it, two servers
+exposing their resources would register identical tool names and pydantic-ai
+would reject the collision and fail the run.
+
+With `include_skills` the toolset also lists the server's skills in the system
+prompt, so the model knows the guidance exists before it reaches for the server's
+operational tools rather than having to go looking for it.
+
+A server that is unreachable degrades the same way its tools do: these tools
+return the error as text instead of raising out of `agent.run()`.
+
+Use `create_mcp_resources_toolset` directly to wrap a server you built yourself —
+pass `tool_prefix` if more than one server will expose its resources.
+
+::: pydantic_deep.mcp.create_mcp_resources_toolset
+    options:
+      show_source: false
+
 ## builtin_mcp_servers
 
 ::: pydantic_deep.mcp.builtin_mcp_servers

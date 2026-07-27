@@ -278,6 +278,7 @@ from pydantic_deep.mcp import (
     auth_satisfied,
     build_mcp_server,
     builtin_mcp_servers,
+    create_mcp_resources_toolset,
     parse_mcp_servers,
     probe_mcp_server,
 )
@@ -336,6 +337,7 @@ __all__ = [
     "MCPConfigError",
     "MCPNotInstalledError",
     "build_mcp_server",
+    "create_mcp_resources_toolset",
     "probe_mcp_server",
     "auth_satisfied",
     "builtin_mcp_servers",

@@ -67,6 +67,7 @@ class DeepAgentSpec(BaseModel):
     subagents: list[dict[str, Any]] | None = None
     skill_directories: list[str] | None = None
     include_todo: bool = True
+    include_current_todos: bool = False
     include_filesystem: bool = True
     include_subagents: bool = True
     include_skills: bool = True

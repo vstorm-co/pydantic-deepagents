@@ -81,6 +81,8 @@ def parse_mcp_servers(
                     args=[_expand(a) for a in entry.get("args", [])],
                     env={k: _expand(v) for k, v in entry.get("env", {}).items()},
                     enabled=enabled,
+                    include_resources=bool(entry.get("include_resources", False)),
+                    include_skills=bool(entry.get("include_skills", False)),
                 )
             elif entry.get("url") and transport_type != "ws":
                 transport: MCPTransport = "sse" if transport_type == "sse" else "http"
@@ -90,6 +92,8 @@ def parse_mcp_servers(
                     url=_expand(entry["url"]),
                     headers={k: _expand(v) for k, v in entry.get("headers", {}).items()},
                     enabled=enabled,
+                    include_resources=bool(entry.get("include_resources", False)),
+                    include_skills=bool(entry.get("include_skills", False)),
                 )
             else:
                 logger.warning(

@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import Agent
 
 from pydantic_deep.features.improve.prompts import CHUNK_MERGE_PROMPT, EXTRACTION_PROMPT
 from pydantic_deep.features.improve.types import SessionInsights
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
 
 DEFAULT_MAX_TOKENS_PER_CHUNK: int = 140_000
 """Default maximum tokens per chunk (leaves room for system prompt)."""
@@ -43,14 +46,14 @@ class SessionExtractor:
 
     def __init__(
         self,
-        model: str,
+        model: str | Model,
         max_tokens_per_chunk: int = DEFAULT_MAX_TOKENS_PER_CHUNK,
         overlap_messages: int = DEFAULT_OVERLAP_MESSAGES,
     ) -> None:
         """Initialize the extractor.
 
         Args:
-            model: Model identifier for the extraction agent
+            model: Model identifier (or `Model` instance) for the extraction agent
                 (e.g., `"openrouter:anthropic/claude-sonnet-4"`).
             max_tokens_per_chunk: Max estimated tokens per chunk.
             overlap_messages: Number of messages to overlap between chunks.

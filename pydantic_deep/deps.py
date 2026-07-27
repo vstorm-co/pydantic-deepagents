@@ -101,7 +101,11 @@ class DeepAgentDeps:
                 object.__setattr__(self, "files", raw._files)
 
     def get_todo_prompt(self) -> str:
-        """Generate system prompt section for todos."""
+        """Generate system prompt section for todos.
+
+        Ids are included so the model can address a task with
+        `update_todo_status` without re-reading the list.
+        """
         if not self.todos:
             return ""
 
@@ -113,7 +117,7 @@ class DeepAgentDeps:
                 "completed": "[x]",
                 "blocked": "[!]",
             }.get(todo.status, "[ ]")
-            lines.append(f"- {status_icon} {todo.content}")
+            lines.append(f"- {status_icon} [{todo.id}] {todo.content}")
 
         return "\n".join(lines)
 

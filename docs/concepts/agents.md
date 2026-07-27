@@ -375,7 +375,9 @@ agent = create_deep_agent(
 # At runtime, the agent sees:
 # 1. Static instructions: "You are a Python expert."  (or BASE_PROMPT if instructions=None)
 # 2. Uploaded files: "## Uploaded Files\n- /uploads/data.csv (1024 bytes, 50 lines)"
-# 3. Todo prompt: "## Current Todos\n- [ ] Analyze data..."
+# 3. Todo prompt: "## Task Management\nUse write_todos to..." (static — pass
+#    include_current_todos=True to also inject the live list, at the cost of the
+#    provider's prompt cache)
 # 4. Console prompt: "## File Operations\nYou can use ls, read_file, write_file..."
 # 5. Subagent prompt: "## Available Subagents\n- code-reviewer: Reviews code..."
 # 6. Skills prompt: "## Available Skills\n- git: Git operations..."

@@ -120,6 +120,9 @@ class CliConfig:
     """CLI configuration loaded from config.toml."""
 
     model: str = DEFAULT_MODEL
+    base_url: str = ""
+    """Base URL for an OpenAI-compatible local endpoint (llama.cpp / LM Studio /
+    vLLM). Only consulted when `model` carries the `openai-compatible:` prefix."""
     working_dir: str | None = None
     shell_allow_list: list[str] = field(default_factory=list)
     theme: str = "default"

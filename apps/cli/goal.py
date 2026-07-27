@@ -46,9 +46,16 @@ def get_goal_evaluator(app: DeepApp) -> GoalEvaluator:
         # Fall back to the main session model so an OpenRouter/Ollama/etc. user
         # isn't silently routed to a direct Anthropic model they have no key for
         # (mirrors `_resolve_reminder_model`). Otherwise every evaluation fails
-        # with "Evaluator error; continuing." and the goal never completes.
+        # with "Evaluator error; continuing." and the goal never completes — as
+        # it also would if the raw `openai-compatible:` sentinel reached
+        # pydantic-ai, hence the resolve step.
+        from apps.cli.model_resolve import resolve_cli_model
+
         model = model or getattr(app, "model_name", None) or getattr(app, "_model", None)
-        app._goal_evaluator = GoalEvaluator(model=model) if model else GoalEvaluator()
+        if model:
+            app._goal_evaluator = GoalEvaluator(model=resolve_cli_model(model))
+        else:
+            app._goal_evaluator = GoalEvaluator()
     return app._goal_evaluator
 
 

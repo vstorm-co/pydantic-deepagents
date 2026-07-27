@@ -247,7 +247,9 @@ class PromptInput(Input):
             self.post_message(MultilinePasteRequested(combined))
             event.stop()
             return
-        super()._on_paste(event)
+        # Let Textual continue dispatching the event to Input._on_paste.
+        # Calling it directly inserts the text once here and once again when
+        # MessagePump reaches the base-class handler.
 
     def on_key(self, event: Any) -> None:
         """Handle special keys for history and triggers."""

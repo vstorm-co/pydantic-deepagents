@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai_backends import LocalBackend
 
 from apps.cli.config import load_config
+from apps.cli.model_resolve import resolve_cli_model
 from apps.cli.reminder import _build_reminder_config
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
@@ -16,6 +17,9 @@ from pydantic_deep.features.forking.capability import LiveForkCapability
 from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.features.message_queue import MessageQueue
 from pydantic_deep.prompts import build_system_prompt
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
 
 
 def _detect_fork_test_command(backend: Any) -> str | None:
@@ -110,8 +114,8 @@ def _make_shell_allow_list_hook(allow_list: list[str]) -> Hook:
 
 
 def create_cli_agent(  # noqa: C901
-    model: str | None = None,
-    fallback_model: str | None = None,
+    model: str | Model | None = None,
+    fallback_model: str | Model | None = None,
     working_dir: str | None = None,
     shell_allow_list: list[str] | None = None,
     on_cost_update: Any | None = None,
@@ -446,9 +450,16 @@ def create_cli_agent(  # noqa: C901
         except Exception:
             mcp_servers = []
 
+    # Both go through the resolver: the `openai-compatible:` sentinel is a CLI
+    # concept pydantic-ai can't infer, and a local endpoint is as valid a
+    # fallback as it is a primary.
+    model_for_agent = resolve_cli_model(effective_model, config)
+    raw_fallback = fallback_model or config.fallback_model or None
+    fallback_for_agent = resolve_cli_model(raw_fallback, config) if raw_fallback else None
+
     agent = create_deep_agent(
-        model=effective_model,
-        fallback_model=fallback_model or config.fallback_model or None,
+        model=model_for_agent,
+        fallback_model=fallback_for_agent,
         instructions=instructions,
         backend=effective_backend,
         skill_directories=skill_dirs if effective_skills else None,
@@ -520,10 +531,10 @@ def create_cli_agent(  # noqa: C901
             reminder_mode,
             config,
             on_reminder,
-            # Inherit the runtime model, not config.model (the TOML default,
-            # which may be a different provider than `-m` — e.g. Anthropic while
-            # running on Vertex, which then crashes with no ANTHROPIC_API_KEY).
-            reminder_model or config.reminder_model or effective_model,
+            # Inherit the resolved runtime model, not config.model (a different
+            # provider than `-m` would crash on a missing key; the raw
+            # `openai-compatible:...` string would break the LLM reminder generator).
+            reminder_model or config.reminder_model or model_for_agent,
         ),
     )
 

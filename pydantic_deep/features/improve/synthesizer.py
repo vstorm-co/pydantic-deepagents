@@ -7,7 +7,7 @@ and current context files into minimal, high-confidence proposed changes.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
@@ -15,6 +15,9 @@ from pydantic_ai import Agent
 from pydantic_deep.features.improve.prompts import SYNTHESIS_PROMPT
 from pydantic_deep.features.improve.types import ProposedChange, SessionInsights
 from pydantic_deep.models import DEFAULT_IMPROVE_MODEL
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
 
 MAX_TOOL_SEQUENCE_CHARS = 8000
 """Per-session cap on raw tool-sequence text in the synthesis prompt."""
@@ -33,11 +36,11 @@ class InsightSynthesizer:
     files and produces a list of proposed changes to context files.
     """
 
-    def __init__(self, model: str = DEFAULT_IMPROVE_MODEL) -> None:
+    def __init__(self, model: str | Model = DEFAULT_IMPROVE_MODEL) -> None:
         """Initialize the synthesizer.
 
         Args:
-            model: Model identifier for the synthesis agent.
+            model: Model identifier (or `Model` instance) for the synthesis agent.
         """
         self._model = model
 

@@ -128,6 +128,7 @@ Your agent now plans its own work and you can see the plan:
 - `create_deep_agent()` includes the todo tools by default (`include_todo=True`) — `read_todos`, `write_todos`, `add_todo`, `update_todo_status`, `remove_todo`.
 - The agent breaks multi-step tasks into todos, keeps one `in_progress`, and marks each `completed` as it finishes.
 - The plan lives on `deps.todos` — a list of `Todo` objects (`content`, `status`, `active_form`, `id`) you can read during or after the run.
+- The system prompt carries the todo *workflow*, not the live list. Instructions open the provider's prompt-cache prefix, so re-rendering them on every status change would invalidate the whole cached prefix mid-run — the list is already in the message history, and `read_todos` fetches it on demand. Pass `include_current_todos=True` if you want it in the prompt anyway.
 - Subagents get isolated todos by default; set `share_todos=True` for one shared plan across the delegation tree.
 
 Next, let's hand the agent tools of your own.

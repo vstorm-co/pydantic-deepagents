@@ -10,7 +10,7 @@ import contextlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets import FunctionToolset
@@ -18,6 +18,9 @@ from pydantic_ai.toolsets import FunctionToolset
 from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
 from pydantic_deep.features.improve.types import ImprovementReport
 from pydantic_deep.models import DEFAULT_IMPROVE_MODEL
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
 
 # Tool description constants
 
@@ -147,7 +150,7 @@ class ImproveToolset(FunctionToolset[Any]):
         self,
         sessions_dir: Path | None = None,
         working_dir: Path | None = None,
-        model: str = DEFAULT_IMPROVE_MODEL,
+        model: str | Model = DEFAULT_IMPROVE_MODEL,
         context_files: dict[str, str] | None = None,
     ) -> None:
         """Initialize the improve toolset.
@@ -155,7 +158,8 @@ class ImproveToolset(FunctionToolset[Any]):
         Args:
             sessions_dir: Directory containing session folders with messages.json.
             working_dir: Working directory where context files live.
-            model: Model identifier for the extraction/synthesis agents.
+            model: Model identifier (or `Model` instance) for the
+                extraction/synthesis agents.
             context_files: Mapping of logical context file names to paths
                 relative to working_dir. See
                 :data:`~pydantic_deep.improve.analyzer.DEFAULT_CONTEXT_FILES`.

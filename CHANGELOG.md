@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.38] - 2026-07-24
+
+MCP resources and skills reach the model, the CLI talks to any
+OpenAI-compatible local endpoint, and the todo list stops invalidating the
+provider's prompt cache on every mutation.
+
+### Added
+
+- **MCP resources and `skill://` skills are now visible to the model** ([#180](https://github.com/vstorm-co/pydantic-deepagents/pull/180), closes [#178](https://github.com/vstorm-co/pydantic-deepagents/issues/178)) (`pydantic_deep/mcp/resources.py`, `pydantic_deep/mcp/registry.py`, `pydantic_deep/mcp/config.py`, `pydantic_deep/mcp/loader.py`). pydantic-ai surfaces only an MCP server's *tools*, so a server publishing skills through FastMCP's `SkillsDirectoryProvider` was unreachable from a delegated agent unless the app hand-rolled a bridge. Set `include_resources` / `include_skills` on an `MCPServerConfig` (or in the `mcpServers` JSON) and `MCPRegistry.build_active()` attaches a second toolset with `list_mcp_resources` / `read_mcp_resource` and, for skills, `list_mcp_skills` / `load_mcp_skill`. It binds to the same `MCPToolset`, so tools and resources share one connection and one resource cache. Both flags default to off.
+  - The resource tools are prefixed per server (the config's `tool_prefix`, else its name), so several servers can expose their resources in the same run — without a prefix their identical tool names collide and pydantic-ai fails the run.
+  - With `include_skills`, the server's skills are listed in the system prompt, so the model knows the guidance exists before it starts calling the server's operational tools.
+  - An unreachable server returns the failure as tool text rather than raising out of `agent.run()`, matching how `make_resilient` degrades the tools toolset.
+  - New export: `create_mcp_resources_toolset` (also `MCPResourceProvider`, `SKILL_URI_SCHEME`, `SKILL_DOC_NAME` from `pydantic_deep.mcp`).
+- **OpenAI-compatible local endpoints in the CLI** ([#176](https://github.com/vstorm-co/pydantic-deepagents/pull/176), closes [#175](https://github.com/vstorm-co/pydantic-deepagents/issues/175)) (`apps/cli/config.py`, `apps/cli/providers.py`, `apps/cli/agent.py`, `apps/cli/screens/onboarding.py`, `apps/cli/commands.py`, `docs/cli/settings.md`). Only Ollama worked from the CLI, because it has a provider prefix pydantic-ai recognises; llama.cpp, LM Studio, vLLM and text-generation-webui need an `OpenAIChatModel` built with a custom `base_url`, which a plain model string can't carry. `CliConfig` gains `base_url` and `local_api_key`, an `openai-compatible` provider entry is added to the picker, and the `openai-compatible:<name>` sentinel is resolved into a real model pointed at that endpoint. `/provider` routes the choice to a new `LocalEndpointModal` (base URL + model name + optional key), and keyless local providers report as ready in onboarding. Contributed by [@OchnikBartek](https://github.com/OchnikBartek), requested by [@nenoro](https://github.com/nenoro).
+
+### Fixed
+
+- **The `openai-compatible:` sentinel is now resolved everywhere, not just in `create_cli_agent`** ([#176](https://github.com/vstorm-co/pydantic-deepagents/pull/176)) (`apps/cli/model_resolve.py`, `apps/cli/agent.py`, `apps/cli/reminder.py`, `apps/cli/goal.py`, `apps/cli/commands.py`, `apps/cli/credentials.py`, `apps/cli/screens/onboarding.py`). The sentinel is a CLI-only marker that pydantic-ai's `infer_model` rejects with `ValueError: Unknown provider: openai-compatible`, and only the primary model was being converted — so `fallback_model`, `/remind llm` (which degraded to the zero-cost generator with a log warning), `/goal` (which answered "Evaluator error; continuing." every turn and never completed) and `/improve` all received the raw string. The conversion moves into `resolve_cli_model`, which every site now goes through; plain strings and already-built `Model` instances pass through untouched, and the `/improve` chain takes `str | Model`.
+  - `OPENAI_COMPATIBLE_API_KEY` is registered in `credentials.py`. `/provider` wrote it, but `keys list`, `keys set` and `/keys` all iterate `CREDENTIALS`, so it was invisible and unfixable from the UI. It deliberately has no `provider_id`, so it stays out of the key-first first-run flow where picking it would set a model with no endpoint.
+  - `LocalEndpointModal` rejects a scheme-less base URL. `localhost:8080/v1` built a provider fine and only failed on the first message, with an httpx protocol error that reads like an agent bug.
+  - Known gap: `/fork` branch models and the merge judge model can still be set to the sentinel from the model picker. `MergeStrategy.judge_model` and `BranchSpec.model` are strings by design (vote-model detection, cache keys), so that fix belongs in its own change.
+
+- **Todo mutations no longer rewrite the system prompt** ([#182](https://github.com/vstorm-co/pydantic-deepagents/issues/182)) (`pydantic_deep/instructions.py`, `pydantic_deep/agent.py`, `pydantic_deep/spec.py`, `pydantic_deep/deps.py`). `create_deep_agent` doesn't use `TodoCapability` — it builds its own instruction providers — so the static-by-default prompt introduced in `pydantic-ai-todo` 0.2.7 never applied here: `make_todo_section` called `get_todo_system_prompt(proxy)`, which appends `## Current Todos` whenever the run has any. The instructions open the provider's prompt-cache prefix, so every `write_todos` / `update_todo_status` invalidated the whole cached prefix mid-run. The todo section is now the static `TODO_SYSTEM_PROMPT`, with the live list behind a new `include_current_todos=True` (also a `DeepAgentSpec` field), matching the upstream flag name. Reported by [@jb2197](https://github.com/jb2197).
+  - The instruction providers no longer touch the todo proxy at all, so `build_instruction_providers` drops its `todo_proxy` argument. `_TodoProxyBinder` re-binds the proxy in each tool's own `contextvars` context (issue [#148](https://github.com/vstorm-co/pydantic-deepagents/issues/148)), which was always the only binding the tools saw. The end-to-end `write_todos` persistence test covers this.
+  - The opt-in list is appended as its own section, so it composes with `tool_search=True` instead of being dropped by the lean todo section.
+  - `DeepAgentDeps.get_todo_prompt()` — until now unused by the library — is what renders that section, and now includes each todo's id (`- [ ] [id] content`, matching upstream) so the model can address a task with `update_todo_status` without re-reading the list.
+  - The 0.3.37 note below claimed pydantic-deep's prompt behavior was unaffected by the upstream default. It wasn't; this is that fix.
+
+### Changed
+
+- **vstorm-co dependency floors raised** ([#184](https://github.com/vstorm-co/pydantic-deepagents/pull/184)) (`pyproject.toml`):
+  - `summarization-pydantic-ai>=0.1.11` — compression no longer produces a history that providers reject. With `keep=("messages", 0)` (the `ContextManagerCapability` default) the rebuilt history was a single `ModelRequest` of system parts only, which Anthropic and Google route into the top-level `system` parameter — mapping to *zero* provider messages, so any run long enough to cross the compression threshold failed deterministically. A zero `keep` also no longer summarizes away the in-flight request, and summaries stop accumulating in the system channel. Note for anything reading a summary back out of a compressed history: it's carried by a `UserPromptPart` now, not a `SystemPromptPart`.
+  - `subagents-pydantic-ai>=0.2.10` — `wait_tasks` used to hard-slice a completed task's result to 2000 characters with no marker, so the orchestrator read a well-formed answer that stopped mid-sentence, assumed the subagent was cut off, and re-delegated work that was already done. Truncated results now say so and name the `check_task(...)` call that returns the full text, and the budget is configurable via `max_result_chars`.
+- **`ruff` capped below 0.16 in the lint group** (`pyproject.toml`). `uv.lock` is gitignored, so CI resolved the latest release on every run; ruff 0.16.0 started formatting code blocks inside Markdown, which flags 49 docs and `examples/skills/*/SKILL.md` files that have never been formatted — turning `ruff format --check` red on unrelated PRs. Lifting the cap belongs in a dedicated commit that reformats those files in one go.
+
+## [0.3.37] - 2026-07-22
+
+A CLI paste fix and raised floors on the vstorm-co packages, bringing backend
+permission-rule hardening, stateful subagent conversations, and a
+cache-friendly todo system prompt upstream.
+
+### Fixed
+
+- **Single-line paste no longer inserts the text twice in the CLI prompt** ([#179](https://github.com/vstorm-co/pydantic-deepagents/pull/179)) (`apps/cli/widgets/input_area.py`). Textual dispatches a `Paste` event to both the subclass and the base-class handler, and `PromptInput._on_paste` additionally called `Input._on_paste` directly — so a plain single-line paste landed once from the direct call and once again when `MessagePump` reached the base handler. The multi-line path (routing to multiline mode) is unchanged; a single-line paste now falls through to normal dispatch and is inserted exactly once. Ships with a regression test. Contributed by [@Sanjays2402](https://github.com/Sanjays2402).
+
+### Changed
+
+- **vstorm-co dependency floors raised** ([#174](https://github.com/vstorm-co/pydantic-deepagents/pull/174)) (`pyproject.toml`):
+  - `pydantic-ai-backend[console]>=0.2.16` (also the `sandbox` extra) — permission rules are now enforced on every content-returning path of `LocalBackend`: `read_bytes` (closes the image/document leak through `read_file`), `grep_raw`, `ls_info`/`glob_info`, and a best-effort path guard on `execute`, so a `deny` rule like `**/restricted/**` can no longer be bypassed.
+  - `subagents-pydantic-ai>=0.2.9` — stateful subagent conversations via `chat_trace_id` (a task result's trace ID can be passed back to resume the same subagent with full history) and rich per-task observability on `TaskHandle` (usage, cost, message history, trace/span IDs), with `check_task`/`wait_tasks` no longer embedding usage details in tool-return text.
+- **`pydantic-ai-todo>=0.2.7`** (`pyproject.toml`) — upstream `TodoCapability` no longer injects the live todo list into the system prompt by default, which was invalidating the provider's prompt-cache prefix on every todo mutation (opt back in with `include_current_todos=True`). pydantic-deep builds its todo instructions through the unchanged `get_todo_system_prompt()` helper, so its own prompt behavior is unaffected by the new default.
+
 ## [0.3.36] - 2026-07-18
 
 A configurable MCP handshake timeout for slow-starting servers, and LiteParse

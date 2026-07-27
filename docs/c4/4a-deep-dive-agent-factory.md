@@ -48,6 +48,7 @@ The 70+ parameters are organized into these logical groups:
 
 **Include Flags (toggle toolsets):**
 - `include_todo` — Todo planning toolset (default: True)
+- `include_current_todos` — Inject the live todo list into the prompt (default: False; on, every mutation invalidates the provider's prompt-cache prefix)
 - `include_filesystem` — Console/filesystem toolset (default: True)
 - `include_subagents` — Task delegation toolset (default: True)
 - `include_skills` — Skill discovery/execution (default: True)
@@ -179,9 +180,10 @@ def dynamic_instructions(ctx: Any) -> str:
     uploads_prompt = ctx.deps.get_uploads_summary()
     if uploads_prompt:
         parts.append(uploads_prompt)
-    if include_todo and _todo_proxy is not None:
-        _todo_proxy._deps = ctx.deps
-        todo_prompt = get_todo_system_prompt(_todo_proxy)
+    if include_todo:
+        parts.append(TODO_SYSTEM_PROMPT)  # static — keeps the cache prefix stable
+        if include_current_todos:
+            parts.append(ctx.deps.get_todo_prompt())
         ...
 ```
 
@@ -324,9 +326,10 @@ def __post_init__(self) -> None:
 
 #### `get_todo_prompt()`
 
-Generates a system prompt section from the current todo list:
+Generates a system prompt section from the current todo list. Only rendered when
+the agent opts in with `include_current_todos=True`:
 
-```pydantic_deep/deps.py#L40-53
+```pydantic_deep/deps.py#L95-114
 def get_todo_prompt(self) -> str:
     if not self.todos:
         return ""
@@ -336,8 +339,9 @@ def get_todo_prompt(self) -> str:
             "pending": "[ ]",
             "in_progress": "[*]",
             "completed": "[x]",
+            "blocked": "[!]",
         }.get(todo.status, "[ ]")
-        lines.append(f"- {status_icon} {todo.content}")
+        lines.append(f"- {status_icon} [{todo.id}] {todo.content}")
     return "\n".join(lines)
 ```
 
@@ -454,7 +458,7 @@ With `extra="forbid"`, any unknown field raises a validation error. The model ha
 - `model`, `instructions`, `output_style`, `styles_dir`, `retries`
 
 **Include Flags:**
-- `include_todo`, `include_filesystem`, `include_subagents`, `include_skills`, `include_builtin_subagents`, `include_plan`, `include_execute`, `include_memory`, `include_checkpoints`, `include_teams`, `web_search`, `web_fetch`, `thinking`, `include_history_archive`
+- `include_todo`, `include_current_todos`, `include_filesystem`, `include_subagents`, `include_skills`, `include_builtin_subagents`, `include_plan`, `include_execute`, `include_memory`, `include_checkpoints`, `include_teams`, `web_search`, `web_fetch`, `thinking`, `include_history_archive`
 
 **Subagent Config:**
 - `subagents`, `skill_directories`, `max_nesting_depth`
@@ -680,11 +684,11 @@ Each model turn:
     ┌─────────────────────────────────────────────────────────┐
     │  dynamic_instructions(ctx)                              │
     │                                                         │
-    │  1. Bind _todo_proxy._deps = ctx.deps                   │
-    │  2. Collect parts:                                      │
+    │  1. Collect parts:                                      │
     │     ├── get_uploads_summary()  (uploaded files)         │
-    │     ├── get_todo_system_prompt() (todos via proxy)      │
+    │     ├── TODO_SYSTEM_PROMPT (static todo workflow)       │
+    │     ├── get_todo_prompt() (only if include_current_todos)│
     │     ├── get_console_system_prompt() (edit format)       │
     │     └── get_subagent_system_prompt() (subagent list)    │
-    │  3. Return joined parts as dynamic instructions         │
+    │  2. Return joined parts as dynamic instructions         │
     └─────────────────────────────────────────────────────────┘

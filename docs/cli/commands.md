@@ -49,7 +49,7 @@ Switch models, providers, themes, and feature toggles.
 | Command | What it does |
 | --- | --- |
 | `/model` | Change the active model (then optionally pick a fallback) |
-| `/provider` | Configure an AI provider and its API key |
+| `/provider` | Configure an AI provider and its API key (incl. Ollama and OpenAI-compatible local endpoints) |
 | `/settings` | Open settings — toggle features, model, theme |
 | `/theme [name]` | Switch color theme; with no name, lists the available themes |
 

@@ -8,6 +8,8 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
+from pydantic_ai_harness.memory import FileStore
+from subagents_pydantic_ai import create_subagent_toolset
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -803,6 +805,7 @@ class TestMemoryStoreWiring:
         from pydantic_deep.features.memory import build_memory_store
 
         store = build_memory_store(".pydantic-deep", base_dir=tmp_path)
+        assert isinstance(store, FileStore)
         assert store._root == tmp_path / ".pydantic-deep"
 
     @pytest.mark.parametrize(
@@ -857,14 +860,14 @@ class TestMemoryStoreWiring:
         memory tools must be injected through `toolsets` instead."""
         import pydantic_deep.agent as agent_mod
 
-        captured: dict = {}
-        original = agent_mod.create_subagent_toolset
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
 
         def spy(*args, **kwargs):
             captured["subagents"] = kwargs.get("subagents")
             return original(*args, **kwargs)
 
-        agent_mod.create_subagent_toolset = spy
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
         try:
             sub = {
                 "name": "custom",
@@ -879,7 +882,7 @@ class TestMemoryStoreWiring:
                 include_builtin_subagents=False,
             )
         finally:
-            agent_mod.create_subagent_toolset = original
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
 
         cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
         tools: set[str] = set()
@@ -887,18 +890,49 @@ class TestMemoryStoreWiring:
             tools |= set(getattr(toolset, "tools", {}))
         assert {"read_memory", "write_memory", "delete_memory", "search_memory"} <= tools
 
-    def test_custom_agent_factory_respects_memory_disabled(self, tmp_path):
-        """`extra={"memory": False}` must still opt a subagent out."""
+    def test_custom_agent_factory_gets_nothing_when_memory_is_off(self, tmp_path):
+        """`include_memory=False` leaves no store, so there is nothing to inject."""
         import pydantic_deep.agent as agent_mod
 
-        captured: dict = {}
-        original = agent_mod.create_subagent_toolset
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
 
         def spy(*args, **kwargs):
             captured["subagents"] = kwargs.get("subagents")
             return original(*args, **kwargs)
 
-        agent_mod.create_subagent_toolset = spy
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
+        try:
+            sub = {
+                "name": "custom",
+                "description": "d",
+                "instructions": "i",
+                "agent_factory": lambda cfg: None,
+            }
+            agent_mod.create_deep_agent(
+                model=TEST_MODEL,
+                subagents=[sub],
+                include_memory=False,
+                include_builtin_subagents=False,
+            )
+        finally:
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
+
+        cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
+        assert not (cfg.get("toolsets") or [])
+
+    def test_custom_agent_factory_respects_memory_disabled(self, tmp_path):
+        """`extra={"memory": False}` must still opt a subagent out."""
+        import pydantic_deep.agent as agent_mod
+
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
+
+        def spy(*args, **kwargs):
+            captured["subagents"] = kwargs.get("subagents")
+            return original(*args, **kwargs)
+
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
         try:
             sub = {
                 "name": "custom",
@@ -914,7 +948,7 @@ class TestMemoryStoreWiring:
                 include_builtin_subagents=False,
             )
         finally:
-            agent_mod.create_subagent_toolset = original
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
 
         cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
         assert not (cfg.get("toolsets") or [])

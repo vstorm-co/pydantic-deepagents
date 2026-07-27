@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,9 +11,11 @@ import pytest
 from pydantic_ai_harness.memory import InMemoryStore
 
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.forking.coordinator import ForkCoordinator
 from pydantic_deep.features.forking.isolation import clone_for_branch
 from pydantic_deep.features.forking.memory import BranchMemoryStore
-from pydantic_deep.features.forking.types import BranchIsolation
+from pydantic_deep.features.forking.store import InMemoryForkStateStore
+from pydantic_deep.features.forking.types import BranchIsolation, BranchSpec
 from pydantic_deep.features.memory.store import deps_store_resolver
 
 MAX = 100_000
@@ -144,6 +148,7 @@ class TestBranchMemoryStore:
         parent = await _seed_parent()
         branch = BranchMemoryStore(parent)
         staged = await branch.read("main/MEMORY.md", max_chars=MAX)
+        assert staged is not None
         await branch.delete("main/MEMORY.md", expected_version=staged.version)
 
         assert await _read(branch, "main/MEMORY.md") is None
@@ -152,6 +157,42 @@ class TestBranchMemoryStore:
 
         assert report.deleted_paths == ["main/MEMORY.md"]
         assert await _read(parent, "main/MEMORY.md") is None
+
+    async def test_flush_of_a_branch_only_file_that_was_also_deleted(self):
+        # Created and dropped inside the branch: there is nothing in the parent
+        # to delete, so the flush must record it without issuing a delete.
+        parent = await _seed_parent()
+        branch = BranchMemoryStore(parent)
+        await branch.write("main/scratch.md", "temp\n", expected_version=None)
+        staged = await branch.read("main/scratch.md", max_chars=MAX)
+        assert staged is not None
+        await branch.delete("main/scratch.md", expected_version=staged.version)
+
+        report = await branch.flush_to()
+
+        assert report.deleted_paths == ["main/scratch.md"]
+        assert report.conflicts == []
+        assert await _read(parent, "main/scratch.md") is None
+
+    async def test_search_skips_paths_the_branch_deleted(self):
+        parent = await _seed_parent("shared marker\n")
+        await parent.write("main/keep.md", "shared marker\n", expected_version=None)
+        branch = BranchMemoryStore(parent)
+        staged = await branch.read("main/MEMORY.md", max_chars=MAX)
+        assert staged is not None
+        await branch.delete("main/MEMORY.md", expected_version=staged.version)
+
+        result = await branch.search(
+            "main/",
+            "marker",
+            limit=10,
+            max_files=10,
+            max_chars=MAX,
+            max_file_chars=MAX,
+        )
+
+        # The parent still lists MEMORY.md; the branch must not resurrect it.
+        assert [match.path for match in result.matches] == ["main/keep.md"]
 
     async def test_untouched_paths_are_not_replayed(self):
         parent = await _seed_parent()
@@ -193,6 +234,7 @@ class TestBranchMemoryStore:
         branch = BranchMemoryStore(parent)
         await branch.write("main/new.md", "n\n", expected_version=None)
         staged = await branch.read("main/other.md", max_chars=MAX)
+        assert staged is not None
         await branch.delete("main/other.md", expected_version=staged.version)
 
         paths = await branch.list_paths("main/", limit=10)
@@ -252,8 +294,75 @@ class TestMultiTenantScoping:
         assert await _read(agent_store, "main/MEMORY.md") is None
 
 
+class _StubResult:
+    def all_messages(self) -> list[Any]:
+        return []
+
+
+class _MemoryWritingAgent:
+    """Agent stub whose only side effect is a branch-local memory write."""
+
+    model = "anthropic:claude-sonnet-4-6"
+    _root_capability = None
+
+    async def run(
+        self, steer: str, *, message_history: Any = None, deps: Any = None
+    ) -> _StubResult:
+        await _overwrite(deps.memory_store, "main/MEMORY.md", f"{steer} note\n")
+        return _StubResult()
+
+
+class TestMergeFlush:
+    """The coordinator replays the winner's memory and reports divergence."""
+
+    @staticmethod
+    def _coordinator(parent_store: InMemoryStore, tmp_path: Any) -> ForkCoordinator:
+        return ForkCoordinator(
+            agent=_MemoryWritingAgent(),
+            parent_deps=DeepAgentDeps(memory_store=parent_store),
+            max_branches=2,
+            max_depth=1,
+            store=InMemoryForkStateStore(),
+            materializer_root=tmp_path / "forks",
+        )
+
+    async def _run_one_branch(self, coord: ForkCoordinator) -> str:
+        handle = await coord.fork(
+            [BranchSpec(label="alpha", steer="alpha")],
+            parent_history=[],
+            isolation=BranchIsolation(),
+        )
+        await asyncio.gather(*[rt.task for rt in coord.branches.values()])
+        return handle.branches[0]
+
+    async def test_winner_memory_lands_on_the_parent(self, tmp_path):
+        parent_store = await _seed_parent()
+        coord = self._coordinator(parent_store, tmp_path)
+
+        winner = await self._run_one_branch(coord)
+        assert await _read(parent_store, "main/MEMORY.md") == "parent note\n"
+
+        await coord.merge_or_select(f"pick:{winner}")
+
+        assert await _read(parent_store, "main/MEMORY.md") == "alpha note\n"
+
+    async def test_diverged_memory_is_skipped_and_logged(self, tmp_path, caplog):
+        parent_store = await _seed_parent()
+        coord = self._coordinator(parent_store, tmp_path)
+
+        winner = await self._run_one_branch(coord)
+        # A third actor rewrites the same path while the branch is in flight.
+        await _overwrite(parent_store, "main/MEMORY.md", "someone else's note\n")
+
+        with caplog.at_level(logging.WARNING):
+            await coord.merge_or_select(f"pick:{winner}")
+
+        assert "memory flush skipped 1 diverged path(s): main/MEMORY.md" in caplog.text
+        assert await _read(parent_store, "main/MEMORY.md") == "someone else's note\n"
+
+
 @pytest.mark.parametrize("flag", ["copy", "share"])
-def test_memory_flag_is_read_not_merely_recorded(flag: str):
+def test_memory_flag_is_read_not_merely_recorded(flag: str) -> None:
     deps = DeepAgentDeps(memory_store=InMemoryStore())
 
     branch = clone_for_branch(deps, BranchIsolation(memory=flag))

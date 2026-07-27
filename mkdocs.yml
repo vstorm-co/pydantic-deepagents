@@ -79,6 +79,10 @@ plugins:
             - https://docs.python.org/3/objects.inv
             - https://ai.pydantic.dev/objects.inv
           options:
+            # `pydantic_deep.features.memory` re-exports harness types; griffe
+            # needs the origin package loaded to resolve those aliases.
+            preload_modules:
+              - pydantic_ai_harness
             docstring_style: google
             show_source: true
             show_root_heading: true

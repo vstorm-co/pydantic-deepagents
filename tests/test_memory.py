@@ -3,10 +3,13 @@
 from pathlib import Path
 from typing import Any
 
+import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
+from pydantic_ai_harness.memory import FileStore
+from subagents_pydantic_ai import create_subagent_toolset
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -436,33 +439,67 @@ class TestMemoryTools:
         assert b"Review notes" in raw
 
 
+def _agent_memories(agent: Any) -> list[Any]:
+    """Return the harness `Memory` capabilities registered on an agent."""
+    from pydantic_ai_harness.memory import Memory
+
+    caps = getattr(agent._root_capability, "capabilities", [])
+    return [c for c in caps if isinstance(c, Memory)]
+
+
 class TestCreateDeepAgentMemory:
-    """Tests for create_deep_agent with memory parameters."""
+    """Tests for create_deep_agent with the harness Memory capability."""
 
-    def test_create_with_include_memory(self):
-        """Test creating an agent with include_memory=True."""
+    def test_include_memory_adds_main_capability(self):
+        """include_memory=True registers one Memory capability scoped to "main"."""
+        agent = create_deep_agent(model=TEST_MODEL, include_memory=True, include_subagents=False)
+        memories = _agent_memories(agent)
+        assert len(memories) == 1
+        assert memories[0].agent_name == "main"
+
+    def test_custom_memory_dir_uses_file_store(self, tmp_path):
+        """memory_dir builds a FileStore rooted at that directory."""
+        from pydantic_ai_harness.memory import FileStore
+
         agent = create_deep_agent(
             model=TEST_MODEL,
             include_memory=True,
+            include_subagents=False,
+            memory_dir=str(tmp_path / ".memory"),
         )
-        assert agent is not None
+        (memory,) = _agent_memories(agent)
+        assert isinstance(memory.store, FileStore)
 
-    def test_create_with_custom_memory_dir(self):
-        """Test creating an agent with custom memory_dir."""
+    def test_memory_dir_none_uses_in_memory_store(self):
+        """No memory_dir (and no store) yields an ephemeral InMemoryStore."""
+        from pydantic_ai_harness.memory import InMemoryStore
+
+        agent = create_deep_agent(model=TEST_MODEL, include_memory=True, include_subagents=False)
+        (memory,) = _agent_memories(agent)
+        assert isinstance(memory.store, InMemoryStore)
+
+    def test_memory_store_param_wins_over_memory_dir(self, tmp_path):
+        """An explicit memory_store takes precedence over memory_dir."""
+        from pydantic_ai_harness.memory import SqliteMemoryStore
+
+        store = SqliteMemoryStore(database=str(tmp_path / "mem.db"))
         agent = create_deep_agent(
             model=TEST_MODEL,
             include_memory=True,
-            memory_dir="/workspace/.memory",
+            include_subagents=False,
+            memory_dir=str(tmp_path / "ignored"),
+            memory_store=store,
         )
-        assert agent is not None
+        (memory,) = _agent_memories(agent)
+        assert memory.store is store
 
-    def test_create_without_memory(self):
-        """Test default agent has no memory toolset."""
-        agent = create_deep_agent(model=TEST_MODEL)
-        assert agent is not None
+    def test_without_memory_has_no_capability(self):
+        """A default agent with include_memory=False has no Memory capability."""
+        agent = create_deep_agent(model=TEST_MODEL, include_memory=False, include_subagents=False)
+        assert _agent_memories(agent) == []
 
-    def test_create_with_memory_and_output_type(self):
-        """Test memory works with structured output."""
+    def test_memory_with_output_type(self):
+        """Memory works alongside structured output."""
         from pydantic import BaseModel
 
         class Result(BaseModel):
@@ -471,92 +508,90 @@ class TestCreateDeepAgentMemory:
         agent = create_deep_agent(
             model=TEST_MODEL,
             include_memory=True,
+            include_subagents=False,
             output_type=Result,
         )
-        assert agent is not None
+        assert len(_agent_memories(agent)) == 1
 
 
 class TestPerSubagentMemory:
-    """Tests for per-subagent memory injection via extra field."""
+    """Tests for per-subagent memory built by the default subagent factory."""
 
-    def test_subagent_gets_memory_when_enabled(self):
-        """Per-subagent memory injection adds an AgentMemoryToolset."""
-        from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.types import SubAgentConfig
+    @staticmethod
+    def _subagent(cfg: dict[str, Any], *, store: Any) -> Any:
+        """Build a subagent via the default factory over a shared store."""
+        from pydantic_deep.agent import _make_default_deep_agent_factory
 
-        config = SubAgentConfig(
-            name="reviewer",
-            description="Code reviewer",
-            instructions="Review code",
+        factory = _make_default_deep_agent_factory(
+            model=TEST_MODEL,
+            edit_format=None,
+            context_files=None,
+            context_discovery=False,
+            include_memory=True,
+            memory_store=store,
+            memory_namespace="",
+            tool_search=False,
+            web_search=False,
+            web_fetch=False,
         )
-        _inject_subagent_memory_toolset(config, None)
+        return factory(cfg)
 
-        assert "toolsets" in config
-        toolset_types = [type(t).__name__ for t in config["toolsets"]]
-        assert "AgentMemoryToolset" in toolset_types
+    def test_subagent_gets_memory_scoped_to_its_name(self):
+        """Each subagent gets a Memory capability scoped to its own name, sharing the store."""
+        from pydantic_ai_harness.memory import InMemoryStore
+
+        store = InMemoryStore()
+        sub = self._subagent({"name": "reviewer", "instructions": "Review code"}, store=store)
+        (memory,) = _agent_memories(sub)
+        assert memory.agent_name == "reviewer"
+        assert memory.store is store
 
     def test_subagent_memory_disabled_via_extra(self):
-        """Injection is skipped when extra.memory=False."""
-        from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.types import SubAgentConfig
+        """extra={"memory": False} suppresses the subagent Memory capability."""
+        from pydantic_ai_harness.memory import InMemoryStore
 
-        config = SubAgentConfig(
-            name="worker",
-            description="Worker",
-            instructions="Do work",
-            extra={"memory": False},
+        sub = self._subagent(
+            {"name": "worker", "instructions": "Do work", "extra": {"memory": False}},
+            store=InMemoryStore(),
         )
-        _inject_subagent_memory_toolset(config, None)
-
-        # Should NOT have AgentMemoryToolset
-        if "toolsets" in config:
-            toolset_types = [type(t).__name__ for t in config["toolsets"]]
-            assert "AgentMemoryToolset" not in toolset_types
+        assert _agent_memories(sub) == []
 
     def test_subagent_memory_custom_max_lines(self):
-        """Per-subagent memory_max_lines via extra field is honoured."""
-        from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.types import SubAgentConfig
+        """Per-subagent memory_max_lines via extra is forwarded to the capability."""
+        from pydantic_ai_harness.memory import InMemoryStore
 
-        config = SubAgentConfig(
-            name="analyst",
-            description="Analyst",
-            instructions="Analyze",
-            extra={"memory_max_lines": 50},
+        sub = self._subagent(
+            {"name": "analyst", "instructions": "Analyze", "extra": {"memory_max_lines": 50}},
+            store=InMemoryStore(),
         )
-        _inject_subagent_memory_toolset(config, None)
+        (memory,) = _agent_memories(sub)
+        assert memory.max_lines == 50
 
-        assert "toolsets" in config
-        memory_toolsets = [
-            t for t in config["toolsets"] if type(t).__name__ == "AgentMemoryToolset"
-        ]
-        assert len(memory_toolsets) == 1
-        assert memory_toolsets[0]._max_lines == 50
+    def test_subagent_memory_custom_max_tokens(self):
+        """Per-subagent memory_max_tokens via extra is forwarded to the capability."""
+        from pydantic_ai_harness.memory import InMemoryStore
+
+        sub = self._subagent(
+            {"name": "analyst", "instructions": "Analyze", "extra": {"memory_max_tokens": 500}},
+            store=InMemoryStore(),
+        )
+        (memory,) = _agent_memories(sub)
+        assert memory.max_tokens == 500
 
     def test_subagent_preserves_existing_toolsets(self):
-        """Existing toolsets are preserved when memory is added."""
+        """A subagent's own toolsets survive alongside the memory capability."""
         from pydantic_ai.toolsets import FunctionToolset
-
-        from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.types import SubAgentConfig
+        from pydantic_ai_harness.memory import InMemoryStore
 
         existing_toolset = FunctionToolset(id="custom")
-        config = SubAgentConfig(
-            name="worker",
-            description="Worker",
-            instructions="Work",
-            toolsets=[existing_toolset],
+        sub = self._subagent(
+            {"name": "worker", "instructions": "Work", "toolsets": [existing_toolset]},
+            store=InMemoryStore(),
         )
-        _inject_subagent_memory_toolset(config, None)
-
-        assert len(config["toolsets"]) >= 2
-        toolset_types = [type(t).__name__ for t in config["toolsets"]]
-        assert "FunctionToolset" in toolset_types
-        assert "AgentMemoryToolset" in toolset_types
+        assert len(_agent_memories(sub)) == 1
 
     def test_no_subagent_memory_when_include_memory_false(self):
-        """create_deep_agent(include_memory=False) does not inject subagent memory
-        and never mutates the caller's config dict."""
+        """create_deep_agent(include_memory=False) never mutates the caller's config dict."""
         from pydantic_deep.types import SubAgentConfig
 
         config = SubAgentConfig(
@@ -752,3 +787,168 @@ class TestMemoryFailureSurfacing:
         from pydantic_deep.toolsets.memory import MemoryAccessError as direct
 
         assert MemoryAccessError is direct
+
+
+class TestMemoryStoreWiring:
+    """Regressions from the harness-memory migration review."""
+
+    def test_backend_style_memory_dir_raises_actionable_error(self):
+        """`memory_dir` is a host path now; the old backend default must not
+        surface as a bare OSError from the first write."""
+        from pydantic_deep.features.memory import build_memory_store
+
+        with pytest.raises(ValueError, match="host filesystem path"):
+            build_memory_store("/.deep/memory")
+
+    def test_relative_memory_dir_anchors_to_base_dir(self, tmp_path):
+        """A relative memory_dir must follow the working dir, not the CWD."""
+        from pydantic_deep.features.memory import build_memory_store
+
+        store = build_memory_store(".pydantic-deep", base_dir=tmp_path)
+        assert isinstance(store, FileStore)
+        assert store._root == tmp_path / ".pydantic-deep"
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [("code reviewer", "code-reviewer"), ("ok-name_1.2", "ok-name_1.2"), ("!!!", "agent")],
+    )
+    def test_agent_name_sanitized_for_store_path(self, raw, expected):
+        """Names legal under the old backend layout must not break at run time."""
+        from pydantic_deep.features.memory import sanitize_agent_name
+
+        assert sanitize_agent_name(raw) == expected
+
+    def test_ephemeral_default_warns(self):
+        """Losing persistence by default must not be silent."""
+        with pytest.warns(UserWarning, match="ephemeral in-memory store"):
+            create_deep_agent(model=TEST_MODEL, include_memory=True, include_subagents=False)
+
+    def test_memory_namespace_reaches_capability(self, tmp_path):
+        """Per-tenant isolation must be reachable through create_deep_agent."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            memory_dir=str(tmp_path),
+            memory_namespace="tenantA",
+            include_subagents=False,
+        )
+        assert [c.namespace for c in _agent_memories(agent)] == ["tenantA"]
+
+    @pytest.mark.parametrize("tool_search", [True, False])
+    def test_tool_search_defers_memory_capability(self, tmp_path, tool_search):
+        """Memory rides the capability list, so it must defer itself."""
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            memory_dir=str(tmp_path),
+            tool_search=tool_search,
+            include_subagents=False,
+        )
+        assert [c.defer_loading for c in _agent_memories(agent)] == [tool_search]
+
+    def test_pin_marker_warns_instead_of_being_dropped(self, tmp_path):
+        """The harness has no pin concept; the dropped key must not be silent."""
+        from pydantic_ai_harness.memory import InMemoryStore
+
+        from pydantic_deep.features.memory import build_memory_capability
+
+        with pytest.warns(DeprecationWarning, match="memory_pin_marker"):
+            build_memory_capability(
+                store=InMemoryStore(), agent_name="main", pin_marker="<!-- pin -->"
+            )
+
+    def test_custom_agent_factory_subagent_keeps_memory_tools(self, tmp_path):
+        """A caller-supplied factory never runs the capability wiring, so the
+        memory tools must be injected through `toolsets` instead."""
+        import pydantic_deep.agent as agent_mod
+
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
+
+        def spy(*args, **kwargs):
+            captured["subagents"] = kwargs.get("subagents")
+            return original(*args, **kwargs)
+
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
+        try:
+            sub = {
+                "name": "custom",
+                "description": "d",
+                "instructions": "i",
+                "agent_factory": lambda cfg: None,
+            }
+            agent_mod.create_deep_agent(
+                model=TEST_MODEL,
+                subagents=[sub],
+                memory_dir=str(tmp_path),
+                include_builtin_subagents=False,
+            )
+        finally:
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
+
+        cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
+        tools: set[str] = set()
+        for toolset in cfg.get("toolsets") or []:
+            tools |= set(getattr(toolset, "tools", {}))
+        assert {"read_memory", "write_memory", "delete_memory", "search_memory"} <= tools
+
+    def test_custom_agent_factory_gets_nothing_when_memory_is_off(self, tmp_path):
+        """`include_memory=False` leaves no store, so there is nothing to inject."""
+        import pydantic_deep.agent as agent_mod
+
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
+
+        def spy(*args, **kwargs):
+            captured["subagents"] = kwargs.get("subagents")
+            return original(*args, **kwargs)
+
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
+        try:
+            sub = {
+                "name": "custom",
+                "description": "d",
+                "instructions": "i",
+                "agent_factory": lambda cfg: None,
+            }
+            agent_mod.create_deep_agent(
+                model=TEST_MODEL,
+                subagents=[sub],
+                include_memory=False,
+                include_builtin_subagents=False,
+            )
+        finally:
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
+
+        cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
+        assert not (cfg.get("toolsets") or [])
+
+    def test_custom_agent_factory_respects_memory_disabled(self, tmp_path):
+        """`extra={"memory": False}` must still opt a subagent out."""
+        import pydantic_deep.agent as agent_mod
+
+        captured: dict[str, Any] = {}
+        original = create_subagent_toolset
+
+        def spy(*args, **kwargs):
+            captured["subagents"] = kwargs.get("subagents")
+            return original(*args, **kwargs)
+
+        agent_mod.create_subagent_toolset = spy  # type: ignore[attr-defined]
+        try:
+            sub = {
+                "name": "custom",
+                "description": "d",
+                "instructions": "i",
+                "agent_factory": lambda cfg: None,
+                "extra": {"memory": False},
+            }
+            agent_mod.create_deep_agent(
+                model=TEST_MODEL,
+                subagents=[sub],
+                memory_dir=str(tmp_path),
+                include_builtin_subagents=False,
+            )
+        finally:
+            agent_mod.create_subagent_toolset = original  # type: ignore[attr-defined]
+
+        cfg = next(s for s in captured["subagents"] if s["name"] == "custom")
+        assert not (cfg.get("toolsets") or [])

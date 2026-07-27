@@ -123,11 +123,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - All extend pydantic-ai's `AbstractCapability`
 
 **Persistent Memory (`pydantic_deep/features/memory/`)**
-- `MemoryFile`: Loaded memory (agent_name, path, content)
-- `AgentMemoryToolset`: FunctionToolset with read_memory, write_memory, update_memory
-- `get_instructions()`: Injects memory into system prompt (first N lines)
-- `load_memory()`, `format_memory_prompt()`, `get_memory_path()`
-- Default path: `{memory_dir}/{agent_name}/MEMORY.md`
+- Backed by the `Memory` capability from [pydantic-ai-harness](https://github.com/vstorm-co/pydantic-ai-harness); pydantic-deep re-exports it.
+- `Memory`: Capability that injects `MEMORY.md` as **user-role** context and provides `read_memory` / `write_memory` (append or unique-replace via `old_text`) / `delete_memory` / `search_memory` tools. Supports multiple memory files, per-tenant `namespace`, CAS + idempotent writes.
+- `MemoryStore`: Pluggable storage — `InMemoryStore` (default, ephemeral), `FileStore` (on-disk), `SqliteMemoryStore`, `PostgresMemoryStore`. **Independent of `deps.backend`.**
+- `build_memory_store(memory_dir)`: Maps `create_deep_agent(memory_dir=...)` onto a `FileStore` (or `InMemoryStore` when `None`). Pass `memory_store=` to use an explicit store shared by the main agent and every subagent (scoped by `agent_name`).
+- Memory files land at `{memory_dir}/{agent_name}/MEMORY.md` under a `FileStore`.
+- **Deprecated:** the old backend-backed `MemoryCapability` / `AgentMemoryToolset` (+ `MemoryFile`, `load_memory`, `get_memory_path`, `format_memory_prompt`, `update_memory` tool) remain importable as shims and emit `DeprecationWarning`.
 
 **Context Files (`pydantic_deep/features/context/`)**
 - `ContextFile`: Loaded context file (name, path, content)

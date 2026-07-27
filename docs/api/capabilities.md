@@ -19,11 +19,17 @@ conceptual overview.
     options:
       show_source: false
 
-## MemoryCapability
+## Memory
 
-::: pydantic_deep.capabilities.MemoryCapability
-    options:
-      show_source: false
+Persistent memory is provided by the `Memory` capability from the external
+**pydantic-ai-harness** package, re-exported as `pydantic_deep.Memory`. It stores
+memory in a pluggable `MemoryStore` (independent of `deps.backend`). See the
+[Memory API](memory.md) reference for full details.
+
+!!! warning "`MemoryCapability` is deprecated"
+    The old `pydantic_deep.capabilities.MemoryCapability` class still imports (as a
+    shim that emits `DeprecationWarning`) but is deprecated in favor of the `Memory`
+    capability above.
 
 ## BrowserCapability
 

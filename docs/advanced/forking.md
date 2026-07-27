@@ -79,7 +79,7 @@ And four more for finer control: `terminate_branch(id)` cancels one branch, `dif
 
 ### Branches are isolated by default
 
-Each branch reads through to the parent's files but writes into its own overlay — a copy-on-write wrapper, so branches never step on each other. Todos start empty per branch, and each branch gets its own message queue (so you can steer one without touching the others). History is always copied. These defaults are deliberately conservative; [`BranchIsolation`][pydantic_deep.features.forking.types.BranchIsolation] lets you loosen them.
+Each branch reads through to the parent's files but writes into its own overlay — a copy-on-write wrapper, so branches never step on each other. Memory works the same way: a branch's `write_memory` is staged in a branch-local store and only replayed onto the parent when that branch wins the merge, so a note written by a discarded branch never reaches the parent. Todos start empty per branch, and each branch gets its own message queue (so you can steer one without touching the others). History is always copied. These defaults are deliberately conservative; [`BranchIsolation`][pydantic_deep.features.forking.types.BranchIsolation] lets you loosen them.
 
 ### Budgets
 

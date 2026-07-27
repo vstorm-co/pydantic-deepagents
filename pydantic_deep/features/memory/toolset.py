@@ -17,6 +17,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai_backends import AsyncBackendProtocol
+from typing_extensions import deprecated
 
 from pydantic_deep.features.memory.service import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -57,8 +58,18 @@ not found, or if it appears more than once, no change is made and an \
 error is returned; add surrounding context to old_text to make it unique."""
 
 
+@deprecated(
+    "AgentMemoryToolset (backend-backed MEMORY.md) has moved to the harness memory "
+    "tools; use the `Memory` capability (`pydantic_deep.Memory`) or its "
+    "`pydantic_ai_harness.memory.MemoryToolset`. This shim will be removed in a "
+    "future release."
+)
 class AgentMemoryToolset(FunctionToolset[Any]):
-    """Toolset for persistent agent memory.
+    """Deprecated backend-backed memory toolset.
+
+    Superseded by the harness `Memory` capability (`pydantic_deep.Memory`) and its
+    `MemoryToolset`, which store memory in a pluggable `MemoryStore` instead of the
+    agent's `deps.backend`. Retained only so existing imports keep working.
 
     Provides system prompt injection (via `get_instructions()`) and
     tools for reading, appending, and updating memory.

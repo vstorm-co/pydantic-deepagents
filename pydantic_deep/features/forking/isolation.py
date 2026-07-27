@@ -40,6 +40,7 @@ from pydantic_ai_backends import (
 )
 
 from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.forking.memory import BranchMemoryStore
 from pydantic_deep.features.forking.types import (
     BranchIsolation,
     FileChange,
@@ -995,13 +996,23 @@ class BranchOverlay:
 def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAgentDeps:
     """Clone `DeepAgentDeps` for a branch according to `isolation`.
 
-    See :class:`BranchIsolation` for per-flag semantics. Memory isolation
-    follows the backend (memory lives at
-    `{memory_dir}/{agent_name}/MEMORY.md` inside the backend); the
-    `memory` flag is recorded for forward-compat but has no separate
-    effect here. `team_bus` is a no-op when the teams capability is not
-    enabled on the parent run; when enabled it propagates the parent bus
-    reference by default.
+    See :class:`BranchIsolation` for per-flag semantics. `team_bus` is a no-op
+    when the teams capability is not enabled on the parent run; when enabled it
+    propagates the parent bus reference by default.
+
+    ``memory="copy"`` wraps the parent's `MemoryStore` in a
+    :class:`BranchMemoryStore`, the memory counterpart of :class:`BranchOverlay`:
+    the branch reads through to the parent, its writes are staged, and the
+    coordinator replays them only if the branch wins the merge. ``memory="share"``
+    hands over the parent store directly, so writes land immediately and survive
+    a discarded branch.
+
+    .. note::
+       A branch can only get its own memory once `deps.memory_store` is set —
+       either by the caller or by the memory capability, which seeds it with the
+       agent's store when it resolves scope at run start (verified to happen with
+       ``tool_search=True`` too). With `include_memory=False` there is no store,
+       and ``memory="copy"`` is a no-op.
     """
 
     from pydantic_deep.deps import unwrap_backend
@@ -1015,6 +1026,11 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
     # "copy" → independent copy so branch todo edits stay local; "share" → same list.
     new_todos = list(deps.todos) if isolation.todos == "copy" else deps.todos
 
+    # "copy" → staged, discardable branch memory; "share" → the parent's store.
+    new_memory_store: Any = deps.memory_store
+    if isolation.memory == "copy" and deps.memory_store is not None:
+        new_memory_store = BranchMemoryStore(deps.memory_store)
+
     new_message_queue: MessageQueue | None
     if isolation.message_queue == "isolated":
         new_message_queue = MessageQueue()
@@ -1025,6 +1041,7 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
         deps,
         backend=new_backend,
         files={},  # Fresh file cache; branch backend is independent
+        memory_store=new_memory_store,
         todos=new_todos,
         subagents={},
         message_queue=new_message_queue,
@@ -1033,4 +1050,4 @@ def clone_for_branch(deps: DeepAgentDeps, isolation: BranchIsolation) -> DeepAge
     )
 
 
-__all__ = ["BranchOverlay", "clone_for_branch"]
+__all__ = ["BranchMemoryStore", "BranchOverlay", "clone_for_branch"]

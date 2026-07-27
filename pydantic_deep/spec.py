@@ -100,6 +100,8 @@ class DeepAgentSpec(BaseModel):
     context_files: list[str] | None = None
     context_discovery: bool = False
     memory_dir: str | None = None
+    memory_namespace: str = ""
+    memory_base_dir: str | None = None
     checkpoint_frequency: CheckpointFrequency = "every_tool"
     max_checkpoints: int = 20
     history_messages_path: str = ".pydantic-deep/messages.json"

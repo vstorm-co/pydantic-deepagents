@@ -107,7 +107,8 @@
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `memory_dir` | `str \| None` | `"/.deep/memory"` | Base directory for memory files |
+| `memory_dir` | `str \| None` | `None` | If set, builds a `FileStore` rooted here (`{memory_dir}/{agent_name}/MEMORY.md`). If `None` (and no `memory_store`), memory uses an ephemeral in-memory store |
+| `memory_store` | `MemoryStore \| None` | `None` | A pluggable memory store (`InMemoryStore`, `FileStore`, `SqliteMemoryStore`, `PostgresMemoryStore`). Independent of `deps.backend`, shared across the main agent and subagents (scoped by `agent_name`). Takes precedence over `memory_dir`, and is itself overridden per run by `DeepAgentDeps(memory_store=…)` |
 
 #### Cost Tracking
 

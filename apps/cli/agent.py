@@ -473,9 +473,13 @@ def create_cli_agent(  # noqa: C901
         include_subagents=effective_subagents,
         include_builtin_subagents=effective_subagents,
         include_skills=effective_skills,
-        # Memory (store in .pydantic-deep/main/MEMORY.md)
+        # Memory (store in {working_dir}/.pydantic-deep/main/MEMORY.md).
+        # memory_dir is a host path now, and a relative one would resolve against
+        # the process CWD — anchor it to the working dir so memory follows
+        # --working-dir like backend files do, and stays where /remember writes.
         include_memory=effective_memory,
         memory_dir=".pydantic-deep",
+        memory_base_dir=str(root),
         # Context files (auto-discover AGENTS.md, SOUL.md)
         context_discovery=_context_disc if not lean else False,
         include_teams=(include_teams if include_teams is not None else config.include_teams),

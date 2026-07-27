@@ -304,6 +304,7 @@ class TestAgentIntegration:
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,
+            include_memory=False,
             web_search=False,
             web_fetch=False,
         )

@@ -16,12 +16,15 @@ from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
 
 
 async def main():
+    # memory_dir persists memory to disk (a FileStore), so it even outlives
+    # the process. Omit it and memory lives in an in-memory store for the
+    # lifetime of this `agent` object.
     agent = create_deep_agent(
         model="anthropic:claude-sonnet-4-6",
         instructions="You are a helpful coding assistant.",
+        memory_dir="./.memory",
     )
 
-    # One backend, reused across both runs — that's what makes memory persist.
     deps = DeepAgentDeps(backend=StateBackend())
 
     # First session: tell it something worth remembering.
@@ -30,7 +33,7 @@ async def main():
         deps=deps,
     )
 
-    # Second session: a fresh run, but the same backend.
+    # Second session: a fresh run against the same agent (and memory store).
     result = await agent.run("What testing framework do I use?", deps=deps)
     print(result.output)
 
@@ -51,16 +54,16 @@ You use pytest — you mentioned you always prefer it over unittest.
 
 </div>
 
-The second `agent.run()` is a brand-new conversation. It has none of the first run's messages. Yet it answers correctly, because between the two runs the agent wrote a note to `MEMORY.md` and read it straight back out of the backend.
+The second `agent.run()` is a brand-new conversation. It has none of the first run's messages. Yet it answers correctly, because between the two runs the agent wrote a note to `MEMORY.md` and read it straight back out of its memory store.
 
 !!! example "Check it"
-    Print the file the agent wrote:
+    Print the file the agent wrote to disk (`memory_dir="./.memory"` → a `FileStore`):
 
     ```python
-    print(await deps.backend.read("/.deep/memory/main/MEMORY.md"))
+    print(open("./.memory/main/MEMORY.md").read())
     ```
 
-    There it is — a markdown bullet the agent saved on its own. Real persistence, in memory because you used `StateBackend`. Swap in `LocalBackend` and it's a file on disk that outlives the whole process.
+    There it is — a markdown bullet the agent saved on its own. Real persistence, on disk because you set `memory_dir`. Drop `memory_dir` and the same thing happens in an ephemeral in-memory store instead.
 
 ## Step by step
 
@@ -77,19 +80,20 @@ You didn't ask for memory — it ships enabled. Every agent gets three tools and
 
 | Tool | What it does |
 |------|--------------|
-| `read_memory` | Read the full memory file |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find-and-replace an existing entry |
+| `read_memory` | Read one memory file |
+| `write_memory` | Append to a file, or uniquely replace text (`old_text`) |
+| `delete_memory` | Delete a non-main memory file |
+| `search_memory` | Find relevant memory files by query |
 
-The agent calls these on its own when it decides something is worth keeping. You can turn the whole thing off with `include_memory=False`, or move the files with `memory_dir=` (default: `/.deep/memory`).
+The agent calls these on its own when it decides something is worth keeping. `MEMORY.md` is the main notebook; the agent can also keep longer topics in separate files it lists and searches. You can turn the whole thing off with `include_memory=False`.
 
-### The backend is the persistence
+### The store is the persistence
 
-```python hl_lines="1"
-deps = DeepAgentDeps(backend=StateBackend())
-```
+Memory is backed by the `Memory` capability from [pydantic-ai-harness](https://github.com/vstorm-co/pydantic-ai-harness), which keeps memory in its own `MemoryStore` — **separate from the agent's backend**. The store is created once when you build the agent and shared by the main agent and every subagent (each scoped by name) — unless a run's `DeepAgentDeps(memory_store=…)` overrides it, which is how per-user scoping and branch-local fork memory work.
 
-This is the load-bearing line. Memory lives at `{memory_dir}/{agent_name}/MEMORY.md` *in the backend* — so persistence is exactly as durable as the backend you choose. Reuse the same backend (as both runs do here) and memory carries over. Hand each run a fresh `StateBackend()` and there's nothing to recall.
+- **Default:** an ephemeral `InMemoryStore` — memory lives as long as the agent object does (so the two runs above share it because they reuse the same `agent`).
+- **On disk:** pass `memory_dir="./.memory"` and a `FileStore` writes `{memory_dir}/{agent_name}/MEMORY.md`, surviving the process.
+- **Explicit:** pass `memory_store=SqliteMemoryStore(database="mem.db")` (or any `MemoryStore`) to control storage directly.
 
 !!! note "Injected, not just available"
     Existing memory is pasted into the system prompt at the start of every run (the most recent ~200 lines), so the agent often answers from memory *without* calling `read_memory` at all. The tool is there for when it needs the full file.
@@ -126,13 +130,13 @@ Prefer to be explicit? Skip discovery and name the paths yourself with `context_
 !!! tip "Memory vs. context, in one line"
     If the *agent* should write it, it's memory. If *you* write it, it's a context file. `MEMORY.md` has its own tools and per-agent isolation; it is **not** part of context discovery.
 
-!!! warning "One backend, one memory — watch multi-user apps"
-    Memory and context both live in the backend, keyed only by agent name. If several users share one backend instance, they share one `MEMORY.md`. Give each user their own backend. See [Multi-user](../advanced/multi-user.md).
+!!! warning "One store, one memory — watch multi-user apps"
+    A memory store is keyed by agent name. If several users share one store, they share one `MEMORY.md`. Pass a per-user store on `DeepAgentDeps(memory_store=…)`, give each user their own agent-level `memory_store`/`memory_dir`, or partition one store with `memory_namespace=`. Context files still live in the backend, keyed by agent name. See [Multi-user](../advanced/multi-user.md).
 
 ## Recap
 
-- **Memory** is on by default: `read_memory` / `write_memory` / `update_memory`, plus auto-injection of the latest lines into the prompt — the agent remembers across runs on its own.
-- **The backend is the persistence.** Memory lives at `{memory_dir}/{agent_name}/MEMORY.md`; reuse the backend and it carries over, swap it and it doesn't.
+- **Memory** is on by default: `read_memory` / `write_memory` / `delete_memory` / `search_memory`, plus auto-injection of the latest lines into the prompt — the agent remembers across runs on its own.
+- **The store is the persistence.** Memory lives in a harness `MemoryStore`, separate from the backend: ephemeral by default, on disk with `memory_dir`, or any store via `memory_store=`.
 - **Context files** (`AGENTS.md`, `CLAUDE.md`, `DEEP.md`, `SOUL.md`) are project rules *you* write; `context_discovery=True` finds them, or list them with `context_files=`.
 - Rule of thumb: the agent owns memory, you own context files — and `SOUL.md` stays with the main agent only.
 

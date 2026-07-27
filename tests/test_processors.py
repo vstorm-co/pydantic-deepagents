@@ -60,6 +60,7 @@ class TestAgentWithOutputType:
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,
+            include_memory=False,
             web_search=False,
             web_fetch=False,
         )
@@ -132,6 +133,7 @@ class TestAgentWithHistoryProcessors:
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,
+            include_memory=False,
             web_search=False,
             web_fetch=False,
         )

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from pydantic_ai_harness.memory import MemoryStore
     from pydantic_ai_shields import CostTracking
     from pydantic_ai_summarization import ContextManagerCapability
 
@@ -55,6 +56,12 @@ class DeepAgentDeps:
         subagents: Pre-configured subagents available for delegation
         checkpoint_store: Per-session checkpoint store (e.g. InMemoryCheckpointStore).
             When set, overrides the global store passed to `create_deep_agent()`.
+        memory_store: Per-run memory store. When set, it overrides the store the
+            agent was built with, so memory scope follows `deps` rather than the
+            agent instance — build the agent once and pass a per-user store per
+            request. Left `None`, the memory capability seeds it with the agent's
+            own store on the first resolution, which is what lets
+            `clone_for_branch` give a fork its own branch-local memory.
     """
 
     backend: AsyncBackendProtocol | Any = field(default_factory=StateBackend)
@@ -66,6 +73,7 @@ class DeepAgentDeps:
     context_middleware: ContextManagerCapability | None = field(default=None, repr=False)
     share_todos: bool = False  # When True, subagents share parent's todo list
     checkpoint_store: CheckpointStore | None = field(default=None, repr=False)
+    memory_store: MemoryStore | None = field(default=None, repr=False)
     message_queue: MessageQueue | None = field(default=None, repr=False)
     monitor_manager: MonitorManager | None = field(default=None, repr=False)
     fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)

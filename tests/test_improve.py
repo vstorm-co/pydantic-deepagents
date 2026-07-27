@@ -684,7 +684,7 @@ class TestImprovementAnalyzer:
         assert "MEMORY.md" in DEFAULT_CONTEXT_FILES
         # Aligned with the memory toolset default (get_memory_path stripped of
         # its leading slash so it composes under working_dir).
-        assert DEFAULT_CONTEXT_FILES["MEMORY.md"] == ".deep/memory/main/MEMORY.md"
+        assert DEFAULT_CONTEXT_FILES["MEMORY.md"] == ".pydantic-deep/main/MEMORY.md"
 
     def test_init_defaults(self) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=Path("/tmp"))
@@ -698,7 +698,7 @@ class TestImprovementAnalyzer:
     def test_resolve_path_known(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
         resolved = a._resolve_path("MEMORY.md")
-        assert resolved == tmp_path / ".deep" / "memory" / "main" / "MEMORY.md"
+        assert resolved == tmp_path / ".pydantic-deep" / "main" / "MEMORY.md"
 
     def test_resolve_path_unknown_falls_through(self, tmp_path: Path) -> None:
         a = ImprovementAnalyzer(model="test", working_dir=tmp_path)
@@ -764,7 +764,7 @@ class TestImprovementAnalyzer:
 
     def test_load_current_context(self, tmp_path: Path) -> None:
         (tmp_path / "SOUL.md").write_text("be concise")
-        mem_dir = tmp_path / ".deep" / "memory" / "main"
+        mem_dir = tmp_path / ".pydantic-deep" / "main"
         mem_dir.mkdir(parents=True)
         (mem_dir / "MEMORY.md").write_text("- fact 1")
 
@@ -827,7 +827,7 @@ class TestImprovementAnalyzer:
         assert (tmp_path / "skills" / "new-skill").read_text() == "# New Skill"
 
     async def test_apply_changes_append(self, tmp_path: Path) -> None:
-        mem_dir = tmp_path / ".deep" / "memory" / "main"
+        mem_dir = tmp_path / ".pydantic-deep" / "main"
         mem_dir.mkdir(parents=True)
         (mem_dir / "MEMORY.md").write_text("# Memory\n\n- old fact")
 
@@ -1318,3 +1318,43 @@ class TestImproveToolset:
         last_run = analyzer.get_last_improve_time()
         result = _format_status(last_run, {})
         assert "never been run" in result
+
+
+class TestImproveMemoryAlignment:
+    """Improve must write MEMORY.md where the agent's memory store reads it.
+
+    Regression guard: this desync was fixed once before, then reintroduced by
+    the harness-memory migration because nothing tested the two paths agree.
+    """
+
+    async def test_default_target_matches_agent_memory_store(self, tmp_path):
+        from pydantic_deep.features.improve.analyzer import DEFAULT_CONTEXT_FILES
+        from pydantic_deep.features.memory import build_memory_store
+
+        # What apps/cli/agent.py builds for the agent.
+        store = build_memory_store(".pydantic-deep", base_dir=tmp_path)
+        await store.write("main/MEMORY.md", "- agent note\n", expected_version=None)
+
+        improve_target = tmp_path / DEFAULT_CONTEXT_FILES["MEMORY.md"]
+        assert improve_target.is_file()
+        assert improve_target.read_text() == "- agent note\n"
+
+    def test_memory_dir_overrides_default_target(self):
+        from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
+
+        analyzer = ImprovementAnalyzer(memory_dir=".custom")
+        assert analyzer._context_files["MEMORY.md"] == ".custom/main/MEMORY.md"
+
+    def test_absolute_memory_dir_is_preserved(self, tmp_path):
+        from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
+
+        analyzer = ImprovementAnalyzer(working_dir=tmp_path, memory_dir="/srv/mem")
+        assert analyzer._resolve_path("MEMORY.md") == Path("/srv/mem/main/MEMORY.md")
+
+    def test_explicit_context_files_wins_over_memory_dir(self):
+        from pydantic_deep.features.improve.analyzer import ImprovementAnalyzer
+
+        analyzer = ImprovementAnalyzer(
+            context_files={"MEMORY.md": "explicit/MEMORY.md"}, memory_dir=".ignored"
+        )
+        assert analyzer._context_files["MEMORY.md"] == "explicit/MEMORY.md"

@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.36"
+version = "0.3.37"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -48,6 +48,7 @@ dependencies = [
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
+    "pydantic-ai-harness>=0.10.0",
 ]
 
 [project.optional-dependencies]

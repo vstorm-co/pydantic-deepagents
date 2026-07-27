@@ -18,21 +18,34 @@ from typing import Any
 from pydantic_deep.features.improve.extractor import SessionExtractor
 from pydantic_deep.features.improve.synthesizer import InsightSynthesizer
 from pydantic_deep.features.improve.types import ImprovementReport, ProposedChange, SessionInsights
-from pydantic_deep.features.memory import DEFAULT_MEMORY_DIR, get_memory_path
 from pydantic_deep.models import DEFAULT_IMPROVE_MODEL
 
-# Default MEMORY.md path, aligned with the memory toolset's default location
-# (`get_memory_path(DEFAULT_MEMORY_DIR, "main")`) so that improve writes
-# memory changes where the toolset reads them. The leading slash is stripped so
-# the path composes correctly under `working_dir`.
-_DEFAULT_MEMORY_PATH: str = get_memory_path(DEFAULT_MEMORY_DIR, "main").lstrip("/")
+# Default `memory_dir`, matching what the CLI passes to `create_deep_agent`.
+DEFAULT_IMPROVE_MEMORY_DIR = ".pydantic-deep"
+
+
+def memory_path_for(memory_dir: str = DEFAULT_IMPROVE_MEMORY_DIR) -> str:
+    """Return the main agent's MEMORY.md path relative to `working_dir`.
+
+    Memory is no longer stored in `deps.backend`: a harness `FileStore` rooted at
+    `memory_dir` lays files out as ``{memory_dir}/{agent_name}/MEMORY.md`` on the
+    host filesystem. Improve must target the same file the agent reads, or its
+    proposed memory edits are written somewhere nothing loads them.
+
+    An absolute `memory_dir` is preserved as-is: `_resolve_path` joins the result
+    onto `working_dir`, and joining an absolute path already discards the base.
+    """
+    if memory_dir.startswith("/"):
+        return f"{memory_dir.rstrip('/')}/main/MEMORY.md"
+    return f"{memory_dir.strip('/')}/main/MEMORY.md"
+
 
 # Default context file mapping: logical name -> path relative to working_dir.
 # Callers can override via context_files parameter to match their backend layout.
 DEFAULT_CONTEXT_FILES: dict[str, str] = {
     "SOUL.md": "SOUL.md",
     "AGENTS.md": "AGENTS.md",
-    "MEMORY.md": _DEFAULT_MEMORY_PATH,
+    "MEMORY.md": memory_path_for(),
 }
 
 # State file location
@@ -91,6 +104,7 @@ class ImprovementAnalyzer:
         working_dir: Path | None = None,
         on_progress: ProgressCallback | None = None,
         context_files: dict[str, str] | None = None,
+        memory_dir: str | None = None,
     ) -> None:
         """Initialize the analyzer.
 
@@ -108,6 +122,9 @@ class ImprovementAnalyzer:
                 The keys ("SOUL.md", "AGENTS.md", "MEMORY.md") are the logical
                 names used in ProposedChange.target_file. The values are the
                 actual filesystem paths relative to working_dir.
+            memory_dir: The `memory_dir` the agent was built with, used to point
+                "MEMORY.md" at the file the agent actually reads. Ignored when
+                `context_files` supplies an explicit "MEMORY.md" path.
         """
         self._model = model
         self._sessions_dir = sessions_dir or (Path.home() / ".pydantic-deep" / "sessions")
@@ -116,6 +133,8 @@ class ImprovementAnalyzer:
         self._synthesizer = InsightSynthesizer(model=model)
         self._on_progress = on_progress
         self._context_files = context_files or dict(DEFAULT_CONTEXT_FILES)
+        if context_files is None and memory_dir:
+            self._context_files["MEMORY.md"] = memory_path_for(memory_dir)
 
     def _progress(self, stage: str, current: int = 0, total: int = 0) -> None:
         """Emit progress update."""
@@ -286,7 +305,8 @@ class ImprovementAnalyzer:
 
         Uses the context_files mapping to resolve logical names to actual
         paths. For example, a change targeting "MEMORY.md" will be written
-        to `.deep/memory/main/MEMORY.md` by default.
+        to `.pydantic-deep/main/MEMORY.md` by default — the same file the
+        agent's harness `FileStore` reads.
 
         Args:
             changes: List of proposed changes to apply.

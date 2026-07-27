@@ -179,8 +179,9 @@ Persistent agent memory across sessions. See [Memory](../learn/memory.md).
 | Tool | Description |
 |------|-------------|
 | `read_memory` | Read full memory content |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find and replace text in memory |
+| `write_memory` | Write memory (optional `old_text` for a unique find-and-replace) |
+| `delete_memory` | Delete memory content |
+| `search_memory` | Search across memory |
 
 ```python
 agent = create_deep_agent(include_memory=True)

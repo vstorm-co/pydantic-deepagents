@@ -44,9 +44,14 @@ class BranchIsolation:
     default; `message_queue` is isolated; `team_bus` is shared
     (peer-to-peer bus - branches can talk to each other by default).
 
-    Only `backend="copy"` and `message_queue="isolated"` are exercised
-    by the current fork pipeline; the other `share` / `share_readonly`
-    values are accepted for forward compatibility.
+    `memory="copy"` stages a branch's memory writes in a
+    :class:`~pydantic_deep.features.forking.memory.BranchMemoryStore` and
+    replays them onto the parent only if the branch wins the merge;
+    `memory="share"` writes straight through to the parent's store.
+
+    Only `backend="copy"`, `memory=…` and `message_queue="isolated"` are
+    exercised by the current fork pipeline; the remaining `share` /
+    `share_readonly` values are accepted for forward compatibility.
     """
 
     history: Literal["copy"] = "copy"

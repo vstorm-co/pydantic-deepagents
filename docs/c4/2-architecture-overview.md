@@ -228,14 +228,14 @@ flowchart TD
         PT["PlanToolset<br/>ask_user, save_plan"]
         CHT["CheckpointToolset<br/>save_checkpoint,<br/>list_checkpoints, rewind_to"]
         CT["ContextToolset<br/>(Instructions Only)"]
-        MT["MemoryToolset<br/>read_memory, write_memory,<br/>update_memory"]
+        MT["MemoryToolset<br/>read_memory, write_memory,<br/>delete_memory, search_memory"]
         TMT["TeamToolset<br/>spawn_team, assign_task,<br/>check_teammates,<br/>message_teammate,<br/>dissolve_team"]
     end
 
     subgraph CapabilityAdapters["Capabilities"]
         CFC["ContextFilesCapability<br/>AGENTS.md, SOUL.md<br/>loading"]
         HC["HooksCapability<br/>8 Lifecycle Hooks"]
-        MC["MemoryCapability<br/>MEMORY.md<br/>persistence"]
+        MC["Memory (harness)<br/>MemoryStore<br/>persistence"]
         PC["PlanCapability<br/>Planner SubAgent"]
         SC["SkillsCapability<br/>Discovery + Execution"]
         TC["TeamCapability<br/>Multi-agent Coordination"]
@@ -361,7 +361,7 @@ flowchart TD
 | **PlanToolset** | Built-in | `ask_user`, `save_plan` |
 | **CheckpointToolset** | Built-in | `save_checkpoint`, `list_checkpoints`, `rewind_to` |
 | **ContextToolset** | Built-in | No tools, just instructions injection |
-| **MemoryToolset** | Built-in | `read_memory`, `write_memory`, `update_memory` |
+| **MemoryToolset** | pydantic-ai-harness | `read_memory`, `write_memory`, `delete_memory`, `search_memory` |
 | **TeamToolset** | Built-in | `spawn_team`, `assign_task`, `check_teammates`, `message_teammate`, `dissolve_team` |
 
 **Dependencies**: pydantic-ai FunctionToolset, pydantic-ai-backend, pydantic-ai-todo, subagents-pydantic-ai
@@ -374,7 +374,7 @@ flowchart TD
 |------------|---------|-----------------|
 | **ContextFilesCapability** | Loads AGENTS.md, SOUL.md into system prompt | ContextToolset |
 | **HooksCapability** | 8 lifecycle hooks (pre/post tool, before/after run, model request) | None |
-| **MemoryCapability** | Persistent memory via MEMORY.md | MemoryToolset |
+| **Memory** (pydantic-ai-harness) | Persistent memory via a pluggable `MemoryStore` (independent of the backend) | MemoryToolset |
 | **PlanCapability** | Planner subagent with ask_user + save_plan | PlanToolset |
 | **SkillsCapability** | Skill discovery + execution | SkillsToolset |
 | **TeamCapability** | Multi-agent coordination | TeamToolset |
@@ -449,7 +449,7 @@ All features are composable capabilities that implement `AbstractCapability`. Ea
 ```mermaid
 flowchart TD
     subgraph Composition["Capability Composition"]
-        CAP1["MemoryCapability"]
+        CAP1["Memory (harness)"]
         CAP2["PlanCapability"]
         CAP3["SkillsCapability"]
         CAP4["TeamCapability"]

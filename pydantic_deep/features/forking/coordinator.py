@@ -45,6 +45,7 @@ from pydantic_deep.features.forking.judge import (
     count_stuck_loop_hits,
 )
 from pydantic_deep.features.forking.materializer import ForkMaterializer
+from pydantic_deep.features.forking.memory import BranchMemoryStore
 from pydantic_deep.features.forking.store import ForkStateStore
 from pydantic_deep.features.forking.types import (
     BranchCost,
@@ -988,6 +989,21 @@ class ForkCoordinator:
                 conflicts = list(report.conflicts)
                 flush_errors = list(report.errors)
                 deleted_paths = list(report.deleted_paths)
+
+            # Memory is staged in its own overlay (BranchMemoryStore), so the
+            # winner's `write_memory` calls land in the parent only here — and
+            # the losers' are dropped with their deps.
+            winner_memory = getattr(winner.deps, "memory_store", None)
+            if isinstance(winner_memory, BranchMemoryStore):
+                memory_report = await winner_memory.flush_to()
+                memory_conflicts = list(memory_report.conflicts)
+                if memory_conflicts:
+                    logger.warning(
+                        "branch %s memory flush skipped %d diverged path(s): %s",
+                        target_id,
+                        len(memory_conflicts),
+                        ", ".join(memory_conflicts),
+                    )
 
             winner.overlay = None
 

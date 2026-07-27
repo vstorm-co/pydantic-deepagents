@@ -46,7 +46,7 @@ from subagents_pydantic_ai import (
 # registers overloads on 3.11+. The DeepAgentSpec drift-guard test relies on it.
 from typing_extensions import overload
 
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
 from pydantic_deep.features.checkpointing import (
     CheckpointMiddleware,
     CheckpointStore,
@@ -63,10 +63,9 @@ from pydantic_deep.features.hooks import HookEvent, HooksCapability
 from pydantic_deep.features.improve import ImproveToolset
 from pydantic_deep.features.liteparse import LiteparseToolset
 from pydantic_deep.features.memory import (
-    DEFAULT_MAX_MEMORY_LINES,
-    DEFAULT_MEMORY_DIR,
-    DEFAULT_PIN_END_MARKER,
-    AgentMemoryToolset,
+    MemoryStore,
+    build_memory_capability,
+    build_memory_store,
 )
 from pydantic_deep.features.message_queue import MessageQueueCapability
 from pydantic_deep.features.monitoring import create_monitor_toolset
@@ -277,7 +276,10 @@ def _make_default_deep_agent_factory(
     edit_format: Any,
     context_files: Any,
     context_discovery: Any,
-    memory_dir: Any,
+    include_memory: bool,
+    memory_store: MemoryStore | None,
+    memory_namespace: str,
+    tool_search: bool,
     web_search: bool,
     web_fetch: bool,
 ) -> Callable[[dict[str, Any]], Any]:
@@ -287,6 +289,10 @@ def _make_default_deep_agent_factory(
     the factory can be unit-tested in isolation without relying on the caller's
     subagent-config dicts being mutated - those dicts are now shallow-copied
     before any `agent_factory` / toolset injection.
+
+    Persistent memory is a capability now: each subagent gets its own harness
+    `Memory` over the *shared* `memory_store`, scoped by the subagent's name.
+    Per-subagent memory can be disabled via `extra={"memory": False}`.
     """
 
     def _factory(cfg: dict[str, Any]) -> Any:
@@ -297,6 +303,20 @@ def _make_default_deep_agent_factory(
             if task_instructions
             else DEFAULT_INSTRUCTIONS
         )
+        sub_capabilities: list[AbstractCapability[Any]] = []
+        extra = cfg.get("extra") or {}
+        if include_memory and memory_store is not None and extra.get("memory", True):
+            sub_capabilities.append(
+                build_memory_capability(
+                    store=memory_store,
+                    agent_name=cfg.get("name") or "subagent",
+                    namespace=memory_namespace,
+                    defer_loading=tool_search,
+                    max_lines=extra.get("memory_max_lines"),
+                    max_tokens=extra.get("memory_max_tokens"),
+                    pin_marker=extra.get("memory_pin_marker"),
+                )
+            )
         return create_deep_agent(
             model=cfg.get("model", model),
             instructions=instructions,
@@ -315,7 +335,7 @@ def _make_default_deep_agent_factory(
             context_manager=False,
             cost_tracking=False,
             include_memory=False,
-            memory_dir=memory_dir,
+            capabilities=sub_capabilities or None,
             context_files=context_files,
             context_discovery=context_discovery,
             edit_format=edit_format,
@@ -323,6 +343,37 @@ def _make_default_deep_agent_factory(
         )
 
     return _factory
+
+
+def _inject_subagent_memory_toolset(
+    sa_config: SubAgentConfig, memory_store: MemoryStore | None, memory_namespace: str
+) -> None:
+    """Append the harness memory toolset for a caller-supplied subagent factory.
+
+    Subagents built by the default factory receive memory as a `Memory`
+    capability. Those carrying their own `agent_factory` (or a prebuilt `agent`)
+    never reach it, so without this they would silently lose `read_memory` /
+    `write_memory` / `delete_memory` / `search_memory` entirely. Memory can still
+    be disabled per subagent via `extra={"memory": False}`.
+
+    Mutates `sa_config` in place (a shallow copy by the time it is called).
+    """
+    if memory_store is None:
+        return
+    extra = sa_config.get("extra") or {}
+    if not extra.get("memory", True):
+        return
+    capability = build_memory_capability(
+        store=memory_store,
+        agent_name=sa_config["name"],
+        namespace=memory_namespace,
+        max_lines=extra.get("memory_max_lines"),
+        max_tokens=extra.get("memory_max_tokens"),
+        pin_marker=extra.get("memory_pin_marker"),
+    )
+    existing = list(sa_config.get("toolsets", []))
+    existing.append(capability.get_toolset())
+    sa_config["toolsets"] = existing
 
 
 def _inject_subagent_context_toolset(sa_config: SubAgentConfig) -> None:
@@ -336,27 +387,6 @@ def _inject_subagent_context_toolset(sa_config: SubAgentConfig) -> None:
         return
     existing = list(sa_config.get("toolsets", []))
     existing.append(ContextToolset(context_files=per_sa_files))
-    sa_config["toolsets"] = existing
-
-
-def _inject_subagent_memory_toolset(sa_config: SubAgentConfig, memory_dir: str | None) -> None:
-    """Append a per-subagent `AgentMemoryToolset` unless disabled via `extra.memory=False`.
-
-    Mutates `sa_config` in place (a shallow copy by the time it is called).
-    """
-    extra = sa_config.get("extra", {})
-    # Memory enabled by default; can be disabled via extra.memory=False
-    if not extra.get("memory", True):
-        return
-    mem = AgentMemoryToolset(
-        agent_name=sa_config["name"],
-        memory_dir=memory_dir or DEFAULT_MEMORY_DIR,
-        max_lines=extra.get("memory_max_lines", DEFAULT_MAX_MEMORY_LINES),
-        max_tokens=extra.get("memory_max_tokens"),
-        pin_marker=extra.get("memory_pin_marker", DEFAULT_PIN_END_MARKER),
-    )
-    existing = list(sa_config.get("toolsets", []))
-    existing.append(mem)
     sa_config["toolsets"] = existing
 
 
@@ -498,6 +528,9 @@ def create_deep_agent(
     context_discovery: bool = False,
     include_memory: bool = True,
     memory_dir: str | None = None,
+    memory_store: MemoryStore | None = None,
+    memory_namespace: str = "",
+    memory_base_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
@@ -578,6 +611,9 @@ def create_deep_agent(
     context_discovery: bool = False,
     include_memory: bool = True,
     memory_dir: str | None = None,
+    memory_store: MemoryStore | None = None,
+    memory_namespace: str = "",
+    memory_base_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
@@ -656,6 +692,9 @@ def create_deep_agent(  # noqa: C901
     context_discovery: bool = False,
     include_memory: bool = True,
     memory_dir: str | None = None,
+    memory_store: MemoryStore | None = None,
+    memory_namespace: str = "",
+    memory_base_dir: str | None = None,
     retries: int = 3,
     hooks: list[Any] | None = None,
     patch_tool_calls: bool = True,
@@ -810,17 +849,32 @@ def create_deep_agent(  # noqa: C901
         context_discovery: Whether to auto-discover context files at the
             backend root (/). Scans for AGENTS.md, SOUL.md.
             Defaults to False.
-        include_memory: Whether to include the agent memory toolset.
+        include_memory: Whether to include the harness `Memory` capability.
             When True, the main agent and all subagents get persistent
-            memory stored as MEMORY.md files in the backend. Memory is
-            auto-loaded into the system prompt and writable via tools
-            (read_memory, write_memory, update_memory). Per-subagent
-            memory can be disabled via `extra={"memory": False}` in
-            SubAgentConfig. Defaults to True.
-        memory_dir: Base directory for memory files in the backend.
-            Each agent gets its own subdirectory:
-            `{memory_dir}/{agent_name}/MEMORY.md`.
-            Defaults to `/.deep/memory`.
+            memory (from `pydantic-ai-harness`) stored in a `MemoryStore`,
+            injected as user-role context and writable via tools
+            (read_memory, write_memory, delete_memory, search_memory).
+            Per-subagent memory can be disabled via `extra={"memory": False}`
+            in SubAgentConfig. Defaults to True.
+        memory_dir: **Host** filesystem directory for on-disk memory. When set, a
+            harness `FileStore` is used and each agent gets its own
+            subdirectory: `{memory_dir}/{agent_name}/MEMORY.md`. Note this is no
+            longer a path inside `deps.backend` — backend-only values such as
+            `/.deep/memory` now raise. Relative paths resolve against
+            `memory_base_dir`. When None (and no `memory_store` is given), an
+            ephemeral in-memory store is used and a warning is emitted. Ignored
+            when `memory_store` is provided.
+        memory_store: An explicit harness `MemoryStore` (e.g. `SqliteMemoryStore`
+            or a custom store) shared by the main agent and all subagents.
+            Takes precedence over `memory_dir`. Defaults to None.
+        memory_namespace: Per-tenant namespace for the harness `Memory`
+            capability, isolating users that share one store. Use this for the
+            build-agent-once / deps-per-user pattern, where a single store is
+            shared across requests. Defaults to "" (no namespace).
+        memory_base_dir: Directory a relative `memory_dir` resolves against.
+            Defaults to the process CWD. Set it to the same root as a
+            `LocalBackend` so memory follows the working directory instead of
+            drifting with wherever the process was started.
         retries: Maximum number of retries for tool calls. Defaults to 3.
         hooks: List of Hook instances for Claude Code-style lifecycle hooks.
             Hooks execute shell commands or Python handlers on tool events
@@ -996,7 +1050,7 @@ def create_deep_agent(  # noqa: C901
     # the toolsets list rather than mutating it in place, so a shallow copy is
     # sufficient - a deep copy would needlessly duplicate live toolset/agent
     # objects. Without this, calling create_deep_agent twice with the same
-    # subagents list would double the injected context/memory toolsets.
+    # subagents list would double the injected context/extra toolsets.
     effective_subagents: list[SubAgentConfig] = [SubAgentConfig(**sa) for sa in (subagents or [])]
     if include_plan and include_subagents:
         _plans_dir = plans_dir or "/plans"
@@ -1023,6 +1077,40 @@ def create_deep_agent(  # noqa: C901
                 effective_subagents.append(SubAgentConfig(**builtin))
 
     all_toolsets: list[AbstractToolset[DeepAgentDeps]] = []
+
+    _memory_store: MemoryStore | None = None
+    if include_memory:
+        if memory_store is not None:
+            _memory_store = memory_store
+        else:
+            # Memory used to always persist (backend `/.deep/memory`). It now
+            # persists only when the caller says where, so an unconfigured agent
+            # would silently drop everything it "remembered" at process exit.
+            if not memory_dir:
+                warnings.warn(
+                    "include_memory=True without memory_dir/memory_store uses an "
+                    "ephemeral in-memory store: everything the agent writes with "
+                    "write_memory is discarded when the process exits, and any "
+                    "MEMORY.md persisted by an earlier version is not read. Pass "
+                    "memory_dir= (a host directory) or memory_store= to persist, "
+                    "or include_memory=False to silence this.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            elif not hasattr(unwrap_backend(backend), "root_dir"):
+                # A FileStore writes to the host, but a sandboxed/remote backend
+                # exists precisely to keep the agent off the host filesystem.
+                warnings.warn(
+                    f"memory_dir={memory_dir!r} stores memory on the *host* "
+                    f"filesystem, but backend {type(backend).__name__} is not a "
+                    "local one: write_memory will escape the backend boundary "
+                    "and memory will not live alongside the agent's files. Pass "
+                    "memory_store= with a store appropriate for this backend, or "
+                    "include_memory=False.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            _memory_store = build_memory_store(memory_dir, base_dir=memory_base_dir)
 
     _todo_proxy: _DepsTodoProxy | None = None
     if include_todo:
@@ -1054,21 +1142,27 @@ def create_deep_agent(  # noqa: C901
             edit_format=edit_format,
             context_files=context_files,
             context_discovery=context_discovery,
-            memory_dir=memory_dir,
+            include_memory=include_memory,
+            memory_store=_memory_store,
+            memory_namespace=memory_namespace,
+            tool_search=tool_search,
             web_search=web_search,
             web_fetch=web_fetch,
         )
 
-        # Inject agent_factory + per-subagent context/memory/extra toolsets. These
+        # Inject agent_factory + per-subagent context/extra toolsets. These
         # operate on the shallow copies built above, never the caller's dicts.
         for sa_config in effective_subagents:
             if (
                 sa_config.get("agent") is None and sa_config.get("agent_factory") is None
             ):  # pragma: no branch
                 sa_config["agent_factory"] = _default_deep_agent_factory
+            else:
+                # The default factory attaches memory as a capability; a caller-
+                # supplied factory/agent never runs it, so wire the memory tools
+                # in through `toolsets` the way the pre-capability code did.
+                _inject_subagent_memory_toolset(sa_config, _memory_store, memory_namespace)
             _inject_subagent_context_toolset(sa_config)
-            if include_memory:
-                _inject_subagent_memory_toolset(sa_config, memory_dir)
             _inject_subagent_extra_toolsets(sa_config, _sub_extra)
 
         subagent_toolset = create_subagent_toolset(
@@ -1113,16 +1207,6 @@ def create_deep_agent(  # noqa: C901
             is_subagent=False,
         )
         all_toolsets.append(context_toolset)
-
-    # Memory toolset
-    memory_toolset = None
-    if include_memory:
-        _memory_dir = memory_dir or DEFAULT_MEMORY_DIR
-        memory_toolset = AgentMemoryToolset(
-            agent_name="main",
-            memory_dir=_memory_dir,
-        )
-        all_toolsets.append(memory_toolset)
 
     # Add user-provided toolsets
     if toolsets:
@@ -1313,6 +1397,18 @@ def create_deep_agent(  # noqa: C901
 
     if _todo_proxy is not None:
         all_capabilities.append(_TodoProxyBinder(_todo_proxy))
+
+    if _memory_store is not None:
+        all_capabilities.append(
+            build_memory_capability(
+                store=_memory_store,
+                agent_name="main",
+                namespace=memory_namespace,
+                # The memory toolset rides the capability list, so it bypasses
+                # `defer_situational_toolsets` below; defer it here instead.
+                defer_loading=tool_search,
+            )
+        )
 
     if patch_tool_calls:
         all_capabilities.append(PatchToolCallsCapability())

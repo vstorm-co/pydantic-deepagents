@@ -124,8 +124,13 @@ Overrides take precedence over the file, and they're the *only* way to supply no
 | `model`, `instructions`, `retries` | `backend` |
 | `include_*` feature flags | `tools`, `toolsets` |
 | `model_settings`, `thinking` | `hooks`, `middleware`, `history_processors` |
-| `subagents`, `skill_directories` | `output_type`, `checkpoint_store` |
+| `subagents`, `skill_directories` | `output_type`, `checkpoint_store`, `memory_store` |
 | `memory_dir`, `context_files` | `on_cost_update`, `on_context_update`, `on_eviction`, `on_before_compress`, `on_after_compress` |
+
+!!! note "`memory_dir` vs `memory_store`"
+    `memory_dir` is serializable (a path string) and builds a `FileStore`. A
+    `memory_store` object (`InMemoryStore`, `FileStore`, `SqliteMemoryStore`,
+    `PostgresMemoryStore`) is a live object — pass it only as a runtime override.
 
 !!! info "Backend defaults to in-memory"
     If you don't pass `backend=`, the loaded `deps` uses a `StateBackend` so the

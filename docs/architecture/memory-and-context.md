@@ -14,7 +14,7 @@ and session management work across the **summarization-pydantic-ai** and **pydan
 | **StuckLoopDetection** | pydantic-deep | Detects repetitive tool call patterns and breaks agent loops |
 | **LimitWarnerCapability** | summarization-pydantic-ai | Warns the model when context limits approach (70% URGENT, 100% CRITICAL) |
 | **PatchToolCallsCapability** | pydantic-deep | Fixes orphaned tool calls/results in conversation history |
-| **AgentMemoryToolset** | pydantic-deep | Persistent agent memory (`MEMORY.md`) across sessions |
+| **Memory** (capability) | pydantic-ai-harness (re-exported as `pydantic_deep.Memory`) | Persistent agent memory via a pluggable `MemoryStore` (independent of `deps.backend`) |
 | **HistoryArchiveSearch** | pydantic-deep | Search tool for pre-compression history (reads `messages.json`) |
 | **CLI Commands** | cli | `/compact`, `/context`, `--resume`, `--fork` |
 
@@ -30,7 +30,7 @@ graph TD
 
     subgraph "pydantic-deep"
         EP[EvictionProcessor]
-        MEM[AgentMemoryToolset]
+        MEM[Memory capability]
         HAS[HistoryArchiveSearch]
         AF[agent.py — create_deep_agent]
         DEPS[DeepAgentDeps]
@@ -51,7 +51,7 @@ graph TD
     HAS -->|reads| MJ
     SESSION -->|reads| MJ
     EP -->|writes| LTR["large_tool_results/*"]
-    MEM -->|reads/writes| MEMF[(MEMORY.md)]
+    MEM -->|reads/writes| MEMF[(MemoryStore)]
 
     DEPS -->|holds ref| CMW
 
@@ -225,23 +225,32 @@ This mirrors Claude Code's pattern of clearing tool outputs first, then summariz
 
 ---
 
-### 3. AgentMemoryToolset (pydantic-deep)
+### 3. Memory capability (pydantic-ai-harness)
 
-Persistent cross-session memory stored in `MEMORY.md` files.
+Persistent cross-session memory, provided by the `Memory` capability from the
+external **pydantic-ai-harness** package (re-exported as `pydantic_deep.Memory`).
 
-**File path:** `{memory_dir}/{agent_name}/MEMORY.md`
-(e.g., `.pydantic-deep/main/MEMORY.md`)
+**Storage:** Memory lives in a pluggable `MemoryStore`, **independent of the
+agent's `deps.backend`**. Available stores: `InMemoryStore` (the default —
+ephemeral), `FileStore` (on-disk), `SqliteMemoryStore`, and `PostgresMemoryStore`.
+`create_deep_agent(memory_dir=...)` builds a `FileStore` rooted at `memory_dir`
+(files at `{memory_dir}/{agent_name}/MEMORY.md`); passing `memory_store=` supplies
+any store directly and takes precedence over `memory_dir`. With neither set, memory
+is an ephemeral `InMemoryStore`. The store is shared by the main agent and every
+subagent, scoped by `agent_name`; a per-tenant `namespace` isolates users on a
+shared store. Memory supports multiple files, not just `MEMORY.md`.
 
-**System prompt injection:** On each run, the first 200 lines of `MEMORY.md` are
-injected into the system prompt as a `## Agent Memory` section.
+**Injection:** Stored memory is injected as **user-role context** (not a
+system-instruction block), alongside trusted static guidance in the instructions.
 
 **Tools:**
 
 | Tool | Description |
 |------|-------------|
 | `read_memory()` | Read full memory content |
-| `write_memory(content)` | Append to memory |
-| `update_memory(old_text, new_text)` | Find and replace in memory |
+| `write_memory(content, file=None, old_text=None)` | Write memory; `old_text` does a unique find-and-replace, `file` targets a specific memory file |
+| `delete_memory()` | Delete memory content |
+| `search_memory()` | Search across memory |
 
 Memory is independent from conversation history — it persists across sessions
 and survives compression. The agent decides what to remember.
@@ -271,7 +280,7 @@ uncompressed history — even messages that were summarized away from context.
 ```
 .pydantic-deep/
 ├── main/
-│   └── MEMORY.md                    # Persistent agent memory
+│   └── MEMORY.md                    # Persistent agent memory (only when a FileStore/memory_dir is used)
 ├── sessions/
 │   ├── abc123def456/                # Session 1
 │   │   ├── messages.json            # Full uncompressed history (single source of truth)
@@ -422,8 +431,10 @@ flowchart LR
 8. **Callbacks for extensibility:** `on_before_compress` and `on_after_compress` allow
    custom archival and context re-injection without modifying the middleware itself.
 
-9. **Backend abstraction:** All file operations go through `BackendProtocol`, meaning
-   the same architecture works with local filesystem, in-memory state, or Docker sandbox.
+9. **Backend abstraction:** Conversation-history, eviction, and plan file operations go
+   through `BackendProtocol`, meaning the same architecture works with local filesystem,
+   in-memory state, or Docker sandbox. (Persistent memory is the exception — it uses its
+   own pluggable `MemoryStore`, independent of the backend.)
 
 10. **Optional checkpoints for library users:** The `CheckpointMiddleware` and
     `FileCheckpointStore` remain available in `pydantic_deep/features/checkpointing.py`

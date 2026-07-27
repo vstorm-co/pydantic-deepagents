@@ -8,26 +8,28 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.toolsets import AbstractToolset
+from typing_extensions import deprecated
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.memory.service import DEFAULT_MEMORY_DIR, DEFAULT_PIN_END_MARKER
 from pydantic_deep.features.memory.toolset import AgentMemoryToolset
 
 
+@deprecated(
+    "MemoryCapability (backend-backed MEMORY.md) has moved to the harness `Memory` "
+    "capability; use `pydantic_ai_harness.memory.Memory` (re-exported as "
+    "`pydantic_deep.Memory`). This shim will be removed in a future release."
+)
 @dataclass
 class MemoryCapability(AbstractCapability[DeepAgentDeps]):
-    """Capability providing persistent agent memory across sessions.
+    """Deprecated backend-backed memory capability.
+
+    Superseded by the harness `Memory` capability (`pydantic_deep.Memory`), which
+    stores memory in a pluggable `MemoryStore` instead of the agent's
+    `deps.backend`. Retained only so existing imports keep working.
 
     Provides read_memory, write_memory, update_memory tools and injects
     existing memory into the system prompt.
-
-    Example:
-        ```python
-        from pydantic_ai import Agent
-        from pydantic_deep.features.memory import MemoryCapability
-
-        agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[MemoryCapability()])
-        ```
     """
 
     agent_name: str = "main"

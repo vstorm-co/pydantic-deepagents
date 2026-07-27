@@ -450,6 +450,12 @@ class OutputStyle:
 
 ### MemoryFile
 
+!!! warning "Deprecated"
+    `MemoryFile` belongs to the old backend-backed memory implementation and is
+    **deprecated** (still importable, emits `DeprecationWarning`). Persistent memory
+    is now provided by the `Memory` capability backed by a `MemoryStore`. See the
+    [Memory API](memory.md).
+
 Loaded agent memory file.
 
 ```python

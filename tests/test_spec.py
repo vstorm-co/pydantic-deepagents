@@ -103,6 +103,7 @@ class TestDeepAgentSpec:
                 "capabilities",
                 "skills",
                 "backend",
+                "memory_store",
                 "subagent_registry",
                 "subagent_extra_toolsets",
                 "subagent_usage_limits",

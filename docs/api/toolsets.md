@@ -448,41 +448,33 @@ Or via `create_deep_agent(include_teams=True)`.
 
 ## MemoryToolset
 
-Persistent agent memory. See [Memory](../learn/memory.md).
+Persistent agent memory. See [Memory](../learn/memory.md) and
+[Memory API](memory.md).
+
+Memory is provided by the `Memory` capability from the external
+**pydantic-ai-harness** package (re-exported as `pydantic_deep.Memory`). Storage
+uses a pluggable `MemoryStore` (`InMemoryStore` default, `FileStore`,
+`SqliteMemoryStore`, `PostgresMemoryStore`), independent of `deps.backend`.
 
 ### Tools
 
 | Tool | Description |
 |------|-------------|
 | `read_memory` | Read full memory content |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find and replace text in memory |
+| `write_memory` | Write memory (optional `old_text` for a unique find-and-replace, `file` to target a specific memory file) |
+| `delete_memory` | Delete memory content |
+| `search_memory` | Search across memory |
 
-### Constructor
+Enable via `create_deep_agent(include_memory=True, memory_dir=..., memory_store=...)`.
+See [`create_deep_agent`](agent.md) for the `memory_dir` / `memory_store` parameters.
 
-```python
-from pydantic_deep.features.memory import AgentMemoryToolset
-
-toolset = AgentMemoryToolset(
-    agent_name="main",
-    memory_dir="/.deep/memory",
-    max_lines=200,
-    descriptions={
-        "write_memory": "Save important findings to persistent memory",
-    },
-)
-```
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `agent_name` | `str` | `"main"` | Agent name (used for path and prompt label) |
-| `memory_dir` | `str` | `"/.deep/memory"` | Base directory for memory files |
-| `max_lines` | `int` | `200` | Max lines to inject into system prompt |
-| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `read_memory`, `write_memory`, `update_memory`) |
-
-Or via `create_deep_agent(include_memory=True)`.
+!!! warning "Deprecated API"
+    The homegrown `AgentMemoryToolset(agent_name=..., memory_dir=..., max_lines=...)`
+    constructor, the `update_memory` tool, and the `MemoryCapability` class are
+    **deprecated** (they still import but emit `DeprecationWarning`). Use the `Memory`
+    capability and the `MemoryStore` classes instead — see [Memory API](memory.md).
+    The `update_memory` tool has been removed; its replacement is
+    `write_memory(old_text=...)`.
 
 ---
 

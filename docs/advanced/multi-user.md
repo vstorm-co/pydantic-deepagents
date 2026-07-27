@@ -6,9 +6,18 @@ The trick is already built in: **dependencies are per-run, not per-agent.** You 
 
 ## The one rule
 
-Every stateful feature — memory, checkpoints, plans, evicted files — reads and writes through `ctx.deps.backend`. So the question "do two users share state?" has exactly one answer: *do they share a backend?*
+Most stateful features — plans and evicted files — read and write through `ctx.deps.backend`. So the backend question "do two users share files?" has exactly one answer: *do they share a backend?*
 
 Give each user their own, and they're isolated. That's the whole idea.
+
+!!! note "Memory has its own store"
+    Persistent memory no longer lives in the backend — it uses a pluggable
+    `MemoryStore`. It still follows `deps`, though: pass
+    `DeepAgentDeps(memory_store=...)` per request and that store wins over the one
+    the agent was built with, so a single shared agent stays isolated. Alternatively
+    give the agent a `memory_dir=`/`memory_store=` per user, or pass a per-tenant
+    `memory_namespace=` to partition one shared store. Checkpoints likewise use a
+    separate `checkpoint_store`.
 
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps
@@ -85,8 +94,9 @@ The backend is the dial you turn for the isolation-vs-persistence trade-off. Sam
     )
     ```
 
-    Isolation **and** persistence — a user's memory and files are still there
-    next session. No process-level sandbox, so don't run untrusted code here.
+    Isolation **and** persistence — a user's files are still there next session
+    (and their memory too, if you point `memory_dir`/`memory_store` at a per-user
+    location). No process-level sandbox, so don't run untrusted code here.
 
 === "Sandboxed (Docker)"
 
@@ -117,11 +127,12 @@ The backend covers most state, but two things live outside it. Scope them per us
 
 | State | Per-user via | If you skip it |
 |-------|--------------|----------------|
-| Files, memory, plans, evicted output | `backend=` | Users see each other's files |
+| Files, plans, evicted output | `backend=` | Users see each other's files |
+| Memory | `DeepAgentDeps(memory_store=…)` per run (or `memory_dir=` / `memory_namespace=` on the agent) | Users see each other's memory |
 | Checkpoints | `checkpoint_store=` | Users see each other's checkpoints |
 | Message history | your own store, keyed by user | Conversations bleed together |
 
-Memory, plans, and evicted files all route through the backend, so a per-user backend handles them in one move. Checkpoints use a separate store. Message history is yours to keep — `agent.run()` doesn't remember anything between calls.
+Plans and evicted files route through the backend, so a per-user backend handles them in one move. Memory lives in its own `MemoryStore`, but a `memory_store` on `DeepAgentDeps` still scopes it per run (or namespace a shared one). Checkpoints use a separate store. Message history is yours to keep — `agent.run()` doesn't remember anything between calls.
 
 ## Putting it together (FastAPI)
 
@@ -173,7 +184,7 @@ Multi-tenancy falls out of one design decision: deps are per-run.
 - Build the **agent once**; it's stateless and shared across every request.
 - Build **`DeepAgentDeps` per user** — that's where isolation lives.
 - Pick the **backend** for your trade-off: `StateBackend` (ephemeral), `LocalBackend(root_dir=...)` (persistent), or a `SessionManager` sandbox (isolated execution).
-- Scope the **checkpoint store** and **message history** per user too — they live outside the backend.
+- Scope **memory** (`DeepAgentDeps(memory_store=…)`, or `memory_dir`/`memory_namespace` on the agent), the **checkpoint store**, and **message history** per user too — they live outside the backend.
 
 Where to go next:
 

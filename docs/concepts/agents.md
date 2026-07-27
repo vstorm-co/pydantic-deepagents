@@ -153,9 +153,20 @@ Give agents memory that persists across sessions:
 ```python
 agent = create_deep_agent(
     include_memory=True,
-    memory_dir="/.deep/memory",  # Default
+    memory_dir=".pydantic-deep",  # Builds an on-disk FileStore; omit for an ephemeral in-memory store
+    memory_base_dir="/path/to/project",  # Anchors a relative memory_dir (default: CWD)
 )
 ```
+
+Memory is stored in a pluggable `MemoryStore` (independent of `deps.backend`).
+The default (no `memory_dir`/`memory_store`) is an ephemeral `InMemoryStore`, and
+warns so the loss of persistence is not silent.
+
+!!! warning "`memory_dir` is a host path"
+    It used to name a path *inside* `deps.backend`. It is now a real filesystem
+    path, so backend-only values like `/.deep/memory` are rejected. With a
+    sandboxed or remote backend, memory lives on the host rather than beside the
+    agent's files — pass `memory_store=` if that is not what you want.
 
 See [Memory](../learn/memory.md) for more details.
 

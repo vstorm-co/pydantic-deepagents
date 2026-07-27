@@ -1,8 +1,8 @@
 # Project Overview: pydantic-deep
 
-> **Package Name:** `pydantic-deep`  
-> **Version:** 0.3.3  
-> **License:** MIT  
+> **Package Name:** `pydantic-deep`
+> **Version:** 0.3.3
+> **License:** MIT
 > **Python Requirement:** >= 3.10
 
 ---
@@ -118,7 +118,7 @@ pydantic-deepagents/
 │   ├── capabilities/           # pydantic-ai capability adapters
 │   │   ├── context.py          # ContextFilesCapability
 │   │   ├── hooks.py            # HooksCapability (lifecycle hooks)
-│   │   ├── memory.py           # MemoryCapability
+│   │   ├── memory.py           # MemoryCapability (pydantic-ai-harness[memory])
 │   │   ├── plan.py             # PlanCapability
 │   │   ├── skills.py           # SkillsCapability
 │   │   └── teams.py            # TeamCapability

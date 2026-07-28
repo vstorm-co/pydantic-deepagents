@@ -11,6 +11,12 @@ them to an agent via the `mcp_servers` parameter of
     options:
       show_source: false
 
+## HttpClientFactory
+
+::: pydantic_deep.mcp.registry.HttpClientFactory
+    options:
+      show_source: false
+
 ## probe_mcp_server
 
 ::: pydantic_deep.mcp.probe_mcp_server

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -169,6 +169,203 @@ def test_registry_threads_oauth_storage(tmp_path: Path) -> None:
     reg.add(cfg)
     ts = reg.build(cfg)
     assert _transport(ts).url == "https://mcp.figma.com/mcp"
+
+
+# ── oauth scopes / callback_port / http client factory ──────────────────
+
+
+def test_mcpauth_oauth_fields_roundtrip() -> None:
+    auth = MCPAuth(kind="oauth", scopes=["read:jira", "write:jira"], callback_port=8123)
+    assert MCPAuth.from_dict(auth.to_dict()) == auth
+    # Configs written before these fields existed load with safe defaults.
+    legacy = MCPAuth.from_dict({"kind": "oauth"})
+    assert legacy.scopes == []
+    assert legacy.callback_port is None
+
+
+def test_mcpauth_rejects_non_positive_callback_port() -> None:
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="oauth", callback_port=0)
+    with pytest.raises(MCPConfigError):
+        MCPAuth(kind="oauth", callback_port=-1)
+
+
+def test_build_oauth_forwards_scopes_and_callback_port(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fastmcp.client.auth.oauth as oauth_mod
+
+    captured: dict[str, Any] = {}
+
+    class _FakeOAuth:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(oauth_mod, "OAuth", _FakeOAuth)
+    cfg = MCPServerConfig(
+        name="atlassian",
+        transport="http",
+        url="https://mcp.atlassian.com/v1/mcp/authv2",
+        auth=MCPAuth(kind="oauth", scopes=["read:jira-work"], callback_port=8123),
+    )
+    ts = build_mcp_server(cfg, lambda k: None)
+    assert captured["mcp_url"] == "https://mcp.atlassian.com/v1/mcp/authv2"
+    assert captured["scopes"] == ["read:jira-work"]
+    assert captured["callback_port"] == 8123
+    assert "token_storage" not in captured
+    assert _transport(ts).auth is not None
+
+
+def test_build_oauth_scopes_namespace_token_storage(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import fastmcp.client.auth.oauth as oauth_mod
+    from key_value.aio.stores.disk import DiskStore
+    from key_value.aio.wrappers.prefix_keys import PrefixKeysWrapper
+
+    captured: dict[str, Any] = {}
+
+    class _FakeOAuth:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(oauth_mod, "OAuth", _FakeOAuth)
+    store = DiskStore(directory=str(tmp_path / "oauth"))
+
+    scoped = MCPServerConfig(
+        name="a",
+        transport="http",
+        url="https://x/mcp",
+        auth=MCPAuth(kind="oauth", scopes=["read:jira"]),
+    )
+    build_mcp_server(scoped, lambda k: None, oauth_token_storage=store)
+    scoped_storage = captured["token_storage"]
+    assert isinstance(scoped_storage, PrefixKeysWrapper)
+
+    # Without scopes the store is passed through untouched, so tokens cached
+    # before this feature existed keep working.
+    captured.clear()
+    plain = MCPServerConfig(
+        name="b", transport="http", url="https://x/mcp", auth=MCPAuth(kind="oauth")
+    )
+    build_mcp_server(plain, lambda k: None, oauth_token_storage=store)
+    plain_storage = captured["token_storage"]
+    assert plain_storage is store
+
+
+def test_scoped_token_storage_namespaces_by_scope_set() -> None:
+    from key_value.aio.stores.memory import MemoryStore
+
+    from pydantic_deep.mcp.registry import _scoped_token_storage
+
+    store = MemoryStore()
+    a = _scoped_token_storage(store, ["read:jira", "write:jira"])
+    b = _scoped_token_storage(store, ["write:jira", "read:jira"])
+    c = _scoped_token_storage(store, ["read:jira"])
+    # The namespace is a function of the scope *set*: order doesn't matter,
+    # but a different set gets its own slot so the old token can't be reused.
+    assert a.prefix == b.prefix
+    assert a.prefix != c.prefix
+
+
+def test_http_client_factory_reaches_oauth_and_transport() -> None:
+    import httpx
+
+    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
+        return httpx.AsyncClient()
+
+    cfg = MCPServerConfig(
+        name="atlassian", transport="http", url="https://x/mcp", auth=MCPAuth(kind="oauth")
+    )
+    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=factory)
+    transport = _transport(ts)
+    oauth = transport.auth
+    # Configuring only the transport would just move the failure from
+    # `initialize` to the first token refresh — both sides need the factory.
+    assert transport.httpx_client_factory is not None
+    assert oauth.httpx_client_factory is transport.httpx_client_factory
+    assert oauth.httpx_client_factory is not httpx.AsyncClient
+
+
+async def test_adapted_factory_returns_fresh_client_and_applies_kwargs() -> None:
+    import httpx
+
+    from pydantic_deep.mcp.registry import _adapt_http_client_factory
+
+    cfg = MCPServerConfig(name="a", transport="http", url="https://x/mcp")
+    made: list[httpx.AsyncClient] = []
+
+    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
+        assert config is cfg
+        client = httpx.AsyncClient(headers={"Proxy-Authorization": "Negotiate abc"})
+        made.append(client)
+        return client
+
+    adapted = _adapt_http_client_factory(factory, cfg)
+    auth = httpx.Auth()
+    first = adapted()  # the OAuth flow calls with no arguments
+    second = adapted(headers={"X-H": "1"}, timeout=httpx.Timeout(7.0), auth=auth)
+    # Each call site `async with`es (and closes) its client, so a shared
+    # instance would be dead after the first use — every call must be fresh.
+    assert first is not second
+    assert second.headers["X-H"] == "1"
+    assert second.headers["Proxy-Authorization"] == "Negotiate abc"
+    assert second.auth is auth
+    assert second.timeout == httpx.Timeout(7.0)
+    for client in made:
+        await client.aclose()
+
+
+def test_build_http_with_factory_keeps_resolved_headers() -> None:
+    import httpx
+    from fastmcp.client.transports import StreamableHttpTransport
+
+    cfg = MCPServerConfig(
+        name="internal",
+        transport="http",
+        url="https://x/mcp",
+        headers={"X-Extra": "1"},
+        auth=MCPAuth(secret_key="K", kind="bearer"),
+    )
+    ts = build_mcp_server(cfg, lambda k: "tok", http_client_factory=lambda c: httpx.AsyncClient())
+    transport = _transport(ts)
+    assert isinstance(transport, StreamableHttpTransport)
+    assert transport.headers["Authorization"] == "Bearer tok"
+    assert transport.headers["X-Extra"] == "1"
+    assert transport.httpx_client_factory is not None
+
+
+def test_build_sse_with_factory_uses_sse_transport() -> None:
+    import httpx
+    from fastmcp.client.transports import SSETransport
+
+    cfg = MCPServerConfig(name="legacy", transport="sse", url="https://x/sse")
+    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx.AsyncClient())
+    assert isinstance(_transport(ts), SSETransport)
+
+
+def test_build_stdio_ignores_http_client_factory() -> None:
+    import httpx
+
+    cfg = MCPServerConfig(name="local", transport="stdio", command="echo")
+    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx.AsyncClient())
+    assert ts is not None
+
+
+def test_registry_threads_http_client_factory() -> None:
+    import httpx
+
+    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
+        return httpx.AsyncClient()
+
+    reg = MCPRegistry(resolver=lambda k: None, http_client_factory=factory)
+    cfg = MCPServerConfig(name="plain", transport="http", url="https://x/mcp")
+    reg.add(cfg)
+    assert _transport(reg.build(cfg)).httpx_client_factory is not None
+    servers = reg.build_active()
+    assert len(servers) == 1
+    resilient = cast(Any, servers[0])
+    assert _transport(resilient.wrapped).httpx_client_factory is not None
 
 
 def test_config_requires_auth_property() -> None:

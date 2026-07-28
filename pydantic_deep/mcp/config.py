@@ -60,6 +60,14 @@ class MCPAuth:
         client_name: OAuth client name advertised during dynamic client
             registration (``oauth`` only). Some servers (e.g. Figma's hosted MCP
             during beta) allowlist this; leave ``None`` to use the default.
+        scopes: OAuth scopes to request up front (``oauth`` only). Some hosted
+            servers (e.g. Atlassian's) require explicit scopes at registration
+            instead of granting a default set. Cached tokens are namespaced per
+            scope set, so changing this forces a fresh authorization rather
+            than silently reusing a token minted under the old scopes.
+        callback_port: Fixed localhost port for the OAuth redirect URI
+            (``oauth`` only). Needed by servers that validate a pre-registered
+            redirect URI; ``None`` lets the client pick a free port.
     """
 
     secret_key: str = ""
@@ -69,10 +77,14 @@ class MCPAuth:
     value_template: str = "Bearer {token}"
     instructions: str = ""
     client_name: str | None = None
+    scopes: list[str] = field(default_factory=list)
+    callback_port: int | None = None
 
     def __post_init__(self) -> None:
         if self.kind in _SECRET_AUTH_KINDS and not self.secret_key:
             raise MCPConfigError(f"{self.kind} MCP auth requires a non-empty secret_key")
+        if self.callback_port is not None and self.callback_port <= 0:
+            raise MCPConfigError(f"callback_port must be positive, got {self.callback_port}")
         # Fail fast on a template that would raise at `render_value` time —
         # extra placeholders (`{foo}`) or unbalanced literal braces (B13).
         try:
@@ -97,6 +109,8 @@ class MCPAuth:
             value_template=data.get("value_template", "Bearer {token}"),
             instructions=data.get("instructions", ""),
             client_name=data.get("client_name"),
+            scopes=list(data.get("scopes", [])),
+            callback_port=data.get("callback_port"),
         )
 
 

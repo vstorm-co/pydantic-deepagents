@@ -10,6 +10,7 @@ secret resolver.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -37,6 +38,8 @@ __all__ = [
     "import_claude_code_servers",
 ]
 
+logger = logging.getLogger(__name__)
+
 
 def mcp_config_path() -> Path:
     """Path to the per-project MCP config file."""
@@ -58,17 +61,31 @@ def mcp_oauth_storage() -> object | None:
     Tokens (e.g. for the hosted Figma server) are cached on disk under
     ``~/.pydantic-deep/mcp-oauth`` and keyed by server URL, so authorizing once
     (via ``/mcp`` test) works for the agent too and survives restarts. Returns
-    ``None`` if the disk store backend isn't installed (falls back to in-memory).
+    ``None`` — with a logged warning, since the resulting in-memory fallback
+    means a browser re-auth on every restart — if the disk store backend isn't
+    installed or the store directory can't be created.
     """
     try:
         from key_value.aio.stores.disk import DiskStore
     except Exception:
+        logger.warning(
+            "MCP OAuth tokens will not persist: the disk store backend is not "
+            "installed (pip install 'py-key-value-aio[disk]'); using in-memory "
+            "storage, so hosted servers re-authorize on every restart."
+        )
         return None
     path = Path.home() / ".pydantic-deep" / "mcp-oauth"
     try:
         path.mkdir(parents=True, exist_ok=True)
         return DiskStore(directory=str(path))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "MCP OAuth tokens will not persist: cannot initialise the disk store "
+            "at %s (%s); using in-memory storage, so hosted servers re-authorize "
+            "on every restart.",
+            path,
+            exc,
+        )
         return None
 
 

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.42] - 2026-08-01
+
+### Changed
+
+- **Requires `pydantic-ai-backend>=0.2.18`**, which is a bug-fix release worth
+  taking: a directory listing reported shell-quoted paths, so a directory with a
+  space in its name was unreachable — the model was handed a path it could not
+  read back; a glob aborted its whole walk on one unreadable entry and returned a
+  silently short listing; and a Kubernetes exec reported an unknown status as
+  success, so every truncated command looked like it had passed.
+
+### Added
+
+- **`AsyncBaseSandbox` and `is_async_backend`** re-exported from
+  `pydantic_deep`, alongside `BaseSandbox`. Subclass `AsyncBaseSandbox` for a
+  sandbox reached over an async transport — asyncssh, an async HTTP SDK — and
+  implement `execute` and `edit` as coroutines; every other file operation is
+  derived from shell commands, as with the synchronous base.
+
+  Prefer it to wrapping async code in a synchronous facade. `ensure_async` cannot
+  see through a facade, so it thread-wraps it and each call then occupies a worker
+  thread that has to hop back onto the event loop; a sandbox whose own recovery
+  path also needs a thread deadlocks against its own pool. `is_async_backend` is
+  the check `ensure_async` performs, exposed so a host can ask the same question.
+
 ## [0.3.41] - 2026-08-01
 
 ### Changed

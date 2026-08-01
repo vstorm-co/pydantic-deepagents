@@ -50,6 +50,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `LocalBackend`: Real filesystem operations
 - `DockerSandbox`: Isolated Docker container execution
 - `CompositeBackend`: Combines multiple backends with routing
+- `BaseSandbox` / `AsyncBaseSandbox`: Bases for a custom sandbox — implement
+  `execute` and `edit` and every file operation is derived from shell commands.
+  Use the async one for a natively async transport (asyncssh, an async SDK)
+  rather than a sync facade, which `ensure_async` cannot see through and which
+  deadlocks against its own thread pool under load.
 
 **Toolsets (`pydantic_deep/features/<name>/toolset.py`)**
 - `TodoToolset`: Task planning and tracking tools (read_todos, write_todos) - from [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)

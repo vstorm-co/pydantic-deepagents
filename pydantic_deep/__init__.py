@@ -48,6 +48,7 @@ Example:
 
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
+    AsyncBaseSandbox,
     BackendProtocol,
     BaseSandbox,
     CompositeBackend,
@@ -67,6 +68,7 @@ from pydantic_ai_backends import (
     create_console_toolset,
     get_console_system_prompt,
     get_runtime,
+    is_async_backend,
 )
 from pydantic_ai_shields import (
     BudgetExceededError,
@@ -343,6 +345,8 @@ __all__ = [
     "StateBackend",
     "CompositeBackend",
     "BaseSandbox",
+    "AsyncBaseSandbox",
+    "is_async_backend",
     "DockerSandbox",
     # Runtimes
     "RuntimeConfig",

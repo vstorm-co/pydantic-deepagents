@@ -34,6 +34,7 @@ from pydantic_deep import (
     LocalBackend,
     CompositeBackend,
     BaseSandbox,
+    AsyncBaseSandbox,
     DockerSandbox,
 
     # Processors

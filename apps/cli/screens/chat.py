@@ -635,17 +635,22 @@ class ChatScreen(Screen):
         # Mid-run: route to queue. `>>` prefix = steering, plain text = follow-up.
         # `!` keeps meaning "shell command" regardless of agent state.
         if is_running and queue is not None and not text.startswith("!"):
-            if text.startswith(">>"):
-                steer_text = text[2:].strip()
-                if steer_text:
-                    await queue.steer(steer_text)
-                    preview = steer_text[:40] + ("…" if len(steer_text) > 40 else "")
-                    app.notify(f"steering queued: {preview}")
-                    self._increment_queue_badge(steering=True)
-            else:
-                await queue.follow_up(text)
-                app.notify("follow-up queued")
-                self._increment_queue_badge(steering=False)
+            from pydantic_deep.features.message_queue import QueueFullError
+
+            try:
+                if text.startswith(">>"):
+                    steer_text = text[2:].strip()
+                    if steer_text:
+                        await queue.steer(steer_text)
+                        preview = steer_text[:40] + ("…" if len(steer_text) > 40 else "")
+                        app.notify(f"steering queued: {preview}")
+                        self._increment_queue_badge(steering=True)
+                else:
+                    await queue.follow_up(text)
+                    app.notify("follow-up queued")
+                    self._increment_queue_badge(steering=False)
+            except QueueFullError as exc:
+                app.notify(str(exc), severity="error", timeout=8)
             return
 
         if text.startswith("!"):
@@ -1325,12 +1330,21 @@ class ChatScreen(Screen):
                             severity="warning",
                             timeout=6,
                         )
-                # When the run was cancelled, follow-ups referring to the cancelled
-                # task are likely stale too. Discard with a count-only notification.
+                from pydantic_deep.features.message_queue import (
+                    format_follow_up as _fmt_fu,
+                )
+                from pydantic_deep.features.message_queue import (
+                    queued_source,
+                )
+
+                # Follow-ups a human typed for the cancelled task are stale; one
+                # submitted from outside was not, and its sender cannot see a silent drop.
                 if _run_cancelled:
-                    stale_fu = await _stale_queue.drain_follow_up()
-                    if stale_fu:
-                        n = len(stale_fu)
+                    discarded = await _stale_queue.discard_follow_up(
+                        keep=lambda m: queued_source(m) is not None
+                    )
+                    if discarded:
+                        n = len(discarded)
                         label = "follow-up" if n == 1 else "follow-ups"
                         with contextlib.suppress(Exception):
                             app.notify(
@@ -1338,6 +1352,25 @@ class ChatScreen(Screen):
                                 severity="warning",
                                 timeout=6,
                             )
+
+                # A message queued after the post-run drain still saw the run as
+                # active, so it landed as a follow-up nothing else will deliver.
+                if not _follow_up_scheduled:
+                    stranded = await _stale_queue.drain_follow_up()
+                    if stranded:
+                        stranded_text = _fmt_fu(stranded)
+                        msg_list.append_user_message(stranded_text)
+                        self._decrement_queue_badge(len(stranded))
+                        _follow_up_scheduled = True
+                        self.call_later(self._run_agent, stranded_text)
+                        if _run_cancelled:
+                            n = len(stranded)
+                            label = "follow-up" if n == 1 else "follow-ups"
+                            with contextlib.suppress(Exception):
+                                app.notify(
+                                    f"{n} external {label} kept - starting a new turn",
+                                    timeout=6,
+                                )
             if not _follow_up_scheduled:
                 self._reset_queue_badge()
             else:

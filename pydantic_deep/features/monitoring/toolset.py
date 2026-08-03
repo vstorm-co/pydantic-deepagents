@@ -9,13 +9,17 @@ message and the agent reacts without polling.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, cast
 
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from pydantic_deep.features.message_queue import QueueFullError
 from pydantic_deep.features.monitoring.manager import EventSink, MonitorManager
 from pydantic_deep.features.monitoring.types import MonitorEvent
+
+logger = logging.getLogger(__name__)
 
 START_MONITOR_DESCRIPTION = """\
 Start watching a long-running command and react to its output as it appears.
@@ -57,7 +61,12 @@ def _make_queue_sink(queue: Any) -> EventSink:
             )
         else:  # pragma: no cover - no-op event
             return
-        await queue.steer(msg, metadata={"source": "monitor", "monitor_id": event.monitor_id})
+        # MonitorManager._emit swallows sink exceptions, so a full queue would
+        # drop this batch without a trace.
+        try:
+            await queue.steer(msg, metadata={"source": "monitor", "monitor_id": event.monitor_id})
+        except QueueFullError:
+            logger.warning("monitor %s output dropped: message queue full", event.monitor_id)
 
     return sink
 

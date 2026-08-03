@@ -1,6 +1,6 @@
 # Security Gate Example
 
-Demonstrates [`default_security_hook()`][pydantic_deep.capabilities.hooks.default_security_hook] —
+Demonstrates [`default_security_hook()`][pydantic_deep.features.hooks.default_security_hook] —
 the built-in safety preset that blocks destructive commands, path-traversal
 writes, and credential reads, plus redacts secret-shaped tokens from tool output.
 

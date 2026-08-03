@@ -62,7 +62,7 @@ if not math.isclose(
 #: falls back to manual until a test-runner hook lands.
 _NO_TEST_HEURISTIC_CAP: float = 0.65
 
-#: Best-effort - see `pydantic_deep/capabilities/stuck_loop.py` for the source strings.
+#: Best-effort - see `pydantic_deep/features/stuck_loop/capability.py` for the source strings.
 _STUCK_LOOP_MARKERS: tuple[str, ...] = (
     "identical arguments",
     "alternating between",

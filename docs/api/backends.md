@@ -15,6 +15,7 @@ from pydantic_deep import (
     CompositeBackend,
     DockerSandbox,
     BaseSandbox,
+    AsyncBaseSandbox,
     # Protocols
     BackendProtocol,
     SandboxProtocol,
@@ -46,6 +47,26 @@ from pydantic_deep import (
 | `StateBackend` | In-memory storage for testing | [Link](https://vstorm-co.github.io/pydantic-ai-backend/concepts/backends/#statebackend) |
 | `DockerSandbox` | Docker container execution | [Link](https://vstorm-co.github.io/pydantic-ai-backend/concepts/docker/) |
 | `CompositeBackend` | Route by path prefix | [Link](https://vstorm-co.github.io/pydantic-ai-backend/concepts/backends/#compositebackend) |
+
+## Writing your own backend
+
+Subclass one of the two bases rather than implementing `BackendProtocol` by hand:
+each derives every file operation from shell commands, so you implement `execute`
+and `edit` and get the rest.
+
+| Base | For a sandbox reached | Notes |
+|---|---|---|
+| `BaseSandbox` | synchronously — a socket, a subprocess | |
+| `AsyncBaseSandbox` | over an async transport — `asyncssh`, an async HTTP SDK | Implement `execute` and `edit` as coroutines |
+
+Pick `AsyncBaseSandbox` for a natively async sandbox rather than wrapping it in a
+synchronous facade: `ensure_async` cannot see through a facade, so it thread-wraps
+it and every call then occupies a worker thread that has to hop back onto the
+event loop. A sandbox whose own recovery path also needs a thread deadlocks
+against its own pool. `is_async_backend` is the check `ensure_async` uses, exposed
+so a host can ask the same question.
+
+See [Writing your own backend](https://vstorm-co.github.io/pydantic-ai-backend/concepts/backends/#writing-your-own-backend).
 
 ## Console Toolset
 

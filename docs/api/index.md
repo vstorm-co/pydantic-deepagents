@@ -8,9 +8,9 @@ Complete API documentation for pydantic-deep.
 |--------|-------------|
 | [`pydantic_deep.agent`](agent.md) | Agent factory and configuration |
 | [Backends](backends.md) | Storage backends (via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)) |
-| [`pydantic_deep.toolsets`](toolsets.md) | Tool collections |
-| [`pydantic_deep.capabilities`](capabilities.md) | Lifecycle capabilities |
-| [`pydantic_deep.processors`](processors.md) | History processors |
+| [Toolsets](toolsets.md) | Tool collections |
+| [Capabilities](capabilities.md) | Lifecycle capabilities |
+| [Processors](processors.md) | History processors |
 | [`pydantic_deep.mcp`](mcp.md) | MCP client support |
 | [Forking](forking.md) | Live Run Forking (parallel branches) |
 | [`pydantic_deep.spec`](spec.md) | Declarative agent specs (YAML/JSON) |
@@ -34,6 +34,7 @@ from pydantic_deep import (
     LocalBackend,
     CompositeBackend,
     BaseSandbox,
+    AsyncBaseSandbox,
     DockerSandbox,
 
     # Processors
@@ -60,7 +61,7 @@ from pydantic_deep import (
 # Toolsets (from their respective packages)
 from pydantic_ai_backends import create_console_toolset
 from pydantic_ai_todo import create_todo_toolset
-from pydantic_deep.toolsets import SubAgentToolset, SkillsToolset
+from pydantic_deep import SubAgentToolset, SkillsToolset
 ```
 
 ### Creating an Agent

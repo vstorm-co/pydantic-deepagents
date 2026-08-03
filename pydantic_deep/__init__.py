@@ -48,6 +48,7 @@ Example:
 
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
+    AsyncBaseSandbox,
     BackendProtocol,
     BaseSandbox,
     CompositeBackend,
@@ -67,6 +68,7 @@ from pydantic_ai_backends import (
     create_console_toolset,
     get_console_system_prompt,
     get_runtime,
+    is_async_backend,
 )
 from pydantic_ai_shields import (
     BudgetExceededError,
@@ -86,25 +88,14 @@ from pydantic_ai_summarization import (
     create_sliding_window_processor,
     create_summarization_processor,
 )
+from pydantic_ai_todo import create_todo_toolset as TodoToolset
+from subagents_pydantic_ai import SubAgentToolset
 
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
-from pydantic_deep.capabilities import (
-    BrowserCapability,
-    ContextFilesCapability,
-    LLMReminderGenerator,
-    MemoryCapability,
-    PeriodicReminderCapability,
-    PeriodicReminderConfig,
-    ReminderGenerator,
-    SkillsCapability,
-    StuckLoopDetection,
-    StuckLoopError,
-    make_config_for_mode,
-)
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
 from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
-from pydantic_deep.features.browser import BrowserToolset
+from pydantic_deep.features.browser import BrowserCapability, BrowserToolset
 from pydantic_deep.features.checkpointing import (
     Checkpoint,
     CheckpointMiddleware,
@@ -120,6 +111,7 @@ from pydantic_deep.features.context import (
     DEFAULT_MAX_CONTEXT_CHARS,
     SUBAGENT_CONTEXT_ALLOWLIST,
     ContextFile,
+    ContextFilesCapability,
     ContextToolset,
     discover_context_files,
     format_context_prompt,
@@ -201,6 +193,7 @@ from pydantic_deep.features.memory import (
     DEFAULT_PIN_END_MARKER,
     AgentMemoryToolset,
     MemoryAccessError,
+    MemoryCapability,
     MemoryFile,
     format_memory_prompt,
     get_memory_path,
@@ -217,7 +210,14 @@ from pydantic_deep.features.patch import (
     PatchToolCallsCapability,
     patch_tool_calls_processor,
 )
-from pydantic_deep.features.plan import PlanOption
+from pydantic_deep.features.periodic_reminder import (
+    LLMReminderGenerator,
+    PeriodicReminderCapability,
+    PeriodicReminderConfig,
+    ReminderGenerator,
+    make_config_for_mode,
+)
+from pydantic_deep.features.plan import PlanOption, create_plan_toolset
 from pydantic_deep.features.skills import (
     BackendSkillResource,
     BackendSkillScript,
@@ -233,12 +233,15 @@ from pydantic_deep.features.skills import (
     SkillResource,
     SkillResourceLoadError,
     SkillResourceNotFoundError,
+    SkillsCapability,
     SkillScript,
     SkillScriptExecutionError,
     SkillsDirectory,
+    SkillsToolset,
     SkillValidationError,
     SkillWrapper,
 )
+from pydantic_deep.features.stuck_loop import StuckLoopDetection, StuckLoopError
 from pydantic_deep.features.teams import (
     AgentTeam,
     SharedTodoItem,
@@ -285,7 +288,6 @@ from pydantic_deep.styles import (
     load_style_from_file,
     resolve_style,
 )
-from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
 from pydantic_deep.types import (
     BrowseResult,
     CompiledSubAgent,
@@ -343,6 +345,8 @@ __all__ = [
     "StateBackend",
     "CompositeBackend",
     "BaseSandbox",
+    "AsyncBaseSandbox",
+    "is_async_backend",
     "DockerSandbox",
     # Runtimes
     "RuntimeConfig",

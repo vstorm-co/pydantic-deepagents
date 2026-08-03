@@ -478,7 +478,7 @@ class TestLLMReminderGenerator:
             MockAgent.return_value = mock_instance
 
             with caplog.at_level(
-                logging.WARNING, logger="pydantic_deep.capabilities.periodic_reminder"
+                logging.WARNING, logger="pydantic_deep.features.periodic_reminder.capability"
             ):
                 result = await gen(_ctx(), 1, msgs)
 

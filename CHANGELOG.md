@@ -5,6 +5,112 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.42] - 2026-08-01
+
+### Changed
+
+- **Requires `pydantic-ai-backend>=0.2.18`**, which is a bug-fix release worth
+  taking: a directory listing reported shell-quoted paths, so a directory with a
+  space in its name was unreachable — the model was handed a path it could not
+  read back; a glob aborted its whole walk on one unreadable entry and returned a
+  silently short listing; and a Kubernetes exec reported an unknown status as
+  success, so every truncated command looked like it had passed.
+
+### Added
+
+- **`AsyncBaseSandbox` and `is_async_backend`** re-exported from
+  `pydantic_deep`, alongside `BaseSandbox`. Subclass `AsyncBaseSandbox` for a
+  sandbox reached over an async transport — asyncssh, an async HTTP SDK — and
+  implement `execute` and `edit` as coroutines; every other file operation is
+  derived from shell commands, as with the synchronous base.
+
+  Prefer it to wrapping async code in a synchronous facade. `ensure_async` cannot
+  see through a facade, so it thread-wraps it and each call then occupies a worker
+  thread that has to hop back onto the event loop; a sandbox whose own recovery
+  path also needs a thread deadlocks against its own pool. `is_async_backend` is
+  the check `ensure_async` performs, exposed so a host can ask the same question.
+
+## [0.3.41] - 2026-08-01
+
+### Changed
+
+- **A subagent blocked in `ask_parent` now waits 60s, not 300s.**
+  `subagents-pydantic-ai` defaults to a five-minute wait, which a team member
+  inherits: one that asks a question while the lead is not polling holds its slot
+  for the whole timeout, and five minutes of that is indistinguishable from a hung
+  agent. After the timeout the subagent is told to proceed on its own judgment
+  rather than being cancelled, so the work still finishes.
+
+### Added
+
+- **`create_deep_agent(subagent_ask_timeout_seconds=...)`** and
+  `DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS` (60.0), for raising the wait back up when
+  a human is reliably in the loop.
+
+## [0.3.40] - 2026-08-01
+
+Agent teams were wired to the subagent execution engine but never actually ran a
+member. Four defects compounded, each of them silent: the tools reported success
+and the team produced nothing.
+
+Requires `subagents-pydantic-ai >= 0.2.12`, which adds the programmatic
+`answer_task` / `steer_task` surface and exposes `SubAgentToolset.registry`.
+
+### Fixed
+
+- **Teams registered members in a registry the subagent engine never reads.** With
+  `subagent_registry=None` — the `create_deep_agent` default — the team block built
+  a fresh `DynamicAgentRegistry()`, so `spawn_team` put its members somewhere the
+  subagent `task` tool does not look and every `assign_task` came back
+  `Error: Unknown subagent`. Teams plus subagents was broken in the default
+  configuration. Teams now share `subagent_toolset.registry`.
+- **A refused delegation was recorded as a started task.** The subagent `task` tool
+  reports an unknown subagent or a busy chat trace as an error string rather than
+  raising, so `assign_task`'s `except` never fired: it set the member to `running`
+  and appended the error to an "Agent running in background" message. The member
+  then sat at `running` forever. A started task is now identified by its `Task ID:`
+  line, and a refusal marks the member `failed` with the reason.
+- **`message_teammate` delivered nothing.** It wrote to `TeamMessageBus`, which no
+  running member reads — a member is a background subagent and only sees what the
+  subagent engine hands it, and `TeamMessageBus.receive()` is called from tests
+  only. It now routes through the engine: `answer_task` when the member is blocked
+  in `ask_parent`, `steer_task` while it runs, and it says plainly when there is
+  nothing to deliver into instead of reporting "Message sent".
+- **A finished member left its shared task `in_progress` forever**, so the lead read
+  completed work as outstanding. `AgentTeam.sync_member` completes the todo when a
+  member completes, and releases the claim when one fails so the lead can reassign
+  it rather than watching a dead member hold it.
+
+### Added
+
+- **`create_team_toolset(subagent_toolset=...)`** — the subagent toolset backing
+  execution, which is what makes `message_teammate` able to deliver. The existing
+  `registry` / `task_fn` / `task_manager` arguments still work.
+- **`TeamMemberHandle.todo_id`**, linking a member to the shared-todo item it
+  claimed so finishing the task can close the todo.
+- **`TestTeamSubagentWiring`** in `tests/test_teams.py`, which fails on each of the
+  four defects independently.
+
+### Changed
+
+- `TestCreateTeamToolset::test_message_teammate` asserted the `"Message sent"` that
+  the third defect shows was a lie; it now asserts the honest outcome.
+
+## [0.3.39] - 2026-07-26
+
+The pre-`features/` import paths are gone.
+
+### Removed
+
+- **`pydantic_deep.toolsets`, `pydantic_deep.capabilities`, `pydantic_deep.processors` and `pydantic_deep.improve` are deleted** (`pydantic_deep/__init__.py`). Every feature moved into `pydantic_deep/features/<name>/` in 0.3.34, which said the old deep import paths would be removed in the next minor release; since then the four packages have been deprecation shims, re-exporting the moved names and warning on import. They are now removed — `features/` is the only import location.
+  - The blessed top-level surface is unchanged: `from pydantic_deep import SkillsToolset, HooksCapability, EvictionCapability, ...` still works, and `tests/test_public_api.py` (replacing `tests/test_feature_shims.py`) asserts each re-export is the same object as the one in its feature package.
+  - Deep imports must move to the feature package: `pydantic_deep.toolsets.memory` → `pydantic_deep.features.memory`, `pydantic_deep.capabilities.hooks` → `pydantic_deep.features.hooks`, `pydantic_deep.processors.eviction` → `pydantic_deep.features.eviction`, `pydantic_deep.improve` → `pydantic_deep.features.improve`, and likewise for `context`, `browser`, `skills`, `plan`, `teams`, `forking`, `checkpointing`, `liteparse`, `patch`, `history_archive`, `message_queue`, `stuck_loop`, `periodic_reminder`.
+  - Logger names follow the modules: code filtering on `pydantic_deep.capabilities.hooks` or `pydantic_deep.capabilities.periodic_reminder` should now use `pydantic_deep.features.hooks.capability` / `pydantic_deep.features.periodic_reminder.capability`.
+
+### Fixed
+
+- **`examples/skills_usage.py` discovery demos run again** (`examples/skills_usage.py`). `--discover` and `--load` imported `discover_skills` / `load_skill_instructions`, which stopped existing well before the reorg, so both modes died on `ImportError`. They now use `SkillsDirectory.get_skills()` and read `Skill` attributes instead of dict keys.
+
 ## [0.3.38] - 2026-07-24
 
 MCP resources and skills reach the model, the CLI talks to any

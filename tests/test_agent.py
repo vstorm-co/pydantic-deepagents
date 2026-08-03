@@ -156,7 +156,7 @@ class TestCreateDeepAgent:
         toolset (under the wrong "main" name), causing a `read_memory` collision.
         """
         from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.toolsets.memory import AgentMemoryToolset
+        from pydantic_deep.features.memory import AgentMemoryToolset
 
         cfg: SubAgentConfig = SubAgentConfig(
             name="researcher", description="explores", instructions="explore", toolsets=[]

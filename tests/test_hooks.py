@@ -1535,7 +1535,7 @@ class TestSecurityHookWarnMode:
     async def test_warn_allows_and_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         hooks = default_security_hook(mode="warn")
         handler = _sec_pre_handler(hooks)
-        with caplog.at_level(logging.WARNING, logger="pydantic_deep.capabilities.hooks"):
+        with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.hooks.capability"):
             result = await handler(_sec_input("execute", {"command": "rm -rf /"}))
         assert result.allow is True
         assert result.reason is not None

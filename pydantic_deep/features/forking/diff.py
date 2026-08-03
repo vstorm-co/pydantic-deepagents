@@ -1,7 +1,7 @@
 """Diff builder over fork branches.
 
 Produces a typed :class:`BranchDiffReport` by walking each branch's
-:class:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay` changes,
+:class:`~pydantic_deep.features.forking.isolation.BranchOverlay` changes,
 grouping them by path, and rendering unified diffs against the shared
 parent backend. Consumed by the CLI merge picker, IDE bridge, and judge.
 

@@ -30,6 +30,14 @@ DEFAULT_JUDGE_MODEL: Final = "anthropic:claude-haiku-4-5-20251001"
 """Model for the fork-merge autonomous judge."""
 
 DEFAULT_TEAM_MEMBER_MODEL: Final = "anthropic:claude-sonnet-4-6"
+
+DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS: Final = 60.0
+"""How long a subagent blocked in `ask_parent` waits for the parent.
+
+Shorter than subagents-pydantic-ai's own 300s default. A team member that asks a
+question while the lead is not polling holds its slot for the entire timeout, and
+five minutes of that is indistinguishable from a hung agent. After the timeout the
+subagent is told to proceed on its own judgment rather than being cancelled."""
 """Default model for spawned agent-team members."""
 
 DEFAULT_REMINDER_MODEL: Final = "anthropic:claude-haiku-4-5-20251001"

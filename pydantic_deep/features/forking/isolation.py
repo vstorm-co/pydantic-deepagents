@@ -688,7 +688,7 @@ class BranchOverlay:
         conflict - so this branch silently overwrites the third actor's
         change. Closing this gap would require an eager full-parent
         snapshot at fork time, which is deliberately avoided for cost
-        (see :class:`~pydantic_deep.toolsets.forking.materializer.ForkMaterializer`).
+        (see :class:`~pydantic_deep.features.forking.materializer.ForkMaterializer`).
         """
         materializer = self._materializer
         if materializer is None:

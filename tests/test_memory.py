@@ -527,7 +527,7 @@ class TestPerSubagentMemory:
         _inject_subagent_memory_toolset(config, None)
 
         assert "toolsets" in config
-        memory_toolsets = [
+        memory_toolsets: list[Any] = [
             t for t in config["toolsets"] if type(t).__name__ == "AgentMemoryToolset"
         ]
         assert len(memory_toolsets) == 1
@@ -749,6 +749,6 @@ class TestMemoryFailureSurfacing:
     def test_memory_access_error_exported(self):
         """MemoryAccessError is importable from the package root."""
         from pydantic_deep import MemoryAccessError
-        from pydantic_deep.toolsets.memory import MemoryAccessError as direct
+        from pydantic_deep.features.memory import MemoryAccessError as direct
 
         assert MemoryAccessError is direct

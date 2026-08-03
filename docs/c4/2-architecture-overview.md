@@ -598,32 +598,32 @@ flowchart LR
 | **Dependencies** | BackendProtocol, UploadedFile, FileData, Todo types |
 | **Location** | `pydantic_deep/deps.py` |
 
-### Module: Toolsets (`toolsets/`)
+### Module: Toolsets (`features/*/toolset.py`)
 
 | Attribute | Details |
 |-----------|---------|
 | **Purpose** | Provide tools the agent can call |
 | **Key Components** | 9 toolsets spanning planning, filesystem, subagents, skills, checkpoints, memory, teams |
 | **Dependencies** | pydantic-ai FunctionToolset, pydantic-ai-backend, pydantic-ai-todo, subagents-pydantic-ai |
-| **Location** | `pydantic_deep/toolsets/` |
+| **Location** | `pydantic_deep/features/<name>/toolset.py` |
 
-### Module: Capabilities (`capabilities/`)
+### Module: Capabilities (`features/*/capability.py`)
 
 | Attribute | Details |
 |-----------|---------|
 | **Purpose** | Wrap toolsets into pydantic-ai's capability interface |
 | **Key Components** | 6 capabilities, each a thin adapter layer |
-| **Dependencies** | toolsets.*, pydantic-ai AbstractCapability |
-| **Location** | `pydantic_deep/capabilities/` |
+| **Dependencies** | features.*, pydantic-ai AbstractCapability |
+| **Location** | `pydantic_deep/features/<name>/capability.py` |
 
-### Module: Processors (`processors/`)
+### Module: Processors (`features/{eviction,patch,history_archive}/`)
 
 | Attribute | Details |
 |-----------|---------|
 | **Purpose** | Transform message history before sending to LLM |
 | **Key Components** | 2 processors + 1 search toolset |
 | **Dependencies** | pydantic-ai messages, pydantic-ai-backend BackendProtocol |
-| **Location** | `pydantic_deep/processors/` |
+| **Location** | `pydantic_deep/features/{eviction,patch,history_archive}/` |
 
 ---
 

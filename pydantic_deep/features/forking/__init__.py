@@ -387,7 +387,7 @@ def create_fork_toolset(  # noqa: C901
         cleaner than parsing a string return value.
 
         **Best-effort read.** Built without acquiring the coordinator's
-        lock; see :mod:`pydantic_deep.toolsets.forking.diff` for the
+        lock; see :mod:`pydantic_deep.features.forking.diff` for the
         read-consistency note.
         """
         coordinator = _coordinator_from_ctx(ctx)

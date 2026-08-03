@@ -1,4 +1,4 @@
-"""Tests for pydantic_deep.capabilities module."""
+"""Tests for the capabilities exposed by the feature packages."""
 
 from __future__ import annotations
 
@@ -6,12 +6,9 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 
-from pydantic_deep.capabilities import (
-    ContextFilesCapability,
-    MemoryCapability,
-    SkillsCapability,
-)
-from pydantic_deep.features.skills import Skill
+from pydantic_deep.features.context import ContextFilesCapability
+from pydantic_deep.features.memory import MemoryCapability
+from pydantic_deep.features.skills import Skill, SkillsCapability
 
 _MODEL = TestModel()
 

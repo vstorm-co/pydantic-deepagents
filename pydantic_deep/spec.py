@@ -47,6 +47,7 @@ from pydantic_ai_backends import StateBackend
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.checkpointing import CheckpointFrequency
+from pydantic_deep.models import DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS
 
 
 class DeepAgentSpec(BaseModel):
@@ -89,6 +90,7 @@ class DeepAgentSpec(BaseModel):
     thinking: bool | str = "high"
     include_history_archive: bool = True
     max_nesting_depth: int = 1
+    subagent_ask_timeout_seconds: float = DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS
     interrupt_on: dict[str, bool] | None = None
     eviction_token_limit: int | None = 20_000
     max_binary_content: int | None = 3

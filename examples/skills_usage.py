@@ -101,38 +101,35 @@ def get_user_data(user_id):
 
 
 async def demo_skill_discovery():
-    """Demonstrate skill discovery from multiple directories."""
-    from pydantic_deep.toolsets.skills import discover_skills
+    """Demonstrate skill discovery from a directory."""
+    from pydantic_deep.features.skills import SkillsDirectory
 
     print("Discovering skills from:", SKILLS_DIR)
     print()
 
-    skills = discover_skills([{"path": str(SKILLS_DIR), "recursive": True}])
-
-    for skill in skills:
-        print(f"Skill: {skill['name']}")
-        print(f"  Description: {skill['description']}")
-        print(f"  Version: {skill['version']}")
-        print(f"  Tags: {', '.join(skill['tags'])}")
-        print(f"  Path: {skill['path']}")
-        if skill.get("resources"):
-            print(f"  Resources: {', '.join(skill['resources'])}")
+    for uri, skill in SkillsDirectory(path=SKILLS_DIR).get_skills().items():
+        print(f"Skill: {skill.name}")
+        print(f"  Description: {skill.description}")
+        print(f"  URI: {uri}")
+        if skill.resources:
+            print(f"  Resources: {', '.join(r.name for r in skill.resources)}")
+        if skill.scripts:
+            print(f"  Scripts: {', '.join(s.name for s in skill.scripts)}")
         print()
 
 
 async def demo_skill_loading():
     """Demonstrate loading full skill instructions."""
-    from pydantic_deep.toolsets.skills import discover_skills, load_skill_instructions
+    from pydantic_deep.features.skills import SkillsDirectory
 
-    skills = discover_skills([{"path": str(SKILLS_DIR), "recursive": True}])
+    skills = list(SkillsDirectory(path=SKILLS_DIR).get_skills().values())
 
     if skills:
         skill = skills[0]
-        print(f"Loading full instructions for: {skill['name']}")
+        print(f"Loading full instructions for: {skill.name}")
         print("=" * 60)
 
-        instructions = load_skill_instructions(skill["path"])
-        print(instructions[:500] + "..." if len(instructions) > 500 else instructions)
+        print(skill.content[:500] + "..." if len(skill.content) > 500 else skill.content)
 
 
 if __name__ == "__main__":

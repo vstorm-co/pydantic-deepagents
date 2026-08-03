@@ -9,31 +9,31 @@ conceptual overview.
 
 ## SkillsCapability
 
-::: pydantic_deep.capabilities.SkillsCapability
+::: pydantic_deep.features.skills.SkillsCapability
     options:
       show_source: false
 
 ## ContextFilesCapability
 
-::: pydantic_deep.capabilities.ContextFilesCapability
+::: pydantic_deep.features.context.ContextFilesCapability
     options:
       show_source: false
 
 ## MemoryCapability
 
-::: pydantic_deep.capabilities.MemoryCapability
+::: pydantic_deep.features.memory.MemoryCapability
     options:
       show_source: false
 
 ## BrowserCapability
 
-::: pydantic_deep.capabilities.BrowserCapability
+::: pydantic_deep.features.browser.BrowserCapability
     options:
       show_source: false
 
 ## StuckLoopDetection
 
-::: pydantic_deep.capabilities.StuckLoopDetection
+::: pydantic_deep.features.stuck_loop.StuckLoopDetection
     options:
       show_source: false
 
@@ -43,7 +43,7 @@ conceptual overview.
 
 ## PeriodicReminderCapability
 
-::: pydantic_deep.capabilities.PeriodicReminderCapability
+::: pydantic_deep.features.periodic_reminder.PeriodicReminderCapability
     options:
       show_source: false
 

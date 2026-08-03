@@ -8,7 +8,7 @@ from typing import Any
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai_backends import StateBackend
-from subagents_pydantic_ai import SubAgentConfig
+from subagents_pydantic_ai import SubAgentConfig, SubAgentToolset
 from subagents_pydantic_ai.toolset import _compile_subagent
 
 from pydantic_deep.features.teams.primitives import (
@@ -53,6 +53,23 @@ Call this when all team tasks are complete or the team is no longer needed. \
 This stops all running members and releases resources."""
 
 
+_TASK_ID_PREFIX = "Task ID:"
+
+
+def _extract_task_id(result: str) -> str | None:
+    """The background task id from a subagent `task` result, if it started one.
+
+    A refused delegation comes back as an error string with no `Task ID:` line,
+    which is how `assign_task` tells "started" from "rejected".
+    """
+    for line in result.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(_TASK_ID_PREFIX):
+            task_id = stripped[len(_TASK_ID_PREFIX) :].strip()
+            return task_id or None
+    return None
+
+
 def create_team_toolset(  # noqa: C901
     *,
     id: str | None = None,
@@ -61,6 +78,7 @@ def create_team_toolset(  # noqa: C901
     agent_factory: Callable[..., Any] | None = None,
     task_fn: Any | None = None,
     task_manager: Any | None = None,
+    subagent_toolset: SubAgentToolset | None = None,
 ) -> FunctionToolset[Any]:
     """Create a toolset for managing agent teams.
 
@@ -71,14 +89,21 @@ def create_team_toolset(  # noqa: C901
     Args:
         id: Toolset identifier. Defaults to `"deep-team"`.
         descriptions: Optional mapping of tool name to custom description.
-        registry: `DynamicAgentRegistry` for registering team members
-            as subagents at runtime.
+        registry: `DynamicAgentRegistry` for registering team members as
+            subagents at runtime. This must be the registry the subagent toolset
+            resolves names against — `subagent_toolset.registry` — or
+            `assign_task` cannot find the members it registered.
         agent_factory: Callable `(SubAgentConfig) -> Agent` used to
             create member agents. Passed as `agent_factory` on the
             SubAgentConfig so `_compile_subagent` uses it.
         task_fn: The subagent `task()` tool function. When provided,
             `assign_task` calls it to execute via the subagent engine.
         task_manager: Subagent `TaskManager` for checking task status.
+        subagent_toolset: The subagent toolset backing execution. Required for
+            `message_teammate` to actually deliver: a member is a background
+            subagent, so a message has to go through the subagent engine
+            (`answer_task` when it is waiting, `steer_task` while it runs).
+            Without it, messages are only recorded on the team bus.
 
     Returns:
         A `FunctionToolset` with team management tools.
@@ -172,21 +197,30 @@ def create_team_toolset(  # noqa: C901
                     subagent_type=member_name,
                     mode="async",
                 )
-                handle.status = "running"
-                # Extract task_id from subagent result if available
-                if "Task ID:" in str(result):
-                    for part in str(result).split():
-                        if len(part) == 8 and part.isalnum():
-                            handle.task_id = part
-                            break
-                return (
-                    f"Task assigned to '{member_name}' (todo: {item_id}). "
-                    f"Agent running in background.\n{result}"
-                )
             except Exception as e:
                 handle.status = "failed"
                 handle.error = str(e)
                 return f"Error starting task for '{member_name}': {e}"
+
+            # The subagent `task` tool reports a refused delegation (an unknown
+            # subagent, a busy chat trace) as an error string rather than raising.
+            # Treating that as a started task left the member "running" forever,
+            # so the team looked alive and never produced a result.
+            task_id = _extract_task_id(str(result))
+            if task_id is None:
+                handle.status = "failed"
+                handle.error = str(result)
+                return (
+                    f"Error starting task for '{member_name}': the subagent engine "
+                    f"did not start a background task.\n{result}"
+                )
+
+            handle.task_id = task_id
+            handle.status = "running"
+            return (
+                f"Task assigned to '{member_name}' (todo: {item_id}). "
+                f"Agent running in background.\n{result}"
+            )
 
         return f"Task assigned to '{member_name}' (ID: {item_id})"
 
@@ -211,14 +245,10 @@ def create_team_toolset(  # noqa: C901
                 th = task_manager.get_handle(handle.task_id)
                 if th is not None:
                     status = th.status.value
-                    if th.result:
-                        handle.result = th.result
-                        handle.status = "completed"
-                        status = "completed"
-                    elif th.error:
-                        handle.error = th.error
-                        handle.status = "failed"
-                        status = "failed"
+                    # Also closes the member's shared todo once it finishes.
+                    await team.sync_member(handle)
+                    if handle.status in ("completed", "failed"):
+                        status = handle.status
 
             status_line = f"- {name}: {status}"
             if handle.status == "completed" and handle.result:
@@ -254,8 +284,27 @@ def create_team_toolset(  # noqa: C901
             available = ", ".join(team._handles.keys())
             return f"Error: Member '{member_name}' not found. Available: {available}"
 
+        handle = team._handles[member_name]
+        # The team bus is the peer-to-peer record, but nothing running reads it:
+        # a member is a background subagent, and it only sees messages the
+        # subagent engine delivers. Writing to the bus alone reported success and
+        # delivered nothing.
         await team.message_bus.send("team_lead", member_name, message)
-        return f"Message sent to '{member_name}'"
+
+        if handle.task_id is None or subagent_toolset is None:
+            return (
+                f"Message recorded for '{member_name}', but it has no running task "
+                f"to deliver it to. Assign a task first."
+            )
+
+        if subagent_toolset.answer_task(handle.task_id, message):
+            return f"Answer delivered to '{member_name}', which was waiting for one."
+        if await subagent_toolset.steer_task(handle.task_id, message):
+            return f"Message delivered to '{member_name}'; it will be applied on its next step."
+        return (
+            f"Message recorded for '{member_name}', but its task is no longer "
+            f"running (status: {handle.status}), so nothing was delivered."
+        )
 
     @toolset.tool(description=_descs.get("dissolve_team", DISSOLVE_TEAM_DESCRIPTION))
     async def dissolve_team(

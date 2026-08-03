@@ -850,16 +850,20 @@ class TestCreateTeamToolset:
         assert "Build feature" in result
         assert "@alice" in result
 
-    async def test_message_teammate(self):
-        """message_teammate sends a message."""
+    async def test_message_teammate_records_but_cannot_deliver_without_a_task(self):
+        """Without a running task there is nothing to deliver into, and it says so.
+
+        This used to report "Message sent to 'alice'" while the message sat on a
+        queue no running member ever reads.
+        """
         toolset = create_team_toolset()
         ctx = _make_ctx()
         await toolset.tools["spawn_team"].function(ctx, "team1", [TeamMemberSpec(name="alice")])
         result = await toolset.tools["message_teammate"].function(
             ctx, "alice", "Please review this"
         )
-        assert "Message sent" in result
         assert "alice" in result
+        assert "no running task" in result
 
     async def test_message_teammate_no_team(self):
         """message_teammate errors if no team."""
@@ -1022,8 +1026,292 @@ class TestTeamsExports:
             ]
         )
 
-    def test_create_team_toolset_from_toolsets(self):
-        """create_team_toolset is importable from pydantic_deep.toolsets."""
-        from pydantic_deep.toolsets import create_team_toolset
+    def test_create_team_toolset_from_feature(self):
+        """create_team_toolset is importable from pydantic_deep.features.teams."""
+        from pydantic_deep.features.teams import create_team_toolset
 
         assert create_team_toolset is not None
+
+
+class TestTeamSubagentWiring:
+    """Regressions for teams wired to the subagent execution engine.
+
+    Each of these shipped as a silent failure: the tools reported success and the
+    team never produced a result.
+    """
+
+    @staticmethod
+    def _subagent_toolset() -> Any:
+        from subagents_pydantic_ai import create_subagent_toolset
+
+        return create_subagent_toolset(
+            id="deep-subagents",
+            include_general_purpose=False,
+            registry=None,
+        )
+
+    @staticmethod
+    def _team(subagent_toolset: Any, **overrides: Any) -> Any:
+        from pydantic_ai import Agent
+
+        kwargs: dict[str, Any] = {
+            "registry": subagent_toolset.registry,
+            "task_manager": subagent_toolset.task_manager,
+            "task_fn": subagent_toolset.tools["task"].function,
+            "subagent_toolset": subagent_toolset,
+            "agent_factory": lambda cfg: Agent(
+                TestModel(call_tools=[], custom_output_text="member done")
+            ),
+        }
+        kwargs.update(overrides)
+        return create_team_toolset(**kwargs)
+
+    @pytest.mark.asyncio
+    async def test_default_agent_shares_the_subagent_registry(self):
+        """`create_deep_agent()` must not give teams a registry `task` never reads.
+
+        With `subagent_registry=None` (the default) teams used to build a fresh
+        `DynamicAgentRegistry()`, so members were registered somewhere the subagent
+        `task` tool never looked and every `assign_task` failed.
+        """
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+        )
+        # `agent.toolsets` is typed as the abstract base; the concrete toolsets
+        # carry the `tools` / `registry` surface these assertions read.
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+        subagents = toolsets.get("deep-subagents")
+        team = toolsets.get("deep-team")
+        assert subagents is not None
+        assert team is not None
+
+        # Drive the toolsets the agent actually built, so the assertion covers
+        # `create_deep_agent`'s wiring rather than this test's own.
+        ctx = _make_ctx()
+        # `model="test"` keeps the real `_deep_agent_factory` off a live provider.
+        await team.tools["spawn_team"].function(
+            ctx,
+            "build",
+            [TeamMemberSpec(name="coder", instructions="You code.", model="test")],
+        )
+
+        assert "coder" in subagents.registry.list_agents()
+        assert subagents.registry.get_compiled("coder") is not None
+
+    @pytest.mark.asyncio
+    async def test_assign_task_reaches_the_member(self):
+        subagents = self._subagent_toolset()
+        team = self._team(subagents)
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        result = await team.tools["assign_task"].function(ctx, "coder", "write a parser")
+
+        assert "Agent running in background" in result
+        assert "Unknown subagent" not in result
+        await asyncio.gather(*subagents.task_manager.tasks.values(), return_exceptions=True)
+        status = await team.tools["check_teammates"].function(ctx)
+        assert "coder: completed" in status
+        assert "member done" in status
+
+    @pytest.mark.asyncio
+    async def test_assign_task_reports_a_refused_delegation(self):
+        """The subagent `task` tool returns an error string rather than raising.
+
+        Treating that as a started task left the member `running` forever.
+        """
+        subagents = self._subagent_toolset()
+        team = self._team(subagents, registry=None)
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="ghost", instructions="You code.")]
+        )
+
+        result = await team.tools["assign_task"].function(ctx, "ghost", "do it")
+
+        assert "Error starting task" in result
+        status = await team.tools["check_teammates"].function(ctx)
+        assert "ghost: failed" in status
+        assert "ghost: running" not in status
+
+    @pytest.mark.asyncio
+    async def test_completed_member_closes_its_shared_todo(self):
+        """A finished member used to leave its task `in_progress` forever."""
+        subagents = self._subagent_toolset()
+        team = self._team(subagents)
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+        await team.tools["assign_task"].function(ctx, "coder", "write a parser")
+        await asyncio.gather(*subagents.task_manager.tasks.values(), return_exceptions=True)
+
+        status = await team.tools["check_teammates"].function(ctx)
+
+        assert "[completed] write a parser" in status
+
+    @pytest.mark.asyncio
+    async def test_failed_member_releases_its_shared_todo(self):
+        """A dead member must not hold a claim the lead could reassign."""
+        subagents = self._subagent_toolset()
+        team = self._team(subagents)
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+        await team.tools["assign_task"].function(ctx, "coder", "write a parser")
+        await asyncio.gather(*subagents.task_manager.tasks.values(), return_exceptions=True)
+
+        # Force the underlying subagent task to look failed.
+        handle = next(iter(subagents.task_manager.handles.values()))
+        handle.result = None
+        handle.error = "boom"
+
+        status = await team.tools["check_teammates"].function(ctx)
+
+        assert "coder: failed" in status
+        assert "[pending] write a parser" in status
+
+    @pytest.mark.asyncio
+    async def test_message_teammate_answers_a_waiting_member(self):
+        """The team bus is not read by anything running; delivery goes via subagents."""
+        from pydantic_ai import Agent
+        from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+        def model_fn(messages: list[Any], info: AgentInfo) -> ModelResponse:
+            if not [m for m in messages if isinstance(m, ModelResponse)]:
+                return ModelResponse(
+                    parts=[ToolCallPart(tool_name="ask_parent", args={"question": "which?"})]
+                )
+            return ModelResponse(parts=[TextPart(content="answered")])
+
+        subagents = self._subagent_toolset()
+        team = self._team(subagents, agent_factory=lambda cfg: Agent(FunctionModel(model_fn)))
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+        await team.tools["assign_task"].function(ctx, "coder", "write a parser")
+
+        for _ in range(50):
+            await asyncio.sleep(0.01)
+            if "waiting_for_answer" in await team.tools["check_teammates"].function(ctx):
+                break
+
+        result = await team.tools["message_teammate"].function(ctx, "coder", "Python")
+
+        assert "Answer delivered" in result
+        await asyncio.gather(*subagents.task_manager.tasks.values(), return_exceptions=True)
+        assert "coder: completed" in await team.tools["check_teammates"].function(ctx)
+
+    @pytest.mark.asyncio
+    async def test_message_teammate_without_a_running_task_says_so(self):
+        subagents = self._subagent_toolset()
+        team = self._team(subagents)
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        result = await team.tools["message_teammate"].function(ctx, "coder", "hello")
+
+        assert "no running task" in result
+
+
+class TestSyncMemberEdgeCases:
+    """Branches in `assign` / `sync_member` that the happy path never reaches."""
+
+    async def test_assign_to_a_member_without_a_handle(self):
+        """`assign` before `spawn` still records the todo, with nothing to stamp."""
+        team = AgentTeam(name="t", members=[TeamMember("alice", "worker", "d", "i")])
+
+        item_id = await team.assign("alice", "Do the thing")
+
+        item = await team.shared_todos.get(item_id)
+        assert item is not None
+        assert item.assigned_to == "alice"
+        assert team._handles == {}
+
+    async def test_failed_member_does_not_reopen_a_completed_todo(self):
+        """Releasing a claim only applies to work still marked in progress.
+
+        A member whose task finished and was then marked failed must not resurrect
+        a completed todo as pending.
+        """
+        team = AgentTeam(
+            name="t",
+            members=[TeamMember("alice", "worker", "d", "i")],
+            task_manager=_FakeTaskManager(),
+        )
+        await team.spawn()
+        item_id = await team.assign("alice", "Do the thing")
+        await team.shared_todos.complete(item_id)
+
+        handle = team._handles["alice"]
+        handle.status = "failed"
+        await team.sync_member(handle)
+
+        item = await team.shared_todos.get(item_id)
+        assert item is not None
+        assert item.status == "completed"
+
+
+class TestSubagentAskTimeout:
+    """A team member that asks must not hold its slot for five minutes."""
+
+    def test_default_is_shortened_for_deep_agents(self):
+        """The library default is 300s; a member asking an unattended lead stalls."""
+        from pydantic_deep.models import DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS
+
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+        )
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+
+        assert DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS == 60.0
+        assert toolsets["deep-subagents"]._ask_timeout_seconds == 60.0
+
+    def test_callers_can_override_it(self):
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_teams=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+            subagent_ask_timeout_seconds=5.0,
+        )
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+
+        assert toolsets["deep-subagents"]._ask_timeout_seconds == 5.0

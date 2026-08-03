@@ -24,8 +24,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pydantic_deep/` — Core library (agent, deps, models, instructions, types)
 - `pydantic_deep/features/<name>/` — One vertical-slice package per feature
   (`capability.py` + `toolset.py` + `service.py`/`types.py`). Organize by
-  feature, not by kind. The old `toolsets/`, `capabilities/`, and `processors/`
-  paths now hold deprecation shims that re-export from `features/`.
+  feature, not by kind — `features/` is the only import location; the old
+  `toolsets/`, `capabilities/`, `processors/` and `improve/` shims were removed
+  in 0.3.39.
 - `apps/cli/` — CLI + TUI application (Textual-based terminal AI assistant)
 - `apps/deepresearch/` — Full-featured research reference app
 - `tests/` — Unit tests
@@ -49,8 +50,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `LocalBackend`: Real filesystem operations
 - `DockerSandbox`: Isolated Docker container execution
 - `CompositeBackend`: Combines multiple backends with routing
+- `BaseSandbox` / `AsyncBaseSandbox`: Bases for a custom sandbox — implement
+  `execute` and `edit` and every file operation is derived from shell commands.
+  Use the async one for a natively async transport (asyncssh, an async SDK)
+  rather than a sync facade, which `ensure_async` cannot see through and which
+  deadlocks against its own thread pool under load.
 
-**Toolsets (`pydantic_deep/toolsets/`)**
+**Toolsets (`pydantic_deep/features/<name>/toolset.py`)**
 - `TodoToolset`: Task planning and tracking tools (read_todos, write_todos) - from [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)
 - `create_console_toolset`: File operations (ls, read, write, edit, glob, grep, execute) - from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)
 - `SubAgentToolset`: Spawn and delegate to subagents - from [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai)
@@ -114,12 +120,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Hook methods: `before_tool_execute`, `after_tool_execute`, `on_tool_execute_error`
 - `EXIT_ALLOW = 0`, `EXIT_DENY = 2`: Claude Code exit code conventions
 
-**Capabilities (`pydantic_deep/capabilities/`)**
+**Capabilities (`pydantic_deep/features/<name>/capability.py`)**
 - `SkillsCapability`: Injects skills system prompt and manages skill discovery
 - `ContextFilesCapability`: Auto-discovers and injects context files (DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md)
 - `MemoryCapability`: Persistent memory management with read/write/update tools
-- `TeamCapability`: Agent team coordination and management
-- `PlanCapability`: Planning mode with ask_user + save_plan tools
+- `BrowserCapability`, `StuckLoopDetection`, `PeriodicReminderCapability`,
+  `HooksCapability`, `EvictionCapability`, `PatchToolCallsCapability`
 - All extend pydantic-ai's `AbstractCapability`
 
 **Persistent Memory (`pydantic_deep/features/memory/`)**
@@ -235,7 +241,7 @@ agent = create_deep_agent(
 ```python
 from pydantic_deep import create_deep_agent
 from pydantic_ai_shields import CostTracking
-from pydantic_deep.capabilities.hooks import HooksCapability, Hook, HookEvent
+from pydantic_deep.features.hooks import HooksCapability, Hook, HookEvent
 
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",

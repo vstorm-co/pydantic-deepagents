@@ -5,7 +5,7 @@ mirrored to disk under `.pydantic-deep/forks/{fork_id}/branches/{label}/`
 in real time, while the parent backend's state is captured under
 `.pydantic-deep/forks/{fork_id}/parent/` (per-path, lazily, on the first
 overlay write for that path). The on-disk artefacts are the input to the
-PyCharm / VS Code diff tools wired in :mod:`pydantic_deep.toolsets.forking.editor`
+PyCharm / VS Code diff tools wired in :mod:`pydantic_deep.features.forking.editor`
 and to the `flush_to` conflict detection (the
 :meth:`pre_flush_snapshot` accessor exposes the snapshotted parent bytes
 to :meth:`BranchOverlay.flush_to`).
@@ -16,7 +16,7 @@ touch of it, in which case that path's conflict goes undetected. This is an
 accepted trade-off - an eager full-parent snapshot at fork time would have to
 walk and read every parent file up front, which the lazy scheme avoids. See
 :meth:`snapshot_parent_path` and
-:meth:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
+:meth:`~pydantic_deep.features.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
 
 Per project memory: the branch directory is named with `branch.label`
 (e.g. `approach_a`), not the UUID `branch.id` - keeps the layout
@@ -96,7 +96,7 @@ class ForkMaterializer:
         this branch's first touch is snapshotted with the third actor's
         bytes, so :meth:`BranchOverlay.flush_to` cannot flag it as a
         conflict. See
-        :meth:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
+        :meth:`~pydantic_deep.features.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
         """
         if path in self._pre_fork_snapshot:
             return

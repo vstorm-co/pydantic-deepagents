@@ -480,7 +480,7 @@ Wraps `AgentMemoryToolset` with both tools and instruction injection.
 
 ### 4. PlanCapability
 
-**Source:** `pydantic_deep/capabilities/plan.py`
+**Source:** `pydantic_deep/features/plan/`
 
 Wraps `create_plan_toolset()` providing `ask_user` and `save_plan` tools.
 
@@ -507,7 +507,7 @@ Wraps `SkillsToolset` with skill discovery, loading, and instruction injection.
 
 ### 6. TeamCapability
 
-**Source:** `pydantic_deep/capabilities/teams.py`
+**Source:** `pydantic_deep/features/teams/`
 
 Wraps `create_team_toolset()` for multi-agent coordination.
 

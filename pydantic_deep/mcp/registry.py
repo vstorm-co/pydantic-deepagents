@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import logging
 import os
 import re
@@ -23,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-from pydantic_deep.mcp.config import _SECRET_AUTH_KINDS, MCPServerConfig
+from pydantic_deep.mcp.config import _SECRET_AUTH_KINDS, MCPAuth, MCPServerConfig
 from pydantic_deep.mcp.resources import create_mcp_resources_toolset
 
 
@@ -43,6 +44,7 @@ def _stdio_log_file(name: str) -> Path:
 
 
 if TYPE_CHECKING:
+    import httpx
     from pydantic_ai._run_context import RunContext
     from pydantic_ai.toolsets import AbstractToolset
     from pydantic_ai.toolsets.abstract import ToolsetTool
@@ -51,6 +53,7 @@ logger = logging.getLogger("pydantic_deep.mcp")
 
 __all__ = [
     "SecretResolver",
+    "HttpClientFactory",
     "MCPRegistry",
     "MCPProbeResult",
     "MCPNotInstalledError",
@@ -62,6 +65,16 @@ __all__ = [
 
 SecretResolver = Callable[[str], "str | None"]
 """Resolves a secret key (e.g. ``"GITHUB_MCP_PAT"``) to its token, or ``None``."""
+
+HttpClientFactory = Callable[[MCPServerConfig], "httpx.AsyncClient"]
+"""Builds an ``httpx.AsyncClient`` for a server config (corporate proxy,
+custom CA / OS trust store, mTLS, authenticated proxy headers, …).
+
+Every HTTP-based connection goes through it — the MCP transport *and* each
+step of the OAuth flow (discovery, registration, token exchange, refresh) —
+and each call site closes the client it receives, so the factory must return
+a **fresh client per call**, never a shared instance.
+"""
 
 MCP_INSTALL_HINT = (
     "MCP support requires the optional 'mcp' extra: "
@@ -111,11 +124,104 @@ def auth_satisfied(config: MCPServerConfig, resolver: SecretResolver | None = No
     return bool(resolver(auth.secret_key))
 
 
+def _adapt_http_client_factory(
+    factory: HttpClientFactory, config: MCPServerConfig
+) -> Callable[..., httpx.AsyncClient]:
+    """Adapt a per-config client factory to the MCP SDK's factory protocol.
+
+    FastMCP invokes the factory once per connection (transport traffic and each
+    OAuth step) and closes every client it receives, so each call must produce
+    a fresh client. The keyword arguments FastMCP passes are applied on top of
+    the caller's client — ``auth`` in particular carries the OAuth object and
+    dropping it would leave requests unauthenticated.
+    """
+
+    def make_client(
+        headers: dict[str, str] | None = None,
+        timeout: httpx.Timeout | None = None,
+        auth: httpx.Auth | None = None,
+    ) -> httpx.AsyncClient:
+        client = factory(config)
+        if headers:
+            client.headers.update(headers)
+        if timeout is not None:
+            client.timeout = timeout
+        if auth is not None:
+            client.auth = auth
+        return client
+
+    return make_client
+
+
+def _scoped_token_storage(storage: Any, scopes: Sequence[str]) -> Any:
+    """Namespace an OAuth token store by the requested scope set.
+
+    FastMCP keys cached tokens by server URL only, so after a config's
+    ``scopes`` change the token minted under the old set would silently keep
+    being used. Prefixing the store's keys with a scope-set hash forces a
+    fresh authorization per scope set (switching back reuses the old token).
+    """
+    from key_value.aio.wrappers.prefix_keys import PrefixKeysWrapper
+
+    digest = hashlib.sha256(",".join(sorted(scopes)).encode()).hexdigest()[:16]
+    return PrefixKeysWrapper(key_value=storage, prefix=f"scopes-{digest}")
+
+
+def _build_oauth(
+    config: MCPServerConfig,
+    auth: MCPAuth,
+    *,
+    oauth_token_storage: Any | None,
+    client_factory: Callable[..., httpx.AsyncClient] | None,
+) -> Any:
+    """Construct the FastMCP ``OAuth`` object for an ``oauth``-kind config."""
+    from fastmcp.client.auth.oauth import OAuth
+
+    oauth_kwargs: dict[str, Any] = {"mcp_url": cast(str, config.url)}
+    if oauth_token_storage is not None:
+        storage = oauth_token_storage
+        if auth.scopes:
+            storage = _scoped_token_storage(storage, auth.scopes)
+        oauth_kwargs["token_storage"] = storage
+    if auth.client_name:
+        oauth_kwargs["client_name"] = auth.client_name
+    if auth.scopes:
+        oauth_kwargs["scopes"] = list(auth.scopes)
+    if auth.callback_port is not None:
+        oauth_kwargs["callback_port"] = auth.callback_port
+    if client_factory is not None:
+        oauth_kwargs["httpx_client_factory"] = client_factory
+    return OAuth(**oauth_kwargs)
+
+
+def _build_http_transport(
+    config: MCPServerConfig,
+    client_factory: Callable[..., httpx.AsyncClient],
+    *,
+    headers: dict[str, str] | None = None,
+    auth: Any | None = None,
+) -> Any:
+    """Build the FastMCP HTTP/SSE transport explicitly.
+
+    ``MCPToolset(url, ...)`` offers no way to hand an ``httpx_client_factory``
+    to the transport it builds internally, so a config with a client factory
+    constructs the transport itself — chosen from ``config.transport`` rather
+    than inferred from the URL — and passes it to the toolset.
+    """
+    from fastmcp.client.transports import SSETransport, StreamableHttpTransport
+
+    transport_cls = SSETransport if config.transport == "sse" else StreamableHttpTransport
+    return transport_cls(
+        cast(str, config.url), headers=headers, auth=auth, httpx_client_factory=client_factory
+    )
+
+
 def _build_raw_mcp_toolset(
     config: MCPServerConfig,
     resolver: SecretResolver | None = None,
     *,
     oauth_token_storage: Any | None = None,
+    http_client_factory: HttpClientFactory | None = None,
 ) -> AbstractToolset[Any]:
     """Build the bare ``MCPToolset`` for a config (before any prefix wrapping).
 
@@ -160,22 +266,48 @@ def _build_raw_mcp_toolset(
         toolset = MCPToolset(transport, id=config.name, **extra)
     elif auth is not None and auth.kind == "oauth":  # http/sse interactive OAuth
         url = cast(str, config.url)
-        # A persistent token store and/or a custom client name require a real
-        # OAuth object; otherwise the lightweight "oauth" string is enough.
-        if oauth_token_storage is not None or auth.client_name:
-            from fastmcp.client.auth.oauth import OAuth
-
-            oauth_kwargs: dict[str, Any] = {"mcp_url": url}
-            if oauth_token_storage is not None:
-                oauth_kwargs["token_storage"] = oauth_token_storage
-            if auth.client_name:
-                oauth_kwargs["client_name"] = auth.client_name
-            toolset = MCPToolset(url, auth=OAuth(**oauth_kwargs), id=config.name, **extra)
+        client_factory = (
+            _adapt_http_client_factory(http_client_factory, config)
+            if http_client_factory is not None
+            else None
+        )
+        # Anything beyond the plain interactive flow — a persistent token store,
+        # custom client name, explicit scopes / callback port, or a custom http
+        # client — requires a real OAuth object; otherwise the lightweight
+        # "oauth" string is enough.
+        if (
+            oauth_token_storage is not None
+            or auth.client_name
+            or auth.scopes
+            or auth.callback_port is not None
+            or client_factory is not None
+        ):
+            oauth = _build_oauth(
+                config,
+                auth,
+                oauth_token_storage=oauth_token_storage,
+                client_factory=client_factory,
+            )
+            if client_factory is not None:
+                # The factory must reach both sides: the OAuth flow gets it via
+                # _build_oauth, the transport's own connections get it here.
+                transport = _build_http_transport(config, client_factory, auth=oauth)
+                toolset = MCPToolset(transport, id=config.name, **extra)
+            else:
+                toolset = MCPToolset(url, auth=oauth, id=config.name, **extra)
         else:
             toolset = MCPToolset(url, auth="oauth", id=config.name, **extra)
     else:  # http / sse — FastMCP infers the transport from the URL
         url = cast(str, config.url)
-        toolset = MCPToolset(url, headers=headers or None, id=config.name, **extra)
+        if http_client_factory is not None:
+            transport = _build_http_transport(
+                config,
+                _adapt_http_client_factory(http_client_factory, config),
+                headers=headers or None,
+            )
+            toolset = MCPToolset(transport, id=config.name, **extra)
+        else:
+            toolset = MCPToolset(url, headers=headers or None, id=config.name, **extra)
 
     return cast("AbstractToolset[Any]", toolset)
 
@@ -206,6 +338,7 @@ def build_mcp_server(
     resolver: SecretResolver | None = None,
     *,
     oauth_token_storage: Any | None = None,
+    http_client_factory: HttpClientFactory | None = None,
 ) -> AbstractToolset[Any]:
     """Build a connected pydantic-ai MCP toolset from a config.
 
@@ -233,13 +366,25 @@ def build_mcp_server(
             server, the token survives restarts and is shared between the
             connection test and the agent (FastMCP keys tokens by server URL).
             When ``None``, FastMCP uses in-memory storage (token re-auth per
-            client/restart).
+            client/restart). With ``auth.scopes`` set, the store is namespaced
+            per scope set so a scope change forces a fresh authorization.
+        http_client_factory: Escape hatch for network environments that env
+            vars can't express (authenticated proxies, OS trust stores, mTLS).
+            Applied to the server's HTTP transport *and* its OAuth flow, so a
+            single factory covers discovery, token exchange, refresh and
+            regular traffic. See :data:`HttpClientFactory` for the contract.
+            Ignored for ``stdio`` servers.
 
     Raises:
         MCPNotInstalledError: if the ``mcp`` optional dependency is missing.
     """
     resolver = resolver or _default_resolver
-    raw = _build_raw_mcp_toolset(config, resolver, oauth_token_storage=oauth_token_storage)
+    raw = _build_raw_mcp_toolset(
+        config,
+        resolver,
+        oauth_token_storage=oauth_token_storage,
+        http_client_factory=http_client_factory,
+    )
     return _apply_tool_prefix(raw, config)
 
 
@@ -364,9 +509,11 @@ class MCPRegistry:
         resolver: SecretResolver | None = None,
         *,
         oauth_token_storage: Any | None = None,
+        http_client_factory: HttpClientFactory | None = None,
     ) -> None:
         self._resolver: SecretResolver = resolver or _default_resolver
         self._oauth_token_storage = oauth_token_storage
+        self._http_client_factory = http_client_factory
         self._configs: dict[str, MCPServerConfig] = {}
         for config in configs or []:
             self._configs[config.name] = config
@@ -406,7 +553,10 @@ class MCPRegistry:
 
     def build(self, config: MCPServerConfig) -> AbstractToolset[Any]:
         return build_mcp_server(
-            config, self._resolver, oauth_token_storage=self._oauth_token_storage
+            config,
+            self._resolver,
+            oauth_token_storage=self._oauth_token_storage,
+            http_client_factory=self._http_client_factory,
         )
 
     def build_active(
@@ -430,7 +580,10 @@ class MCPRegistry:
             if self.status(config) != "ready":
                 continue
             raw = _build_raw_mcp_toolset(
-                config, self._resolver, oauth_token_storage=self._oauth_token_storage
+                config,
+                self._resolver,
+                oauth_token_storage=self._oauth_token_storage,
+                http_client_factory=self._http_client_factory,
             )
             servers.append(
                 make_resilient(_apply_tool_prefix(raw, config), config.name, on_degraded)

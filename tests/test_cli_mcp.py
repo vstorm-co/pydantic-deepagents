@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, cast
 
@@ -151,7 +152,9 @@ def test_mcp_oauth_storage_persistent(
     assert (home / ".pydantic-deep" / "mcp-oauth").exists()
 
 
-def test_mcp_oauth_storage_missing_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mcp_oauth_storage_missing_backend(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     import builtins
 
     real_import = builtins.__import__
@@ -162,7 +165,28 @@ def test_mcp_oauth_storage_missing_backend(monkeypatch: pytest.MonkeyPatch) -> N
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
-    assert mcp_store.mcp_oauth_storage() is None
+    # The in-memory fallback means a browser re-auth on every restart, so it
+    # must be loud — a silent downgrade reads as "OAuth is broken".
+    with caplog.at_level(logging.WARNING, logger="apps.cli.mcp_store"):
+        assert mcp_store.mcp_oauth_storage() is None
+    assert "will not persist" in caplog.text
+
+
+def test_mcp_oauth_storage_disk_failure_warns(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+
+    def _boom(self: Path, *args: object, **kwargs: object) -> None:
+        raise OSError("read-only filesystem")
+
+    monkeypatch.setattr(Path, "mkdir", _boom)
+    with caplog.at_level(logging.WARNING, logger="apps.cli.mcp_store"):
+        assert mcp_store.mcp_oauth_storage() is None
+    assert "will not persist" in caplog.text
+    assert "read-only filesystem" in caplog.text
 
 
 # ── import from Claude Code ──────────────────────────────────────────────

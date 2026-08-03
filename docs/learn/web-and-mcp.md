@@ -177,6 +177,78 @@ you can keep a whole shelf of servers defined and switch them on as needed.
     keystore). See [MCP Servers](../learn/web-and-mcp.md) for OAuth, stdio subprocesses,
     and importing servers from Claude Code.
 
+### Hosted OAuth servers
+
+Some hosted servers (Figma, Atlassian) authenticate with an interactive OAuth
+flow instead of a token: set `MCPAuth(kind="oauth")` and the browser opens on
+first connect. Servers that are strict about registration take two more fields —
+explicit `scopes` and a fixed `callback_port` for a pre-registered redirect URI:
+
+```python
+from pydantic_deep import MCPAuth, MCPServerConfig, build_mcp_server
+
+atlassian = MCPServerConfig(
+    name="atlassian",
+    transport="http",
+    url="https://mcp.atlassian.com/v1/mcp/authv2",
+    auth=MCPAuth(
+        kind="oauth",
+        scopes=["read:jira-work", "read:confluence-content.all"],
+        callback_port=8123,
+    ),
+    init_timeout=180,  # leave time for the browser round-trip
+)
+server = build_mcp_server(atlassian)
+```
+
+Pass `oauth_token_storage=` (any `AsyncKeyValue`, e.g. a disk store) to make the
+token survive restarts. Tokens are cached per scope set: change `scopes` and the
+next connect re-authorizes instead of silently reusing a token minted under the
+old permissions.
+
+### Corporate proxies and custom CAs
+
+Behind a TLS-inspecting proxy, both the MCP transport and the OAuth flow
+(discovery, token exchange, refresh) must trust your network. Try the standard
+environment variables first — httpx honours them for every connection:
+
+```bash
+export HTTPS_PROXY="http://proxy.corp.example:8080"
+export SSL_CERT_FILE="/etc/ssl/corp-bundle.pem"
+```
+
+(For `stdio` servers the subprocess doesn't inherit your environment — pass
+what it needs, e.g. `NODE_EXTRA_CA_CERTS`, explicitly via `config.env`.)
+
+When env vars can't express your setup — the CA lives in the OS trust store, the
+proxy wants authentication, or you need mTLS — pass an
+[`HttpClientFactory`][pydantic_deep.mcp.registry.HttpClientFactory]. One factory
+applies to every HTTP-based server in a registry and reaches both the transport
+and the OAuth flow:
+
+```python
+import httpx
+import ssl
+import truststore
+
+from pydantic_deep import MCPRegistry, MCPServerConfig
+
+
+def corporate_client(config: MCPServerConfig) -> httpx.AsyncClient:
+    # Called once per connection — always return a fresh client.
+    return httpx.AsyncClient(
+        proxy="http://proxy.corp.example:8080",
+        verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+    )
+
+
+registry = MCPRegistry(configs, http_client_factory=corporate_client)
+```
+
+The factory must return a **new client on every call**: each connection (and
+each OAuth step) closes the client it used, so a shared instance would be dead
+after the first request.
+
 ## Recap
 
 You gave your agent the world:

@@ -19,6 +19,7 @@ from pydantic_deep.mcp.config import (
 from pydantic_deep.mcp.loader import expand_env_vars, parse_mcp_servers
 from pydantic_deep.mcp.registry import (
     MCP_INSTALL_HINT,
+    HttpClientFactory,
     MCPNotInstalledError,
     MCPProbeResult,
     MCPRegistry,
@@ -46,6 +47,7 @@ __all__ = [
     "MCPNotInstalledError",
     "MCP_INSTALL_HINT",
     "SecretResolver",
+    "HttpClientFactory",
     "auth_satisfied",
     "build_mcp_server",
     "make_resilient",

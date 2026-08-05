@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.43] - 2026-08-05
+
+### Changed
+
+- **Requires `subagents-pydantic-ai>=0.2.18`**. That release removes the implicit
+  `default_model="openai:gpt-4.1"` from the subagent toolset: there is no
+  library-chosen default any more, so a toolset that leaves the general-purpose
+  delegate on with no model now raises at construction instead of running that
+  delegate on whatever provider credential the process environment happens to
+  hold. Deep-agent construction is unaffected — it already passes `default_model`
+  and `include_general_purpose=False`. The one place that relied on the old
+  default was a test, now updated.
+- **Requires `pydantic-ai-backend>=0.2.25`** (from `>=0.2.18`), a maintenance
+  bump of the backend dependency for both the `console` and `docker` extras.
+
 ## [0.3.42] - 2026-08-01
 
 ### Changed

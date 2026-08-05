@@ -1122,6 +1122,57 @@ class TestTeamSubagentWiring:
         assert subagents.registry.get_compiled("coder") is not None
 
     @pytest.mark.asyncio
+    async def test_team_factory_forwards_parent_web_settings(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Members inherit the lead's web_search/web_fetch, not hard-enabled web tools."""
+        import pydantic_deep.agent as agent_module
+
+        captured: list[dict[str, Any]] = []
+        real_create = agent_module.create_deep_agent
+
+        def _spy(*args: Any, **kwargs: Any) -> Any:
+            captured.append(kwargs)
+            return real_create(*args, **kwargs)
+
+        monkeypatch.setattr(agent_module, "create_deep_agent", _spy)
+
+        agent = _spy(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+            web_search=False,
+            web_fetch=False,
+        )
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+        team = toolsets["deep-team"]
+
+        captured.clear()
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx,
+            "build",
+            [
+                TeamMemberSpec(name="with-instr", instructions="You code.", model="test"),
+                TeamMemberSpec(name="bare", model="test"),
+            ],
+        )
+
+        assert len(captured) == 2
+        for member_kwargs in captured:
+            assert member_kwargs["web_search"] is False
+            assert member_kwargs["web_fetch"] is False
+
+    @pytest.mark.asyncio
     async def test_spawn_resolves_omitted_model_against_default_model(self):
         """A spec with no model inherits the toolset `default_model` (the lead's)."""
         from pydantic_ai import Agent

@@ -1213,6 +1213,9 @@ def create_deep_agent(  # noqa: C901
                     cost_tracking=False,
                     web_search=web_search,
                     web_fetch=web_fetch,
+                    backend=backend,
+                    toolsets=toolsets,
+                    extra_toolsets=tuple(cfg.get("toolsets") or []),
                     edit_format=_team_edit_fmt,
                 )
 

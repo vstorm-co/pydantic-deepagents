@@ -1173,6 +1173,64 @@ class TestTeamSubagentWiring:
             assert member_kwargs["web_fetch"] is False
 
     @pytest.mark.asyncio
+    async def test_team_factory_shares_parent_backend_and_toolsets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Members run on the parent's backend with the parent's toolsets first,
+        then any per-config toolsets appended (mirroring the subagent factory's
+        extra_toolsets plumbing)."""
+        from pydantic_ai.toolsets.function import FunctionToolset
+
+        import pydantic_deep.agent as agent_module
+        from pydantic_deep.features.teams import create_team_toolset as real_team_toolset
+
+        team_kwargs: dict[str, Any] = {}
+
+        def _team_spy(**kwargs: Any) -> Any:
+            team_kwargs.update(kwargs)
+            return real_team_toolset(**kwargs)
+
+        monkeypatch.setattr("pydantic_deep.agent.create_team_toolset", _team_spy)
+
+        create_calls: list[dict[str, Any]] = []
+        real_create = agent_module.create_deep_agent
+
+        def _create_spy(*args: Any, **kwargs: Any) -> Any:
+            create_calls.append(kwargs)
+            return real_create(*args, **kwargs)
+
+        monkeypatch.setattr(agent_module, "create_deep_agent", _create_spy)
+
+        parent_backend = StateBackend()
+        parent_toolset: FunctionToolset[DeepAgentDeps] = FunctionToolset(id="parent-domain")
+        _create_spy(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+            backend=parent_backend,
+            toolsets=[parent_toolset],
+        )
+
+        cfg_toolset: FunctionToolset[DeepAgentDeps] = FunctionToolset(id="cfg-extra")
+        create_calls.clear()
+        factory = team_kwargs["agent_factory"]
+        member_agent = factory({"name": "member", "instructions": "", "toolsets": [cfg_toolset]})
+
+        (member_kwargs,) = create_calls
+        assert member_kwargs["backend"] is parent_backend
+        assert list(member_kwargs["toolsets"]) == [parent_toolset]
+        assert list(member_kwargs["extra_toolsets"]) == [cfg_toolset]
+        assert parent_toolset in member_agent.toolsets
+        assert cfg_toolset in member_agent.toolsets
+
+    @pytest.mark.asyncio
     async def test_spawn_resolves_omitted_model_against_default_model(self):
         """A spec with no model inherits the toolset `default_model` (the lead's)."""
         from pydantic_ai import Agent

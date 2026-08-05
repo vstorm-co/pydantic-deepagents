@@ -376,7 +376,7 @@ class TeamMember:
     role: str
     description: str
     instructions: str
-    model: str = "anthropic:claude-sonnet-4-6"
+    model: str | None = None        # Inherits the team lead's model when unset
     toolsets: list[Any] = []
 ```
 

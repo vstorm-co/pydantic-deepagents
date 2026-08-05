@@ -470,6 +470,18 @@ class TestTeamMessageBus:
             await bus.receive("nobody")
 
 
+class TestTeamMemberSpec:
+    """Tests for TeamMemberSpec model parsing."""
+
+    def test_model_defaults_to_none(self):
+        """An omitted member model stays unset so it can inherit the lead's."""
+        assert TeamMemberSpec(name="x").model is None
+
+    def test_explicit_model_is_kept(self):
+        """A spec that names a model carries it through unchanged."""
+        assert TeamMemberSpec(name="x", model="openai:gpt-5").model == "openai:gpt-5"
+
+
 class TestTeamMember:
     """Tests for TeamMember dataclass."""
 
@@ -492,7 +504,7 @@ class TestTeamMember:
             description="QA tester",
             instructions="Test thoroughly",
         )
-        assert member.model == "anthropic:claude-sonnet-4-6"
+        assert member.model is None
         assert member.toolsets == []
 
 
@@ -1108,6 +1120,65 @@ class TestTeamSubagentWiring:
 
         assert "coder" in subagents.registry.list_agents()
         assert subagents.registry.get_compiled("coder") is not None
+
+    @pytest.mark.asyncio
+    async def test_spawn_resolves_omitted_model_against_default_model(self):
+        """A spec with no model inherits the toolset `default_model` (the lead's)."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+            default_model="openai:gpt-5",
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        assert registry.configs["coder"]["model"] == "openai:gpt-5"
+
+    @pytest.mark.asyncio
+    async def test_spawn_honours_an_explicit_member_model(self):
+        """A spec that names a model keeps it instead of the default_model."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+            default_model="openai:gpt-5",
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx,
+            "build",
+            [TeamMemberSpec(name="coder", instructions="You code.", model="openai:gpt-5-mini")],
+        )
+
+        assert registry.configs["coder"]["model"] == "openai:gpt-5-mini"
+
+    @pytest.mark.asyncio
+    async def test_spawn_without_default_model_leaves_the_key_unset(self):
+        """No spec model and no default_model: the config carries no model at all,
+        so the compile path's own default handling applies (no new crash)."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        assert "model" not in registry.configs["coder"]
 
     @pytest.mark.asyncio
     async def test_assign_task_reaches_the_member(self):

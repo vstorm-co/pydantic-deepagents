@@ -12,8 +12,6 @@ from uuid import uuid4
 from pydantic import BaseModel
 from pydantic_ai_backends import BackendProtocol, StateBackend
 
-from pydantic_deep.models import DEFAULT_TEAM_MEMBER_MODEL
-
 
 class TeamMemberSpec(BaseModel):
     """A team member supplied to the `spawn_team` tool."""
@@ -22,7 +20,7 @@ class TeamMemberSpec(BaseModel):
     role: str = "worker"
     description: str = ""
     instructions: str = ""
-    model: str = DEFAULT_TEAM_MEMBER_MODEL
+    model: str | None = None
 
 
 @dataclass
@@ -225,7 +223,7 @@ class TeamMember:
     role: str
     description: str
     instructions: str
-    model: str = DEFAULT_TEAM_MEMBER_MODEL
+    model: str | None = None
     toolsets: list[Any] = field(default_factory=list)
 
 

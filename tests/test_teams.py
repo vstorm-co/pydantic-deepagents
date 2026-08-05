@@ -470,6 +470,18 @@ class TestTeamMessageBus:
             await bus.receive("nobody")
 
 
+class TestTeamMemberSpec:
+    """Tests for TeamMemberSpec model parsing."""
+
+    def test_model_defaults_to_none(self):
+        """An omitted member model stays unset so it can inherit the lead's."""
+        assert TeamMemberSpec(name="x").model is None
+
+    def test_explicit_model_is_kept(self):
+        """A spec that names a model carries it through unchanged."""
+        assert TeamMemberSpec(name="x", model="openai:gpt-5").model == "openai:gpt-5"
+
+
 class TestTeamMember:
     """Tests for TeamMember dataclass."""
 
@@ -492,7 +504,7 @@ class TestTeamMember:
             description="QA tester",
             instructions="Test thoroughly",
         )
-        assert member.model == "anthropic:claude-sonnet-4-6"
+        assert member.model is None
         assert member.toolsets == []
 
 
@@ -1108,6 +1120,174 @@ class TestTeamSubagentWiring:
 
         assert "coder" in subagents.registry.list_agents()
         assert subagents.registry.get_compiled("coder") is not None
+
+    @pytest.mark.asyncio
+    async def test_team_factory_forwards_parent_web_settings(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Members inherit the lead's web_search/web_fetch, not hard-enabled web tools."""
+        import pydantic_deep.agent as agent_module
+
+        captured: list[dict[str, Any]] = []
+        real_create = agent_module.create_deep_agent
+
+        def _spy(*args: Any, **kwargs: Any) -> Any:
+            captured.append(kwargs)
+            return real_create(*args, **kwargs)
+
+        monkeypatch.setattr(agent_module, "create_deep_agent", _spy)
+
+        agent = _spy(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+            web_search=False,
+            web_fetch=False,
+        )
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+        team = toolsets["deep-team"]
+
+        captured.clear()
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx,
+            "build",
+            [
+                TeamMemberSpec(name="with-instr", instructions="You code.", model="test"),
+                TeamMemberSpec(name="bare", model="test"),
+            ],
+        )
+
+        assert len(captured) == 2
+        for member_kwargs in captured:
+            assert member_kwargs["web_search"] is False
+            assert member_kwargs["web_fetch"] is False
+
+    @pytest.mark.asyncio
+    async def test_team_factory_shares_parent_backend_and_toolsets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Members run on the parent's backend with the parent's toolsets first,
+        then any per-config toolsets appended (mirroring the subagent factory's
+        extra_toolsets plumbing)."""
+        from pydantic_ai.toolsets.function import FunctionToolset
+
+        import pydantic_deep.agent as agent_module
+        from pydantic_deep.features.teams import create_team_toolset as real_team_toolset
+
+        team_kwargs: dict[str, Any] = {}
+
+        def _team_spy(**kwargs: Any) -> Any:
+            team_kwargs.update(kwargs)
+            return real_team_toolset(**kwargs)
+
+        monkeypatch.setattr("pydantic_deep.agent.create_team_toolset", _team_spy)
+
+        create_calls: list[dict[str, Any]] = []
+        real_create = agent_module.create_deep_agent
+
+        def _create_spy(*args: Any, **kwargs: Any) -> Any:
+            create_calls.append(kwargs)
+            return real_create(*args, **kwargs)
+
+        monkeypatch.setattr(agent_module, "create_deep_agent", _create_spy)
+
+        parent_backend = StateBackend()
+        parent_toolset: FunctionToolset[DeepAgentDeps] = FunctionToolset(id="parent-domain")
+        _create_spy(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_filesystem=False,
+            include_todo=False,
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            context_manager=False,
+            cost_tracking=False,
+            backend=parent_backend,
+            toolsets=[parent_toolset],
+        )
+
+        cfg_toolset: FunctionToolset[DeepAgentDeps] = FunctionToolset(id="cfg-extra")
+        create_calls.clear()
+        factory = team_kwargs["agent_factory"]
+        member_agent = factory({"name": "member", "instructions": "", "toolsets": [cfg_toolset]})
+
+        (member_kwargs,) = create_calls
+        assert member_kwargs["backend"] is parent_backend
+        assert list(member_kwargs["toolsets"]) == [parent_toolset]
+        assert list(member_kwargs["extra_toolsets"]) == [cfg_toolset]
+        assert parent_toolset in member_agent.toolsets
+        assert cfg_toolset in member_agent.toolsets
+
+    @pytest.mark.asyncio
+    async def test_spawn_resolves_omitted_model_against_default_model(self):
+        """A spec with no model inherits the toolset `default_model` (the lead's)."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+            default_model="openai:gpt-5",
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        assert registry.configs["coder"]["model"] == "openai:gpt-5"
+
+    @pytest.mark.asyncio
+    async def test_spawn_honours_an_explicit_member_model(self):
+        """A spec that names a model keeps it instead of the default_model."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+            default_model="openai:gpt-5",
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx,
+            "build",
+            [TeamMemberSpec(name="coder", instructions="You code.", model="openai:gpt-5-mini")],
+        )
+
+        assert registry.configs["coder"]["model"] == "openai:gpt-5-mini"
+
+    @pytest.mark.asyncio
+    async def test_spawn_without_default_model_leaves_the_key_unset(self):
+        """No spec model and no default_model: the config carries no model at all,
+        so the compile path's own default handling applies (no new crash)."""
+        from pydantic_ai import Agent
+        from subagents_pydantic_ai import DynamicAgentRegistry
+
+        registry = DynamicAgentRegistry()
+        team = create_team_toolset(
+            registry=registry,
+            agent_factory=lambda cfg: Agent(TestModel()),
+        )
+        ctx = _make_ctx()
+        await team.tools["spawn_team"].function(
+            ctx, "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+        )
+
+        assert "model" not in registry.configs["coder"]
 
     @pytest.mark.asyncio
     async def test_assign_task_reaches_the_member(self):

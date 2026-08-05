@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from pydantic_ai.models import Model
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai_backends import StateBackend
@@ -79,6 +80,7 @@ def create_team_toolset(  # noqa: C901
     task_fn: Any | None = None,
     task_manager: Any | None = None,
     subagent_toolset: SubAgentToolset | None = None,
+    default_model: str | Model | None = None,
 ) -> FunctionToolset[Any]:
     """Create a toolset for managing agent teams.
 
@@ -104,6 +106,10 @@ def create_team_toolset(  # noqa: C901
             subagent, so a message has to go through the subagent engine
             (`answer_task` when it is waiting, `steer_task` while it runs).
             Without it, messages are only recorded on the team bus.
+        default_model: Model team members inherit when their spec names no
+            model — typically the team lead's own model. When unset and a
+            member names none either, compilation falls through to the
+            subagent engine's own handling of model-less configs.
 
     Returns:
         A `FunctionToolset` with team management tools.
@@ -149,15 +155,17 @@ def create_team_toolset(  # noqa: C901
             for member in team_members:
                 if registry.exists(member.name):
                     continue
+                resolved_model = member.model or default_model
                 config = SubAgentConfig(
                     name=member.name,
                     description=f"[Team {team_name}] {member.description}",
                     instructions=member.instructions,
-                    model=member.model,
                 )
+                if resolved_model is not None:
+                    config["model"] = resolved_model
                 if agent_factory is not None:
                     config["agent_factory"] = agent_factory
-                compiled = _compile_subagent(config, member.model)
+                compiled = _compile_subagent(config, resolved_model)
                 registry.register(config, compiled.agent)
 
         lines = [f"Team '{team_name}' created with {len(handles)} members:"]

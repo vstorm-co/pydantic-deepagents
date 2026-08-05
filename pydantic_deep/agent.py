@@ -1190,8 +1190,9 @@ def create_deep_agent(  # noqa: C901
             # Factory that creates deep agents for team members
             _team_model = model
             _team_edit_fmt = edit_format
+            _team_kwargs["default_model"] = model
 
-            def _deep_agent_factory(cfg: dict[str, Any]) -> Any:  # pragma: no cover
+            def _deep_agent_factory(cfg: dict[str, Any]) -> Any:
                 _team_task_instructions = cfg.get("instructions") or ""
                 _team_instructions = (
                     DEFAULT_INSTRUCTIONS + "\n\n" + _team_task_instructions
@@ -1210,6 +1211,11 @@ def create_deep_agent(  # noqa: C901
                     include_monitoring=False,
                     context_manager=False,
                     cost_tracking=False,
+                    web_search=web_search,
+                    web_fetch=web_fetch,
+                    backend=backend,
+                    toolsets=toolsets,
+                    extra_toolsets=tuple(cfg.get("toolsets") or []),
                     edit_format=_team_edit_fmt,
                 )
 

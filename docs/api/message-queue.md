@@ -23,3 +23,15 @@ otherwise stop). Pass one via `message_queue=` on
 ::: pydantic_deep.features.message_queue.run_with_queue
     options:
       show_source: false
+
+## queued_source
+
+::: pydantic_deep.features.message_queue.queued_source
+    options:
+      show_source: false
+
+## QueueFullError
+
+::: pydantic_deep.features.message_queue.QueueFullError
+    options:
+      show_source: false

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
@@ -211,6 +213,32 @@ class TestMonitorToolset:
                 break
         assert any("hello-world" in m and "monitor:greeter" in m for m in queue.steered)
         await deps.monitor_manager.stop_all()
+
+    async def test_full_queue_drops_the_batch_with_a_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        from pydantic_deep.features.message_queue import QueueFullError
+        from pydantic_deep.features.monitoring.toolset import _make_queue_sink
+
+        class _FullQueue:
+            async def steer(self, content: str, **_: Any) -> None:
+                raise QueueFullError("steering queue is full (100 pending)")
+
+        sink = _make_queue_sink(_FullQueue())
+        event = MonitorEvent(
+            monitor_id="mon_1",
+            label="svc",
+            command="tail -f log",
+            lines=["boom"],
+            running=True,
+            exit_code=None,
+        )
+
+        with caplog.at_level(logging.WARNING):
+            await sink(event)
+
+        assert "mon_1" in caplog.text
+        assert "message queue full" in caplog.text
 
     async def test_list_and_stop_via_tools(self, tmp_path: Path) -> None:
         ts = create_monitor_toolset()

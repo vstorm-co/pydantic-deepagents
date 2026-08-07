@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -595,6 +595,167 @@ class TestMessageQueueIntegration:
 
             barrier.set()
             await task
+
+
+def _queue_app() -> DeepApp:
+    """An app with a real TestModel agent and a shared queue, so a turn can run."""
+    from pydantic_ai.models.test import TestModel
+    from pydantic_ai_backends import StateBackend
+
+    from pydantic_deep import DeepAgentDeps, create_deep_agent
+    from pydantic_deep.features.message_queue import MessageQueue
+
+    queue = MessageQueue()
+    agent = create_deep_agent(
+        model=TestModel(call_tools=[]),
+        message_queue=queue,
+        include_skills=False,
+        include_plan=False,
+        include_memory=False,
+        include_subagents=False,
+        include_teams=False,
+        include_todo=False,
+        web_search=False,
+        web_fetch=False,
+        cost_tracking=False,
+        context_manager=False,
+        stuck_loop_detection=False,
+        context_discovery=False,
+        include_monitoring=False,
+    )
+    deps = DeepAgentDeps(backend=StateBackend(), message_queue=queue)
+    return DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
+
+
+@pytest.fixture
+def queue_app() -> DeepApp:
+    return _queue_app()
+
+
+class TestQueueDrainWhenIdle:
+    """A follow-up must not be stranded when the session stops.
+
+    The worker drains follow-ups once the turn completes, but a message arriving
+    after that drain still sees the run as active and is queued as a follow-up
+    with nothing left to deliver it. For a human typing that window is a few
+    hundred milliseconds; an event-driven bridge hits it for real.
+    """
+
+    async def test_follow_up_arriving_after_the_post_run_drain_still_runs(self, queue_app):
+        from apps.cli.screens.chat import ChatScreen
+        from pydantic_deep.features.message_queue import QueuedMessage
+
+        app = queue_app
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+
+            scheduled: list[str] = []
+            run_turn = chat._run_agent
+            chat._run_agent = scheduled.append  # type: ignore[method-assign, assignment]
+
+            # `_notify_degraded_mcp` is the last call before the idle drain, so it
+            # lands the message inside the window the drain has to cover.
+            real_notify = chat._notify_degraded_mcp
+            landed = {"done": False}
+            late = QueuedMessage("check MR 123", "follow_up", metadata={"source": "slack"})
+
+            def _land_late_message() -> None:
+                real_notify()
+                if not landed["done"]:
+                    landed["done"] = True
+                    app.queue._follow_up.append(late)
+
+            chat._notify_degraded_mcp = _land_late_message  # type: ignore[method-assign]
+
+            run_turn("investigate the failing test")
+            await _settle(pilot)
+
+            assert landed["done"], "the late message never reached the queue"
+            assert scheduled == ["[follow-up via slack] check MR 123"]
+            assert app.queue.pending_count() == (0, 0)
+
+    async def test_cancelled_run_keeps_external_follow_up_and_drops_the_typed_one(self, queue_app):
+        import asyncio
+
+        from apps.cli.screens.chat import ChatScreen
+
+        app = queue_app
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+
+            class _Hang:
+                async def __aenter__(self):
+                    await asyncio.Event().wait()
+
+                async def __aexit__(self, *_):
+                    return False
+
+            app.agent.iter = lambda *_a, **_k: _Hang()
+
+            scheduled: list[str] = []
+            run_turn = chat._run_agent
+            chat._run_agent = scheduled.append  # type: ignore[method-assign, assignment]
+
+            run_turn("investigate the failing test")
+            for _ in range(4):
+                await pilot.pause()
+
+            await app.queue.follow_up("and then deploy")
+            await app.queue.follow_up("check MR 123", metadata={"source": "slack"})
+
+            worker = app.agent_task
+            assert worker is not None
+            worker.cancel()
+            await _settle(pilot)
+
+            assert scheduled == ["[follow-up via slack] check MR 123"]
+            assert app.queue.pending_count() == (0, 0)
+
+    async def test_full_queue_reports_the_refusal_instead_of_raising(self, queue_app):
+        import asyncio
+
+        from apps.cli.messages import UserSubmitted
+        from apps.cli.screens.chat import ChatScreen
+        from pydantic_deep.features.message_queue import MessageQueue
+
+        app = queue_app
+        app.queue = MessageQueue(max_pending=1)
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+
+            notes: list[str] = []
+            app.notify = lambda msg, **kw: notes.append(str(msg))
+
+            barrier = asyncio.Event()
+            app.agent_task = asyncio.create_task(barrier.wait())
+
+            chat.post_message(UserSubmitted("first follow-up"))
+            await pilot.pause()
+            await pilot.pause()
+            chat.post_message(UserSubmitted("one too many"))
+            await pilot.pause()
+            await pilot.pause()
+
+            assert app.queue.pending_count() == (0, 1)
+            assert any("follow_up queue is full" in n for n in notes)
+
+            barrier.set()
+            await app.agent_task
+
+
+async def _settle(pilot: Any, ticks: int = 60) -> None:
+    """Pump the event loop until the worker's teardown and any follow-up settle."""
+    for _ in range(ticks):
+        await pilot.pause()
 
 
 class TestCtrlCBehavior:

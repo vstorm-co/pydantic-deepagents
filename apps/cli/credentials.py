@@ -44,6 +44,13 @@ CREDENTIALS: tuple[Credential, ...] = (
         provider_id="openrouter",
     ),
     Credential(
+        "ORCAROUTER_API_KEY",
+        "OrcaRouter",
+        "Model providers",
+        "https://www.orcarouter.ai",
+        provider_id="orcarouter",
+    ),
+    Credential(
         "ANTHROPIC_API_KEY",
         "Anthropic (Claude)",
         "Model providers",

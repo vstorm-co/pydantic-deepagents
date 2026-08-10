@@ -270,6 +270,7 @@ Works with any model that supports tool-calling:
 | **Anthropic** | `anthropic:claude-opus-4-6`, `claude-sonnet-4-6` |
 | **OpenAI** | `openai:gpt-5.4`, `gpt-4.1` |
 | **OpenRouter** | `openrouter:anthropic/claude-opus-4-6` (200+ models) |
+| **OrcaRouter** | `orcarouter:openai/gpt-5.5`, `orcarouter:anthropic/claude-sonnet-4.6`, `orcarouter:orcarouter/auto` (180+ models) |
 | **Google Gemini** | `google-gla:gemini-2.5-pro` |
 | **Ollama (local)** | `ollama:qwen3`, `ollama:llama3.3` |
 | **Any OpenAI-compatible** | Custom base URL via env |

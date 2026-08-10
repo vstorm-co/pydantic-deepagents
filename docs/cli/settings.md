@@ -62,7 +62,7 @@ You rarely write this by hand — `/settings` and the slash commands below maint
 
 ### Model & provider
 
-`model` is any Pydantic AI model string: `anthropic:…`, `openai:…`, `google-gla:…`, `openrouter:…`. The provider prefix is required; the CLI warns you on launch if it's missing.
+`model` is any Pydantic AI model string: `anthropic:…`, `openai:…`, `google-gla:…`, `openrouter:…`, `orcarouter:…`. The provider prefix is required; the CLI warns you on launch if it's missing.
 
 ```toml
 model = "openai:gpt-4o"

@@ -558,7 +558,7 @@ app.add_typer(models_app)
 
 @models_app.command("select")
 def models_select() -> None:
-    """Open a picker to choose the default model (recent, providers, OpenRouter)."""
+    """Open a picker to choose the default model (recent, providers, OpenRouter, OrcaRouter)."""
     from apps.cli.config import get_config_path, set_config_value
     from apps.cli.interactive import ask_value, pick
     from apps.cli.model_history import recent_models, record_model_use
@@ -573,6 +573,7 @@ def models_select() -> None:
         if p.default_model and p.default_model not in seen:
             choices.append((p.default_model, f"  {p.default_model}  ({p.name})"))
     choices.append(("\x00openrouter", "🔍 Browse OpenRouter models…"))
+    choices.append(("\x00orcarouter", "🔍 Browse OrcaRouter models…"))
     choices.append(("\x00custom", "✏️  Type a custom model…"))
 
     sel = pick("Choose model", "Select the default model:", choices)
@@ -592,6 +593,21 @@ def models_select() -> None:
             for m in models[:200]
         ]
         sel = pick("OpenRouter models", f"{len(models)} match — pick one:", or_choices)
+        if sel is None:
+            raise typer.Exit()
+    elif sel == "\x00orcarouter":
+        from apps.cli.orcarouter_models import fetch_orcarouter_models
+
+        term = (ask_value("OrcaRouter", "Filter by substring (blank = all):") or "").lower()
+        models = [m for m in fetch_orcarouter_models() if term in m.id.lower()]
+        or_choices = [
+            (
+                m.model_string,
+                f"{m.id}  (${m.prompt_price * 1e6:.2f}/${m.completion_price * 1e6:.2f} /1M)",
+            )
+            for m in models[:200]
+        ]
+        sel = pick("OrcaRouter models", f"{len(models)} match — pick one:", or_choices)
         if sel is None:
             raise typer.Exit()
     elif sel == "\x00custom":
@@ -632,6 +648,27 @@ def models_openrouter(
 
     console = Console()
     models = fetch_openrouter_models(force_refresh=refresh)
+    if search:
+        models = [m for m in models if search.lower() in m.id.lower()]
+    for m in models[:60]:
+        console.print(
+            f"  {m.model_string}  [dim]ctx={m.context_length} "
+            f"${m.prompt_price * 1e6:.2f}/${m.completion_price * 1e6:.2f} per 1M[/dim]"
+        )
+    shown = min(len(models), 60)
+    console.print(f"\n[dim]{shown} of {len(models)} models[/dim]")
+
+
+@models_app.command("orcarouter")
+def models_orcarouter(
+    search: Annotated[str | None, typer.Argument(help="Filter by substring")] = None,
+    refresh: Annotated[bool, typer.Option("--refresh", help="Bypass the cache")] = False,
+) -> None:
+    """List OrcaRouter models (fetched live, cached 24h). Use these as `-m orcarouter/<id>`."""
+    from apps.cli.orcarouter_models import fetch_orcarouter_models
+
+    console = Console()
+    models = fetch_orcarouter_models(force_refresh=refresh)
     if search:
         models = [m for m in models if search.lower() in m.id.lower()]
     for m in models[:60]:

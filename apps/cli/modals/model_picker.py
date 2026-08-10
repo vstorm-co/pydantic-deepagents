@@ -25,8 +25,19 @@ _OPENROUTER_FALLBACK = [
     "openrouter:google/gemini-3.1-pro-preview",
 ]
 
+#: Shown only when the live OrcaRouter catalogue can't be fetched (offline).
+_ORCAROUTER_FALLBACK = [
+    "orcarouter:openai/gpt-5.5",
+    "orcarouter:anthropic/claude-sonnet-4.6",
+    "orcarouter:deepseek/deepseek-v4-flash",
+    "orcarouter:orcarouter/auto",
+]
+
 # How many OpenRouter models to list (the filter narrows the rest).
 _OPENROUTER_LIMIT = 250
+
+# How many OrcaRouter models to list (the filter narrows the rest).
+_ORCAROUTER_LIMIT = 250
 
 
 class ModelPickerModal(ModalScreen[str | None]):
@@ -134,6 +145,20 @@ class ModelPickerModal(ModalScreen[str | None]):
             header("OpenRouter", has_key=or_key)
             for model in _OPENROUTER_FALLBACK:
                 add(model, has_key=or_key)
+
+        # OrcaRouter — live catalogue when cached, offline fallback otherwise
+        orca_key = bool(os.environ.get("ORCAROUTER_API_KEY"))
+        from apps.cli.orcarouter_models import cached_models as cached_orca_models
+
+        orca_cached = cached_orca_models()
+        if orca_cached:
+            header("OrcaRouter (live)", has_key=orca_key)
+            for m in orca_cached[:_ORCAROUTER_LIMIT]:
+                add(m.model_string, has_key=orca_key)
+        else:
+            header("OrcaRouter", has_key=orca_key)
+            for model in _ORCAROUTER_FALLBACK:
+                add(model, has_key=orca_key)
 
         # Every native provider pydantic-ai knows about — keyed ones first
         for _prefix, label, has_key, models in provider_sections():

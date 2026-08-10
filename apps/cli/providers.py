@@ -39,6 +39,13 @@ PROVIDERS: tuple[ProviderInfo, ...] = (
         "openrouter:anthropic/claude-sonnet-4",
     ),
     ProviderInfo(
+        "orcarouter",
+        "OrcaRouter",
+        "ORCAROUTER_API_KEY",
+        "https://www.orcarouter.ai",
+        "orcarouter:openai/gpt-5.5",
+    ),
+    ProviderInfo(
         "anthropic",
         "Anthropic (Claude)",
         "ANTHROPIC_API_KEY",
@@ -75,6 +82,14 @@ OPENAI_COMPATIBLE_PREFIX = "openai-compatible:"
 
 #: Keystore key for the OpenAI-compatible endpoint's API key (kept out of config.toml).
 OPENAI_COMPATIBLE_API_KEY_ENV = "OPENAI_COMPATIBLE_API_KEY"
+
+#: Model-string prefix for OrcaRouter (an OpenAI-compatible aggregator gateway).
+#: The part after the prefix is the OrcaRouter model id (e.g. ``openai/gpt-5.5``
+#: or ``orcarouter/auto``); the endpoint URL is fixed in `model_resolve`.
+ORCAROUTER_PREFIX = "orcarouter:"
+
+#: Keystore key for the OrcaRouter API key.
+ORCAROUTER_API_KEY_ENV = "ORCAROUTER_API_KEY"
 
 #: Provider id → default model, derived from :data:`PROVIDERS`.
 PROVIDER_DEFAULT_MODELS: dict[str, str] = {p.id: p.default_model for p in PROVIDERS}

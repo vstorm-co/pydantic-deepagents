@@ -631,8 +631,8 @@ Browse all projects at [oss.vstorm.co](https://oss.vstorm.co)
 If pydantic-deep saved you from wiring an agent harness by hand — **[give it a ⭐](https://github.com/vstorm-co/pydantic-deep)**. It's the single biggest thing that helps the project grow.
 
 <p align="center">
-  <a href="https://www.star-history.com/#vstorm-co/pydantic-deepagents&type=date">
-    <img src="https://api.star-history.com/svg?repos=vstorm-co/pydantic-deepagents&type=date" alt="Star History" width="600">
+  <a href="https://star-history.dera.page/#vstorm-co/pydantic-deepagents&type=date">
+    <img src="https://star-history.dera.page/svg?repos=vstorm-co/pydantic-deepagents&type=date" alt="Star History" width="600">
   </a>
 </p>
 

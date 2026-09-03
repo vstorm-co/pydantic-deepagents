@@ -227,6 +227,12 @@ def test_builtins_names_and_freshness() -> None:
     # The local Dev Mode server is offered separately.
     local = next(c for c in a if c.name == "figma-local")
     assert local.url == "http://127.0.0.1:3845/mcp"
+    # you needs a bearer token, like github.
+    you = next(c for c in a if c.name == "you")
+    assert you.requires_auth is True
+    assert you.auth is not None and you.auth.kind == "bearer"
+    assert you.auth.secret_key == "YDC_API_KEY"
+    assert you.url == "https://api.you.com/mcp"
 
 
 # ── auth_satisfied ───────────────────────────────────────────────────────

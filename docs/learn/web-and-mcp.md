@@ -155,7 +155,8 @@ without you knowing the tool names. It just uses them.
 You don't have to type out a config for the popular ones.
 [`builtin_mcp_servers()`][pydantic_deep.mcp.builtin_mcp_servers] ships curated
 definitions — `github` (needs a token), `context7` (library docs), `deepwiki`
-(ask any public repo), and the Figma servers. They're all disabled until you opt
+(ask any public repo), `you` (live web search, needs a token), and the Figma
+servers. They're all disabled until you opt
 in, which an [`MCPRegistry`][pydantic_deep.mcp.MCPRegistry] makes easy:
 
 ```python
@@ -185,7 +186,7 @@ You gave your agent the world:
 - For domain limits and usage caps, disable the default and pass your own `WebSearch` / `WebFetch` via `capabilities=`.
 - **MCP servers** add whole catalogs of external tools. Install the `[mcp]` extra, describe a server with `MCPServerConfig`, and attach it via `mcp_servers=`.
 - Always run MCP-backed agents inside `async with agent:` so connections open and close cleanly.
-- `builtin_mcp_servers()` + `MCPRegistry` give you curated servers (GitHub, Context7, DeepWiki, Figma) you can enable one line at a time.
+- `builtin_mcp_servers()` + `MCPRegistry` give you curated servers (GitHub, Context7, DeepWiki, You.com, Figma) you can enable one line at a time.
 
 That's the tutorial. From here, the real depth opens up — the capability lifecycle, hooks, cost budgets, agent teams, and more.
 

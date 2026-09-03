@@ -11,7 +11,7 @@ from pydantic_deep.mcp.config import MCPAuth, MCPServerConfig
 
 __all__ = ["builtin_mcp_servers", "BUILTIN_MCP_NAMES"]
 
-BUILTIN_MCP_NAMES = ("github", "figma", "figma-local", "context7", "deepwiki")
+BUILTIN_MCP_NAMES = ("github", "figma", "figma-local", "context7", "deepwiki", "you")
 
 
 def builtin_mcp_servers() -> list[MCPServerConfig]:
@@ -79,5 +79,21 @@ def builtin_mcp_servers() -> list[MCPServerConfig]:
             description="DeepWiki — ask questions about any public GitHub repository.",
             enabled=False,
             builtin=True,
+        ),
+        MCPServerConfig(
+            name="you",
+            transport="http",
+            url="https://api.you.com/mcp",
+            description=(
+                "You.com — live web search, URL content extraction, and cited "
+                "research for current information."
+            ),
+            enabled=False,
+            builtin=True,
+            auth=MCPAuth(
+                secret_key="YDC_API_KEY",
+                kind="bearer",
+                instructions=("Create a You.com API key at https://you.com/platform/api-keys."),
+            ),
         ),
     ]

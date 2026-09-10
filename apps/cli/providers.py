@@ -53,6 +53,13 @@ PROVIDERS: tuple[ProviderInfo, ...] = (
         "openai:gpt-4.1",
     ),
     ProviderInfo(
+        "atlas",
+        "Atlas Cloud",
+        "ATLASCLOUD_API_KEY",
+        "https://www.atlascloud.ai/console/api-keys",
+        "atlas:Qwen/Qwen3-235B-A22B-Instruct-2507",
+    ),
+    ProviderInfo(
         "google",
         "Google (Gemini)",
         "GOOGLE_API_KEY",
@@ -75,6 +82,15 @@ OPENAI_COMPATIBLE_PREFIX = "openai-compatible:"
 
 #: Keystore key for the OpenAI-compatible endpoint's API key (kept out of config.toml).
 OPENAI_COMPATIBLE_API_KEY_ENV = "OPENAI_COMPATIBLE_API_KEY"
+
+#: Model-string prefix for Atlas Cloud's OpenAI-compatible chat endpoint.
+ATLAS_PREFIX = "atlas:"
+
+#: Fixed OpenAI-compatible endpoint used by Atlas Cloud chat models.
+ATLAS_API_BASE = "https://api.atlascloud.ai/v1"
+
+#: Environment variable containing the Atlas Cloud API key.
+ATLAS_API_KEY_ENV = "ATLASCLOUD_API_KEY"
 
 #: Provider id → default model, derived from :data:`PROVIDERS`.
 PROVIDER_DEFAULT_MODELS: dict[str, str] = {p.id: p.default_model for p in PROVIDERS}

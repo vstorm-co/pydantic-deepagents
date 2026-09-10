@@ -269,6 +269,7 @@ Works with any model that supports tool-calling:
 |----------|----------------|
 | **Anthropic** | `anthropic:claude-opus-4-6`, `claude-sonnet-4-6` |
 | **OpenAI** | `openai:gpt-5.4`, `gpt-4.1` |
+| **Atlas Cloud** | `atlas:Qwen/Qwen3-235B-A22B-Instruct-2507` |
 | **OpenRouter** | `openrouter:anthropic/claude-opus-4-6` (200+ models) |
 | **Google Gemini** | `google-gla:gemini-2.5-pro` |
 | **Ollama (local)** | `ollama:qwen3`, `ollama:llama3.3` |

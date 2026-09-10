@@ -11,8 +11,18 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from apps.cli.agent import create_cli_agent
 from apps.cli.app import DeepApp
 from apps.cli.config import CliConfig
-from apps.cli.model_resolve import resolve_cli_model, resolve_openai_compatible_model
-from apps.cli.providers import OPENAI_COMPATIBLE_PREFIX, PROVIDER_DEFAULT_MODELS, PROVIDERS
+from apps.cli.model_resolve import (
+    resolve_atlas_model,
+    resolve_cli_model,
+    resolve_openai_compatible_model,
+)
+from apps.cli.providers import (
+    ATLAS_API_BASE,
+    ATLAS_PREFIX,
+    OPENAI_COMPATIBLE_PREFIX,
+    PROVIDER_DEFAULT_MODELS,
+    PROVIDERS,
+)
 
 
 def _patch_load_config(monkeypatch: pytest.MonkeyPatch, config: CliConfig) -> None:
@@ -26,6 +36,11 @@ def _patch_load_config(monkeypatch: pytest.MonkeyPatch, config: CliConfig) -> No
 
 
 class TestProviderTable:
+    def test_atlas_entry_present(self) -> None:
+        entry = next(p for p in PROVIDERS if p.id == "atlas")
+        assert entry.env_var == "ATLASCLOUD_API_KEY"
+        assert entry.default_model.startswith(ATLAS_PREFIX)
+
     def test_openai_compatible_entry_present(self) -> None:
         entry = next(p for p in PROVIDERS if p.id == "openai-compatible")
         assert entry.env_var == ""  # keyless
@@ -36,6 +51,29 @@ class TestProviderTable:
 
     def test_prefix_constant(self) -> None:
         assert OPENAI_COMPATIBLE_PREFIX == "openai-compatible:"
+
+
+class TestResolveAtlasModel:
+    def test_happy_path_builds_openai_chat_model(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ATLASCLOUD_API_KEY", "atlas-secret")
+        model = resolve_atlas_model("atlas:Qwen/Qwen3-235B-A22B-Instruct-2507")
+        assert isinstance(model, OpenAIChatModel)
+        assert model.model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507"
+        assert str(model.base_url) == f"{ATLAS_API_BASE}/"
+        assert model.client.api_key == "atlas-secret"
+
+    def test_missing_key_never_falls_back_to_openai_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("ATLASCLOUD_API_KEY", raising=False)
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-the-users-real-openai-key")
+        with pytest.raises(ValueError, match="ATLASCLOUD_API_KEY is required"):
+            resolve_atlas_model("atlas:Qwen/Qwen3-235B-A22B-Instruct-2507")
+
+    def test_empty_model_name_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ATLASCLOUD_API_KEY", "atlas-secret")
+        with pytest.raises(ValueError, match="model name is required"):
+            resolve_atlas_model("atlas:")
 
 
 class TestResolveOpenAICompatibleModel:
@@ -87,6 +125,12 @@ class TestResolveCliModel:
         model = resolve_cli_model("openai-compatible:qwen2.5", cfg)
         assert isinstance(model, OpenAIChatModel)
         assert model.model_name == "qwen2.5"
+
+    def test_atlas_prefix_is_converted(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ATLASCLOUD_API_KEY", "atlas-secret")
+        model = resolve_cli_model("atlas:Qwen/Qwen3-235B-A22B-Instruct-2507")
+        assert isinstance(model, OpenAIChatModel)
+        assert model.model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507"
 
     def test_config_is_loaded_on_demand_when_omitted(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_load_config(monkeypatch, CliConfig(base_url="http://localhost:9999/v1"))
@@ -387,6 +431,11 @@ class TestPickAvailableModel:
         monkeypatch.setenv("OPENAI_API_KEY", "sk-openai")
         assert DeepApp._pick_available_model("anthropic:claude-sonnet-4-6").startswith("openai")
 
+    def test_atlas_model_kept_when_key_is_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("ATLASCLOUD_API_KEY", "atlas-secret")
+        model = "atlas:Qwen/Qwen3-235B-A22B-Instruct-2507"
+        assert DeepApp._pick_available_model(model) == model
+
 
 class TestReminderModelWiring:
     """The LLM reminder generator must receive the resolved model, not the raw
@@ -453,6 +502,14 @@ class TestGoalEvaluatorWiring:
 
 
 class TestCredentialRegistration:
+    def test_atlas_key_is_manageable(self) -> None:
+        from apps.cli.credentials import CREDENTIALS, find_credential
+
+        cred = find_credential("ATLASCLOUD_API_KEY")
+        assert cred is not None
+        assert cred.provider_id == "atlas"
+        assert cred in CREDENTIALS
+
     def test_local_endpoint_key_is_manageable(self) -> None:
         """`/provider` writes this key, so `keys list` / `keys set` / `/keys`
         must be able to see and change it."""

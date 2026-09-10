@@ -1,11 +1,10 @@
 """Turn a CLI model string into something pydantic-ai accepts.
 
 Almost every model string the CLI carries is a plain pydantic-ai identifier that
-`infer_model()` understands. One is not: `openai-compatible:<name>` is a
-CLI-only sentinel for a local OpenAI-wire-format server (llama.cpp, LM Studio,
-vLLM, …) whose endpoint URL can't fit in a model string and lives in
-`config.base_url` instead. Handing that sentinel straight to pydantic-ai raises
-`ValueError: Unknown provider: openai-compatible`.
+`infer_model()` understands. Two are not: `openai-compatible:<name>` identifies
+a user-configured OpenAI-wire-format server, while `atlas:<name>` identifies an
+Atlas Cloud model served through its fixed OpenAI-compatible endpoint. Handing
+either prefix straight to pydantic-ai raises an unknown-provider error.
 
 So every place that turns the CLI's model string into a pydantic-ai model goes
 through :func:`resolve_cli_model` — the agent factory, the reminder generator,
@@ -20,7 +19,13 @@ import os
 from typing import TYPE_CHECKING
 
 from apps.cli.config import CliConfig, load_config
-from apps.cli.providers import OPENAI_COMPATIBLE_API_KEY_ENV, OPENAI_COMPATIBLE_PREFIX
+from apps.cli.providers import (
+    ATLAS_API_BASE,
+    ATLAS_API_KEY_ENV,
+    ATLAS_PREFIX,
+    OPENAI_COMPATIBLE_API_KEY_ENV,
+    OPENAI_COMPATIBLE_PREFIX,
+)
 
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
@@ -57,8 +62,34 @@ def resolve_openai_compatible_model(model_str: str, config: CliConfig) -> OpenAI
     return OpenAIChatModel(name, provider=provider)
 
 
+def resolve_atlas_model(model_str: str) -> OpenAIChatModel:
+    """Build an `OpenAIChatModel` for an `atlas:<name>` model string.
+
+    Atlas Cloud exposes chat models through a fixed OpenAI-compatible endpoint.
+    Its dedicated key is required explicitly so an unrelated OpenAI key can
+    never be sent to Atlas Cloud by the SDK's environment fallback.
+
+    Raises:
+        ValueError: If `ATLASCLOUD_API_KEY` is not set or the model name is empty.
+    """
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+
+    api_key = os.environ.get(ATLAS_API_KEY_ENV)
+    if not api_key:
+        raise ValueError(
+            f"{ATLAS_API_KEY_ENV} is required for Atlas Cloud models. "
+            "Run /provider and choose Atlas Cloud to configure it."
+        )
+    name = model_str[len(ATLAS_PREFIX) :]
+    if not name:
+        raise ValueError("An Atlas Cloud model name is required after 'atlas:'.")
+    provider = OpenAIProvider(base_url=ATLAS_API_BASE, api_key=api_key)
+    return OpenAIChatModel(name, provider=provider)
+
+
 def resolve_cli_model(model: str | Model, config: CliConfig | None = None) -> str | Model:
-    """Return `model` unchanged, or a `Model` instance for the local-endpoint sentinel.
+    """Return `model` unchanged, or resolve a CLI-only provider prefix.
 
     Args:
         model: A CLI model string, or an already-built `Model` (which callers
@@ -67,9 +98,15 @@ def resolve_cli_model(model: str | Model, config: CliConfig | None = None) -> st
         config: Config to read `base_url` from. Loaded on demand when omitted,
             so callers that don't already hold a config don't have to build one.
     """
-    if not isinstance(model, str) or not model.startswith(OPENAI_COMPATIBLE_PREFIX):
+    if not isinstance(model, str):
         return model
-    return resolve_openai_compatible_model(model, config if config is not None else load_config())
+    if model.startswith(ATLAS_PREFIX):
+        return resolve_atlas_model(model)
+    if model.startswith(OPENAI_COMPATIBLE_PREFIX):
+        return resolve_openai_compatible_model(
+            model, config if config is not None else load_config()
+        )
+    return model
 
 
-__all__ = ["resolve_cli_model", "resolve_openai_compatible_model"]
+__all__ = ["resolve_atlas_model", "resolve_cli_model", "resolve_openai_compatible_model"]

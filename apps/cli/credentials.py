@@ -58,6 +58,13 @@ CREDENTIALS: tuple[Credential, ...] = (
         provider_id="openai",
     ),
     Credential(
+        "ATLASCLOUD_API_KEY",
+        "Atlas Cloud",
+        "Model providers",
+        "https://www.atlascloud.ai/console/api-keys",
+        provider_id="atlas",
+    ),
+    Credential(
         "GEMINI_API_KEY",
         "Google Gemini (AI Studio)",
         "Model providers",

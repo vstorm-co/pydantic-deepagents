@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A fresh install of 0.3.45 failed on import.** `pydantic-ai-backend` 0.2.32
+  imported `httpx` for every workspace without declaring it in the `workspaces`
+  extra, so `import pydantic_deep` raised `ModuleNotFoundError: No module named
+  'httpx'` outside a development environment. The requirement is now
+  `pydantic-ai-backend>=0.2.33`, which declares it.
+- **`create_deep_agent()` needed a package it did not install.** Web search is on
+  by default with a DuckDuckGo fallback for models without a native search tool,
+  and Pydantic AI now builds that fallback with the agent - so a plain
+  `pip install pydantic-deep` raised "requires the `duckduckgo` optional group".
+  The `duckduckgo` group is now part of the base requirement. A new CI job installs
+  the package alone and builds the default agent.
+
 ## [0.3.45] - 2026-10-06
 
 **⚠️ Breaking: deep agents now run on Pydantic AI workspaces.** Pydantic AI 2.52

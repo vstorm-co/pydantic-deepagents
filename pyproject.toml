@@ -108,7 +108,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/vstorm-co/pydantic-deepagents"
-Documentation = "https://github.com/vstorm-co/pydantic-deepagents"
+Documentation = "https://vstorm-co.github.io/pydantic-deepagents/"
 Repository = "https://github.com/vstorm-co/pydantic-deepagents"
 Issues = "https://github.com/vstorm-co/pydantic-deepagents/issues"
 

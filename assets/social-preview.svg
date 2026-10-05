@@ -55,5 +55,5 @@
 
   <!-- footer -->
   <text x="80" y="598" font-family="'SF Mono','Menlo',monospace" font-size="22" fill="#7c7790">github.com/vstorm-co/pydantic-deepagents</text>
-  <text x="1200" y="598" font-size="22" fill="#7c7790" text-anchor="end">oss.vstorm.co</text>
+  <text x="1200" y="598" font-size="22" fill="#7c7790" text-anchor="end">github.com/vstorm-co</text>
 </svg>

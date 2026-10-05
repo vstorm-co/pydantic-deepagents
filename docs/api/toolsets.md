@@ -112,7 +112,7 @@ print(storage.todos)  # Access todos directly
 
 File operation tools. Provided by [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend).
 
-For full documentation, see [pydantic-ai-backend Console Toolset](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console/).
+For full documentation, see [pydantic-ai-backend Console Toolset](https://vstorm-co.github.io/pydantic-ai-backend/concepts/console-toolset/).
 
 ### Tools
 

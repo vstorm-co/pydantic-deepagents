@@ -847,7 +847,7 @@ flowchart TD
     I --> K
     J --> K
 
-    K --> L{"ContextManager<br/>(pydantic-ai-summarization)"}
+    K --> L{"ContextManager<br/>(summarization-pydantic-ai)"}
     L -->|"Token budget<br/>exceeded"| M["LLM-based<br/>summarization"]
     M --> N["Save full history<br/>to messages.json"]
     N --> O["Compressed History"]

@@ -12,7 +12,7 @@ Both are below.
 The fastest way to get the terminal assistant — no Python knowledge required:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deepagents/main/install.sh | bash
 ```
 
 The script installs [uv](https://docs.astral.sh/uv/) automatically if it is not already present,

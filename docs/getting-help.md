@@ -8,7 +8,7 @@ This documentation is your primary resource. Use the search bar (press `/` or `s
 
 For bugs, feature requests, or questions:
 
-[:fontawesome-brands-github: Open an Issue](https://github.com/vstorm-co/pydantic-deep/issues){ .md-button }
+[:fontawesome-brands-github: Open an Issue](https://github.com/vstorm-co/pydantic-deepagents/issues){ .md-button }
 
 ### Before Opening an Issue
 

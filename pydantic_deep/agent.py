@@ -307,6 +307,7 @@ def _make_default_deep_agent_factory(
     memory_dir: Any,
     web_search: bool,
     web_fetch: bool,
+    include_execute: bool,
 ) -> Callable[[dict[str, Any]], Any]:
     """Build the default subagent factory closure.
 
@@ -328,7 +329,9 @@ def _make_default_deep_agent_factory(
             model=cfg.get("model", model),
             instructions=instructions,
             include_filesystem=True,
-            include_execute=True,
+            # The parent's choice: a subagent works in the parent's workspace,
+            # so it runs commands exactly when the parent can.
+            include_execute=include_execute,
             include_todo=True,
             web_search=web_search,
             web_fetch=web_fetch,
@@ -1109,6 +1112,7 @@ def create_deep_agent(  # noqa: C901
             memory_dir=memory_dir,
             web_search=web_search,
             web_fetch=web_fetch,
+            include_execute=include_execute,
         )
 
         # Inject agent_factory + per-subagent context/memory/extra toolsets. These

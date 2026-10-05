@@ -51,14 +51,12 @@ from pydantic_ai.capabilities import LocalWorkspace
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
     DaytonaWorkspace,
-    DockerSandbox,
     DockerWorkspace,
     FileData,
     FileInfo,
     KubernetesWorkspace,
     RuntimeConfig,
     SandboxdWorkspace,
-    SessionManager,
     StateBackend,
     StateWorkspace,
     create_console_toolset,
@@ -341,13 +339,10 @@ __all__ = [
     "DaytonaWorkspace",
     "StateWorkspace",
     "StateBackend",
-    "DockerSandbox",
     # Runtimes
     "RuntimeConfig",
     "BUILTIN_RUNTIMES",
     "get_runtime",
-    # Session Management
-    "SessionManager",
     # Capabilities (pydantic-ai AbstractCapability)
     "BrowserCapability",
     "SkillsCapability",

@@ -80,7 +80,7 @@ visual inspection or passing pages to a multimodal model.
 
 Args:
     path: Path to the document in the workspace.
-    output_dir: Backend directory to save screenshots (default: /screenshots).
+    output_dir: Workspace directory to save screenshots (default: screenshots).
     target_pages: Pages to screenshot, e.g. "1-5" or "1,3,5". None means all pages."""
 
 

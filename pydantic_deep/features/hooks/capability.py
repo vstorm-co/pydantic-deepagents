@@ -207,7 +207,9 @@ async def _execute_command_hook(
     # Escape single quotes for shell safety
     escaped = json_str.replace("'", "'\\''")
     full_command = f"printf '%s' '{escaped}' | {hook.command}"
-    response = await workspace.run(full_command, shell=True, timeout=hook.timeout)
+    # A hook's command is a shell line by contract (Claude Code's), written by
+    # whoever configures the agent, and it runs inside the run's workspace.
+    response = await workspace.run(full_command, shell=True, timeout=hook.timeout)  # nosec B604
     return _parse_command_result(response)
 
 

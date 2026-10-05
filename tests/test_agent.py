@@ -4,6 +4,8 @@ from typing import Any
 
 import pytest
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.workspaces import Workspace
+from pydantic_ai_backends import StateWorkspace
 
 from pydantic_deep import (
     DeepAgentDeps,
@@ -84,6 +86,7 @@ class TestCreateDeepAgent:
             memory_dir=None,
             web_search=False,
             web_fetch=False,
+            include_execute=True,
         )
         defaults.update(parent_kwargs)
         return _make_default_deep_agent_factory(**defaults)
@@ -109,6 +112,29 @@ class TestCreateDeepAgent:
         on_types = _sub_caps(parent_web_search=True, parent_web_fetch=True)
         assert WebSearch in on_types
         assert WebFetch in on_types
+
+    async def test_default_subagent_factory_inherits_include_execute(self):
+        """A subagent works in its parent's workspace, so it runs commands
+        exactly when the parent does - not in a workspace that has none."""
+        from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+        async def _tool_names(include_execute: bool) -> set[str]:
+            seen: set[str] = set()
+
+            def _model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+                seen.update(t.name for t in info.function_tools)
+                return ModelResponse(parts=[TextPart("done")])
+
+            factory = self._default_factory(include_execute=include_execute)
+            sub_agent = factory({"instructions": "", "model": FunctionModel(_model)})
+            await sub_agent.run(
+                "go", deps=DeepAgentDeps(), workspace=Workspace(StateWorkspace().backend())
+            )
+            return seen
+
+        assert "execute" not in await _tool_names(include_execute=False)
+        assert "execute" in await _tool_names(include_execute=True)
 
     def test_default_subagent_factory_prepends_base_prompt(self):
         """Subagent factory always prepends BASE_PROMPT before task instructions."""

@@ -20,6 +20,8 @@ import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai.workspaces import SupportsCommands
+
 from .directory import _extract_skill_fields, _parse_skill_md
 from .exceptions import SkillResourceLoadError, SkillScriptExecutionError, SkillValidationError
 from .types import SKILL_RESOURCE_EXTENSIONS, Skill, SkillResource, SkillScript
@@ -224,11 +226,17 @@ class WorkspaceSkillsDirectory:
         if fields is None:
             return None
         files = await _files_under(workspace, skill_dir)
+        # A workspace that runs no commands cannot run a script - and reports
+        # trying as misuse, not as a failed script - so it offers none.
+        runs_scripts = isinstance(workspace.backend, SupportsCommands)
+        scripts = (
+            _scripts(files, skill_dir, fields["name"], self._script_timeout) if runs_scripts else []
+        )
         return Skill(
             **fields,
             uri=skill_dir,
             resources=_resources(files, skill_dir),  # type: ignore[arg-type]
-            scripts=_scripts(files, skill_dir, fields["name"], self._script_timeout),  # type: ignore[arg-type]
+            scripts=scripts,  # type: ignore[arg-type]
         )
 
 

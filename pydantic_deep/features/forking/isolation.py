@@ -694,7 +694,8 @@ class LocalBranchOverlay(BranchOverlay):
                     _rewrite_parent_root(arg, str(parent_root), str(snap)) for arg in command
                 ]
             try:
-                return await local.run(rewritten, shell=shell, env=env, timeout=timeout)
+                # Forwards the caller's `shell` choice to the branch's copy.
+                return await local.run(rewritten, shell=shell, env=env, timeout=timeout)  # nosec B604
             finally:
                 # Mirror what the command changed before it returned, failed or
                 # timed out, so a partly-completed command is not lost on merge.

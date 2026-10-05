@@ -42,28 +42,43 @@ def _local(tmp_path: Path) -> Workspace:
 
 
 class TestDiscovery:
-    async def test_finds_skills_with_their_resources_and_scripts(self) -> None:
-        workspace = state_workspace(
-            {
-                "/skills/pdf/SKILL.md": _skill("pdf", "Handles PDFs"),
-                "/skills/pdf/FORMS.md": "# Forms",
-                "/skills/pdf/data/fields.json": "{}",
-                "/skills/pdf/extract.py": "print('x')",
-                "/skills/pdf/scripts/fill.py": "print('y')",
-                "/skills/pdf/scripts/__init__.py": "",
-                "/skills/pdf/lib/helper.py": "",
-                "/skills/csv/SKILL.md": _skill("csv"),
-            }
-        )
-        skills = await WorkspaceSkillsDirectory(path="skills").discover(workspace)
+    async def test_finds_skills_with_their_resources_and_scripts(self, tmp_path: Path) -> None:
+        files = {
+            "skills/pdf/SKILL.md": _skill("pdf", "Handles PDFs"),
+            "skills/pdf/FORMS.md": "# Forms",
+            "skills/pdf/data/fields.json": "{}",
+            "skills/pdf/extract.py": "print('x')",
+            "skills/pdf/scripts/fill.py": "print('y')",
+            "skills/pdf/scripts/__init__.py": "",
+            "skills/pdf/lib/helper.py": "",
+            "skills/csv/SKILL.md": _skill("csv"),
+        }
+        for path, content in files.items():
+            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / path).write_text(content)
+        skills = await WorkspaceSkillsDirectory(path="skills").discover(_local(tmp_path))
 
         assert sorted(skills) == ["csv", "pdf"]
         pdf = skills["pdf"]
         assert pdf.description == "Handles PDFs"
-        assert pdf.uri == "/skills/pdf"
+        assert pdf.uri is not None and pdf.uri.endswith("skills/pdf")
         assert sorted(r.name for r in pdf.resources) == ["FORMS.md", "data/fields.json"]
         assert sorted(s.name for s in pdf.scripts) == ["extract.py", "scripts/fill.py"]
         assert all(s.skill_name == "pdf" for s in pdf.scripts)
+
+    async def test_a_workspace_without_commands_offers_no_scripts(self) -> None:
+        """It cannot run them, and says so as misuse rather than a failed script."""
+        workspace = state_workspace(
+            {
+                "/skills/pdf/SKILL.md": _skill("pdf"),
+                "/skills/pdf/FORMS.md": "# Forms",
+                "/skills/pdf/extract.py": "print('x')",
+            }
+        )
+        skills = await WorkspaceSkillsDirectory(path="skills").discover(workspace)
+
+        assert [r.name for r in skills["pdf"].resources] == ["FORMS.md"]
+        assert skills["pdf"].scripts == []
 
     async def test_a_missing_folder_holds_no_skills(self) -> None:
         assert await WorkspaceSkillsDirectory(path="nowhere").discover(state_workspace()) == {}

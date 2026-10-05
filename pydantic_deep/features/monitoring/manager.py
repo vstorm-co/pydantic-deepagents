@@ -111,7 +111,8 @@ class MonitorManager:
             label=label or monitor_id,
             command=command,
             log_path=log_path,
-            process=asyncio.create_task(self._workspace.run(script, shell=True)),
+            # A shell line, as `execute` runs one, inside the run's workspace.
+            process=asyncio.create_task(self._workspace.run(script, shell=True)),  # nosec B604
             matcher=_compile(match),
             match_str=match,
         )

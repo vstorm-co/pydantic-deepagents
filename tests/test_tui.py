@@ -600,7 +600,6 @@ class TestMessageQueueIntegration:
 def _queue_app() -> DeepApp:
     """An app with a real TestModel agent and a shared queue, so a turn can run."""
     from pydantic_ai.models.test import TestModel
-    from pydantic_ai_backends import StateBackend
 
     from pydantic_deep import DeepAgentDeps, create_deep_agent
     from pydantic_deep.features.message_queue import MessageQueue
@@ -623,7 +622,7 @@ def _queue_app() -> DeepApp:
         context_discovery=False,
         include_monitoring=False,
     )
-    deps = DeepAgentDeps(backend=StateBackend(), message_queue=queue)
+    deps = DeepAgentDeps(message_queue=queue)
     return DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
 
 

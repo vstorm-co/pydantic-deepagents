@@ -13,7 +13,7 @@ gave every run one environment to work in, `ctx.workspace`, and
 feature here that read or wrote `ctx.deps.backend` now works in the run's
 workspace instead, so any Pydantic AI workspace capability works as the agent's
 environment — including the harness's E2B, Modal and Sprites. Requires
-`pydantic-ai-slim>=2.52.0`, `pydantic-ai-backend>=0.2.31` and
+`pydantic-ai-slim>=2.52.0`, `pydantic-ai-backend>=0.2.32` and
 `subagents-pydantic-ai>=0.2.25`. See the new "Workspaces" page, and the table on
 it for what replaces each removed name.
 
@@ -49,11 +49,28 @@ it for what replaces each removed name.
   `BranchIsolation.workspace`; `LocalBranchOverlay` runs a branch's
   `test_command` in a temporary copy of a local project; `branch_workspace`
   gives the workspace a branch runs in.
-- **The CLI works in `LocalWorkspace` or one Docker container per project and
-  workspace name**, mounting the project at `/workspace`; a session without a
-  workspace name gets a container of its own, removed when the session ends.
+- **The CLI works in a confined local workspace or one Docker container per
+  project and workspace name**, mounting the project at `/workspace`; a session
+  without a workspace name gets a container of its own, removed when the session
+  ends. Locally, file tools stay inside the project (`ConfinedWorkspace`, as
+  `LocalBackend(root_dir=...)` kept them) and commands get the user's
+  environment; every run passes the session's workspace, so a history saved by
+  another process or before a model switch keeps working.
 - **The ACP server and the deepresearch app** pass each session's workspace to
-  its runs.
+  its runs; the ACP server's is confined to the editor's project.
+- **Uploads reach every run's workspace.** `deps.upload_file` keeps the bytes,
+  and each run writes the latest version of every upload into its workspace
+  when it starts - once, so a file the agent changed is not overwritten. A run
+  in a new in-memory document finds what the prompt lists.
+- **A command hook that cannot decide refuses rather than ends the run.** One
+  that times out, floods its output or runs in a workspace without commands -
+  the default, or a fork branch's view of a container - is undecided: before a
+  tool, the call is refused with the reason, and the run goes on. Before, a
+  timeout allowed the call.
+- **`LocalWorkspace` is Pydantic AI's, and confines nothing**: its file tools
+  reach any path, and its commands get only `PATH`, `HOME` and the locale.
+  Wrap it in `ConfinedWorkspace` to keep file operations in its directory; pass
+  `env=` for more of the environment.
 
 ### Removed
 

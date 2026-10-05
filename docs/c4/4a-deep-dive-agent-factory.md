@@ -355,27 +355,28 @@ def get_subagents_summary(self) -> str:
     return "\n".join(lines)
 ```
 
-#### `upload_file()` / `upload_files()` / `write_pending_uploads()`
+#### `upload_file()` / `upload_files()` / `write_uploads()`
 
-Queue files for the next run, with encoding detection and metadata tracking. A
-workspace is attached to a run, so before one starts there is nowhere to write
-them: the bytes wait in the deps, and `write_pending_uploads` writes them into
-the run's workspace when it starts.
+Keep a file for the runs that follow, with encoding detection and metadata
+tracking. A workspace is attached to a run, so before one starts there is
+nowhere to write it: the bytes stay in the deps, and `write_uploads` writes the
+latest version of each into the run's workspace when it starts - once per
+workspace, so a file the agent changed is not overwritten, and a run in a new
+in-memory document still finds what the prompt lists.
 
 ```python
 async def upload_file(self, name: str, content: bytes, *, upload_dir: str = "uploads") -> str:
     path = f"{upload_dir.rstrip('/')}/{name}"
-    detection = chardet.detect(content)
+    self._upload_bytes[path] = content
+    self._upload_versions[path] = self._upload_versions.get(path, 0) + 1
     ...
-    self._pending_uploads[path] = content
     self.uploads[path] = UploadedFile(name=name, path=path, size=len(content), ...)
     return path
 
-async def write_pending_uploads(self, workspace: Workspace) -> None:
-    while self._pending_uploads:
-        path, content = next(iter(self._pending_uploads.items()))
-        await workspace.write_bytes(path, content)
-        del self._pending_uploads[path]
+async def write_uploads(self, workspace: Workspace) -> None:
+    # Written when the workspace (by its ref) lacks the latest version;
+    # a workspace without a ref gets a file only when it does not see one.
+    ...
 ```
 
 #### `get_uploads_summary()`
@@ -597,7 +598,7 @@ classDiagram
         +get_subagents_summary() str
         +upload_file(name, content) str
         +upload_files(files) list
-        +write_pending_uploads(workspace) None
+        +write_uploads(workspace) None
         +get_uploads_summary() str
         +clone_for_subagent(max_depth) DeepAgentDeps
     }

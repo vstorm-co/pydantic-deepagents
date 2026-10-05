@@ -301,16 +301,16 @@ def get_subagents_summary(self) -> str
 
 Generate summary of available subagents.
 
-#### upload_file / upload_files / write_pending_uploads
+#### upload_file / upload_files / write_uploads
 
 ```python
 async def upload_file(self, name: str, content: bytes, *, upload_dir: str = "uploads") -> str
-async def write_pending_uploads(self, workspace: Workspace) -> None
+async def write_uploads(self, workspace: Workspace) -> None
 ```
 
 Queue a file for the next run and record its metadata for the system prompt.
 The run writes it into its workspace when it starts; call
-`write_pending_uploads` yourself to write it into a workspace outside a run.
+`write_uploads` yourself to write it into a workspace outside a run.
 
 #### clone_for_subagent
 

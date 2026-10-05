@@ -22,6 +22,8 @@ from pydantic_deep import (
     DaytonaWorkspace,
     # The document a StateWorkspace works in
     StateBackend,
+    # Keeps file operations inside a workspace's working directory
+    ConfinedWorkspace,
     # Docker runtimes
     RuntimeConfig,
     BUILTIN_RUNTIMES,
@@ -48,6 +50,11 @@ from pydantic_deep import (
 
 Each sandbox capability creates its environment on first use and keeps it after
 the run; `await capability.destroy(ref)` removes it.
+
+`ConfinedWorkspace(workspace)` wraps a workspace and refuses a file operation
+whose real path leaves its working directory; the console's `glob` and `grep`
+check their search root the same way. Commands are not confined. See
+[Workspaces](../concepts/workspaces.md#localworkspace-real-files-on-disk).
 
 ## Console Toolset
 

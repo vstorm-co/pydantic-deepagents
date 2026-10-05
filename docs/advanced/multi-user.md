@@ -12,13 +12,13 @@ Give each user their own, and they're isolated. That's the whole idea.
 
 ```python
 from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
-from pydantic_deep import create_deep_agent, DeepAgentDeps
+from pydantic_deep import ConfinedWorkspace, create_deep_agent, DeepAgentDeps
 
 agent = create_deep_agent(workspace=False, include_memory=True)  # (1)!
 
 
 async def handle_request(user_id: str, message: str) -> str:
-    workspace = Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}"))  # (2)!
+    workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))  # (2)!
     result = await agent.run(message, deps=DeepAgentDeps(), workspace=workspace)  # (3)!
     return result.output
 ```
@@ -40,10 +40,16 @@ agent = create_deep_agent(workspace=False, include_memory=True)
 ### A workspace per user
 
 ```python hl_lines="1"
-workspace = Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}"))
+workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
 ```
 
-This is where isolation happens. Point each run at a per-user directory and user `alice` can never read user `bob`'s files — they're in different folders on disk.
+This is where isolation happens. Point each run at a per-user directory, confined, and the file tools of user `alice` cannot reach user `bob`'s files: a path outside her directory - absolute, `..`, or through a symlink - is refused.
+
+!!! warning "The shell is not confined"
+    `ConfinedWorkspace` keeps the **file tools** in the directory. A shell
+    command reaches whatever the server process can, `bob`'s folder included.
+    For users you don't trust with your server, give each one a container -
+    the Docker tab below - or turn the shell off with `include_execute=False`.
 
 !!! info "Why this works"
     Pydantic AI hands every tool the run's workspace as `ctx.workspace`. The
@@ -70,12 +76,14 @@ The workspace is the dial you turn for the isolation-vs-persistence trade-off. S
 
     ```python
     from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
+    from pydantic_deep import ConfinedWorkspace
 
-    workspace = Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}"))
+    workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
     ```
 
-    Isolation **and** persistence — a user's memory and files are still there
-    next session. No process-level sandbox, so don't run untrusted code here.
+    Persistence — a user's memory and files are still there next session — and
+    file tools confined to their directory. No process-level sandbox, so the
+    shell is not isolated: don't run untrusted code here.
 
 === "Sandboxed (Docker)"
 
@@ -119,9 +127,11 @@ A complete tenant-aware endpoint: one agent, a workspace and deps per request, h
 ```python hl_lines="12 13 22"
 from fastapi import FastAPI
 from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
-from pydantic_deep import create_deep_agent, DeepAgentDeps, FileCheckpointStore
+from pydantic_deep import ConfinedWorkspace, create_deep_agent, DeepAgentDeps, FileCheckpointStore
 
-agent = create_deep_agent(workspace=False, include_memory=True, include_checkpoints=True)
+agent = create_deep_agent(
+    workspace=False, include_execute=False, include_memory=True, include_checkpoints=True
+)
 app = FastAPI()
 
 # One conversation history per user. Use a real datastore in production.
@@ -129,7 +139,7 @@ user_histories: dict[str, list] = {}
 
 
 def user_workspace(user_id: str) -> Workspace:
-    return Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}"))
+    return ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
 
 
 @app.post("/chat/{user_id}")
@@ -159,7 +169,7 @@ Multi-tenancy falls out of one design decision: the workspace is per-run.
 
 - Build the **agent once** with `workspace=False`; it's stateless and shared across every request.
 - Pass **each run its user's workspace** — that's where isolation lives.
-- Pick the **workspace** for your trade-off: `StateWorkspace` (ephemeral), a local directory (persistent), or a named Docker container (isolated execution).
+- Pick the **workspace** for your trade-off: `StateWorkspace` (ephemeral), a confined local directory (persistent, file tools only), or a named Docker container (isolated execution).
 - Scope the **checkpoint store** and **message history** per user too — they live outside the workspace.
 
 Where to go next:

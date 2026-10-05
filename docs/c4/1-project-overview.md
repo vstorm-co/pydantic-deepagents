@@ -44,7 +44,7 @@ pydantic-deep provides a single high-level factory function (`create_deep_agent`
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `pydantic-ai-todo` | >= 0.2.1 | Task planning with dependencies |
-| `pydantic-ai-backend` | >= 0.2.31 | Workspace capabilities (StateWorkspace, DockerWorkspace, sandboxes) and console tools |
+| `pydantic-ai-backend` | >= 0.2.32 | Workspace capabilities (StateWorkspace, DockerWorkspace, sandboxes) and console tools |
 | `summarization-pydantic-ai` | >= 0.1.3 | Context compression / summarization |
 | `subagents-pydantic-ai` | >= 0.2.1 | Multi-agent delegation |
 | `pydantic-ai-shields` | >= 0.3.1 | Cost tracking, input/tool/output shields |

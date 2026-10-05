@@ -93,6 +93,22 @@ result = await agent.run("Create a Python script and run it", deps=DeepAgentDeps
 Commands run on your machine, in that directory. `LocalWorkspace(path,
 read_only=True)` refuses every write.
 
+`LocalWorkspace` points the run at the directory but **confines nothing**: an
+absolute path, a `..` or a symlink reaches any file the process can. To keep the
+file tools - which usually run without approval - inside it, wrap the workspace
+in `ConfinedWorkspace` and pass it to the run:
+
+```python
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
+from pydantic_deep import ConfinedWorkspace
+
+project = ConfinedWorkspace(Workspace(LocalWorkspaceBackend("./project")))
+result = await agent.run(prompt, deps=DeepAgentDeps(), workspace=project)
+```
+
+Commands are not confined by it; isolate those in a container. The CLI and the
+ACP server confine their project this way.
+
 ### DockerWorkspace — safe code execution
 
 ```python

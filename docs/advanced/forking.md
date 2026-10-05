@@ -144,7 +144,7 @@ merge = await coordinator.merge_or_select(f"pick:{handle.branches[0]}")
 print(merge.winner_branch_id, len(merge.history_after_merge))
 ```
 
-Merging flushes the winner's overlay writes onto the parent workspace and adopts its history into the parent run. If a third actor changed a file during the fork, the winner's write still lands (last-write-wins) and the divergence shows up in [`MergeResult.conflicts`][pydantic_deep.features.forking.types.MergeResult].
+Merging flushes the winner's overlay writes onto the parent workspace and adopts its history into the parent run. If a third actor changed a file during the fork, the winner's change to it is **not** applied - the newer content stays - and the path shows up in [`MergeResult.conflicts`][pydantic_deep.features.forking.types.MergeResult] for you to resolve.
 
 !!! warning "Rewind restores history, not files"
     The `post-fork:<id>` checkpoint captures conversation history only. After a

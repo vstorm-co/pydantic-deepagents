@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -212,6 +212,19 @@ class TestMonitorManager:
         with contextlib.suppress(asyncio.CancelledError):
             await asyncio.wait_for(mon.process, timeout=5)
         assert mon.process.cancelled()
+
+    async def test_a_log_not_written_yet_reads_as_no_lines(self, tmp_path: Path) -> None:
+        """The first poll can come before the command's first byte. Pinned
+        directly, because whether a real command wins that race varies by host."""
+        mgr = MonitorManager(Workspace(LocalWorkspaceBackend(tmp_path)), poll_interval=0.05)
+        info = await mgr.start("sleep 30")
+        mon = mgr._monitors[info.monitor_id]
+        try:
+            missing = replace(mon, log_path=str(tmp_path / "never-written.log"))
+            assert await mgr._new_lines(missing) == []
+            assert missing.read_offset == 0
+        finally:
+            await mgr.stop(info.monitor_id)
 
     async def test_each_line_is_read_once(self, tmp_path: Path) -> None:
         events: list[MonitorEvent] = []

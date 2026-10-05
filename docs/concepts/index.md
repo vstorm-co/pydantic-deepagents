@@ -18,9 +18,9 @@ pydantic-deep rests on four pillars:
 </div>
 
 <div class="feature-card">
-<h3>💾 Backends</h3>
-<p>Pluggable storage for files - in-memory, filesystem, or Docker.</p>
-<a href="backends/">Learn about Backends →</a>
+<h3>💾 Workspaces</h3>
+<p>Where a run works - in memory, a local directory, or a sandbox.</p>
+<a href="workspaces/">Learn about Workspaces →</a>
 </div>
 
 <div class="feature-card">
@@ -58,10 +58,10 @@ pydantic-deep rests on four pillars:
 │  └──────────────┘                                               │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│                       DeepAgentDeps                              │
+│              Workspace  +  DeepAgentDeps                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │   Backend    │  │    Todos     │  │  Subagents   │           │
-│  │  (storage)   │  │   (list)     │  │   (dict)     │           │
+│  │  Workspace   │  │    Todos     │  │  Subagents   │           │
+│  │(files, shell)│  │   (list)     │  │   (dict)     │           │
 │  └──────────────┘  └──────────────┘  └──────────────┘           │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -117,10 +117,9 @@ agent = create_deep_agent(
 ### Creating Dependencies
 
 ```python
-from pydantic_deep import DeepAgentDeps, StateBackend
+from pydantic_deep import DeepAgentDeps
 
 deps = DeepAgentDeps(
-    backend=StateBackend(),  # File storage
     todos=[],                # Task list
     subagents={},            # Preconfigured agents
 )
@@ -148,20 +147,18 @@ Built entirely on Pydantic AI, leveraging:
 - Structured output support
 - Model-agnostic design
 
-### 2. Protocol-Based Backends
+### 2. Workspaces
 
-Storage is abstracted through protocols:
+Files and commands go through the run's Pydantic AI workspace, `ctx.workspace`:
 
 ```python
-from typing import Protocol
-
-class BackendProtocol(Protocol):
-    def read(self, path: str) -> str: ...
-    def write(self, path: str, content: str) -> WriteResult: ...
-    # ... more methods
+await ctx.workspace.read_text(path)
+await ctx.workspace.write_text(path, content)
+await ctx.workspace.run(["pytest", "-q"])  # where the workspace runs commands
 ```
 
-This allows easy extension for new storage backends.
+Any workspace capability plugs in — in memory, a local directory, Docker,
+sandboxd, Kubernetes, Daytona, or one of your own.
 
 ### 3. Progressive Disclosure
 
@@ -177,7 +174,7 @@ Subagents run in isolated contexts:
 
 - Fresh todo list
 - No nested subagent delegation
-- Shared file storage (by reference)
+- The parent's workspace
 
 This prevents context bloat and infinite recursion.
 
@@ -185,6 +182,6 @@ This prevents context bloat and infinite recursion.
 
 - [Tutorial — User Guide](../learn/index.md) - learn every feature, step by step
 - [Agents](agents.md) - Deep dive into agent creation
-- [Backends](backends.md) - Understanding storage options
+- [Workspaces](workspaces.md) - Where a run works
 - [Toolsets](toolsets.md) - Available tools and customization
 - [Skills](skills.md) - Creating and using skills

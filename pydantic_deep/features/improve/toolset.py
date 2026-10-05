@@ -162,7 +162,7 @@ class ImproveToolset(FunctionToolset[Any]):
                 extraction/synthesis agents.
             context_files: Mapping of logical context file names to paths
                 relative to working_dir. See
-                :data:`~pydantic_deep.improve.analyzer.DEFAULT_CONTEXT_FILES`.
+                :data:`~pydantic_deep.features.improve.analyzer.DEFAULT_CONTEXT_FILES`.
         """
         super().__init__(id="deep-improve")
         self._sessions_dir = sessions_dir

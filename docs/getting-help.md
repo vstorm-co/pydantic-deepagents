@@ -8,7 +8,7 @@ This documentation is your primary resource. Use the search bar (press `/` or `s
 
 For bugs, feature requests, or questions:
 
-[:fontawesome-brands-github: Open an Issue](https://github.com/vstorm-co/pydantic-deep/issues){ .md-button }
+[:fontawesome-brands-github: Open an Issue](https://github.com/vstorm-co/pydantic-deepagents/issues){ .md-button }
 
 ### Before Opening an Issue
 
@@ -96,25 +96,28 @@ Yes! pydantic-deep is fully async-native:
 
 ```python
 from fastapi import FastAPI
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 app = FastAPI()
 agent = create_deep_agent()
 
 @app.post("/chat")
 async def chat(prompt: str):
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run(prompt, deps=deps)
     return {"response": result.output}
 ```
 
 ### How do I persist files between runs?
 
-Use `LocalBackend` instead of `StateBackend`:
+Give the agent a workspace on disk instead of the in-memory default:
 
 ```python
-from pydantic_ai_backends import LocalBackend
+from pydantic_deep import LocalWorkspace, create_deep_agent
 
-backend = LocalBackend("/path/to/workspace")
-deps = DeepAgentDeps(backend=backend)
+agent = create_deep_agent(workspace=LocalWorkspace("/path/to/workspace"))
 ```
+
+In memory, a run that continues the conversation (`message_history=result.all_messages()`)
+works in the same document as the run before it; a new conversation gets a new one.
+See [Workspaces](concepts/workspaces.md).

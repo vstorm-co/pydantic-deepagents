@@ -14,7 +14,7 @@ Autonomous research agent powered by **pydantic-deep** — web search, code exec
 - **Python 3.12+**
 - **uv** — `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - **Node.js 20+** — for MCP servers (`npx`)
-- **Docker** — for per-user sandbox containers (SessionManager)
+- **Docker** — for per-session sandbox containers (`DockerWorkspace`)
 - **OpenAI or Anthropic API key**
 
 ## Quick Start
@@ -203,7 +203,7 @@ FastAPI (app.py)
    │
    ├─ Middleware (AuditMiddleware, PermissionMiddleware)
    ├─ Hooks (audit_logger, safety_gate)
-   └─ SessionManager (per-user Docker containers)
+   └─ DockerWorkspace (a container per session, files on the host)
 ```
 
 ## Docker
@@ -220,7 +220,7 @@ docker compose up -d excalidraw-canvas
 docker compose up -d
 ```
 
-**Docker socket access** is required — the app spawns per-user Docker containers for sandboxed code execution via `SessionManager`.
+**Docker socket access** is required — the app spawns a Docker container per session for sandboxed code execution, through `DockerWorkspace`.
 
 ## Development
 

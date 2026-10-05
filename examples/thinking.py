@@ -6,7 +6,7 @@ for different use cases.
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def main():
@@ -18,12 +18,12 @@ async def main():
     # create_deep_agent(thinking="xhigh")  # Maximum reasoning
     # create_deep_agent(thinking=False)    # Disable thinking
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    # Write some code for the agent to analyze
-    deps.backend.write(
-        "/src/algorithm.py",
-        '''\
+    # Give the agent some code to analyze: it lands at /src/algorithm.py
+    await deps.upload_file(
+        "algorithm.py",
+        b'''\
 def find_shortest_path(graph, start, end):
     """Find shortest path using BFS."""
     queue = [(start, [start])]
@@ -43,6 +43,7 @@ def find_shortest_path(graph, start, end):
 
     return None
 ''',
+        upload_dir="src",
     )
 
     # With high thinking, the agent will reason through the algorithm

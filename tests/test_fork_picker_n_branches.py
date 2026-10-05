@@ -20,13 +20,13 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 from textual.widgets import Input, Static
 
 from apps.cli.app import DeepApp
 from apps.cli.forking import ForkPickerResult
 from apps.cli.modals.fork_picker import ForkPickerModal
 from pydantic_deep import DeepAgentDeps, create_deep_agent
+from tests.workspaces import state_workspace
 
 
 def _make_fork_agent() -> Agent[DeepAgentDeps, str]:
@@ -50,7 +50,8 @@ def _make_fork_agent() -> Agent[DeepAgentDeps, str]:
 
 def _make_app() -> DeepApp:
     agent = _make_fork_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
+    agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
     app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
     app.message_history = [ModelRequest(parts=[UserPromptPart(content="seed turn")])]
     return app

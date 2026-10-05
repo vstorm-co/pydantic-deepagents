@@ -2,7 +2,7 @@
 # pydantic-deep installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deepagents/main/install.sh | bash
 
 set -euo pipefail
 

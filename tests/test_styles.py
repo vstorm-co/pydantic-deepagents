@@ -357,10 +357,7 @@ class TestCreateDeepAgentWithStyle:
 
     def _get_static_instructions(self, agent: Any) -> str:
         """Extract the static instructions string from an agent."""
-        instructions = agent._instructions
-        if isinstance(instructions, list):
-            return instructions[0]  # type: ignore[no-any-return]
-        return instructions  # type: ignore[no-any-return]  # pragma: no cover
+        return str(agent._instructions[0].instruction)
 
     def test_no_style_by_default(self) -> None:
         """Default agent has no style in instructions."""

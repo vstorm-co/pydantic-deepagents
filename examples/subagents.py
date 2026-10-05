@@ -8,7 +8,7 @@ This example demonstrates:
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 from pydantic_deep.types import SubAgentConfig
 
 
@@ -70,12 +70,12 @@ async def main():
         include_builtin_subagents=False,  # Only use our custom subagents
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    # First, create some code to work with
-    deps.backend.write(
-        "/calculator.py",
-        '''"""Simple calculator module."""
+    # First, give the agent some code to work with: it lands at /calculator.py
+    await deps.upload_file(
+        "calculator.py",
+        b'''"""Simple calculator module."""
 
 def add(a, b):
     return a + b
@@ -86,6 +86,7 @@ def divide(a, b):
 def multiply(a, b):
     return a * b
 ''',
+        upload_dir="/",
     )
 
     # Ask the agent to review, document, and test the code
@@ -105,8 +106,8 @@ def multiply(a, b):
     print(result.output)
 
     print("\nFiles created:")
-    for path in sorted(deps.files.keys()):
-        print(f"  {path}")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else ""))
 
 
 if __name__ == "__main__":

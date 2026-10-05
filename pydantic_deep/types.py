@@ -6,27 +6,9 @@ from dataclasses import dataclass as _dataclass
 from typing import TypedDict, TypeVar
 
 from pydantic_ai.output import OutputSpec
-from pydantic_ai_backends import (
-    EditResult as EditResult,
-)
-from pydantic_ai_backends import (
-    ExecuteResponse as ExecuteResponse,
-)
-from pydantic_ai_backends import (
-    FileData as FileData,
-)
-from pydantic_ai_backends import (
-    FileInfo as FileInfo,
-)
-from pydantic_ai_backends import (
-    GrepMatch as GrepMatch,
-)
-from pydantic_ai_backends import (
-    RuntimeConfig as RuntimeConfig,
-)
-from pydantic_ai_backends import (
-    WriteResult as WriteResult,
-)
+from pydantic_ai_backends import FileData as FileData
+from pydantic_ai_backends import FileInfo as FileInfo
+from pydantic_ai_backends import RuntimeConfig as RuntimeConfig
 from pydantic_ai_todo import Todo as Todo
 from subagents_pydantic_ai import CompiledSubAgent as CompiledSubAgent
 from subagents_pydantic_ai import SubAgentConfig as SubAgentConfig
@@ -68,12 +50,12 @@ class BrowseResult:
 class UploadedFile(TypedDict):
     """Metadata for an uploaded file.
 
-    Uploaded files are stored in the backend and can be accessed by the agent
-    through file tools (read_file, grep, glob, execute).
+    Uploaded files are written to the run's workspace and can be accessed by the
+    agent through file tools (read_file, grep, glob, execute).
     """
 
     name: str  # Original filename
-    path: str  # Path in backend (e.g., /uploads/sales.csv)
+    path: str  # Path in the workspace (e.g., uploads/sales.csv)
     size: int  # Size in bytes
     line_count: int | None  # Number of lines (for text files)
     mime_type: str | None  # MIME type (e.g., text/plain)

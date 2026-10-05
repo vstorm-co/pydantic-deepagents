@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -11,6 +12,7 @@ from apps.cli import clipboard_image as ci
 from apps.cli.app import DeepApp
 from apps.cli.messages import UserSubmitted
 from apps.cli.screens.chat import ChatScreen
+from tests.workspaces import state_workspace
 
 _PNG = b"\x89PNG\r\nfake-bytes"
 
@@ -278,45 +280,23 @@ async def test_submit_without_agent_keeps_images(
         assert "ran" not in ran
 
 
-async def test_capture_old_content_skips_large_and_sentinel(app: DeepApp) -> None:
-    from apps.cli.screens.chat import ChatScreen
-
-    class _Backend:
-        data = b""
-
-        def exists(self, path: str) -> bool:
-            return True
-
-        def read_bytes(self, path: str) -> bytes:
-            return self.data
-
-    backend = _Backend()
-
-    class _Deps:
-        backend: Any
-
-    deps = _Deps()
-    deps.backend = backend
-
+async def test_capture_old_content_skips_large_files(app: DeepApp) -> None:
     async with app.run_test(size=(120, 35)) as pilot:
         await pilot.pause()
         screen = cast(ChatScreen, app.screen)
-        app.deps = deps
+        big = b"x" * (ChatScreen._MAX_DIFF_READ_BYTES + 1)
+        app.agent = cast(
+            Any,
+            SimpleNamespace(_cli_workspace=state_workspace({"/small": "old text", "/big": big})),
+        )
 
-        backend.data = b"old text"
-        args: dict[str, Any] = {"file_path": "/x", "content": "new"}
-        screen._capture_old_content("write_file", args)
+        args: dict[str, Any] = {"file_path": "/small", "content": "new"}
+        await screen._capture_old_content("write_file", args)
         assert args["_old_content"] == "old text"
 
-        backend.data = b"x" * (ChatScreen._MAX_DIFF_READ_BYTES + 1)
-        big: dict[str, Any] = {"file_path": "/x", "content": "new"}
-        screen._capture_old_content("write_file", big)
-        assert "_old_content" not in big
-
-        backend.data = b"[Error: not found]"
-        err: dict[str, Any] = {"file_path": "/x", "content": "new"}
-        screen._capture_old_content("write_file", err)
-        assert "_old_content" not in err
+        large: dict[str, Any] = {"file_path": "/big", "content": "new"}
+        await screen._capture_old_content("write_file", large)
+        assert "_old_content" not in large
 
 
 async def test_paste_action_delegates_to_screen(
@@ -361,46 +341,44 @@ async def test_capture_old_content_for_write_file(app: DeepApp) -> None:
     async with app.run_test(size=(120, 35)) as pilot:
         await pilot.pause()
         screen = cast(ChatScreen, app.screen)
+        app.agent = cast(
+            Any, SimpleNamespace(_cli_workspace=state_workspace({"/x.md": "old content here"}))
+        )
 
-        class _FakeBackend:
-            def exists(self, path: str) -> bool:
-                return True
-
-            def read_bytes(self, path: str) -> bytes:
-                return b"old content here"
-
-        class _Deps:
-            backend = _FakeBackend()
-
-        app.deps = _Deps()
         args = {"file_path": "/x.md", "content": "new"}
-        screen._capture_old_content("write_file", args)
+        await screen._capture_old_content("write_file", args)
         assert args["_old_content"] == "old content here"
 
         # Non-write tools are untouched.
         other = {"command": "ls"}
-        screen._capture_old_content("execute", other)
+        await screen._capture_old_content("execute", other)
         assert "_old_content" not in other
+
+        # A write with no path has nothing to read.
+        pathless: dict[str, Any] = {"content": "new"}
+        await screen._capture_old_content("write_file", pathless)
+        assert "_old_content" not in pathless
 
 
 async def test_capture_old_content_missing_file(app: DeepApp) -> None:
     async with app.run_test(size=(120, 35)) as pilot:
         await pilot.pause()
         screen = cast(ChatScreen, app.screen)
+        app.agent = cast(Any, SimpleNamespace(_cli_workspace=state_workspace()))
 
-        class _FakeBackend:
-            def exists(self, path: str) -> bool:
-                return False
-
-            def read_bytes(self, path: str) -> bytes:  # pragma: no cover
-                raise AssertionError("should not read")
-
-        class _Deps:
-            backend = _FakeBackend()
-
-        app.deps = _Deps()
         args = {"file_path": "/missing.md", "content": "new"}
-        screen._capture_old_content("write_file", args)
+        await screen._capture_old_content("write_file", args)
+        assert "_old_content" not in args
+
+
+async def test_capture_old_content_without_a_workspace(app: DeepApp) -> None:
+    async with app.run_test(size=(120, 35)) as pilot:
+        await pilot.pause()
+        screen = cast(ChatScreen, app.screen)
+        app.agent = cast(Any, SimpleNamespace(_cli_workspace=None))
+
+        args = {"file_path": "/x.md", "content": "new"}
+        await screen._capture_old_content("write_file", args)
         assert "_old_content" not in args
 
 

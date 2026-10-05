@@ -5,7 +5,6 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend
 from pydantic_ai_todo import Todo
 
 from pydantic_deep.deps import DeepAgentDeps
@@ -27,7 +26,7 @@ TEST_MODEL = TestModel()
 
 def _ctx(deps: DeepAgentDeps | None = None) -> RunContext[DeepAgentDeps]:
     return RunContext(
-        deps=deps or DeepAgentDeps(backend=StateBackend()),
+        deps=deps or DeepAgentDeps(),
         model=TEST_MODEL,
         usage=RunUsage(),
     )
@@ -65,7 +64,13 @@ class TestSections:
         assert provider(_ctx()) == ""
 
     def test_subagent_section_lists_specialists(self) -> None:
-        configs: list[SubAgentConfig] = [{"name": "researcher", "description": "Researches things"}]
+        configs: list[SubAgentConfig] = [
+            {
+                "name": "researcher",
+                "description": "Researches things",
+                "instructions": "Research.",
+            }
+        ]
         provider = make_subagent_section(configs)
         assert "researcher" in provider(_ctx())
 
@@ -94,8 +99,12 @@ class TestSections:
 
     def test_lean_subagent_section_lists_roster_only(self) -> None:
         configs: list[SubAgentConfig] = [
-            {"name": "planner", "description": "Plans things"},
-            {"name": "research", "description": "Researches things"},
+            {"name": "planner", "description": "Plans things", "instructions": "Plan."},
+            {
+                "name": "research",
+                "description": "Researches things",
+                "instructions": "Research.",
+            },
         ]
         text = make_lean_subagent_section(configs)(_ctx())
         assert "planner" in text and "research" in text
@@ -142,7 +151,9 @@ class TestBuildAndRender:
         assert len(providers) == 5
 
     def test_tool_search_swaps_in_lean_sections(self) -> None:
-        configs: list[SubAgentConfig] = [{"name": "planner", "description": "Plans"}]
+        configs: list[SubAgentConfig] = [
+            {"name": "planner", "description": "Plans", "instructions": "Plan."}
+        ]
         providers = build_instruction_providers(
             include_todo=True,
             include_filesystem=True,

@@ -31,6 +31,36 @@ app = typer.Typer(
 )
 
 
+def _runs_local_commands() -> bool:
+    """Whether Pydantic AI can run commands on this machine's own shell.
+
+    Its local workspace is POSIX-only: a timed-out command is stopped by killing
+    its whole process group, which Windows has no equivalent of.
+    """
+    return os.name == "posix"
+
+
+def _require_a_local_shell(sandbox: str | None) -> None:
+    """Refuse the local sandbox where it cannot run, before anything is built.
+
+    Without this, Windows failed with `NotImplementedError` from deep inside
+    building the agent - in the TUI, after it had already started.
+    """
+    if _runs_local_commands():
+        return
+    from apps.cli.config import load_config
+
+    if (sandbox or load_config().sandbox) == "docker":
+        return
+    typer.echo(
+        "Error: the local sandbox runs commands on this machine's shell, which needs "
+        "Linux or macOS (or WSL on Windows). Use --sandbox docker, or make it the "
+        "default with `pydantic-deep config set sandbox docker`.",
+        err=True,
+    )
+    raise typer.Exit(1)
+
+
 def _version_callback(value: bool) -> None:
     if value:
         from pydantic_deep import __version__
@@ -134,6 +164,7 @@ def _main_callback(
         if first_run:
             run_onboarding()
 
+        _require_a_local_shell(None)
         ensure_initialized()
         run_tui(working_dir=os.getcwd())
 
@@ -150,7 +181,7 @@ def tui(
     ] = None,
     sandbox: Annotated[
         str | None,
-        typer.Option("--sandbox", "-s", help="Sandbox backend: local or docker (from config)"),
+        typer.Option("--sandbox", "-s", help="Where the agent works: local or docker"),
     ] = None,
     workspace: Annotated[
         str | None,
@@ -172,6 +203,7 @@ def tui(
     if workspace and not sandbox:
         sandbox = "docker"
 
+    _require_a_local_shell(sandbox)
     ensure_initialized()
     run_tui(
         model=model,
@@ -260,7 +292,7 @@ def run(
     ] = None,
     sandbox: Annotated[
         str | None,
-        typer.Option("--sandbox", "-s", help="Sandbox backend: local or docker (from config)"),
+        typer.Option("--sandbox", "-s", help="Where the agent works: local or docker"),
     ] = None,
     workspace: Annotated[
         str | None,
@@ -323,6 +355,7 @@ def run(
     if workspace and not sandbox:
         sandbox = "docker"
 
+    _require_a_local_shell(sandbox)
     if task is None and task_file is None:
         typer.echo("Error: provide a task argument or --task-file", err=True)
         raise typer.Exit(1)

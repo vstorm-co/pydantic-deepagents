@@ -11,21 +11,21 @@ back out.
 The smallest possible agent takes no arguments at all:
 
 ```python
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
-# Create an agent with all the sensible defaults.
+# Create an agent with all the sensible defaults: it works in memory.
 agent = create_deep_agent()
 
-# Dependencies decide *where* state lives (here: in memory).
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 result = await agent.run("Hello!", deps=deps)
 ```
 
 !!! tip "Two objects, one split"
     Keep the mental model simple: the **agent** is *what to do* (model,
-    instructions, which tools), and **`DeepAgentDeps`** is *the world it acts in*
-    (the backend, todos, uploads). The same agent can run against many different
-    deps.
+    instructions, which tools); the **workspace** is *where it works* (files and
+    commands — in memory by default, see [Workspaces](workspaces.md)); and
+    **`DeepAgentDeps`** is *the state it carries* (todos, uploads). The same agent
+    can run in many different workspaces, with many different deps.
 
 ## Configuration Options
 
@@ -299,7 +299,7 @@ See [Structured Output](../learn/structured-output.md) for more details.
 Automatically summarize long conversations:
 
 ```python
-from pydantic_deep.processors import create_summarization_processor
+from pydantic_deep import create_summarization_processor
 
 processor = create_summarization_processor(
     trigger=("tokens", 100000),
@@ -390,20 +390,19 @@ The skills prompt is produced by the `SkillsToolset` itself via its
 
 ## Multi-User Considerations
 
-All stateful features (memory, checkpoints, plans, evicted files) write to `ctx.deps.backend`. In multi-user web apps, create a **separate backend and checkpoint store per user** to prevent state sharing. See the [Multi-User Guide](../advanced/multi-user.md) for isolation patterns.
+All stateful features (memory, plans, evicted files, uploads) write to the run's workspace, `ctx.workspace`. In multi-user web apps, give each user's runs a **separate workspace and checkpoint store** to prevent state sharing. See the [Multi-User Guide](../advanced/multi-user.md) for isolation patterns.
 
 ## Dependencies
 
-The [`DeepAgentDeps`][pydantic_deep.deps.DeepAgentDeps] class holds all runtime state:
+The [`DeepAgentDeps`][pydantic_deep.deps.DeepAgentDeps] class holds the run's
+state. Files are not part of it: they live in the run's workspace.
 
 ```python
 from dataclasses import dataclass
-from pydantic_deep import BackendProtocol, Todo, UploadedFile
+from pydantic_deep import Todo, UploadedFile
 
 @dataclass
 class DeepAgentDeps:
-    backend: BackendProtocol  # File storage
-    files: dict[str, FileData]  # File cache
     todos: list[Todo]  # Task list
     subagents: dict[str, Any]  # Preconfigured agents
     uploads: dict[str, UploadedFile]  # Uploaded files metadata
@@ -412,17 +411,12 @@ class DeepAgentDeps:
 ### Creating Dependencies
 
 ```python
-# Simple - in-memory storage
-deps = DeepAgentDeps(backend=StateBackend())
-
-# With filesystem storage
-from pydantic_ai_backends import LocalBackend
-deps = DeepAgentDeps(backend=LocalBackend("/workspace"))
+# Simple
+deps = DeepAgentDeps()
 
 # With initial todos
 from pydantic_deep import Todo
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     todos=[
         Todo(content="Review code", status="pending", active_form="Reviewing code"),
     ]
@@ -533,9 +527,9 @@ async def save_report(
     content: str,
 ) -> str:
     """Save a report to the filesystem."""
-    # Access the backend through dependencies
-    result = ctx.deps.backend.write("/reports/latest.md", content)
-    return f"Saved to {result.path}"
+    # Files go through the run's workspace
+    await ctx.workspace.write_text("/reports/latest.md", content)
+    return "Saved to /reports/latest.md"
 ```
 
 ## Subagent Configuration
@@ -602,7 +596,7 @@ agent = create_deep_agent(
 ```python
 result = await agent.run("Create a module", deps=deps)
 
-usage = result.usage()
+usage = result.usage
 print(f"Input tokens: {usage.input_tokens}")
 print(f"Output tokens: {usage.output_tokens}")
 print(f"Total requests: {usage.requests}")
@@ -626,10 +620,10 @@ except Exception as e:
 | `ModelRetry` | pydantic-ai | Model requested retry (validation failed) |
 | `UnexpectedModelBehavior` | pydantic-ai | Model produced unexpected output |
 | `UserError` | pydantic-ai | Invalid user input or configuration |
-| `FileNotFoundError` | Backend | File doesn't exist |
-| `PermissionError` | Backend | Access denied |
-| `TimeoutError` | Execution | Command exceeded timeout |
-| `docker.errors.DockerException` | DockerSandbox | Docker operation failed |
+| `FileNotFoundError` | Workspace | File doesn't exist |
+| `PermissionError` | Workspace | Read-only workspace, or access denied |
+| `TimeoutError` | Workspace | Command exceeded timeout |
+| `WorkspaceUnavailableError` | Workspace | The environment is gone or unreachable (e.g. a removed container) |
 
 ### Handling Tool Errors
 
@@ -638,8 +632,7 @@ Tools should return informative error strings rather than raising exceptions:
 ```python
 async def my_tool(ctx: RunContext[DeepAgentDeps], path: str) -> str:
     try:
-        content = ctx.deps.backend.read(path)
-        return content
+        return await ctx.workspace.read_text(path)
     except FileNotFoundError:
         return f"Error: File '{path}' not found"
     except PermissionError:
@@ -681,6 +674,6 @@ async def run_with_fallback(agent, prompt, deps):
 
 ## Next Steps
 
-- [Backends](backends.md) - Storage options
+- [Workspaces](workspaces.md) - Where a run works
 - [Toolsets](toolsets.md) - Available tools
 - [Skills](skills.md) - Modular capabilities

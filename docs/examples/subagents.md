@@ -13,7 +13,7 @@ This example demonstrates:
 - Configuring custom subagents with specialized instructions
 - Delegating tasks to appropriate subagents
 - Coordinating work between the main agent and subagents
-- Context sharing via the backend
+- Context sharing via the workspace
 
 ## When to Use Subagents
 
@@ -31,7 +31,7 @@ Subagents are useful when:
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 from pydantic_deep.types import SubAgentConfig
 
 
@@ -93,12 +93,12 @@ async def main():
         include_builtin_subagents=False,  # Only use our custom subagents
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    # First, create some code to work with
-    deps.backend.write(
-        "/calculator.py",
-        '''"""Simple calculator module."""
+    # First, give the agent some code to work with: it lands at /calculator.py
+    await deps.upload_file(
+        "calculator.py",
+        b'''"""Simple calculator module."""
 
 def add(a, b):
     return a + b
@@ -109,6 +109,7 @@ def divide(a, b):
 def multiply(a, b):
     return a * b
 ''',
+        upload_dir="/",
     )
 
     # Ask the agent to review, document, and test the code
@@ -128,8 +129,8 @@ def multiply(a, b):
     print(result.output)
 
     print("\nFiles created:")
-    for path in sorted(deps.files.keys()):
-        print(f"  {path}")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else ""))
 
 
 if __name__ == "__main__":
@@ -187,21 +188,21 @@ SubAgentConfig(
 
 1. Main agent knows available subagents from system prompt
 2. Main agent calls `task(description, subagent_type)` to delegate
-3. Subagent runs with its own instructions but shares the backend
+3. Subagent runs with its own instructions, in the main agent's workspace
 4. Subagent can read/write files that main agent created
 5. Main agent receives subagent's response and synthesizes results
 
 ### Context Sharing
 
-Subagents share the same backend as the main agent:
+Subagents work in the same workspace as the main agent:
 
 ```python
-# Main agent creates a file
-deps.backend.write("/src/app.py", "...")
+# A tool of the main agent writes a file
+await ctx.workspace.write_text("/src/app.py", "...")
 
-# Subagent can read it
-# (inside subagent's execution)
-content = deps.backend.read("/src/app.py")
+# A tool of the subagent reads it
+# (inside the subagent's run)
+content = await ctx.workspace.read_text("/src/app.py")
 ```
 
 ## Variations
@@ -258,7 +259,7 @@ SubAgentConfig(
 
 1. **Clear descriptions** - Help the main agent choose the right subagent
 2. **Focused instructions** - Each subagent should excel at one thing
-3. **Shared context** - Use the backend to pass data between agents
+3. **Shared context** - Use files in the workspace to pass data between agents
 4. **Appropriate models** - Use cheaper models for simpler subagent tasks
 
 ## Next Steps

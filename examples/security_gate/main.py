@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 
 from pydantic_deep import default_security_hook
-from pydantic_deep.capabilities.hooks import DEFAULT_BLOCKED_COMMANDS, HookEvent, HookInput
+from pydantic_deep.features.hooks import DEFAULT_BLOCKED_COMMANDS, HookEvent, HookInput
 
 
 def _pre_input(tool_name: str, args: dict[str, object]) -> HookInput:

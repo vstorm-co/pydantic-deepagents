@@ -42,11 +42,11 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep.agent import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.checkpointing import CheckpointFrequency
+from pydantic_deep.models import DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS
 
 
 class DeepAgentSpec(BaseModel):
@@ -54,7 +54,7 @@ class DeepAgentSpec(BaseModel):
 
     All fields have the same defaults as `create_deep_agent()`.
     Only serializable parameters are included (callbacks and Python objects
-    like `backend`, `tools`, `toolsets` must be passed as overrides).
+    like `workspace`, `tools`, `toolsets` must be passed as overrides).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -89,6 +89,7 @@ class DeepAgentSpec(BaseModel):
     thinking: bool | str = "high"
     include_history_archive: bool = True
     max_nesting_depth: int = 1
+    subagent_ask_timeout_seconds: float = DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS
     interrupt_on: dict[str, bool] | None = None
     eviction_token_limit: int | None = 20_000
     max_binary_content: int | None = 3
@@ -152,7 +153,7 @@ class DeepAgent:
         Args:
             path: Path to YAML (.yaml/.yml) or JSON (.json) file.
             **overrides: Override spec values (e.g., `model="anthropic:claude-opus-4-6"`).
-                Non-serializable params like `backend`, `tools`, `on_cost_update`
+                Non-serializable params like `workspace`, `tools`, `on_cost_update`
                 can only be passed here.
 
         Returns:
@@ -212,7 +213,7 @@ class DeepAgent:
         """
         # Separate non-serializable overrides from spec-compatible ones
         non_spec_keys = {
-            "backend",
+            "workspace",
             "tools",
             "toolsets",
             "hooks",
@@ -272,7 +273,7 @@ class DeepAgent:
         kwargs.update(passthrough)
 
         agent = create_deep_agent(**kwargs)
-        deps = DeepAgentDeps(backend=passthrough.get("backend") or _default_backend())
+        deps = DeepAgentDeps()
 
         return agent, deps
 
@@ -307,9 +308,3 @@ class DeepAgent:
         content = json.dumps(data, indent=2) if file_path.suffix == ".json" else _dump_yaml(data)
 
         file_path.write_text(content, encoding="utf-8")
-
-
-def _default_backend() -> Any:
-    """Create default StateBackend for spec-loaded agents."""
-
-    return StateBackend()

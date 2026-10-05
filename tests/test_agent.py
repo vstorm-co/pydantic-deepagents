@@ -4,10 +4,11 @@ from typing import Any
 
 import pytest
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.workspaces import Workspace
+from pydantic_ai_backends import StateWorkspace
 
 from pydantic_deep import (
     DeepAgentDeps,
-    StateBackend,
     UploadedFile,
     create_deep_agent,
     create_default_deps,
@@ -16,6 +17,7 @@ from pydantic_deep import (
 from pydantic_deep.agent import _DepsTodoProxy, _TodoProxyBinder
 from pydantic_deep.deps import _format_size
 from pydantic_deep.types import SubAgentConfig, Todo
+from tests.workspaces import state_workspace
 
 # Use TestModel to avoid requiring API keys
 TEST_MODEL = TestModel()
@@ -84,6 +86,7 @@ class TestCreateDeepAgent:
             memory_dir=None,
             web_search=False,
             web_fetch=False,
+            include_execute=True,
         )
         defaults.update(parent_kwargs)
         return _make_default_deep_agent_factory(**defaults)
@@ -110,14 +113,39 @@ class TestCreateDeepAgent:
         assert WebSearch in on_types
         assert WebFetch in on_types
 
+    async def test_default_subagent_factory_inherits_include_execute(self):
+        """A subagent works in its parent's workspace, so it runs commands
+        exactly when the parent does - not in a workspace that has none."""
+        from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+        async def _tool_names(include_execute: bool) -> set[str]:
+            seen: set[str] = set()
+
+            def _model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+                seen.update(t.name for t in info.function_tools)
+                return ModelResponse(parts=[TextPart("done")])
+
+            factory = self._default_factory(include_execute=include_execute)
+            sub_agent = factory({"instructions": "", "model": FunctionModel(_model)})
+            await sub_agent.run(
+                "go", deps=DeepAgentDeps(), workspace=Workspace(StateWorkspace().backend())
+            )
+            return seen
+
+        assert "execute" not in await _tool_names(include_execute=False)
+        assert "execute" in await _tool_names(include_execute=True)
+
     def test_default_subagent_factory_prepends_base_prompt(self):
         """Subagent factory always prepends BASE_PROMPT before task instructions."""
         from pydantic_deep.prompts import BASE_PROMPT
 
         factory = self._default_factory()
         sub_agent = factory({"instructions": "Research topics carefully.", "model": TEST_MODEL})
-        assert any(BASE_PROMPT in str(i) for i in sub_agent._instructions)
-        assert any("Research topics carefully." in str(i) for i in sub_agent._instructions)
+        assert any(BASE_PROMPT in str(i.instruction) for i in sub_agent._instructions)
+        assert any(
+            "Research topics carefully." in str(i.instruction) for i in sub_agent._instructions
+        )
 
     def test_default_subagent_factory_no_task_instructions(self):
         """Subagent factory with empty instructions uses only BASE_PROMPT."""
@@ -125,7 +153,7 @@ class TestCreateDeepAgent:
 
         factory = self._default_factory()
         sub_agent = factory({"instructions": "", "model": TEST_MODEL})
-        assert any(BASE_PROMPT in str(i) for i in sub_agent._instructions)
+        assert any(BASE_PROMPT in str(i.instruction) for i in sub_agent._instructions)
 
     def test_subagent_configs_not_mutated_and_no_toolset_doubling(self):
         """create_deep_agent must not mutate caller subagent dicts, so reusing
@@ -156,7 +184,7 @@ class TestCreateDeepAgent:
         toolset (under the wrong "main" name), causing a `read_memory` collision.
         """
         from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.toolsets.memory import AgentMemoryToolset
+        from pydantic_deep.features.memory import AgentMemoryToolset
 
         cfg: SubAgentConfig = SubAgentConfig(
             name="researcher", description="explores", instructions="explore", toolsets=[]
@@ -218,7 +246,7 @@ class TestBasePrompt:
 
         agent = create_deep_agent(model=TEST_MODEL, cost_tracking=False)
         # pydantic-ai stores instructions as a normalized list
-        assert any(BASE_PROMPT in str(i) for i in agent._instructions)
+        assert any(BASE_PROMPT in str(i.instruction) for i in agent._instructions)
 
     def test_custom_instructions_replace_base_prompt(self):
         """Custom instructions replace BASE_PROMPT entirely."""
@@ -226,8 +254,8 @@ class TestBasePrompt:
 
         custom = "You are a custom agent."
         agent = create_deep_agent(model=TEST_MODEL, instructions=custom, cost_tracking=False)
-        assert any(custom in str(i) for i in agent._instructions)
-        assert not any(BASE_PROMPT in str(i) for i in agent._instructions)
+        assert any(custom in str(i.instruction) for i in agent._instructions)
+        assert not any(BASE_PROMPT in str(i.instruction) for i in agent._instructions)
 
     def test_custom_instructions_with_base_prompt_fstring(self):
         """User can combine BASE_PROMPT with their own instructions via f-string."""
@@ -235,15 +263,15 @@ class TestBasePrompt:
 
         custom = f"{BASE_PROMPT}\n\nYou are a coding assistant."
         agent = create_deep_agent(model=TEST_MODEL, instructions=custom, cost_tracking=False)
-        assert any(BASE_PROMPT in str(i) for i in agent._instructions)
-        assert any("coding assistant" in str(i) for i in agent._instructions)
+        assert any(BASE_PROMPT in str(i.instruction) for i in agent._instructions)
+        assert any("coding assistant" in str(i.instruction) for i in agent._instructions)
 
     def test_empty_instructions_uses_base_prompt(self):
         """instructions=None (default) uses BASE_PROMPT."""
         from pydantic_deep.prompts import BASE_PROMPT
 
         agent = create_deep_agent(model=TEST_MODEL, instructions=None, cost_tracking=False)
-        assert any(BASE_PROMPT in str(i) for i in agent._instructions)
+        assert any(BASE_PROMPT in str(i.instruction) for i in agent._instructions)
 
     def test_create_with_all_capabilities_disabled(self):
         """Agent can be created with all built-in capabilities disabled (all_capabilities empty)."""
@@ -293,9 +321,7 @@ class TestSubmodelInheritance:
             return orig(self, *a, **k)
 
         monkeypatch.setattr(ContextManagerCapability, "__init__", spy)
-        create_deep_agent(
-            backend=StateBackend(), cost_tracking=False, include_subagents=False, **kwargs
-        )
+        create_deep_agent(cost_tracking=False, include_subagents=False, **kwargs)
         return seen.get("sm")
 
     def test_summarization_inherits_primary_model(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -332,16 +358,8 @@ class TestCreateDefaultDeps:
         deps = create_default_deps()
 
         assert deps is not None
-        assert isinstance(deps.backend.unwrap(), StateBackend)
         assert deps.todos == []
         assert deps.subagents == {}
-
-    def test_create_with_custom_backend(self):
-        """Test creating deps with a custom backend."""
-        backend = StateBackend()
-        deps = create_default_deps(backend=backend)
-
-        assert deps.backend.unwrap() is backend
 
 
 class TestDeepAgentDeps:
@@ -349,7 +367,7 @@ class TestDeepAgentDeps:
 
     def test_get_todo_prompt_empty(self):
         """Test todo prompt with no todos."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         prompt = deps.get_todo_prompt()
 
         assert prompt == ""
@@ -359,7 +377,6 @@ class TestDeepAgentDeps:
         from pydantic_deep.types import Todo
 
         deps = DeepAgentDeps(
-            backend=StateBackend(),
             todos=[
                 Todo(content="Test task", status="pending", active_form="Testing"),
             ],
@@ -374,7 +391,6 @@ class TestDeepAgentDeps:
         from pydantic_deep.types import Todo
 
         deps = DeepAgentDeps(
-            backend=StateBackend(),
             todos=[
                 Todo(content="Blocked task", status="blocked", active_form="Blocking"),
             ],
@@ -389,20 +405,9 @@ class TestDeepAgentDeps:
         from pydantic_deep.types import Todo
 
         original = DeepAgentDeps(
-            backend=StateBackend(),
             todos=[Todo(content="Task", status="pending", active_form="Working")],
         )
-        original.files["/test.txt"] = {
-            "content": ["test"],
-            "created_at": "2024-01-01",
-            "modified_at": "2024-01-01",
-        }
-
         cloned = original.clone_for_subagent()
-
-        # Should share backend and files
-        assert cloned.backend is original.backend
-        assert cloned.files is original.files
 
         # Should have empty todos and subagents
         assert cloned.todos == []
@@ -432,18 +437,18 @@ class TestDeepAgentDeps:
 
     async def test_upload_file(self):
         """Test uploading a file."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         content = b"id,name,value\n1,foo,100\n2,bar,200\n"
         path = await deps.upload_file("data.csv", content)
 
         # Check path is correct
-        assert path == "/uploads/data.csv"
+        assert path == "uploads/data.csv"
 
-        # Check file is in backend
-        file_data = await deps.backend.read(path)
-        assert file_data is not None
-        assert "id,name,value" in file_data
+        # The file reaches a workspace when a run starts
+        workspace = state_workspace()
+        await deps.write_uploads(workspace)
+        assert await workspace.read_bytes(path) == content
 
         # Check upload metadata is tracked
         assert path in deps.uploads
@@ -451,9 +456,54 @@ class TestDeepAgentDeps:
         assert deps.uploads[path]["size"] == len(content)
         assert deps.uploads[path]["line_count"] == 3
 
+    async def test_every_workspace_gets_the_uploads_once(self):
+        """A run in a new in-memory document must find what the prompt lists."""
+        deps = DeepAgentDeps()
+        path = await deps.upload_file("a.csv", b"v1")
+        documents = StateWorkspace()
+        first, second = Workspace(documents.backend()), Workspace(documents.backend())
+        await deps.write_uploads(first)
+        await deps.write_uploads(second)
+        assert await second.read_bytes(path) == b"v1"
+
+        # The agent's own change to an upload survives its next run there...
+        await first.write_bytes(path, b"edited")
+        await deps.write_uploads(first)
+        assert await first.read_bytes(path) == b"edited"
+
+        # ...until the file is uploaded again, which replaces it.
+        await deps.upload_file("a.csv", b"v2")
+        await deps.write_uploads(first)
+        assert await first.read_bytes(path) == b"v2"
+
+    async def test_a_workspace_without_a_ref_gets_only_missing_uploads(self):
+        """A fork branch's view: the parent's file shows through, so nothing is written."""
+        from pydantic_deep import BranchOverlay
+
+        deps = DeepAgentDeps()
+        path = await deps.upload_file("a.csv", b"v1")
+        await deps.upload_file("b.csv", b"b")
+        parent = state_workspace({path: "parent's"})
+        overlay = BranchOverlay(parent)
+        await deps.write_uploads(Workspace(overlay))
+        assert [change.path for change in overlay.changes()] == ["/uploads/b.csv"]
+
+    async def test_a_second_run_in_a_new_document_finds_the_upload(self):
+        agent = create_deep_agent(
+            model=TestModel(call_tools=[]),
+            include_subagents=False,
+            web_search=False,
+            web_fetch=False,
+        )
+        deps = DeepAgentDeps()
+        await deps.upload_file("a.csv", b"x,y")
+        await agent.run("first", deps=deps)
+        second = await agent.run("second", deps=deps)
+        assert await second.workspace.read_bytes("uploads/a.csv") == b"x,y"
+
     async def test_upload_file_custom_dir(self):
         """Test uploading a file to a custom directory."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         content = b"test content"
         path = await deps.upload_file("test.txt", content, upload_dir="/custom/dir")
@@ -465,14 +515,14 @@ class TestDeepAgentDeps:
         """Test uploading a binary file (non-UTF-8)."""
         from unittest.mock import patch
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         # Binary content - mock chardet to return no encoding (platform-dependent)
         content = bytes([0x80, 0x81, 0x82, 0xFF])
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
             path = await deps.upload_file("binary.dat", content)
 
-        assert path == "/uploads/binary.dat"
+        assert path == "uploads/binary.dat"
         # Binary files should have line_count = None
         assert deps.uploads[path]["line_count"] is None
 
@@ -480,11 +530,11 @@ class TestDeepAgentDeps:
         """A failing file should not abort the rest of the batch (and is logged, B9)."""
         from unittest.mock import patch
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         real_upload_file = deps.upload_file
 
-        async def flaky_upload_file(name, content, *, upload_dir="/uploads"):
+        async def flaky_upload_file(name, content, *, upload_dir="uploads"):
             # Simulate a non-RuntimeError failure mid-batch (e.g. an
             # encoding/metadata error or a backend that raises directly).
             if name == "bad.bin":
@@ -504,20 +554,20 @@ class TestDeepAgentDeps:
             )
 
         # The bad file is skipped, the good ones still upload.
-        assert paths == ["/uploads/good1.csv", "/uploads/good2.txt"]
+        assert paths == ["uploads/good1.csv", "uploads/good2.txt"]
         # The skip is surfaced, not silent (B9).
         assert any("bad.bin" in r.getMessage() for r in caplog.records)
 
     def test_get_uploads_summary_empty(self):
         """Test uploads summary with no uploads."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         summary = deps.get_uploads_summary()
 
         assert summary == ""
 
     async def test_get_uploads_summary_with_files(self):
         """Test uploads summary with uploaded files."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         await deps.upload_file("data.csv", b"a,b,c\n1,2,3\n")
         await deps.upload_file("config.json", b'{"key": "value"}')
@@ -525,8 +575,8 @@ class TestDeepAgentDeps:
         summary = deps.get_uploads_summary()
 
         assert "## Uploaded Files" in summary
-        assert "`/uploads/data.csv`" in summary
-        assert "`/uploads/config.json`" in summary
+        assert "`uploads/data.csv`" in summary
+        assert "`uploads/config.json`" in summary
         assert "2 lines" in summary  # data.csv has 2 lines
         assert "read_file" in summary  # instruction about how to use files
 
@@ -534,7 +584,7 @@ class TestDeepAgentDeps:
         """Test uploads summary with binary files (no line count)."""
         from unittest.mock import patch
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         # Binary file - mock chardet to return no encoding (platform-dependent)
         with patch("pydantic_deep.deps.chardet.detect", return_value={"encoding": None}):
@@ -543,16 +593,16 @@ class TestDeepAgentDeps:
         summary = deps.get_uploads_summary()
 
         assert "## Uploaded Files" in summary
-        assert "`/uploads/binary.dat`" in summary
+        assert "`uploads/binary.dat`" in summary
         # Binary files should not show line count
-        assert "lines" not in summary.split("`/uploads/binary.dat`")[1].split("\n")[0]
+        assert "lines" not in summary.split("`uploads/binary.dat`")[1].split("\n")[0]
 
     def test_clone_for_subagent_shares_uploads(self):
         """Test that cloned deps share uploads with original."""
-        original = DeepAgentDeps(backend=StateBackend())
-        original.uploads["/uploads/test.txt"] = UploadedFile(
+        original = DeepAgentDeps()
+        original.uploads["uploads/test.txt"] = UploadedFile(
             name="test.txt",
-            path="/uploads/test.txt",
+            path="uploads/test.txt",
             size=100,
             line_count=5,
             mime_type="text/plain",
@@ -563,7 +613,7 @@ class TestDeepAgentDeps:
 
         # Should share uploads
         assert cloned.uploads is original.uploads
-        assert "/uploads/test.txt" in cloned.uploads
+        assert "uploads/test.txt" in cloned.uploads
 
 
 class TestFormatSize:
@@ -595,7 +645,7 @@ class TestRunWithFiles:
     async def test_run_with_files_uploads_files(self):
         """Test that run_with_files uploads files before running agent."""
         agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         files = [
             ("data.csv", b"a,b\n1,2\n"),
@@ -610,14 +660,14 @@ class TestRunWithFiles:
         )
 
         # Files should be uploaded
-        assert "/uploads/data.csv" in deps.uploads
-        assert "/uploads/config.json" in deps.uploads
+        assert "uploads/data.csv" in deps.uploads
+        assert "uploads/config.json" in deps.uploads
 
     @pytest.mark.anyio
     async def test_run_with_files_custom_upload_dir(self):
         """Test run_with_files with custom upload directory."""
         agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         files = [("test.txt", b"content")]
 
@@ -635,8 +685,8 @@ class TestRunWithFiles:
     async def test_run_with_files_no_files(self):
         """Test run_with_files with no files."""
         agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
-        deps1 = DeepAgentDeps(backend=StateBackend())
-        deps2 = DeepAgentDeps(backend=StateBackend())
+        deps1 = DeepAgentDeps()
+        deps2 = DeepAgentDeps()
 
         # Should not raise error
         await run_with_files(agent, "Test query", deps1, files=None)
@@ -657,7 +707,7 @@ class TestDepsTodoProxy:
     def test_delegates_read_to_deps(self):
         """Proxy reads from deps.todos."""
         proxy = _DepsTodoProxy()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         todo = Todo(content="Test task", status="pending", active_form="Testing")
         deps.todos = [todo]
         proxy._deps = deps
@@ -667,7 +717,7 @@ class TestDepsTodoProxy:
     def test_delegates_write_to_deps(self):
         """Proxy writes to deps.todos."""
         proxy = _DepsTodoProxy()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         proxy._deps = deps
         todo = Todo(content="Test task", status="pending", active_form="Testing")
         proxy.todos = [todo]
@@ -676,7 +726,7 @@ class TestDepsTodoProxy:
     def test_setter_copies_list(self):
         """Setter creates a copy, not assigns reference."""
         proxy = _DepsTodoProxy()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         proxy._deps = deps
         original = [Todo(content="Task", status="pending", active_form="Working")]
         proxy.todos = original
@@ -704,8 +754,8 @@ class TestDepsTodoProxy:
         import asyncio
 
         proxy = _DepsTodoProxy()
-        deps_a = DeepAgentDeps(backend=StateBackend())
-        deps_b = DeepAgentDeps(backend=StateBackend())
+        deps_a = DeepAgentDeps()
+        deps_b = DeepAgentDeps()
         todo_a = Todo(content="A task", status="pending", active_form="Doing A")
         todo_b = Todo(content="B task", status="pending", active_form="Doing B")
 
@@ -738,7 +788,7 @@ class TestTodoProxyBinder:
     async def test_binds_proxy_to_ctx_deps(self):
         """before_tool_execute binds the proxy to the run's deps and passes args through."""
         proxy = _DepsTodoProxy()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         binder = _TodoProxyBinder(proxy)
 
         class _Ctx:
@@ -808,7 +858,7 @@ class TestTodoProxyBinder:
             context_manager=False,
             cost_tracking=False,
         )
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         await agent.run("make todos", deps=deps)
         assert [t.content for t in deps.todos] == ["Task A", "Task B"]
 

@@ -18,7 +18,6 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 from pydantic_ai_shields import CostInfo, CostTracking
 
 from pydantic_deep import (
@@ -40,6 +39,7 @@ from pydantic_deep.features.forking.coordinator import (
     _find_parent_cost_tracking,
     _PerBranchCostTracking,
 )
+from tests.workspaces import state_workspace
 
 
 def _make_test_agent() -> Agent[DeepAgentDeps, str]:
@@ -88,12 +88,14 @@ async def _drain_branch_tasks(coord: ForkCoordinator) -> None:
 
 
 async def test_five_branches_spawn_under_max_branches_ten():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
 
     specs = [BranchSpec(label=f"b{i}", steer=f"steer {i}") for i in range(5)]
-    handle = await coord.fork(specs, parent_history=_seed_history("parent"))
+    handle = await coord.fork(
+        specs, workspace=state_workspace(), parent_history=_seed_history("parent")
+    )
 
     assert len(handle.branches) == 5
     assert len(coord.branches) == 5
@@ -104,7 +106,7 @@ async def test_five_branches_spawn_under_max_branches_ten():
 
 
 async def test_per_branch_budget_exhausts_only_target_branch():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
 
@@ -112,7 +114,7 @@ async def test_per_branch_budget_exhausts_only_target_branch():
         BranchSpec(label="a", steer="a", budget_usd=0.05),
         BranchSpec(label="b", steer="b", budget_usd=0.05),
     ]
-    handle = await coord.fork(specs, parent_history=_seed_history("p"))
+    handle = await coord.fork(specs, workspace=state_workspace(), parent_history=_seed_history("p"))
     a_id, b_id = handle.branches[0], handle.branches[1]
 
     a_watcher = coord.branches[a_id].cost_tracker
@@ -133,12 +135,12 @@ async def test_per_branch_budget_exhausts_only_target_branch():
 
 
 async def test_aggregate_budget_terminates_all_running_branches():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.10)
 
     specs = [BranchSpec(label=label, steer=label) for label in ("a", "b", "c")]
-    handle = await coord.fork(specs, parent_history=_seed_history("p"))
+    handle = await coord.fork(specs, workspace=state_workspace(), parent_history=_seed_history("p"))
     a_id, b_id, c_id = handle.branches
 
     for bid, total in [(a_id, 0.04), (b_id, 0.04), (c_id, 0.05)]:
@@ -154,7 +156,7 @@ async def test_aggregate_budget_terminates_all_running_branches():
 
 
 async def test_fork_cost_returns_correct_breakdown_and_aggregate():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.50)
 
@@ -162,7 +164,7 @@ async def test_fork_cost_returns_correct_breakdown_and_aggregate():
         BranchSpec(label="a", steer="a", budget_usd=0.10),
         BranchSpec(label="b", steer="b", budget_usd=0.20),
     ]
-    handle = await coord.fork(specs, parent_history=_seed_history("p"))
+    handle = await coord.fork(specs, workspace=state_workspace(), parent_history=_seed_history("p"))
     a_id, b_id = handle.branches
 
     a_tracker = coord.branches[a_id].cost_tracker
@@ -198,7 +200,7 @@ async def test_budget_watcher_cancels_running_branch_task():
     completion and asserts the branch task actually stopped (cancelled, state
     budget_exhausted) and the agent did NOT run to completion.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
 
     started = asyncio.Event()
@@ -215,6 +217,7 @@ async def test_budget_watcher_cancels_running_branch_task():
     coord = _make_coordinator(agent, deps)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a", budget_usd=0.10)],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     bid = handle.branches[0]
@@ -237,7 +240,7 @@ async def test_budget_exhausted_branch_can_be_picked_as_winner():
     """See "Capturing partial history" in docs/capabilities/live-fork.md —
     the awaited task raises CancelledError but the coordinator returns the
     snapshot captured on the last `before_model_request` instead."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
 
@@ -245,7 +248,7 @@ async def test_budget_exhausted_branch_can_be_picked_as_winner():
         BranchSpec(label="a", steer="a", budget_usd=0.05),
         BranchSpec(label="b", steer="b"),
     ]
-    handle = await coord.fork(specs, parent_history=_seed_history("p"))
+    handle = await coord.fork(specs, workspace=state_workspace(), parent_history=_seed_history("p"))
     a_id, _b_id = handle.branches
 
     snapshot = _seed_history("partial work")
@@ -277,7 +280,7 @@ async def test_cost_callbacks_isolated_per_branch_via_registry():
     assert len(cost_caps) == 1
     assert isinstance(cost_caps[0], _PerBranchCostTracking)
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -292,6 +295,7 @@ async def test_cost_callbacks_isolated_per_branch_via_registry():
             BranchSpec(label="a", steer="a", budget_usd=0.05),
             BranchSpec(label="b", steer="b", budget_usd=0.05),
         ],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     a_id, b_id = handle.branches
@@ -316,25 +320,28 @@ async def test_max_depth_two_walks_three_transitions():
     depth 0 → 1 OK, depth 1 → 2 OK, depth 2 → 3 rejected."""
     agent = _make_test_agent()
 
-    deps0 = DeepAgentDeps(backend=StateBackend(), _fork_depth=0)
+    deps0 = DeepAgentDeps(_fork_depth=0)
     coord0 = _make_coordinator(agent, deps0)
     await coord0.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
 
-    deps1 = DeepAgentDeps(backend=StateBackend(), _fork_depth=1)
+    deps1 = DeepAgentDeps(_fork_depth=1)
     coord1 = _make_coordinator(agent, deps1)
     await coord1.fork(
         [BranchSpec(label="a1", steer="a1")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p1"),
     )
 
-    deps2 = DeepAgentDeps(backend=StateBackend(), _fork_depth=2)
+    deps2 = DeepAgentDeps(_fork_depth=2)
     coord2 = _make_coordinator(agent, deps2)
     with pytest.raises(ForkDepthLimitError):
         await coord2.fork(
             [BranchSpec(label="a2", steer="a2")],
+            workspace=state_workspace(),
             parent_history=_seed_history("p2"),
         )
 
@@ -356,7 +363,7 @@ def test_branch_cost_dataclass_defaults():
 
 
 async def test_fork_cost_raises_when_no_active_fork():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     with pytest.raises(RuntimeError, match="no active fork"):
@@ -365,11 +372,12 @@ async def test_fork_cost_raises_when_no_active_fork():
 
 async def test_fork_cost_aggregate_none_when_no_tracked_costs():
     """When pricing fails for every branch, aggregate_usd surfaces as None."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     coord.branches[handle.branches[0]].cost_tracker = None
@@ -380,11 +388,12 @@ async def test_fork_cost_aggregate_none_when_no_tracked_costs():
 
 
 async def test_terminate_branch_idempotent():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     bid = handle.branches[0]
@@ -396,11 +405,12 @@ async def test_terminate_branch_idempotent():
 
 
 async def test_terminate_branch_default_reason_uses_terminated():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     bid = handle.branches[0]
@@ -410,11 +420,12 @@ async def test_terminate_branch_default_reason_uses_terminated():
 
 
 async def test_terminate_branch_unknown_id_raises():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     with pytest.raises(ValueError, match="Unknown branch id"):
@@ -424,12 +435,13 @@ async def test_terminate_branch_unknown_id_raises():
 
 async def test_aggregate_watcher_no_op_below_cap():
     """When the running sum is below the cap, no termination fires."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=10.0)
 
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a"), BranchSpec(label="b", steer="b")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     for bid in handle.branches:
@@ -441,12 +453,13 @@ async def test_aggregate_watcher_no_op_below_cap():
 
 
 async def test_aggregate_watcher_ignores_none_total_cost():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.10)
     assert coord._aggregate_watcher is None
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     bid = handle.branches[0]
@@ -470,11 +483,12 @@ async def test_aggregate_watcher_ignores_none_total_cost():
 
 
 async def test_aggregate_per_call_budget_overrides_constructor_default():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=999.0)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
         aggregate_budget_usd=0.05,
     )
@@ -491,7 +505,7 @@ async def test_aggregate_per_call_budget_overrides_constructor_default():
 async def test_per_branch_cost_tracking_for_run_returns_self_without_branch_field():
     """Parent runs (no _branch_cost_tracking on deps) keep the parent's clone."""
     parent = _PerBranchCostTracking(model_name="anthropic:claude-sonnet-4-6")
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     ctx = type("Ctx", (), {"deps": deps})()
     out = await parent.for_run(cast(Any, ctx))
     assert out is parent
@@ -500,7 +514,7 @@ async def test_per_branch_cost_tracking_for_run_returns_self_without_branch_fiel
 async def test_per_branch_cost_tracking_for_run_returns_per_branch_when_set():
     parent = _PerBranchCostTracking(model_name="anthropic:claude-sonnet-4-6")
     branch_cap = _PerBranchCostTracking(model_name="anthropic:claude-sonnet-4-6", budget_usd=0.05)
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     deps._branch_cost_tracking = branch_cap
     ctx = type("Ctx", (), {"deps": deps})()
     out = await parent.for_run(cast(Any, ctx))
@@ -527,14 +541,14 @@ def test_agent_model_name_handles_string_and_object_and_unknown():
 
 def test_find_parent_cost_tracking_via_deps_direct():
     """When deps._branch_cost_tracking is set (nested fork), return it."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     direct = CostTracking(model_name="anthropic:claude-sonnet-4-6")
     deps._branch_cost_tracking = direct
     assert _find_parent_cost_tracking(deps) is direct
 
 
 def test_find_parent_cost_tracking_returns_none_when_unwired():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     assert _find_parent_cost_tracking(deps) is None
 
 
@@ -546,7 +560,7 @@ async def test_find_parent_cost_tracking_walks_root_capability():
         cost_tracking=True,
         cost_budget_usd=None,
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -587,12 +601,13 @@ async def test_aggregate_watcher_second_call_skips_non_running_branches():
     """After branches transition to aggregate_budget_exhausted, a follow-up
     cost update must not re-terminate them (covers the non-`running`
     branch of the watcher's iteration)."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.05)
 
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     bid = handle.branches[0]
@@ -608,12 +623,13 @@ async def test_aggregate_watcher_second_call_skips_non_running_branches():
 async def test_aggregate_watcher_skips_already_terminated_sibling():
     """When the aggregate cap trips, the termination loop skips a sibling that
     is already in a terminal state (covers the non-`running` loop branch)."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, aggregate_budget_usd=0.05)
 
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a"), BranchSpec(label="b", steer="b")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     aid, bid = handle.branches
@@ -635,7 +651,7 @@ class _StubCtx:
 
 
 async def test_fork_cost_tool_returns_disabled_when_no_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     fork_cost_fn = toolset.tools["fork_cost"].function
     out = await fork_cost_fn(cast(Any, _StubCtx(deps)), "any-id")
@@ -643,7 +659,7 @@ async def test_fork_cost_tool_returns_disabled_when_no_coordinator():
 
 
 async def test_fork_cost_tool_no_active_fork():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     deps.fork_coordinator = coord
@@ -655,12 +671,13 @@ async def test_fork_cost_tool_no_active_fork():
 
 
 async def test_fork_cost_tool_mismatched_fork_id():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     deps.fork_coordinator = coord
     await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     toolset = create_fork_toolset()
@@ -672,12 +689,13 @@ async def test_fork_cost_tool_mismatched_fork_id():
 
 
 async def test_fork_cost_tool_success_returns_summary():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     deps.fork_coordinator = coord
     handle = await coord.fork(
         [BranchSpec(label="a", steer="a")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     toolset = create_fork_toolset()
@@ -739,7 +757,8 @@ async def test_start_fork_from_cli_forwards_aggregate_budget():
         stuck_loop_detection=False,
         context_discovery=False,
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
+    agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
     app = DeepApp(agent=agent, deps=deps, model="test", version="0.0.0")
     app.message_history = [ModelRequest(parts=[UserPromptPart(content="seed")])]
 

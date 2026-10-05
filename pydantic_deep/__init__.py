@@ -4,7 +4,8 @@ This library provides a deep agent framework with:
 - Planning via TodoToolset
 - Filesystem operations via create_console_toolset (from pydantic-ai-backend)
 - Subagent delegation via SubAgentToolset
-- Multiple backend options for file storage
+- Pydantic AI workspaces for where the agent works: local, Docker, sandboxd,
+  Kubernetes, Daytona or an in-memory document
 - Structured output support via output_type
 - History processing/summarization for long conversations
 
@@ -12,14 +13,15 @@ Example:
     ```python
     from pydantic import BaseModel
     from pydantic_deep import (
-        create_deep_agent, DeepAgentDeps, LocalBackend, create_console_toolset
+        create_deep_agent, DeepAgentDeps, LocalWorkspace
     )
     from pydantic_ai_summarization import create_summarization_processor
 
-    # Create agent with file tools
+    # Create an agent that works in the current directory
     agent = create_deep_agent(
         model="anthropic:claude-sonnet-4-6",
         instructions="You are a helpful coding assistant",
+        workspace=LocalWorkspace("."),
     )
 
     # With structured output and summarization
@@ -37,8 +39,7 @@ Example:
         ],
     )
 
-    # Create dependencies with LocalBackend
-    deps = DeepAgentDeps(backend=LocalBackend(root_dir="."))
+    deps = DeepAgentDeps()
 
     # Run agent
     result = await agent.run("Create a Python script", deps=deps)
@@ -46,24 +47,19 @@ Example:
     ```
 """
 
+from pydantic_ai.capabilities import LocalWorkspace
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
-    BackendProtocol,
-    BaseSandbox,
-    CompositeBackend,
-    ConsoleDeps,
-    DockerSandbox,
-    EditResult,
-    ExecuteResponse,
+    ConfinedWorkspace,
+    DaytonaWorkspace,
+    DockerWorkspace,
     FileData,
     FileInfo,
-    GrepMatch,
-    LocalBackend,
+    KubernetesWorkspace,
     RuntimeConfig,
-    SandboxProtocol,
-    SessionManager,
+    SandboxdWorkspace,
     StateBackend,
-    WriteResult,
+    StateWorkspace,
     create_console_toolset,
     get_console_system_prompt,
     get_runtime,
@@ -86,25 +82,14 @@ from pydantic_ai_summarization import (
     create_sliding_window_processor,
     create_summarization_processor,
 )
+from pydantic_ai_todo import create_todo_toolset as TodoToolset
+from subagents_pydantic_ai import SubAgentToolset
 
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.agent import create_deep_agent, create_default_deps, run_with_files
-from pydantic_deep.capabilities import (
-    BrowserCapability,
-    ContextFilesCapability,
-    LLMReminderGenerator,
-    MemoryCapability,
-    PeriodicReminderCapability,
-    PeriodicReminderConfig,
-    ReminderGenerator,
-    SkillsCapability,
-    StuckLoopDetection,
-    StuckLoopError,
-    make_config_for_mode,
-)
 from pydantic_deep.deps import DEFAULT_USAGE_LIMITS as DEFAULT_USAGE_LIMITS
-from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
-from pydantic_deep.features.browser import BrowserToolset
+from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.features.browser import BrowserCapability, BrowserToolset
 from pydantic_deep.features.checkpointing import (
     Checkpoint,
     CheckpointMiddleware,
@@ -120,6 +105,7 @@ from pydantic_deep.features.context import (
     DEFAULT_MAX_CONTEXT_CHARS,
     SUBAGENT_CONTEXT_ALLOWLIST,
     ContextFile,
+    ContextFilesCapability,
     ContextToolset,
     discover_context_files,
     format_context_prompt,
@@ -142,6 +128,8 @@ from pydantic_deep.features.forking import (
     ForkStateStore,
     InMemoryForkStateStore,
     JudgeAgent,
+    LocalBranchOverlay,
+    branch_workspace,
     build_diff_report,
     clone_for_branch,
     compute_confidence,
@@ -201,6 +189,7 @@ from pydantic_deep.features.memory import (
     DEFAULT_PIN_END_MARKER,
     AgentMemoryToolset,
     MemoryAccessError,
+    MemoryCapability,
     MemoryFile,
     format_memory_prompt,
     get_memory_path,
@@ -217,12 +206,15 @@ from pydantic_deep.features.patch import (
     PatchToolCallsCapability,
     patch_tool_calls_processor,
 )
-from pydantic_deep.features.plan import PlanOption
+from pydantic_deep.features.periodic_reminder import (
+    LLMReminderGenerator,
+    PeriodicReminderCapability,
+    PeriodicReminderConfig,
+    ReminderGenerator,
+    make_config_for_mode,
+)
+from pydantic_deep.features.plan import PlanOption, create_plan_toolset
 from pydantic_deep.features.skills import (
-    BackendSkillResource,
-    BackendSkillScript,
-    BackendSkillScriptExecutor,
-    BackendSkillsDirectory,
     CallableSkillScriptExecutor,
     FileBasedSkillResource,
     FileBasedSkillScript,
@@ -233,12 +225,18 @@ from pydantic_deep.features.skills import (
     SkillResource,
     SkillResourceLoadError,
     SkillResourceNotFoundError,
+    SkillsCapability,
     SkillScript,
     SkillScriptExecutionError,
     SkillsDirectory,
+    SkillsToolset,
     SkillValidationError,
     SkillWrapper,
+    WorkspaceSkillResource,
+    WorkspaceSkillScript,
+    WorkspaceSkillsDirectory,
 )
+from pydantic_deep.features.stuck_loop import StuckLoopDetection, StuckLoopError
 from pydantic_deep.features.teams import (
     AgentTeam,
     SharedTodoItem,
@@ -285,7 +283,6 @@ from pydantic_deep.styles import (
     load_style_from_file,
     resolve_style,
 )
-from pydantic_deep.toolsets import SkillsToolset, SubAgentToolset, TodoToolset, create_plan_toolset
 from pydantic_deep.types import (
     BrowseResult,
     CompiledSubAgent,
@@ -310,7 +307,6 @@ __all__ = [
     "run_with_files",
     "DeepAgentDeps",
     "DEFAULT_USAGE_LIMITS",
-    "unwrap_backend",
     "DeepAgent",
     "DeepAgentSpec",
     # Goal-completion loop engine
@@ -336,20 +332,19 @@ __all__ = [
     "builtin_mcp_servers",
     "BUILTIN_MCP_NAMES",
     "parse_mcp_servers",
-    # Backends (from pydantic-ai-backend)
-    "BackendProtocol",
-    "SandboxProtocol",
-    "LocalBackend",
+    # Workspaces (Pydantic AI's local one; the rest from pydantic-ai-backend)
+    "LocalWorkspace",
+    "DockerWorkspace",
+    "SandboxdWorkspace",
+    "KubernetesWorkspace",
+    "DaytonaWorkspace",
+    "StateWorkspace",
     "StateBackend",
-    "CompositeBackend",
-    "BaseSandbox",
-    "DockerSandbox",
+    "ConfinedWorkspace",
     # Runtimes
     "RuntimeConfig",
     "BUILTIN_RUNTIMES",
     "get_runtime",
-    # Session Management
-    "SessionManager",
     # Capabilities (pydantic-ai AbstractCapability)
     "BrowserCapability",
     "SkillsCapability",
@@ -376,7 +371,6 @@ __all__ = [
     "TodoToolset",
     "create_console_toolset",
     "get_console_system_prompt",
-    "ConsoleDeps",
     "SubAgentToolset",
     "SkillsToolset",
     "create_plan_toolset",
@@ -391,11 +385,10 @@ __all__ = [
     "FileBasedSkillScript",
     "LocalSkillScriptExecutor",
     "CallableSkillScriptExecutor",
-    # Skills backend
-    "BackendSkillResource",
-    "BackendSkillScript",
-    "BackendSkillScriptExecutor",
-    "BackendSkillsDirectory",
+    # Skills in the workspace
+    "WorkspaceSkillResource",
+    "WorkspaceSkillScript",
+    "WorkspaceSkillsDirectory",
     # Skills exceptions
     "SkillException",
     "SkillNotFoundError",
@@ -494,10 +487,6 @@ __all__ = [
     "BrowseResult",
     "FileData",
     "FileInfo",
-    "WriteResult",
-    "EditResult",
-    "ExecuteResponse",
-    "GrepMatch",
     "Todo",
     "SubAgentConfig",
     "CompiledSubAgent",
@@ -509,6 +498,8 @@ __all__ = [
     "ForkStateStore",
     "InMemoryForkStateStore",
     "BranchOverlay",
+    "LocalBranchOverlay",
+    "branch_workspace",
     "build_diff_report",
     "clone_for_branch",
     "create_fork_toolset",

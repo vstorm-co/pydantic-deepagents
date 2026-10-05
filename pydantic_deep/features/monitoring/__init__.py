@@ -2,8 +2,8 @@
 
 A monitor runs a long-lived command (log tail, CI poll, file watch, dev server)
 and delivers each new line of matching output back into the conversation via the
-message queue, so the agent reacts without polling. Built on the backend's
-background-process support.
+message queue, so the agent reacts without polling. Runs in the run's workspace,
+which has to be one that runs commands.
 """
 
 from __future__ import annotations

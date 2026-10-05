@@ -239,7 +239,7 @@ def _extract_skill_fields(
     skill_file_label: str,
     stacklevel: int,
 ) -> dict[str, Any] | None:
-    """Build the common `Skill` fields shared by filesystem and backend discovery.
+    """Build the common `Skill` fields shared by filesystem and workspace discovery.
 
     Resolves the skill name (falling back to `name_fallback` when unvalidated),
     runs metadata validation, and collects extra frontmatter keys into metadata.

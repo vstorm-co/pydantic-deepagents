@@ -44,9 +44,9 @@ class UploadedFile(TypedDict):
 **Usage:**
 
 ```python
-from pydantic_deep import DeepAgentDeps, StateBackend
+from pydantic_deep import DeepAgentDeps
 
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 
 # Upload a file
 deps.upload_file("report.csv", csv_bytes)
@@ -57,56 +57,6 @@ for path, info in deps.uploads.items():
     print(f"Size: {info['size']} bytes")
     print(f"Lines: {info['line_count']}")
     print(f"Type: {info['mime_type']}")
-```
-
----
-
-## Operation Results
-
-### WriteResult
-
-Result of write operations.
-
-```python
-@dataclass
-class WriteResult:
-    path: str | None = None    # Path where file was written
-    error: str | None = None   # Error message if failed
-```
-
-### EditResult
-
-Result of edit operations.
-
-```python
-@dataclass
-class EditResult:
-    path: str | None = None      # Path of edited file
-    error: str | None = None     # Error message if failed
-    occurrences: int | None = None  # Number of replacements made
-```
-
-### ExecuteResponse
-
-Result of command execution.
-
-```python
-@dataclass
-class ExecuteResponse:
-    output: str                 # stdout + stderr
-    exit_code: int | None = None  # Process exit code
-    truncated: bool = False     # True if output was truncated
-```
-
-### GrepMatch
-
-Single grep match result.
-
-```python
-class GrepMatch(TypedDict):
-    path: str         # File path
-    line_number: int  # Line number (1-indexed)
-    line: str         # Matching line content
 ```
 
 ---
@@ -277,8 +227,8 @@ class SkillsDirectory:
 ```
 
 See [`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory].
-For non-local backends, use
-[`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory].
+For skills inside the run's workspace, use
+[`WorkspaceSkillsDirectory`][pydantic_deep.features.skills.workspace.WorkspaceSkillsDirectory].
 
 ---
 
@@ -456,7 +406,7 @@ Loaded agent memory file.
 @dataclass
 class MemoryFile:
     agent_name: str                  # "main", "code-reviewer", etc.
-    path: str                        # Full path in backend
+    path: str                        # Path in the run's workspace
     content: str                     # Memory file content
 ```
 
@@ -503,10 +453,6 @@ from pydantic_deep import (
     FileData,
     FileInfo,
     UploadedFile,
-    WriteResult,
-    EditResult,
-    ExecuteResponse,
-    GrepMatch,
     Todo,
     SubAgentConfig,
     CompiledSubAgent,

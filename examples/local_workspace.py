@@ -1,14 +1,14 @@
-"""Example using LocalBackend for real file operations.
+"""Example of an agent working in a directory on this machine.
 
 This example shows how to:
-- Use LocalBackend for persistent file storage
+- Give the agent `LocalWorkspace`: files on disk, and commands run there
 - Work with real files on disk
 """
 
 import asyncio
 from pathlib import Path
 
-from pydantic_deep import DeepAgentDeps, LocalBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, LocalWorkspace, create_deep_agent
 
 
 async def main():
@@ -17,16 +17,14 @@ async def main():
     workspace.mkdir(exist_ok=True)
     print(f"Workspace: {workspace.absolute()}")
 
-    # Create a LocalBackend pointing to the workspace
-    backend = LocalBackend(root_dir=str(workspace))
-
-    # Create the agent
+    # Create the agent, working in that directory
     agent = create_deep_agent(
         model="anthropic:claude-sonnet-4-6",
         instructions="You are a file organization assistant.",
+        workspace=LocalWorkspace(workspace),
     )
 
-    deps = DeepAgentDeps(backend=backend)
+    deps = DeepAgentDeps()
 
     # Run the agent to create some files
     result = await agent.run(

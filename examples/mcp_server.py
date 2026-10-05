@@ -8,7 +8,7 @@ import asyncio
 
 from pydantic_ai.capabilities import MCP, PrefixTools
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def basic_mcp():
@@ -19,7 +19,7 @@ async def basic_mcp():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run("Use the MCP tools to complete this task", deps=deps)
     print(result.output)
 
@@ -34,7 +34,7 @@ async def multiple_mcp_servers():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run(
         "Create a GitHub issue and notify the team on Slack",
         deps=deps,
@@ -53,7 +53,7 @@ async def local_mcp_server():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run("List files in the workspace", deps=deps)
     print(result.output)
 

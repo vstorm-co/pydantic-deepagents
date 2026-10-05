@@ -10,7 +10,7 @@ import asyncio
 
 from pydantic_ai._agent_graph import CallToolsNode, End, ModelRequestNode, UserPromptNode
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def main():
@@ -20,7 +20,7 @@ async def main():
         instructions="You are a helpful assistant.",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     print("Starting agent with streaming...\n")
 
@@ -67,14 +67,14 @@ async def main():
 
     # Show usage statistics
     print("\nUsage:")
-    print(f"  Input tokens: {result.usage().input_tokens}")
-    print(f"  Output tokens: {result.usage().output_tokens}")
-    print(f"  Total requests: {result.usage().requests}")
+    print(f"  Input tokens: {result.usage.input_tokens}")
+    print(f"  Output tokens: {result.usage.output_tokens}")
+    print(f"  Total requests: {result.usage.requests}")
 
     # Show created files
     print("\nFiles created:")
-    for path in sorted(deps.files.keys()):
-        print(f"  {path}")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else ""))
 
 
 if __name__ == "__main__":

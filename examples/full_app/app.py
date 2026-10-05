@@ -3,7 +3,7 @@
 This example demonstrates ALL pydantic-deep features:
 
 Core:
-- DockerSandbox for file operations and code execution
+- DockerWorkspace: a Docker container per session for files and code execution
 - RuntimeConfig (python-datascience) for pre-installed packages
 - BASE_PROMPT as foundation for agent instructions
 - Custom tools (mock GitHub tools via FunctionToolset)
@@ -31,7 +31,7 @@ Other:
 - Image support (multimodal read_file)
 - File uploads with metadata tracking
 - WebSocket streaming for real-time events
-- Multi-user support with SessionManager
+- Multi-user support: one named container per session, removed at shutdown
 
 Run with:
     cd examples/full_app
@@ -85,7 +85,8 @@ from pydantic_ai.tools import (
     ToolApproved,
     ToolDenied,
 )
-from pydantic_ai_backends import RuntimeConfig
+from pydantic_ai.workspaces import Workspace, WorkspaceRef
+from pydantic_ai_backends import DockerWorkspace
 from subagents_pydantic_ai import DynamicAgentRegistry, create_agent_factory_toolset
 
 from pydantic_deep import (
@@ -97,7 +98,6 @@ from pydantic_deep import (
     HookResult,
     InMemoryCheckpointStore,
     RewindRequested,
-    SessionManager,
     Skill,
     create_deep_agent,
     create_sliding_window_processor,
@@ -243,6 +243,7 @@ class UserSession:
 
     session_id: str
     deps: DeepAgentDeps
+    workspace: Workspace
     message_history: list[ModelMessage] = field(default_factory=list)
     pending_approval_state: dict[str, Any] = field(default_factory=dict)
     cancel_event: asyncio.Event = field(default_factory=asyncio.Event)
@@ -288,9 +289,9 @@ def create_ask_user_callback(websocket: WebSocket, session: UserSession) -> Any:
     return callback
 
 
-# Global state - shared agent (stateless) and session manager
+# Global state - shared agent (stateless) and the sessions
 agent: Agent[DeepAgentDeps, str] | None = None
-session_manager: SessionManager | None = None
+sandbox_env_vars: dict[str, str] = {}  # loaded from .env at startup
 user_sessions: dict[str, UserSession] = {}  # session_id -> UserSession
 
 
@@ -592,13 +593,13 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
     return create_deep_agent(
         model="anthropic:claude-sonnet-4-6",
         instructions=MAIN_INSTRUCTIONS,
-        backend=None,  # Backend comes from deps at runtime (per-session Docker container)
+        workspace=False,  # Each run gets its session's container (see run_agent)
         # --- Toolsets ---
         include_todo=True,
         include_filesystem=True,
         include_subagents=True,
         include_skills=True,
-        include_execute=True,  # Force include - backend provided via deps at runtime
+        include_execute=True,  # Force include - the session's container runs commands
         toolsets=[github_toolset, factory_toolset],
         # --- Subagents (joke-generator + code-reviewer + general-purpose + dynamic) ---
         subagents=SUBAGENT_CONFIGS,
@@ -634,30 +635,70 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
 _DEEP_MD_PATH = APP_DIR / "workspace" / "DEEP.md"
 
 
+def _session_host_dir(session_id: str) -> Path:
+    """The host directory a session's container mounts at /workspace.
+
+    The id arrives from the client, so it must be one this app issues - a UUID -
+    and the directory must stay inside `WORKSPACES_DIR`; anything else would
+    mount a directory of the client's choosing into a container.
+    """
+    try:
+        canonical = str(uuid.UUID(session_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session id") from None
+    root = WORKSPACES_DIR.resolve()
+    host_dir = (root / canonical / "workspace").resolve()
+    if not host_dir.is_relative_to(root):
+        raise HTTPException(status_code=400, detail="Invalid session id")
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return host_dir
+
+
+def _session_container(session_id: str) -> DockerWorkspace:
+    """The session's Docker container, with its host directory mounted at /workspace.
+
+    Named after the session, so a restarted server reaches the same container;
+    the files live on the host, so a removed container loses none of them.
+    """
+    host_dir = _session_host_dir(session_id)
+    return DockerWorkspace(
+        # Change to runtime="python-datascience" for pre-installed pandas/numpy/matplotlib
+        # (first run will take a few minutes to build the Docker image)
+        image="python:3.12-slim",
+        env=sandbox_env_vars or None,
+        volumes={str(host_dir): "/workspace"},
+        container_name=f"full-app-{session_id}",
+    )
+
+
+async def _remove_session_container(session_id: str) -> None:
+    container = _session_container(session_id)
+    assert container.container_name is not None
+    await container.destroy(WorkspaceRef(provider="docker", id=container.container_name))
+
+
 async def get_or_create_session(session_id: str) -> UserSession:
     """Get existing session or create a new one with isolated Docker container."""
-    global session_manager, user_sessions
+    global user_sessions
 
     if session_id in user_sessions:
         return user_sessions[session_id]
 
-    # Create new sandbox via SessionManager
-    assert session_manager is not None
-    sandbox = await session_manager.get_or_create(session_id)
+    workspace = Workspace(_session_container(session_id).backend())
 
     # Seed workspace with DEEP.md context file (demonstrates context_files feature)
     if _DEEP_MD_PATH.exists():
-        deep_md_content = _DEEP_MD_PATH.read_text()
-        sandbox.write("/workspace/DEEP.md", deep_md_content)
+        await workspace.write_bytes("/workspace/DEEP.md", _DEEP_MD_PATH.read_bytes())
 
     # Create per-session checkpoint store
     cp_store = InMemoryCheckpointStore()
 
-    # Create deps with the user's sandbox and checkpoint store
-    deps = DeepAgentDeps(backend=sandbox)
+    deps = DeepAgentDeps()
 
     # Create and store session
-    session = UserSession(session_id=session_id, deps=deps, checkpoint_store=cp_store)
+    session = UserSession(
+        session_id=session_id, deps=deps, workspace=workspace, checkpoint_store=cp_store
+    )
     user_sessions[session_id] = session
 
     logger.info(f"Created new session: {session_id}")
@@ -666,44 +707,25 @@ async def get_or_create_session(session_id: str) -> UserSession:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize shared agent and session manager on startup."""
-    global agent, session_manager
+    """Initialize the shared agent on startup; remove the session containers on shutdown."""
+    global agent, sandbox_env_vars
 
     # Create shared agent (stateless) with ALL features
     agent = create_agent()
 
     # Load sandbox env vars from .env file if present
-    sandbox_env_vars: dict[str, str] = {}
     if ENV_FILE.exists():
         from dotenv import dotenv_values
 
         sandbox_env_vars = {k: v for k, v in dotenv_values(ENV_FILE).items() if v is not None}
         logger.info(f"Loaded {len(sandbox_env_vars)} sandbox env vars from {ENV_FILE}")
 
-    default_runtime = (
-        RuntimeConfig(name="app-runtime", env_vars=sandbox_env_vars, cache_image=False)
-        if sandbox_env_vars
-        else None
-    )
-
-    # Create session manager for per-user Docker containers
-    # Uses python-datascience runtime (pre-installed: pandas, numpy, matplotlib, etc.)
-    # NOTE: Change to "python-datascience" for pre-installed pandas/numpy/matplotlib
-    # (first run will take a few minutes to build the Docker image)
-    session_manager = SessionManager(
-        default_runtime=default_runtime,  # Uses python:3.12-slim for fast startup
-        default_idle_timeout=3600,  # 1 hour idle timeout
-        workspace_root=WORKSPACES_DIR,  # Persistent storage for user files
-    )
-    session_manager.start_cleanup_loop(interval=300)  # Cleanup every 5 min
-
     print("=" * 60)
     print("pydantic-deep Full Demo — ALL features enabled")
     print("=" * 60)
     print(f"  Skills directory : {SKILLS_DIR}")
     print(f"  Workspaces       : {WORKSPACES_DIR}")
-    rt = session_manager._default_runtime  # type: ignore[attr-defined]
-    print(f"  Runtime          : {rt or 'python:3.12-slim (default)'}")
+    print("  Runtime          : python:3.12-slim, one container per session")
     print(f"  Hooks            : {len(HOOKS)} (audit_logger, safety_gate)")
     print("  Capabilities     : AuditCapability, PermissionCapability")
     print("  Processors       : eviction(20K), sliding_window(50→30), patch_tool_calls")
@@ -717,9 +739,16 @@ async def lifespan(app: FastAPI):
     print("=" * 60)
     yield
 
-    # Shutdown all sessions
-    count = await session_manager.shutdown()
-    print(f"Shutdown complete. Stopped {count} sessions.")
+    # Shutdown: the files stay on the host, the containers go - each one tried,
+    # so one Docker error does not leave the rest running.
+    removed = 0
+    for session_id in list(user_sessions):
+        try:
+            await _remove_session_container(session_id)
+            removed += 1
+        except Exception:
+            logger.exception("Could not remove the container of session %s", session_id)
+    print(f"Shutdown complete. Removed {removed} of {len(user_sessions)} session containers.")
 
 
 app = FastAPI(
@@ -866,6 +895,7 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
 
                     # Save to container first
                     upload_path = await session.deps.upload_file(name, data)
+                    await session.deps.write_uploads(session.workspace)
                     logger.info(f"Attachment saved: {name} ({len(data)} bytes) -> {upload_path}")
 
                     if media_type.startswith("image/"):
@@ -1033,6 +1063,7 @@ async def run_agent_with_streaming(
         deps=session.deps,
         message_history=session.message_history,
         deferred_tool_results=deferred_results,
+        workspace=session.workspace,
     ) as run:
         node_count = 0
         async for node in run:
@@ -1333,14 +1364,10 @@ async def upload_file(
 
         logger.info(f"Uploading file: {filename} ({len(content)} bytes) to session {session_id}")
 
-        # Upload to the session's backend (Docker container)
+        # Upload into the session's container
         path = await session.deps.upload_file(filename, content)
+        await session.deps.write_uploads(session.workspace)
         logger.info(f"File uploaded to: {path}")
-
-        # Verify the file exists in the container (if backend supports execute)
-        if hasattr(session.deps.backend, "execute"):
-            verify_result = session.deps.backend.execute(f'ls -la "{path}"')  # type: ignore[union-attr]
-            logger.info(f"Verify upload: {verify_result.output.strip()}")
 
         return JSONResponse(
             content={
@@ -1364,21 +1391,31 @@ async def list_files(session_id: str = Query(..., description="Session ID")):
 
     session = user_sessions[session_id]
 
-    files: dict[str, list[str]] = {
-        "workspace": [],
-        "uploads": [],
-    }
+    files: dict[str, list[str]] = {"workspace": [], "uploads": []}
 
-    # List workspace files from container (if backend supports execute)
-    if hasattr(session.deps.backend, "execute"):
-        result = session.deps.backend.execute("find /workspace -type f 2>/dev/null")  # type: ignore[union-attr]
-        if result.exit_code == 0:
-            files["workspace"] = [f for f in result.output.strip().split("\n") if f]
-
-    # List uploads from deps
-    files["uploads"] = list(session.deps.uploads.keys())
+    result = await session.workspace.run(["find", "/workspace", "-type", "f"])
+    for found in result.stdout.split("\n"):
+        if found:
+            files["uploads" if found.startswith("/workspace/uploads/") else "workspace"].append(
+                found
+            )
 
     return JSONResponse(content=files)
+
+
+def _container_path(filepath: str) -> str:
+    """A URL-encoded path from the client, as an absolute path in the container."""
+    import urllib.parse
+
+    decoded_path = urllib.parse.unquote(filepath)
+    return decoded_path if decoded_path.startswith("/") else "/" + decoded_path
+
+
+async def _read_session_file(session: UserSession, path: str) -> bytes:
+    try:
+        return await session.workspace.read_bytes(path)
+    except (FileNotFoundError, IsADirectoryError) as e:
+        raise HTTPException(status_code=404, detail=f"File not found: {path}") from e
 
 
 @app.get("/files/download/{filepath:path}")
@@ -1387,18 +1424,11 @@ async def download_file(filepath: str, session_id: str = Query(..., description=
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = user_sessions[session_id]
-
-    # Read file from container
-    result = session.deps.backend.read(f"/workspace/{filepath}")
-    if "Error:" in result:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    # Return as downloadable response
+    data = await _read_session_file(user_sessions[session_id], f"/workspace/{filepath}")
     return JSONResponse(
         content={
             "filename": filepath.split("/")[-1],
-            "content": result,
+            "content": data.decode("utf-8", errors="replace"),
         }
     )
 
@@ -1408,45 +1438,37 @@ async def get_file_content(filepath: str, session_id: str = Query(..., descripti
     """Get file content for preview (supports any path in the container).
 
     Args:
-        filepath: Full path to file (e.g., /workspace/script.py or /uploads/data.csv)
+        filepath: Full path to file (e.g., /workspace/script.py or /workspace/uploads/data.csv)
         session_id: Session ID
     """
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = user_sessions[session_id]
-
-    # Decode the path if it was URL-encoded
-    import urllib.parse
-
-    decoded_path = urllib.parse.unquote(filepath)
-
-    # Ensure path starts with /
-    if not decoded_path.startswith("/"):
-        decoded_path = "/" + decoded_path
-
+    decoded_path = _container_path(filepath)
     logger.debug(f"Reading file: {decoded_path} for session {session_id}")
 
-    # Read file from container
-    try:
-        result = session.deps.backend.read(decoded_path)
+    data = await _read_session_file(user_sessions[session_id], decoded_path)
+    content = data.decode("utf-8", errors="replace")
+    return JSONResponse(
+        content={
+            "path": decoded_path,
+            "filename": decoded_path.split("/")[-1],
+            "content": content,
+            "size": len(data),
+        }
+    )
 
-        # Check for error patterns in result
-        if result.startswith("Error:") or "No such file" in result:
-            raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}")
 
-        return JSONResponse(
-            content={
-                "path": decoded_path,
-                "filename": decoded_path.split("/")[-1],
-                "content": result,
-                "size": len(result),
-            }
-        )
-    except Exception as e:
-        if "404" in str(e) or "not found" in str(e).lower():
-            raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}") from e
-        raise HTTPException(status_code=500, detail=str(e)) from e
+_CONTENT_TYPES = {
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "svg": "image/svg+xml",
+    "webp": "image/webp",
+    "ico": "image/x-icon",
+    "pdf": "application/pdf",
+}
 
 
 @app.get("/files/binary/{filepath:path}")
@@ -1462,66 +1484,14 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = user_sessions[session_id]
-
-    # Decode the path if it was URL-encoded
-    import urllib.parse
-
-    decoded_path = urllib.parse.unquote(filepath)
-
-    # Ensure path starts with /
-    if not decoded_path.startswith("/"):
-        decoded_path = "/" + decoded_path
-
+    decoded_path = _container_path(filepath)
     logger.debug(f"Reading binary file: {decoded_path} for session {session_id}")
 
-    # Get file extension for content type
-    ext = decoded_path.split(".")[-1].lower()
-    content_types = {
-        "png": "image/png",
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "gif": "image/gif",
-        "svg": "image/svg+xml",
-        "webp": "image/webp",
-        "ico": "image/x-icon",
-        "pdf": "application/pdf",
-    }
-    content_type = content_types.get(ext, "application/octet-stream")
-
-    try:
-        # Read binary file from container using base64
-        if hasattr(session.deps.backend, "execute"):
-            # Use quotes around path to handle spaces
-            result = session.deps.backend.execute(f'base64 "{decoded_path}"')
-            logger.debug(f"base64 command exit code: {result.exit_code}")
-
-            if result.exit_code != 0:
-                logger.error(f"base64 failed: {result.output}")
-                raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}")
-
-            import base64
-
-            # Clean the output - remove any whitespace/newlines that base64 adds
-            b64_output = result.output.strip().replace("\n", "").replace("\r", "").replace(" ", "")
-
-            # Fix padding if needed
-            padding_needed = len(b64_output) % 4
-            if padding_needed:
-                b64_output += "=" * (4 - padding_needed)
-
-            binary_content = base64.b64decode(b64_output)
-            return Response(content=binary_content, media_type=content_type)
-        else:
-            raise HTTPException(
-                status_code=500, detail="Backend does not support binary file reading"
-            )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"Error reading binary file: {decoded_path}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    content_type = _CONTENT_TYPES.get(
+        decoded_path.split(".")[-1].lower(), "application/octet-stream"
+    )
+    data = await _read_session_file(user_sessions[session_id], decoded_path)
+    return Response(content=data, media_type=content_type)
 
 
 @app.get("/todos")
@@ -1749,14 +1719,13 @@ async def get_config():
 @app.post("/reset")
 async def reset(session_id: str = Query(..., description="Session ID")):
     """Reset a specific session."""
-    global session_manager, user_sessions
+    global user_sessions
 
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Release the session's Docker container
-    if session_manager:
-        await session_manager.release(session_id)
+    # Remove the session's Docker container; its files stay on the host
+    await _remove_session_container(session_id)
 
     # Remove from user sessions
     del user_sessions[session_id]
@@ -1858,56 +1827,8 @@ async def preview_file(session_id: str, filepath: str):
     }
     content_type = content_types.get(ext, "application/octet-stream")
 
-    # Check if binary file
-    binary_extensions = {
-        "png",
-        "jpg",
-        "jpeg",
-        "gif",
-        "webp",
-        "ico",
-        "pdf",
-        "woff",
-        "woff2",
-        "ttf",
-        "eot",
-    }
-    is_binary = ext in binary_extensions
-
-    try:
-        if hasattr(session.deps.backend, "execute"):
-            if is_binary:
-                # Read binary file via base64
-                result = session.deps.backend.execute(f'base64 "{filepath}"')
-                if result.exit_code != 0:
-                    raise HTTPException(status_code=404, detail=f"File not found: {filepath}")
-
-                import base64
-
-                b64_output = (
-                    result.output.strip().replace("\n", "").replace("\r", "").replace(" ", "")
-                )
-                padding_needed = len(b64_output) % 4
-                if padding_needed:
-                    b64_output += "=" * (4 - padding_needed)
-
-                binary_content = base64.b64decode(b64_output)
-                return Response(content=binary_content, media_type=content_type)
-            else:
-                # Read text file - use cat WITHOUT -n (no line numbers)
-                result = session.deps.backend.execute(f'cat "{filepath}"')
-                if result.exit_code != 0:
-                    raise HTTPException(status_code=404, detail=f"File not found: {filepath}")
-
-                return Response(content=result.output, media_type=content_type)
-        else:
-            raise HTTPException(status_code=500, detail="Backend does not support file serving")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"Error serving preview file: {filepath}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    data = await _read_session_file(session, filepath)
+    return Response(content=data, media_type=content_type)
 
 
 if __name__ == "__main__":

@@ -2,33 +2,46 @@
 
 A *monitor* is a long-lived command (a log tail, a CI poller, a file watcher,
 a dev server) whose output the agent wants to *react* to without polling. The
-manager spawns the command via the backend's background-process support, drains
-its output on an interval, filters new lines by an optional regex, and emits a
+manager runs the command in the workspace with its output going to a log file
+there, reads what is new on an interval, filters new lines by an optional
+regex, and emits a
 :class:`MonitorEvent` for each batch through an ``on_event`` sink. The default
 wiring points that sink at the agent's :class:`MessageQueue` so each event is
 delivered into the conversation (see ``create_monitor_toolset``).
 
-This is the engine behind Claude Code's ``Monitor`` tool, built on our own
-background-process substrate (``execute_background`` / ``read_background``).
+This is the engine behind Claude Code's ``Monitor`` tool. A Pydantic AI
+workspace has no background processes of its own, so a monitor is a command
+run as a task: stopping the monitor cancels it, and a workspace stops a
+cancelled command together with everything it started.
 """
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import re
+import shlex
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pydantic_deep.features.monitoring.types import MonitorEvent, MonitorInfo
+
+if TYPE_CHECKING:
+    from pydantic_ai.workspaces import CommandResult, Workspace
 
 #: Sink invoked for every emitted event (the "react" hook).
 EventSink = Callable[[MonitorEvent], Awaitable[None]]
 
+logger = logging.getLogger(__name__)
+
 _DEFAULT_POLL_INTERVAL = 1.0
 _MAX_RECENT_EVENTS = 20
+
+LOG_DIR = ".deep/monitors"
+"""Where each monitor's output is written, relative to the workspace's working directory."""
 
 
 @dataclass
@@ -36,7 +49,8 @@ class _Monitor:
     monitor_id: str
     label: str
     command: str
-    shell_id: str
+    log_path: str
+    process: asyncio.Task[CommandResult]
     matcher: re.Pattern[str] | None
     match_str: str | None
     events: deque[MonitorEvent] = field(default_factory=lambda: deque(maxlen=_MAX_RECENT_EVENTS))
@@ -44,6 +58,7 @@ class _Monitor:
     running: bool = True
     exit_code: int | None = None
     event_count: int = 0
+    read_offset: int = 0
 
 
 def _compile(match: str | None) -> re.Pattern[str] | None:
@@ -60,8 +75,7 @@ class MonitorManager:
     """Owns active monitors and their background drain loops.
 
     Args:
-        backend: An async background-capable backend (exposes
-            ``execute_background`` / ``read_background`` / ``kill_background``).
+        workspace: The workspace monitors run in. It must run commands.
         on_event: Async callback invoked for each :class:`MonitorEvent`. When
             omitted, events are still buffered (visible via :meth:`list`).
         poll_interval: Seconds between output polls.
@@ -69,12 +83,12 @@ class MonitorManager:
 
     def __init__(
         self,
-        backend: Any,
+        workspace: Workspace,
         *,
         on_event: EventSink | None = None,
         poll_interval: float = _DEFAULT_POLL_INTERVAL,
     ) -> None:
-        self._backend = backend
+        self._workspace = workspace
         self._on_event = on_event
         self._poll_interval = poll_interval
         self._monitors: dict[str, _Monitor] = {}
@@ -87,15 +101,21 @@ class MonitorManager:
     async def start(
         self, command: str, *, label: str | None = None, match: str | None = None
     ) -> MonitorInfo:
-        """Spawn ``command`` in the background and begin watching its output."""
-        handle = await self._backend.execute_background(command)
+        """Start ``command`` in the workspace and begin watching its output."""
         self._counter += 1
         monitor_id = f"mon_{self._counter}"
+        log_path = f"{LOG_DIR}/{monitor_id}.log"
+        await self._workspace.make_dir(LOG_DIR)
+        # `exec` sends the rest of the script's output to the log, so the
+        # model's command runs exactly as it wrote it, compound or not.
+        script = f"exec > {shlex.quote(log_path)} 2>&1\n{command}"
         mon = _Monitor(
             monitor_id=monitor_id,
             label=label or monitor_id,
             command=command,
-            shell_id=handle.shell_id,
+            log_path=log_path,
+            # A shell line, as `execute` runs one, inside the run's workspace.
+            process=asyncio.create_task(self._workspace.run(script, shell=True)),  # nosec B604
             matcher=_compile(match),
             match_str=match,
         )
@@ -106,10 +126,11 @@ class MonitorManager:
     async def stop(self, monitor_id: str) -> bool:
         """Stop a monitor and kill its process. False if unknown."""
         mon = self._monitors.pop(monitor_id, None)
-        if mon is None:
-            return False
-        await self._teardown(mon)
-        return True
+        if mon is not None:
+            await self._teardown(mon)
+        # One return for both outcomes: after awaiting a cancelled task, Python
+        # 3.11's tracer can miss the next line, and the coverage gate with it.
+        return mon is not None
 
     async def stop_all(self) -> None:
         """Stop every monitor (e.g. on session end)."""
@@ -129,45 +150,69 @@ class MonitorManager:
     # ── internals ────────────────────────────────────────────────────────
 
     async def _teardown(self, mon: _Monitor) -> None:
-        if mon.task is not None:
-            mon.task.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await mon.task
-        with contextlib.suppress(Exception):
-            await self._backend.kill_background(mon.shell_id)
+        for task in (mon.task, mon.process):
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await task
+
+    async def _new_lines(self, mon: _Monitor) -> list[str]:
+        """The non-blank lines written to the log since the last read.
+
+        Only the new bytes cross from the workspace: a watched log grows for as
+        long as the command runs, and reading all of it every poll - a base64
+        transfer, in a container - grew with it. The size comes from the same
+        command, so a line written mid-read is left for the next poll.
+        """
+        script = (
+            'size=$(wc -c < "$1") || exit 1; printf "%s\\n" "$size"; '
+            'tail -c +$(($2 + 1)) "$1" | head -c $((size - $2))'
+        )
+        result = await self._workspace.run(
+            ["sh", "-c", script, "monitor", mon.log_path, str(mon.read_offset)]
+        )
+        if result.exit_code != 0:
+            return []  # not written yet
+        size, _, new = result.stdout.partition("\n")
+        mon.read_offset = int(size)
+        return [ln for ln in new.splitlines() if ln.strip()]
 
     async def _watch(self, mon: _Monitor) -> None:
-        """Drain new output on an interval and emit events until the process exits."""
+        """Read new output on an interval and emit events until the command exits."""
         try:
             while True:
                 await asyncio.sleep(self._poll_interval)
-                out = await self._backend.read_background(mon.shell_id)
-                text = out.stdout or ""
-                if out.stderr:
-                    text = f"{text}\n{out.stderr}" if text else out.stderr
-                lines = [ln for ln in text.splitlines() if ln.strip()]
+                finished = mon.process.done()
+                # A command that could not run - the workspace gone, no
+                # commands - wrote no log, and reading one would fail the same way.
+                failed = finished and mon.process.exception() is not None
+                lines = [] if failed else await self._new_lines(mon)
                 matched = [ln for ln in lines if mon.matcher is None or mon.matcher.search(ln)]
                 if matched:
                     await self._emit(
                         mon,
-                        MonitorEvent(
-                            mon.monitor_id, mon.label, mon.command, matched, True, out.exit_code
-                        ),
+                        MonitorEvent(mon.monitor_id, mon.label, mon.command, matched, True, None),
                     )
-                if not out.running:
+                if finished:
                     mon.running = False
-                    mon.exit_code = out.exit_code
+                    # ...and has no exit code to report.
+                    result = None if failed else mon.process.result()
+                    mon.exit_code = result.exit_code if result is not None else None
                     await self._emit(
                         mon,
                         MonitorEvent(
-                            mon.monitor_id, mon.label, mon.command, [], False, out.exit_code
+                            mon.monitor_id, mon.label, mon.command, [], False, mon.exit_code
                         ),
                     )
                     return
         except asyncio.CancelledError:
             raise
-        except Exception:  # pragma: no cover - defensive: never let a watch crash loudly
+        except Exception:
+            # Never crash loudly - but nor leave the command running with
+            # nobody watching it.
+            logger.exception("Monitor %s stopped watching", mon.monitor_id)
             mon.running = False
+            mon.process.cancel()
 
     async def _emit(self, mon: _Monitor, event: MonitorEvent) -> None:
         mon.events.append(event)

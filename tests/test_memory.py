@@ -5,8 +5,7 @@ from typing import Any
 
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
-from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -20,19 +19,15 @@ from pydantic_deep import (
     get_memory_path,
     load_memory,
 )
+from tests.workspaces import Document, as_workspace, run_context
 
 TEST_MODEL = TestModel()
 
 
-def _make_ctx(backend: StateBackend | None = None) -> RunContext[DeepAgentDeps]:
-    """Create a RunContext with DeepAgentDeps for testing."""
-    b = backend or StateBackend()
-    deps = DeepAgentDeps(backend=b)
-    return RunContext(
-        deps=deps,
-        model=TEST_MODEL,
-        usage=RunUsage(),
-    )
+def _make_ctx(backend: Document | Workspace | None = None) -> RunContext[DeepAgentDeps]:
+    """Create a RunContext whose workspace is `backend` (or holds its files)."""
+    workspace = backend if isinstance(backend, Workspace) else as_workspace(backend or Document())
+    return run_context(DeepAgentDeps(), workspace)
 
 
 class TestMemoryFile:
@@ -88,10 +83,10 @@ class TestLoadMemory:
 
     async def test_load_existing(self):
         """Test loading an existing memory file."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "# Memory\n- item 1")
 
-        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(as_workspace(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert mem.agent_name == "main"
         assert mem.path == "/.deep/memory/main/MEMORY.md"
@@ -99,25 +94,25 @@ class TestLoadMemory:
 
     async def test_load_missing(self):
         """Test loading a missing memory file returns None."""
-        backend = StateBackend()
-        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
+        backend = Document()
+        mem = await load_memory(as_workspace(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is None
 
     async def test_load_utf8(self):
         """Test loading memory with non-ASCII content."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "Polskie znaki: ąęćżź")
 
-        mem = await load_memory(ensure_async(backend), "/.deep/memory/main/MEMORY.md", "main")
+        mem = await load_memory(as_workspace(backend), "/.deep/memory/main/MEMORY.md", "main")
         assert mem is not None
         assert "ąęćżź" in mem.content
 
     async def test_load_default_agent_name(self):
         """Test load_memory with default agent_name."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/mem/MEMORY.md", "content")
 
-        mem = await load_memory(ensure_async(backend), "/mem/MEMORY.md")
+        mem = await load_memory(as_workspace(backend), "/mem/MEMORY.md")
         assert mem is not None
         assert mem.agent_name == "main"
 
@@ -291,7 +286,7 @@ class TestAgentMemoryToolset:
 
     async def test_get_instructions_with_memory(self):
         """Test get_instructions injects existing memory."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "# Notes\n- Important item")
         ctx = _make_ctx(backend)
 
@@ -305,7 +300,7 @@ class TestAgentMemoryToolset:
 
     async def test_get_instructions_truncated(self):
         """Test get_instructions truncates long memory."""
-        backend = StateBackend()
+        backend = Document()
         lines = [f"line {i}" for i in range(300)]
         backend.write("/.deep/memory/main/MEMORY.md", "\n".join(lines))
         ctx = _make_ctx(backend)
@@ -330,7 +325,7 @@ class TestMemoryTools:
 
     async def test_read_memory_existing(self):
         """Test read_memory with existing memory."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "# My Notes\nImportant")
         ctx = _make_ctx(backend)
 
@@ -341,7 +336,7 @@ class TestMemoryTools:
 
     async def test_write_memory_new(self):
         """Test write_memory creates new memory file."""
-        backend = StateBackend()
+        backend = Document()
         ctx = _make_ctx(backend)
 
         toolset = AgentMemoryToolset()
@@ -349,14 +344,13 @@ class TestMemoryTools:
 
         assert "Memory updated" in result
         # Verify file was created
-        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
         raw = backend.read_bytes("/.deep/memory/main/MEMORY.md")
         assert raw is not None
         assert b"First entry" in raw
 
     async def test_write_memory_append(self):
         """Test write_memory appends to existing memory."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "# Existing")
         ctx = _make_ctx(backend)
 
@@ -374,7 +368,7 @@ class TestMemoryTools:
 
     async def test_update_memory_success(self):
         """Test update_memory replaces text."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "Use Python 3.11")
         ctx = _make_ctx(backend)
 
@@ -389,7 +383,7 @@ class TestMemoryTools:
 
     async def test_update_memory_not_found(self):
         """Test update_memory when old_text is not found."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "Some content")
         ctx = _make_ctx(backend)
 
@@ -407,7 +401,7 @@ class TestMemoryTools:
 
     async def test_update_memory_multiple_matches(self):
         """Test update_memory refuses to replace a non-unique old_text."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/.deep/memory/main/MEMORY.md", "foo\nfoo\nbar")
         ctx = _make_ctx(backend)
 
@@ -422,7 +416,7 @@ class TestMemoryTools:
 
     async def test_write_memory_custom_path(self):
         """Test write_memory with custom agent name and dir."""
-        backend = StateBackend()
+        backend = Document()
         ctx = _make_ctx(backend)
 
         toolset = AgentMemoryToolset(
@@ -527,7 +521,7 @@ class TestPerSubagentMemory:
         _inject_subagent_memory_toolset(config, None)
 
         assert "toolsets" in config
-        memory_toolsets = [
+        memory_toolsets: list[Any] = [
             t for t in config["toolsets"] if type(t).__name__ == "AgentMemoryToolset"
         ]
         assert len(memory_toolsets) == 1
@@ -581,7 +575,7 @@ class TestMemoryConstants:
 
     def test_default_memory_dir(self):
         """Test DEFAULT_MEMORY_DIR value."""
-        assert DEFAULT_MEMORY_DIR == "/.deep/memory"
+        assert DEFAULT_MEMORY_DIR == ".deep/memory"
 
     def test_default_memory_filename(self):
         """Test DEFAULT_MEMORY_FILENAME value."""
@@ -638,34 +632,34 @@ class TestMemoryExports:
         assert DEFAULT_MAX_MEMORY_LINES is not None
 
 
-def _write_deny_backend(seed_path: str | None = None, seed: bytes = b"") -> Any:
-    """A StateBackend whose reads work but whose writes are always rejected.
+class _WriteDenied(Document):
+    """A document whose reads work but whose writes are always refused."""
 
-    Isolates the "memory is readable but the backend refuses to persist the
-    write" path (issue #135). When `seed_path` is given, content is written
-    (via the real `write`) before write-denial is installed, so the read side
-    still returns it.
-    """
-    backend = StateBackend()
+    deny = False
+
+    def write_bytes(self, path: str, data: bytes) -> None:
+        if self.deny:
+            raise OSError("disk quota exceeded")
+        super().write_bytes(path, data)
+
+
+def _write_deny_backend(seed_path: str | None = None, seed: bytes = b"") -> _WriteDenied:
+    """Isolates "memory is readable but the workspace refuses the write" (issue #135)."""
+    backend = _WriteDenied()
     if seed_path is not None:
         backend.write(seed_path, seed)
-
-    def _deny(path: str, content: bytes | str) -> WriteResult:
-        return WriteResult(error="disk quota exceeded")
-
-    backend.write = _deny
+    backend.deny = True
     return backend
 
 
-def _denied_backend_and_dir(tmp_path: Path) -> tuple[Any, str]:
-    """A LocalBackend whose allowed dir excludes the memory directory."""
-    from pydantic_ai_backends import LocalBackend
-
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    backend = LocalBackend(root_dir=str(workspace), allowed_directories=[str(workspace)])
-    memory_dir = str(tmp_path / "outside-memory")
-    return backend, memory_dir
+def _denied_backend_and_dir(tmp_path: Path) -> tuple[Workspace, str]:
+    """A local workspace whose memory file exists but cannot be read."""
+    memory_dir = str(tmp_path / "memory")
+    memory_file = Path(get_memory_path(memory_dir, "main"))
+    memory_file.parent.mkdir(parents=True)
+    memory_file.write_text("secret")
+    memory_file.chmod(0)
+    return Workspace(LocalWorkspaceBackend(tmp_path)), memory_dir
 
 
 class TestMemoryFailureSurfacing:
@@ -675,21 +669,31 @@ class TestMemoryFailureSurfacing:
         """A denied path raises MemoryAccessError, not a silent None."""
         from pydantic_deep import MemoryAccessError
 
-        backend, memory_dir = _denied_backend_and_dir(tmp_path)
-        async_backend = ensure_async(backend)
+        workspace, memory_dir = _denied_backend_and_dir(tmp_path)
         path = get_memory_path(memory_dir, "main")
         try:
-            await load_memory(async_backend, path, "main")
+            await load_memory(workspace, path, "main")
             raise AssertionError("expected MemoryAccessError")
         except MemoryAccessError as exc:
-            assert "denied" in str(exc).lower() or "outside" in str(exc).lower()
+            assert "denied" in str(exc).lower()
+
+    async def test_load_memory_raises_on_a_directory(self, tmp_path):
+        from pydantic_deep import MemoryAccessError
+
+        Path(get_memory_path(str(tmp_path), "main")).mkdir(parents=True)
+        workspace = Workspace(LocalWorkspaceBackend(tmp_path))
+        try:
+            await load_memory(workspace, get_memory_path(str(tmp_path), "main"), "main")
+            raise AssertionError("expected MemoryAccessError")
+        except MemoryAccessError:
+            pass
 
     async def test_load_memory_empty_existing_file_returns_none(self):
         """An empty (but accessible) file is missing/empty memory, not an error."""
-        backend = StateBackend()
+        backend = Document()
         path = get_memory_path(DEFAULT_MEMORY_DIR, "main")
         backend.write(path, b"")
-        assert await load_memory(ensure_async(backend), path, "main") is None
+        assert await load_memory(as_workspace(backend), path, "main") is None
 
     async def test_read_memory_surfaces_denied_access(self, tmp_path):
         """read_memory reports an error instead of 'No memory saved yet.'."""
@@ -749,6 +753,6 @@ class TestMemoryFailureSurfacing:
     def test_memory_access_error_exported(self):
         """MemoryAccessError is importable from the package root."""
         from pydantic_deep import MemoryAccessError
-        from pydantic_deep.toolsets.memory import MemoryAccessError as direct
+        from pydantic_deep.features.memory import MemoryAccessError as direct
 
         assert MemoryAccessError is direct

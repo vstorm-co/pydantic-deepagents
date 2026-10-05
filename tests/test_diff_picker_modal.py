@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 import pytest
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 from textual.widgets import Static
 
 from apps.cli.app import DeepApp
@@ -49,7 +48,7 @@ def _make_agent() -> Agent[DeepAgentDeps, str]:
 def _make_app() -> DeepApp:
     return DeepApp(
         agent=_make_agent(),
-        deps=DeepAgentDeps(backend=StateBackend()),
+        deps=DeepAgentDeps(),
         model="test",
         version="0.3.3",
     )

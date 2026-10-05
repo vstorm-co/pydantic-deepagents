@@ -2,10 +2,10 @@
 
 Every successful :meth:`BranchOverlay.write` / :meth:`BranchOverlay.edit` is
 mirrored to disk under `.pydantic-deep/forks/{fork_id}/branches/{label}/`
-in real time, while the parent backend's state is captured under
+in real time, while the parent workspace's state is captured under
 `.pydantic-deep/forks/{fork_id}/parent/` (per-path, lazily, on the first
 overlay write for that path). The on-disk artefacts are the input to the
-PyCharm / VS Code diff tools wired in :mod:`pydantic_deep.toolsets.forking.editor`
+PyCharm / VS Code diff tools wired in :mod:`pydantic_deep.features.forking.editor`
 and to the `flush_to` conflict detection (the
 :meth:`pre_flush_snapshot` accessor exposes the snapshotted parent bytes
 to :meth:`BranchOverlay.flush_to`).
@@ -16,15 +16,15 @@ touch of it, in which case that path's conflict goes undetected. This is an
 accepted trade-off - an eager full-parent snapshot at fork time would have to
 walk and read every parent file up front, which the lazy scheme avoids. See
 :meth:`snapshot_parent_path` and
-:meth:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
+:meth:`~pydantic_deep.features.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
 
 Per project memory: the branch directory is named with `branch.label`
 (e.g. `approach_a`), not the UUID `branch.id` - keeps the layout
 human-navigable.
 
 The materializer is intentionally synchronous on the write hot path
-because the in-memory `StateBackend` parent + `LocalBackend` for real
-runs both keep file IO sub-millisecond for typical agent writes. If this
+because the overlay is held in memory and the mirror is local disk, so
+file IO stays sub-millisecond for typical agent writes. If this
 becomes a bottleneck later, the call sites can move to an
 `asyncio.create_task` background flush.
 """
@@ -82,10 +82,10 @@ class ForkMaterializer:
         return self.root / "branches" / branch_label / _safe_relative(path)
 
     def snapshot_parent_path(self, path: str, content: bytes | None) -> None:
-        """Capture the parent backend's content for `path` at first touch.
+        """Capture the parent workspace's content for `path` at first touch.
 
         Called lazily on the *first* overlay write for a path so we don't
-        eagerly walk the parent backend at fork time (we don't know which
+        eagerly walk the parent workspace at fork time (we don't know which
         paths will be touched until the branch agent writes them).
         `content` is `None` when the path didn't exist in the parent
         at first touch - recorded as a sentinel so the deletion-by-third-actor
@@ -96,7 +96,7 @@ class ForkMaterializer:
         this branch's first touch is snapshotted with the third actor's
         bytes, so :meth:`BranchOverlay.flush_to` cannot flag it as a
         conflict. See
-        :meth:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
+        :meth:`~pydantic_deep.features.forking.isolation.BranchOverlay._snapshot_parent_on_first_touch`.
         """
         if path in self._pre_fork_snapshot:
             return

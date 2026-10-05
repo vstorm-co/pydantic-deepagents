@@ -17,8 +17,8 @@ from pydantic import BaseModel
 from pydantic_ai import RunContext
 from pydantic_ai.toolsets.function import FunctionToolset
 
-# Default plans directory (relative to backend root)
-DEFAULT_PLANS_DIR = "/plans"
+# Default plans directory, relative to the workspace's working directory
+DEFAULT_PLANS_DIR = "plans"
 
 
 class PlanOption(BaseModel):
@@ -172,10 +172,10 @@ def create_plan_toolset(
     on a callback at `ctx.deps.ask_user`. When no callback is set (headless
     mode), it auto-selects the recommended option.
 
-    The `save_plan` tool writes the plan to a markdown file in the backend.
+    The `save_plan` tool writes the plan to a markdown file in the run's workspace.
 
     Args:
-        plans_dir: Directory to save plan files (default: `/plans`).
+        plans_dir: Directory to save plan files (default: `plans`).
         id: Toolset ID (default: `deep-plan`).
         descriptions: Optional mapping of tool name to custom description.
             Supported keys: `ask_user`, `save_plan`.
@@ -226,10 +226,10 @@ def create_plan_toolset(
         filename = f"{slug}-{short_id}.md"
         path = f"{plans_dir}/{filename}"
 
-        # Write to backend
-        result = await ctx.deps.backend.write(path, content.encode("utf-8"))
-        if hasattr(result, "error") and result.error:
-            return f"Error saving plan: {result.error}"
+        try:
+            await ctx.workspace.write_bytes(path, content.encode("utf-8"))
+        except OSError as exc:
+            return f"Error saving plan: {exc}"
 
         return f"Plan saved to `{path}`"
 

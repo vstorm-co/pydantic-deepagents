@@ -1,9 +1,9 @@
 """Diff builder over fork branches.
 
 Produces a typed :class:`BranchDiffReport` by walking each branch's
-:class:`~pydantic_deep.toolsets.forking.isolation.BranchOverlay` changes,
+:class:`~pydantic_deep.features.forking.isolation.BranchOverlay` changes,
 grouping them by path, and rendering unified diffs against the shared
-parent backend. Consumed by the CLI merge picker, IDE bridge, and judge.
+parent workspace. Consumed by the CLI merge picker, IDE bridge, and judge.
 
 The module exposes :func:`build_diff_report` (public) and helpers; the
 agent-facing `diff_branches` tool lives in this package's `__init__`
@@ -38,15 +38,10 @@ if TYPE_CHECKING:
 
 
 class _BytesReadable(Protocol):
-    """Minimal sync read surface needed by the diff builder.
+    """The read surface the diff builder needs: a `Workspace` or a `BranchOverlay`."""
 
-    Both ``BackendProtocol`` and ``BranchOverlay`` satisfy this. Using a
-    narrow local protocol keeps strict typing happy without depending on
-    backend-level method signature quirks.
-    """
-
-    def exists(self, path: str) -> bool: ...
-    def read_bytes(self, path: str) -> bytes: ...
+    async def exists(self, path: str) -> bool: ...
+    async def read_bytes(self, path: str) -> bytes: ...
 
 
 #: Bytes read from the start of a file when sniffing for binary content.
@@ -78,17 +73,11 @@ def _binary_placeholder(data: bytes, *, digest: str | None = None) -> str:
     return f"[binary · {len(data)} · sha256:{full[:_BINARY_HASH_PREFIX_HEX_LEN]}]"
 
 
-async def _read_path_bytes(backend: _BytesReadable, path: str) -> bytes | None:
-    """Read `path` from `backend` as raw bytes, or `None` if absent.
-
-    Uses ``exists()`` first because some backends (notably ``StateBackend``)
-    silently return ``b""`` for missing paths instead of raising.
-    """
-    if not backend.exists(path):
-        return None
+async def _read_path_bytes(source: _BytesReadable, path: str) -> bytes | None:
+    """Read `path` from `source` as raw bytes, or `None` if there is no file there."""
     try:
-        return backend.read_bytes(path)
-    except (FileNotFoundError, KeyError):  # pragma: no cover - defensive
+        return await source.read_bytes(path)
+    except (FileNotFoundError, IsADirectoryError, NotADirectoryError):
         return None
 
 
@@ -166,7 +155,7 @@ def _classify_agreement(branches: dict[str, BranchChange]) -> BranchDiffAgreemen
 
 
 async def _resolve_parent_content(
-    parent_backend: _BytesReadable,
+    parent: _BytesReadable,
     path: str,
 ) -> tuple[str | None, bytes | None]:
     """Return `(parent_text_or_none, parent_raw_bytes_or_none)` for a path.
@@ -175,7 +164,7 @@ async def _resolve_parent_content(
     still detect binary status without exposing undecodable bytes through
     the text field of :class:`PathDiff`.
     """
-    raw = await _read_path_bytes(parent_backend, path)
+    raw = await _read_path_bytes(parent, path)
     if raw is None:
         return None, None
     if _is_binary_bytes(raw):
@@ -308,7 +297,10 @@ async def build_diff_report(
         if overlay is None:
             touched_per_branch[runtime.status.id] = set()
             continue
-        touched_per_branch[runtime.status.id] = {change.path for change in overlay.changes()}
+        # File changes only: a directory has no content to diff.
+        touched_per_branch[runtime.status.id] = {
+            change.path for change in overlay.changes() if change.op in ("write", "delete")
+        }
 
     union_touched: set[str] = set().union(*touched_per_branch.values()) if runtimes else set()
 
@@ -317,10 +309,10 @@ async def build_diff_report(
     # filtering out a conflicting path can't falsely inflate agreement_score.
     paths_to_classify = sorted(union_touched | report_set)
 
-    parent_backend: _BytesReadable | None = None
+    parent: _BytesReadable | None = None
     for runtime in runtimes:
         if runtime.overlay is not None:
-            parent_backend = runtime.overlay.parent
+            parent = runtime.overlay.parent
             break
 
     path_diffs: list[PathDiff] = []
@@ -329,10 +321,10 @@ async def build_diff_report(
     split_paths = 0
 
     for path in paths_to_classify:
-        if parent_backend is None:
+        if parent is None:
             parent_text, parent_raw = None, None
         else:
-            parent_text, parent_raw = await _resolve_parent_content(parent_backend, path)
+            parent_text, parent_raw = await _resolve_parent_content(parent, path)
 
         branches_for_path: dict[str, BranchChange] = {}
         for runtime in runtimes:

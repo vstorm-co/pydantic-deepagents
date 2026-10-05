@@ -19,7 +19,7 @@ Steering is an interrupt: *"actually, do it this way instead."* Follow-up is a q
 
 ```python hl_lines="2 7 8 11"
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 from pydantic_deep.features.message_queue import MessageQueue, run_with_queue
 
 
@@ -29,7 +29,7 @@ async def main():
         model="anthropic:claude-sonnet-4-6",
         message_queue=queue,
     )
-    deps = DeepAgentDeps(backend=StateBackend(), message_queue=queue)
+    deps = DeepAgentDeps(message_queue=queue)
 
     async def supervisor():
         # Some other coroutine, watching the run unfold.
@@ -62,10 +62,10 @@ You steered a running agent from outside it — and queued a continuation it'll 
 
 ### Step 1: one queue, shared two ways
 
-```python hl_lines="2 6"
+```python hl_lines="2 3"
 queue = MessageQueue()
 agent = create_deep_agent(model="anthropic:claude-sonnet-4-6", message_queue=queue)
-deps = DeepAgentDeps(backend=StateBackend(), message_queue=queue)
+deps = DeepAgentDeps(message_queue=queue)
 ```
 
 The same `MessageQueue` goes to *both* the agent and the deps. Passing it to `create_deep_agent(message_queue=…)` installs the capability that injects steering before each model request. Putting it on `DeepAgentDeps` makes it reachable from inside tools and subagents (more on that below).

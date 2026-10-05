@@ -5,6 +5,244 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.46] - 2026-10-06
+
+### Fixed
+
+- **A fresh install of 0.3.45 failed on import.** `pydantic-ai-backend` 0.2.32
+  imported `httpx` for every workspace without declaring it in the `workspaces`
+  extra, so `import pydantic_deep` raised `ModuleNotFoundError: No module named
+  'httpx'` outside a development environment. The requirement is now
+  `pydantic-ai-backend>=0.2.33`, which declares it.
+- **`create_deep_agent()` needed a package it did not install.** Web search is on
+  by default with a DuckDuckGo fallback for models without a native search tool,
+  and Pydantic AI now builds that fallback with the agent - so a plain
+  `pip install pydantic-deep` raised "requires the `duckduckgo` optional group".
+  The `duckduckgo` group is now part of the base requirement. A new CI job installs
+  the package alone and builds the default agent.
+
+## [0.3.45] - 2026-10-06
+
+**⚠️ Breaking: deep agents now run on Pydantic AI workspaces.** Pydantic AI 2.52
+gave every run one environment to work in, `ctx.workspace`, and
+`pydantic-ai-backend` 0.2.30 replaced its backend protocol with it. Every
+feature here that read or wrote `ctx.deps.backend` now works in the run's
+workspace instead, so any Pydantic AI workspace capability works as the agent's
+environment — including the harness's E2B, Modal and Sprites. Requires
+`pydantic-ai-slim>=2.52.0`, `pydantic-ai-backend>=0.2.32` and
+`subagents-pydantic-ai>=0.2.25`. See the new "Workspaces" page, and the table on
+it for what replaces each removed name.
+
+### Changed
+
+- **`create_deep_agent(workspace=...)`** chooses where runs work:
+  `StateWorkspace()` (the default — an in-memory document, files only),
+  `LocalWorkspace(path)`, `DockerWorkspace(...)`, `SandboxdWorkspace(...)`,
+  `KubernetesWorkspace(...)`, `DaytonaWorkspace(...)` or any other workspace
+  capability. `False` attaches none, for applications that pass each run its own
+  with `agent.run(workspace=...)`. `include_execute` now defaults to on unless the
+  workspace is `StateWorkspace`, which has no commands; subagents follow the
+  parent's choice.
+- **`DeepAgentDeps` holds no files.** `backend`, `files` and `get_files_summary()`
+  are gone; read a run's files from `result.workspace` or, in a tool,
+  `ctx.workspace`. `upload_file()` queues the bytes and the run writes them into
+  its workspace when it starts (`write_pending_uploads()` does it by hand), so
+  uploads land in `uploads/` relative to the workspace's working directory rather
+  than at `/uploads`. `create_default_deps()` takes no arguments.
+- **Memory, context files, plans, evicted tool output, LiteParse screenshots and
+  hooks work in the run's workspace.** Their default directories are relative to
+  its working directory: `.deep/memory`, `.deep/large_tool_results`, `plans`,
+  `screenshots`. Command hooks need a workspace that runs commands and raise when
+  the run's workspace has none.
+- **Monitors run in the workspace**, their output going to a log under
+  `.deep/monitors/`; in a workspace without commands the tools say so.
+- **`WorkspaceSkillsDirectory` replaces `BackendSkillsDirectory`**: a folder of
+  skills inside the run's workspace, discovered through `ctx.workspace` on first
+  use in each workspace. Scripts are offered only where the workspace runs
+  commands.
+- **Forked branches work in an overlay of the parent's workspace**, flushed onto
+  it when a branch wins. `BranchIsolation.backend` is now
+  `BranchIsolation.workspace`; `LocalBranchOverlay` runs a branch's
+  `test_command` in a temporary copy of a local project; `branch_workspace`
+  gives the workspace a branch runs in.
+- **The CLI works in a confined local workspace or one Docker container per
+  project and workspace name**, mounting the project at `/workspace`; a session
+  without a workspace name gets a container of its own, removed when the session
+  ends. Locally, file tools stay inside the project (`ConfinedWorkspace`, as
+  `LocalBackend(root_dir=...)` kept them) and commands get the user's
+  environment; every run passes the session's workspace, so a history saved by
+  another process or before a model switch keeps working.
+- **The ACP server and the deepresearch app** pass each session's workspace to
+  its runs; the ACP server's is confined to the editor's project.
+- **Uploads reach every run's workspace.** `deps.upload_file` keeps the bytes,
+  and each run writes the latest version of every upload into its workspace
+  when it starts - once, so a file the agent changed is not overwritten. A run
+  in a new in-memory document finds what the prompt lists.
+- **A command hook that cannot decide refuses rather than ends the run.** One
+  that times out, floods its output or runs in a workspace without commands -
+  the default, or a fork branch's view of a container - is undecided: before a
+  tool, the call is refused with the reason, and the run goes on. Before, a
+  timeout allowed the call.
+- **`LocalWorkspace` is Pydantic AI's, and confines nothing**: its file tools
+  reach any path, and its commands get only `PATH`, `HOME` and the locale.
+  Wrap it in `ConfinedWorkspace` to keep file operations in its directory; pass
+  `env=` for more of the environment.
+- **The CLI's local sandbox needs Linux or macOS.** Pydantic AI's local workspace
+  runs commands on POSIX only, so on Windows `pydantic-deep` refuses
+  `--sandbox local` up front and points to `--sandbox docker` (or WSL), rather
+  than failing while it builds the agent.
+
+### Removed
+
+- `DeepAgentDeps(backend=...)`, `DeepAgentDeps.files`, `get_files_summary()`,
+  `unwrap_backend`, `BackendSkillsDirectory`, `BackendSkillResource`,
+  `BackendSkillScript`, `BackendSkillScriptExecutor`, and the re-exports of
+  `BackendProtocol`, `SandboxProtocol`, `LocalBackend`, `CompositeBackend`,
+  `BaseSandbox`, `AsyncBaseSandbox`, `is_async_backend`, `DockerSandbox`,
+  `SessionManager`, `ConsoleDeps`, `WriteResult`, `EditResult`,
+  `ExecuteResponse` and `GrepMatch`. A workspace has no equivalent of `CompositeBackend`'s path
+  routing: one workspace serves a run, and its example is gone.
+- **The CLI's background shells panel** (`/shells`): background processes were a
+  feature of the old local backend.
+
+### Fixed
+
+- **Tests and type checks pass on Pydantic AI 2.54**, which `main` had drifted
+  from.
+
+## [0.3.44] - 2026-10-05
+
+### Fixed
+
+- **A fresh install broke on import.** `pydantic-ai-backend` 0.2.30 replaced its
+  backend protocol with Pydantic AI workspaces and removed `LocalBackend`,
+  `AsyncBaseSandbox` and the rest of the names this package imports, and the
+  requirement had no upper bound, so `pip install pydantic-deep` resolved it and
+  `import pydantic_deep` raised `ImportError`. Both the `console` and `docker`
+  requirements are now `>=0.2.25,<0.2.30` until this package moves to
+  workspaces.
+
+## [0.3.43] - 2026-08-05
+
+### Changed
+
+- **Requires `subagents-pydantic-ai>=0.2.18`**. That release removes the implicit
+  `default_model="openai:gpt-4.1"` from the subagent toolset: there is no
+  library-chosen default any more, so a toolset that leaves the general-purpose
+  delegate on with no model now raises at construction instead of running that
+  delegate on whatever provider credential the process environment happens to
+  hold. Deep-agent construction is unaffected — it already passes `default_model`
+  and `include_general_purpose=False`. The one place that relied on the old
+  default was a test, now updated.
+- **Requires `pydantic-ai-backend>=0.2.25`** (from `>=0.2.18`), a maintenance
+  bump of the backend dependency for both the `console` and `docker` extras.
+
+## [0.3.42] - 2026-08-01
+
+### Changed
+
+- **Requires `pydantic-ai-backend>=0.2.18`**, which is a bug-fix release worth
+  taking: a directory listing reported shell-quoted paths, so a directory with a
+  space in its name was unreachable — the model was handed a path it could not
+  read back; a glob aborted its whole walk on one unreadable entry and returned a
+  silently short listing; and a Kubernetes exec reported an unknown status as
+  success, so every truncated command looked like it had passed.
+
+### Added
+
+- **`AsyncBaseSandbox` and `is_async_backend`** re-exported from
+  `pydantic_deep`, alongside `BaseSandbox`. Subclass `AsyncBaseSandbox` for a
+  sandbox reached over an async transport — asyncssh, an async HTTP SDK — and
+  implement `execute` and `edit` as coroutines; every other file operation is
+  derived from shell commands, as with the synchronous base.
+
+  Prefer it to wrapping async code in a synchronous facade. `ensure_async` cannot
+  see through a facade, so it thread-wraps it and each call then occupies a worker
+  thread that has to hop back onto the event loop; a sandbox whose own recovery
+  path also needs a thread deadlocks against its own pool. `is_async_backend` is
+  the check `ensure_async` performs, exposed so a host can ask the same question.
+
+## [0.3.41] - 2026-08-01
+
+### Changed
+
+- **A subagent blocked in `ask_parent` now waits 60s, not 300s.**
+  `subagents-pydantic-ai` defaults to a five-minute wait, which a team member
+  inherits: one that asks a question while the lead is not polling holds its slot
+  for the whole timeout, and five minutes of that is indistinguishable from a hung
+  agent. After the timeout the subagent is told to proceed on its own judgment
+  rather than being cancelled, so the work still finishes.
+
+### Added
+
+- **`create_deep_agent(subagent_ask_timeout_seconds=...)`** and
+  `DEFAULT_SUBAGENT_ASK_TIMEOUT_SECONDS` (60.0), for raising the wait back up when
+  a human is reliably in the loop.
+
+## [0.3.40] - 2026-08-01
+
+Agent teams were wired to the subagent execution engine but never actually ran a
+member. Four defects compounded, each of them silent: the tools reported success
+and the team produced nothing.
+
+Requires `subagents-pydantic-ai >= 0.2.12`, which adds the programmatic
+`answer_task` / `steer_task` surface and exposes `SubAgentToolset.registry`.
+
+### Fixed
+
+- **Teams registered members in a registry the subagent engine never reads.** With
+  `subagent_registry=None` — the `create_deep_agent` default — the team block built
+  a fresh `DynamicAgentRegistry()`, so `spawn_team` put its members somewhere the
+  subagent `task` tool does not look and every `assign_task` came back
+  `Error: Unknown subagent`. Teams plus subagents was broken in the default
+  configuration. Teams now share `subagent_toolset.registry`.
+- **A refused delegation was recorded as a started task.** The subagent `task` tool
+  reports an unknown subagent or a busy chat trace as an error string rather than
+  raising, so `assign_task`'s `except` never fired: it set the member to `running`
+  and appended the error to an "Agent running in background" message. The member
+  then sat at `running` forever. A started task is now identified by its `Task ID:`
+  line, and a refusal marks the member `failed` with the reason.
+- **`message_teammate` delivered nothing.** It wrote to `TeamMessageBus`, which no
+  running member reads — a member is a background subagent and only sees what the
+  subagent engine hands it, and `TeamMessageBus.receive()` is called from tests
+  only. It now routes through the engine: `answer_task` when the member is blocked
+  in `ask_parent`, `steer_task` while it runs, and it says plainly when there is
+  nothing to deliver into instead of reporting "Message sent".
+- **A finished member left its shared task `in_progress` forever**, so the lead read
+  completed work as outstanding. `AgentTeam.sync_member` completes the todo when a
+  member completes, and releases the claim when one fails so the lead can reassign
+  it rather than watching a dead member hold it.
+
+### Added
+
+- **`create_team_toolset(subagent_toolset=...)`** — the subagent toolset backing
+  execution, which is what makes `message_teammate` able to deliver. The existing
+  `registry` / `task_fn` / `task_manager` arguments still work.
+- **`TeamMemberHandle.todo_id`**, linking a member to the shared-todo item it
+  claimed so finishing the task can close the todo.
+- **`TestTeamSubagentWiring`** in `tests/test_teams.py`, which fails on each of the
+  four defects independently.
+
+### Changed
+
+- `TestCreateTeamToolset::test_message_teammate` asserted the `"Message sent"` that
+  the third defect shows was a lie; it now asserts the honest outcome.
+
+## [0.3.39] - 2026-07-26
+
+The pre-`features/` import paths are gone.
+
+### Removed
+
+- **`pydantic_deep.toolsets`, `pydantic_deep.capabilities`, `pydantic_deep.processors` and `pydantic_deep.improve` are deleted** (`pydantic_deep/__init__.py`). Every feature moved into `pydantic_deep/features/<name>/` in 0.3.34, which said the old deep import paths would be removed in the next minor release; since then the four packages have been deprecation shims, re-exporting the moved names and warning on import. They are now removed — `features/` is the only import location.
+  - The blessed top-level surface is unchanged: `from pydantic_deep import SkillsToolset, HooksCapability, EvictionCapability, ...` still works, and `tests/test_public_api.py` (replacing `tests/test_feature_shims.py`) asserts each re-export is the same object as the one in its feature package.
+  - Deep imports must move to the feature package: `pydantic_deep.toolsets.memory` → `pydantic_deep.features.memory`, `pydantic_deep.capabilities.hooks` → `pydantic_deep.features.hooks`, `pydantic_deep.processors.eviction` → `pydantic_deep.features.eviction`, `pydantic_deep.improve` → `pydantic_deep.features.improve`, and likewise for `context`, `browser`, `skills`, `plan`, `teams`, `forking`, `checkpointing`, `liteparse`, `patch`, `history_archive`, `message_queue`, `stuck_loop`, `periodic_reminder`.
+  - Logger names follow the modules: code filtering on `pydantic_deep.capabilities.hooks` or `pydantic_deep.capabilities.periodic_reminder` should now use `pydantic_deep.features.hooks.capability` / `pydantic_deep.features.periodic_reminder.capability`.
+
+### Fixed
+
+- **`examples/skills_usage.py` discovery demos run again** (`examples/skills_usage.py`). `--discover` and `--load` imported `discover_skills` / `load_skill_instructions`, which stopped existing well before the reorg, so both modes died on `ImportError`. They now use `SkillsDirectory.get_skills()` and read `Skill` attributes instead of dict keys.
+
 ## [0.3.38] - 2026-07-24
 
 MCP resources and skills reach the model, the CLI talks to any

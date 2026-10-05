@@ -16,6 +16,7 @@ from pydantic_deep.features.liteparse.toolset import (
     LiteparseCliNotFoundError,
     LiteparseToolset,
 )
+from tests.workspaces import state_workspace
 
 TEST_MODEL = TestModel()
 
@@ -23,9 +24,9 @@ TEST_MODEL = TestModel()
 def _ctx(backend: Any = None) -> Any:
     from pydantic_ai import RunContext
 
-    deps = MagicMock()
-    deps.backend = backend or MagicMock()
-    return RunContext(deps=deps, model=TEST_MODEL, usage=RunUsage())
+    ctx = RunContext(deps=MagicMock(), model=TEST_MODEL, usage=RunUsage())
+    ctx.workspace = backend or MagicMock()
+    return ctx
 
 
 # ── LiteparseToolset construction ─────────────────────────────────────────────
@@ -141,9 +142,7 @@ class TestParseDocument:
     @pytest.mark.asyncio
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
-        backend = MagicMock()
-        backend.read_bytes = AsyncMock(return_value=None)
-        ctx = _ctx(backend)
+        ctx = _ctx(state_workspace())
         with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["parse_document"].function(ctx, path="/missing.pdf")
         assert "File not found" in result
@@ -228,9 +227,7 @@ class TestScreenshotDocument:
     @pytest.mark.asyncio
     async def test_file_not_found(self) -> None:
         ts = LiteparseToolset()
-        backend = MagicMock()
-        backend.read_bytes = AsyncMock(return_value=None)
-        ctx = _ctx(backend)
+        ctx = _ctx(state_workspace())
         with patch("pydantic_deep.features.liteparse.toolset._HAS_LITEPARSE", True):
             result = await ts.tools["screenshot_document"].function(ctx, path="/missing.pdf")
         assert "File not found" in result
@@ -240,7 +237,7 @@ class TestScreenshotDocument:
         ts = LiteparseToolset()
         backend = MagicMock()
         backend.read_bytes = AsyncMock(return_value=b"pdfdata")
-        backend.write = AsyncMock(return_value=MagicMock(error=None, path="/ok"))
+        backend.write_bytes = AsyncMock(return_value=None)
         ctx = _ctx(backend)
 
         shot1 = MagicMock()
@@ -266,8 +263,8 @@ class TestScreenshotDocument:
         assert "Generated 2 screenshot(s)" in result
         assert "/screenshots/page_1.png" in result
         assert "/screenshots/page_2.png" in result
-        backend.write.assert_any_call("/screenshots/page_1.png", b"png1")
-        backend.write.assert_any_call("/screenshots/page_2.png", b"png2")
+        backend.write_bytes.assert_any_call("/screenshots/page_1.png", b"png1")
+        backend.write_bytes.assert_any_call("/screenshots/page_2.png", b"png2")
 
     @pytest.mark.asyncio
     async def test_no_screenshots_generated(self) -> None:

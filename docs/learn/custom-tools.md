@@ -9,7 +9,7 @@ import asyncio
 
 from pydantic_ai import RunContext
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def get_weather(ctx: RunContext[DeepAgentDeps], city: str) -> str:
@@ -29,7 +29,7 @@ async def main():
         tools=[get_weather],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "What's the weather in Paris? Then save it to weather.txt.",
@@ -56,7 +56,7 @@ $ python main.py
 The agent calls your `get_weather` tool with `city="Paris"`, gets your made-up forecast back, and then reaches for the *built-in* `write` tool to drop it into `weather.txt`. Your one function and the whole toolbox, working together — and you wrote none of the JSON schema, none of the dispatch, none of the glue.
 
 !!! example "Check it"
-    Add `print(await deps.backend.read("weather.txt"))` after the run. Your
+    Add `print(await result.workspace.read_text("weather.txt"))` after the run. Your
     tool's output really made it into the file — because the model chained your
     custom tool into the built-in one on its own.
 
@@ -74,20 +74,20 @@ async def get_weather(ctx: RunContext[DeepAgentDeps], city: str) -> str:
     return f"It's 21°C and sunny in {city}."
 ```
 
-### `ctx.deps` is your typed dependencies
+### `ctx` is the run's context
 
 The first parameter, `ctx: RunContext[DeepAgentDeps]`, is how Pydantic AI hands your tool the run's context. The model never sees it — it's injected for you, and it's fully typed.
 
-`ctx.deps` is the same `DeepAgentDeps` you passed to `agent.run()`. So your tool can read and write through the agent's backend, inspect its todos, and reach anything else you stashed on deps:
+`ctx.workspace` is where the run works — the same files the built-in tools read and write. `ctx.deps` is the same `DeepAgentDeps` you passed to `agent.run()`: its todos, and anything else you stashed on deps:
 
 ```python
 async def save_report(ctx: RunContext[DeepAgentDeps], text: str) -> str:
     """Save a report to /reports/latest.md."""
-    await ctx.deps.backend.write("/reports/latest.md", text)
+    await ctx.workspace.write_text("/reports/latest.md", text)
     return "Saved."
 ```
 
-Because `DeepAgentDeps` is typed, your editor autocompletes `ctx.deps.backend` and the type checker catches a typo before you ever run the agent.
+Because both are typed, your editor autocompletes `ctx.workspace.write_text` and `ctx.deps.todos`, and the type checker catches a typo before you ever run the agent.
 
 ### The docstring is the description
 
@@ -119,7 +119,7 @@ async def get_weather(
 !!! note "Sync functions are fine"
     Tools don't have to be `async`. A plain `def get_version(ctx) -> str` works
     too — use `async def` only when you actually `await` something (an HTTP call,
-    a database query, the backend).
+    a database query, the workspace).
 
 !!! warning "Return errors, don't raise them"
     When something goes wrong, return a helpful string the model can read and
@@ -132,7 +132,7 @@ async def get_weather(
 Adding a tool is just writing a function:
 
 - Any `async` (or sync) function with type hints becomes a tool via `tools=[...]`.
-- The first parameter `ctx: RunContext[DeepAgentDeps]` is injected for you; `ctx.deps` is your typed dependencies, including `ctx.deps.backend`.
+- The first parameter `ctx: RunContext[DeepAgentDeps]` is injected for you; `ctx.workspace` is where the run's files live, and `ctx.deps` is your typed dependencies.
 - The **docstring** is the description the model reads; the **type hints** are the schema it fills in.
 - `tools=` *extends* the built-in toolset — it never replaces it.
 - Return errors as strings so the agent can recover.

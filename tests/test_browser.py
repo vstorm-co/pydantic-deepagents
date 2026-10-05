@@ -1380,8 +1380,8 @@ class TestBrowseResult:
 
 
 class TestCapabilityExports:
-    def test_browser_capability_importable_from_package(self) -> None:
-        from pydantic_deep.capabilities import BrowserCapability as BC
+    def test_browser_capability_importable_from_feature(self) -> None:
+        from pydantic_deep.features.browser import BrowserCapability as BC
 
         assert BC is BrowserCapability
 

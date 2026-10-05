@@ -39,7 +39,7 @@ from pydantic_ai.tools import (
     ToolDenied,
 )
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def get_user_approval(tool_name: str, args: dict) -> bool:
@@ -73,7 +73,7 @@ async def main():
         },
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Ask the agent to do something that requires approval
     print("Running agent with task that requires approval...")
@@ -119,9 +119,9 @@ async def main():
         print(result.output)
 
     # Show what files were created
-    print("\nFiles in storage:")
-    for path, data in deps.files.items():
-        print(f"  {path}: {len(data['content'])} lines")
+    print("\nFiles in the workspace:")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}")
 
 
 if __name__ == "__main__":

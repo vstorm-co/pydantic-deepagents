@@ -12,7 +12,7 @@ Three generator shapes are supported:
 Example:
     ```python
     from pydantic_deep import create_deep_agent
-    from pydantic_deep.capabilities.periodic_reminder import (
+    from pydantic_deep.features.periodic_reminder import (
         PeriodicReminderCapability,
         PeriodicReminderConfig
     )

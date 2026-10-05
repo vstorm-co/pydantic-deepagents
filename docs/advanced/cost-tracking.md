@@ -7,13 +7,13 @@ You don't wire any of it up. Cost tracking is **on by default**.
 ```python hl_lines="9 10 11"
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
     agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
 
-    result = await agent.run("Summarize what a vector database is.", deps=DeepAgentDeps(backend=StateBackend()))
+    result = await agent.run("Summarize what a vector database is.", deps=DeepAgentDeps())
 
     info = agent.cost_info
     print(f"This run: ${info.run_cost_usd:.4f}")
@@ -67,7 +67,7 @@ info = agent.cost_info
 print(f"This run: ${info.run_cost_usd:.4f}")
 ```
 
-After each run, the capability reads `result.usage()` for the raw token counts and prices them using [`genai-prices`](https://github.com/pydantic/genai-prices) — a model-specific pricing database. The result is a `CostInfo` carrying both **this run** and the **cumulative** totals:
+After each run, the capability reads `result.usage` for the raw token counts and prices them using [`genai-prices`](https://github.com/pydantic/genai-prices) — a model-specific pricing database. The result is a `CostInfo` carrying both **this run** and the **cumulative** totals:
 
 | Field | What it tells you |
 |-------|-------------------|

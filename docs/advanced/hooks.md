@@ -5,7 +5,7 @@ Run your own code on every tool the agent touches — before it runs, after it r
 A **hook** is a shell command or a Python handler that fires on a tool lifecycle event. That one idea covers a lot: audit-log every call, block writes outside a directory, scrub secrets from output, or wire a tool failure to a pager. Hooks follow Claude Code's conventions, so a script you already wrote for `claude` works here too.
 
 ```python hl_lines="1 5 6 7 8 9"
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend, Hook, HookEvent
+from pydantic_deep import create_deep_agent, DeepAgentDeps, DockerWorkspace, Hook, HookEvent
 from pydantic_deep.features.hooks import HookInput, HookResult
 
 
@@ -17,6 +17,8 @@ async def block_dangerous(hook_input: HookInput) -> HookResult:
 
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",
+    # A shell to guard - in a container, since the prompt below asks for a delete
+    workspace=DockerWorkspace(),
     hooks=[Hook(event=HookEvent.PRE_TOOL_USE, handler=block_dangerous, matcher="execute")],
 )
 ```
@@ -27,7 +29,7 @@ agent = create_deep_agent(
 import asyncio
 
 async def main():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run("Delete everything in /tmp with rm -rf.", deps=deps)
     print(result.output)
 
@@ -127,10 +129,11 @@ Hook(
 - **Exit `0`** (`EXIT_ALLOW`) — allow. Print JSON to stdout to return `modified_args`, `modified_result`, or a `reason`.
 - **Exit `2`** (`EXIT_DENY`) — deny. Whatever it printed to stdout becomes the denial reason.
 
-!!! warning "Command hooks need a real shell"
-    They run via the backend's `SandboxProtocol.execute()`, so use `LocalBackend`
-    or `DockerSandbox`. `StateBackend` is in-memory and has no shell — handlers
-    work there, commands don't.
+!!! warning "Command hooks need a workspace that runs commands"
+    They run in the run's workspace, so use `LocalWorkspace`, `DockerWorkspace`
+    or another sandbox. The default `StateWorkspace` is in-memory and has no
+    shell — handlers work there; a command hook raises an error saying the
+    workspace runs no commands.
 
 ## The batteries-included security preset
 
@@ -178,7 +181,7 @@ agent = create_deep_agent(
 !!! warning "Defense in depth, not a sandbox"
     The preset matches *common* misuse shapes. It won't catch obfuscation
     (`base64 -d | sh`), indirect access (`ln -s /etc/shadow /tmp/x`), or novel
-    secret formats. For real isolation run against a `DockerSandbox` backend and
+    secret formats. For real isolation run in a `DockerWorkspace` and
     use this preset *on top of* it, not instead of it.
 
 ## Recap

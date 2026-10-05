@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -17,7 +16,13 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import ExecuteResponse, SandboxProtocol, StateBackend, ensure_async
+from pydantic_ai.workspaces import (
+    CommandResult,
+    Workspace,
+    WorkspaceOutputLimitError,
+    WorkspaceRef,
+    WorkspaceTimeoutError,
+)
 
 from pydantic_deep import DeepAgentDeps, create_deep_agent, default_security_hook
 from pydantic_deep.features.hooks.capability import (
@@ -35,18 +40,25 @@ from pydantic_deep.features.hooks.capability import (
     _build_hook_input,
     _execute_command_hook,
     _execute_handler_hook,
-    _get_sandbox_backend,
     _match_hooks,
     _parse_command_result,
     _run_background_hook,
     _run_hook,
 )
+from tests.workspaces import state_workspace
 
 TEST_MODEL = TestModel()
 
 
-def _ctx(deps: Any = None) -> RunContext[Any]:
-    return RunContext(deps=deps, model=TEST_MODEL, usage=RunUsage())
+def _ctx(deps: Any = None, backend: Any = None) -> RunContext[Any]:
+    ctx = RunContext(deps=deps, model=TEST_MODEL, usage=RunUsage())
+    if backend is not None:
+        ctx.workspace = Workspace(backend)
+    return ctx
+
+
+def _result(output: str = "", exit_code: int = 0) -> CommandResult:
+    return CommandResult(exit_code=exit_code, stdout=output, stderr="")
 
 
 def _call(name: str) -> ToolCallPart:
@@ -57,39 +69,44 @@ def _td(name: str) -> ToolDefinition:
     return ToolDefinition(name=name, description="")
 
 
-@dataclass
 class FakeSandboxBackend:
-    """Minimal SandboxProtocol implementation for testing command hooks."""
+    """A workspace backend that runs commands by looking up canned results."""
 
-    responses: dict[str, ExecuteResponse]
-    """Map of command substring → response."""
-
-    executed: list[str]
-    """Log of executed commands."""
-
-    def __init__(self, responses: dict[str, ExecuteResponse] | None = None) -> None:
+    def __init__(
+        self,
+        responses: dict[str, CommandResult] | None = None,
+        error: Exception | None = None,
+    ) -> None:
         self.responses = responses or {}
-        self.executed = []
+        self.error = error
+        self.executed: list[str] = []
 
-    def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse:
+    @property
+    def ref(self) -> WorkspaceRef | None:
+        return None
+
+    async def working_dir(self) -> str:
+        return "/"
+
+    async def run(
+        self,
+        command: Any,
+        *,
+        shell: bool = False,
+        env: Any = None,
+        timeout: float | None = None,
+    ) -> CommandResult:
         self.executed.append(command)
+        if self.error is not None:
+            raise self.error
         for key, response in self.responses.items():
             if key in command:
                 return response
-        return ExecuteResponse(output="", exit_code=0)
-
-    # Stub BackendProtocol methods
-    def list_files(self, path: str = "/") -> Any:
-        return []  # pragma: no cover
-
-    def read_bytes(self, path: str) -> bytes:
-        return b""  # pragma: no cover
-
-    def write(self, path: str, content: str) -> Any:
-        return None  # pragma: no cover
+        return _result()
 
 
-SandboxProtocol.register(FakeSandboxBackend)
+def _workspace(backend: FakeSandboxBackend) -> Workspace:
+    return Workspace(backend)
 
 
 class TestHookValidation:
@@ -284,22 +301,22 @@ class TestBuildHookInput:
 
 class TestParseCommandResult:
     def test_exit_0_allow(self):
-        result = _parse_command_result(ExecuteResponse(output="", exit_code=0))
+        result = _parse_command_result(_result(output="", exit_code=0))
         assert result.allow is True
 
     def test_exit_2_deny(self):
-        result = _parse_command_result(ExecuteResponse(output="Not allowed", exit_code=2))
+        result = _parse_command_result(_result(output="Not allowed", exit_code=2))
         assert result.allow is False
         assert result.reason == "Not allowed"
 
     def test_exit_2_deny_empty_output(self):
-        result = _parse_command_result(ExecuteResponse(output="", exit_code=2))
+        result = _parse_command_result(_result(output="", exit_code=2))
         assert result.allow is False
         assert result.reason == "Denied by hook"
 
     def test_json_output_modified_args(self):
         result = _parse_command_result(
-            ExecuteResponse(
+            _result(
                 output='{"modified_args": {"command": "safe"}}',
                 exit_code=0,
             )
@@ -309,7 +326,7 @@ class TestParseCommandResult:
 
     def test_json_output_modified_result(self):
         result = _parse_command_result(
-            ExecuteResponse(
+            _result(
                 output='{"modified_result": "sanitized"}',
                 exit_code=0,
             )
@@ -318,7 +335,7 @@ class TestParseCommandResult:
 
     def test_json_output_with_reason(self):
         result = _parse_command_result(
-            ExecuteResponse(
+            _result(
                 output='{"reason": "checked OK"}',
                 exit_code=0,
             )
@@ -326,24 +343,24 @@ class TestParseCommandResult:
         assert result.reason == "checked OK"
 
     def test_non_json_output_ignored(self):
-        result = _parse_command_result(ExecuteResponse(output="some plain text", exit_code=0))
+        result = _parse_command_result(_result(output="some plain text", exit_code=0))
         assert result.allow is True
         assert result.modified_args is None
 
     def test_non_dict_json_ignored(self):
-        result = _parse_command_result(ExecuteResponse(output="[1, 2, 3]", exit_code=0))
+        result = _parse_command_result(_result(output="[1, 2, 3]", exit_code=0))
         assert result.allow is True
         assert result.modified_args is None
 
     def test_other_exit_code_treated_as_allow(self):
-        result = _parse_command_result(ExecuteResponse(output="", exit_code=1))
+        result = _parse_command_result(_result(output="", exit_code=1))
         assert result.allow is True
 
 
 class TestExecuteCommandHook:
     async def test_basic_command(self):
-        raw_backend = FakeSandboxBackend({"checker": ExecuteResponse(output="", exit_code=0)})
-        backend = ensure_async(raw_backend)
+        raw_backend = FakeSandboxBackend({"checker": _result(output="", exit_code=0)})
+        backend = _workspace(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="checker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -357,7 +374,7 @@ class TestExecuteCommandHook:
 
     async def test_command_receives_json_stdin(self):
         raw_backend = FakeSandboxBackend()
-        backend = ensure_async(raw_backend)
+        backend = _workspace(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="my-checker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -371,10 +388,8 @@ class TestExecuteCommandHook:
         assert "execute" in cmd  # tool_name in JSON
 
     async def test_command_deny(self):
-        raw_backend = FakeSandboxBackend(
-            {"blocker": ExecuteResponse(output="Blocked!", exit_code=2)}
-        )
-        backend = ensure_async(raw_backend)
+        raw_backend = FakeSandboxBackend({"blocker": _result(output="Blocked!", exit_code=2)})
+        backend = _workspace(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="blocker")
         hook_input = HookInput(
             event="pre_tool_use",
@@ -387,7 +402,7 @@ class TestExecuteCommandHook:
 
     async def test_command_with_timeout(self):
         raw_backend = FakeSandboxBackend()
-        backend = ensure_async(raw_backend)
+        backend = _workspace(raw_backend)
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="slow-check", timeout=60)
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
         await _execute_command_hook(hook, hook_input, backend)
@@ -431,7 +446,7 @@ class TestExecuteHandlerHook:
 
 class TestRunHook:
     async def test_command_hook(self):
-        backend = ensure_async(FakeSandboxBackend())
+        backend = _workspace(FakeSandboxBackend())
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
         result = await _run_hook(hook, hook_input, backend)
@@ -446,18 +461,34 @@ class TestRunHook:
         result = await _run_hook(hook, hook_input, None)
         assert result.allow is True
 
-    async def test_command_hook_no_sandbox_raises(self):
+    async def test_command_hook_without_a_workspace_is_undecided(self):
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
-        with pytest.raises(RuntimeError, match="SandboxProtocol"):
-            await _run_hook(hook, hook_input, None)
+        result = await _run_hook(hook, hook_input, None)
+        assert result.allow is False
+        assert result.reason is not None and "runs commands" in result.reason
 
-    async def test_command_hook_non_sandbox_backend_raises(self):
+    async def test_command_hook_in_a_workspace_without_commands_is_undecided(self):
+        """A fork branch's view of a container, say: the gate refuses, the run goes on."""
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
-        # StateBackend is not a SandboxProtocol
-        with pytest.raises(RuntimeError, match="SandboxProtocol"):
-            await _run_hook(hook, hook_input, StateBackend())
+        result = await _run_hook(hook, hook_input, state_workspace())
+        assert result.allow is False
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            WorkspaceTimeoutError("timed out after 1 seconds"),
+            WorkspaceOutputLimitError("too much output", limit=10),
+        ],
+    )
+    async def test_a_hook_that_cannot_finish_is_undecided(self, error: Exception) -> None:
+        """Raising ended the run on one slow hook; exit 124 used to allow the call."""
+        hook = Hook(event=HookEvent.PRE_TOOL_USE, command="slow", timeout=1)
+        hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
+        result = await _run_hook(hook, hook_input, _workspace(FakeSandboxBackend(error=error)))
+        assert result.allow is False
+        assert result.reason is not None and str(error) in result.reason
 
 
 class TestRunBackgroundHook:
@@ -481,20 +512,6 @@ class TestRunBackgroundHook:
         hook_input = HookInput(event="post_tool_use", tool_name="t", tool_input={})
         # Should not raise
         await _run_background_hook(hook, hook_input, None)
-
-
-class TestGetSandboxBackend:
-    def test_none_deps(self):
-        assert _get_sandbox_backend(None) is None
-
-    def test_state_backend(self):
-        deps = DeepAgentDeps(backend=StateBackend())
-        assert _get_sandbox_backend(deps) is None
-
-    def test_sandbox_backend(self):
-        backend = FakeSandboxBackend()
-        deps = DeepAgentDeps(backend=backend)
-        assert _get_sandbox_backend(deps) is deps.backend
 
 
 class TestHooksCapability:
@@ -581,23 +598,23 @@ class TestHooksCapability:
         assert calls == ["bg"]
 
     async def test_before_tool_call_command_hook(self):
-        backend = FakeSandboxBackend({"checker": ExecuteResponse(output="", exit_code=0)})
-        deps = DeepAgentDeps(backend=backend)
+        backend = FakeSandboxBackend({"checker": _result(output="", exit_code=0)})
+        deps = DeepAgentDeps()
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="checker")
         mw = HooksCapability([hook])
         result = await mw.before_tool_execute(
-            _ctx(deps), call=_call("execute"), tool_def=_td("execute"), args={"cmd": "ls"}
+            _ctx(deps, backend), call=_call("execute"), tool_def=_td("execute"), args={"cmd": "ls"}
         )
         assert result == {"cmd": "ls"}
 
     async def test_before_tool_execute_command_deny(self):
-        backend = FakeSandboxBackend({"blocker": ExecuteResponse(output="Nope", exit_code=2)})
-        deps = DeepAgentDeps(backend=backend)
+        backend = FakeSandboxBackend({"blocker": _result(output="Nope", exit_code=2)})
+        deps = DeepAgentDeps()
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="blocker")
         mw = HooksCapability([hook])
         with pytest.raises(ModelRetry):
             await mw.before_tool_execute(
-                _ctx(deps), call=_call("execute"), tool_def=_td("execute"), args={}
+                _ctx(deps, backend), call=_call("execute"), tool_def=_td("execute"), args={}
             )
 
     async def test_after_tool_call_no_matching_hooks(self):
@@ -693,13 +710,13 @@ class TestHooksCapability:
 
     async def test_after_tool_call_command(self):
         backend = FakeSandboxBackend(
-            {"logger": ExecuteResponse(output='{"modified_result": "logged"}', exit_code=0)}
+            {"logger": _result(output='{"modified_result": "logged"}', exit_code=0)}
         )
-        deps = DeepAgentDeps(backend=backend)
+        deps = DeepAgentDeps()
         hook = Hook(event=HookEvent.POST_TOOL_USE, command="logger")
         mw = HooksCapability([hook])
         result = await mw.after_tool_execute(
-            _ctx(deps), call=_call("t"), tool_def=_td("t"), args={}, result="original"
+            _ctx(deps, backend), call=_call("t"), tool_def=_td("t"), args={}, result="original"
         )
         assert result == "logged"
 
@@ -759,13 +776,13 @@ class TestHooksCapability:
         assert calls == ["bg_error"]
 
     async def test_on_tool_error_command(self):
-        backend = FakeSandboxBackend({"error-handler": ExecuteResponse(output="", exit_code=0)})
-        deps = DeepAgentDeps(backend=backend)
+        backend = FakeSandboxBackend({"error-handler": _result(output="", exit_code=0)})
+        deps = DeepAgentDeps()
         hook = Hook(event=HookEvent.POST_TOOL_USE_FAILURE, command="error-handler")
         mw = HooksCapability([hook])
         with pytest.raises(RuntimeError):
             await mw.on_tool_execute_error(
-                _ctx(deps),
+                _ctx(deps, backend),
                 call=_call("execute"),
                 tool_def=_td("execute"),
                 args={"cmd": "bad"},
@@ -888,13 +905,13 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.BEFORE_RUN, handler=on_start)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.before_run(ctx)
         assert calls == ["start:before_run"]
 
     async def test_before_run_no_hooks(self) -> None:
         cap = HooksCapability(hooks=[])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.before_run(ctx)
 
     async def test_after_run_handler(self) -> None:
@@ -905,13 +922,13 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.AFTER_RUN, handler=on_end)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_run(ctx, result="done")
         assert calls == ["end:done"]
 
     async def test_after_run_no_hooks(self) -> None:
         cap = HooksCapability(hooks=[])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_run(ctx, result="x")
 
     async def test_run_error_handler(self) -> None:
@@ -922,14 +939,14 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.RUN_ERROR, handler=on_err)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         with pytest.raises(ValueError, match="boom"):
             await cap.on_run_error(ctx, error=ValueError("boom"))
         assert calls == ["err:boom"]
 
     async def test_run_error_no_hooks(self) -> None:
         cap = HooksCapability(hooks=[])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         with pytest.raises(ValueError):
             await cap.on_run_error(ctx, error=ValueError("x"))
 
@@ -941,14 +958,14 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.BEFORE_MODEL_REQUEST, handler=on_req)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         result = await cap.before_model_request(ctx, request_context="ctx_obj")
         assert result == "ctx_obj"
         assert calls == ["model_req"]
 
     async def test_before_model_request_no_hooks(self) -> None:
         cap = HooksCapability(hooks=[])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         result = await cap.before_model_request(ctx, request_context="ctx_obj")
         assert result == "ctx_obj"
 
@@ -960,13 +977,13 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.AFTER_MODEL_REQUEST, handler=on_resp)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_model_request(ctx, request_context="x", response="resp_obj")
         assert calls == ["model_resp"]
 
     async def test_after_model_request_no_hooks(self) -> None:
         cap = HooksCapability(hooks=[])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_model_request(ctx, request_context="x", response="x")
 
     async def test_after_run_background(self) -> None:
@@ -977,7 +994,7 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.AFTER_RUN, handler=bg, background=True)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_run(ctx, result="x")
         await asyncio.sleep(0.05)
         assert calls == ["bg_after"]
@@ -990,7 +1007,7 @@ class TestRunAndModelHooks:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.RUN_ERROR, handler=bg, background=True)])
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         with pytest.raises(ValueError):
             await cap.on_run_error(ctx, error=ValueError("x"))
         await asyncio.sleep(0.05)
@@ -1006,7 +1023,7 @@ class TestRunAndModelHooks:
         cap = HooksCapability(
             hooks=[Hook(event=HookEvent.BEFORE_MODEL_REQUEST, handler=bg, background=True)]
         )
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.before_model_request(ctx, request_context="x")
         await asyncio.sleep(0.05)
         assert calls == ["bg_model"]
@@ -1021,7 +1038,7 @@ class TestRunAndModelHooks:
         cap = HooksCapability(
             hooks=[Hook(event=HookEvent.AFTER_MODEL_REQUEST, handler=bg, background=True)]
         )
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.after_model_request(ctx, request_context="x", response="x")
         await asyncio.sleep(0.05)
         assert calls == ["bg_resp"]
@@ -1036,7 +1053,7 @@ class TestRunAndModelHooks:
         cap = HooksCapability(
             hooks=[Hook(event=HookEvent.BEFORE_RUN, handler=bg_hook, background=True)]
         )
-        ctx = _ctx(DeepAgentDeps(backend=StateBackend()))
+        ctx = _ctx(DeepAgentDeps())
         await cap.before_run(ctx)
         await asyncio.sleep(0.05)
         assert calls == ["bg"]
@@ -1054,7 +1071,7 @@ class TestModelFallbackHook:
             hooks=[Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, handler=handler)]
         )
         exc = Exception("rate limit")
-        await cap.dispatch_model_fallback("primary-model", "fallback-model", exc, StateBackend())
+        await cap.dispatch_model_fallback("primary-model", "fallback-model", exc, None)
 
         assert len(received) == 1
         inp = received[0]
@@ -1071,7 +1088,7 @@ class TestModelFallbackHook:
             return HookResult()
 
         cap = HooksCapability(hooks=[Hook(event=HookEvent.BEFORE_RUN, handler=handler)])
-        await cap.dispatch_model_fallback("p", "f", Exception("err"), StateBackend())
+        await cap.dispatch_model_fallback("p", "f", Exception("err"), None)
         assert called == []
 
     async def test_dispatch_background_hook(self) -> None:
@@ -1084,7 +1101,7 @@ class TestModelFallbackHook:
         cap = HooksCapability(
             hooks=[Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, handler=handler, background=True)]
         )
-        await cap.dispatch_model_fallback("p", "f", Exception("err"), StateBackend())
+        await cap.dispatch_model_fallback("p", "f", Exception("err"), None)
         await asyncio.sleep(0.05)
         assert len(received) == 1
 
@@ -1491,9 +1508,7 @@ class TestAfterToolExecuteNonStringResult:
         secret_free_dict = {"key": "value", "count": 42}
         cap = HooksCapability(hooks=default_security_hook())
 
-        ctx = MagicMock()
-        ctx.deps = MagicMock()
-        ctx.deps.backend = None
+        ctx = _ctx(DeepAgentDeps())
 
         call = MagicMock()
         call.tool_name = "read_file"
@@ -1512,9 +1527,7 @@ class TestAfterToolExecuteNonStringResult:
         dict_with_secret = {"key": "AKIAIOSFODNN7EXAMPLE"}
         cap = HooksCapability(hooks=default_security_hook())
 
-        ctx = MagicMock()
-        ctx.deps = MagicMock()
-        ctx.deps.backend = None
+        ctx = _ctx(DeepAgentDeps())
 
         call = MagicMock()
         call.tool_name = "read_file"
@@ -1535,7 +1548,7 @@ class TestSecurityHookWarnMode:
     async def test_warn_allows_and_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         hooks = default_security_hook(mode="warn")
         handler = _sec_pre_handler(hooks)
-        with caplog.at_level(logging.WARNING, logger="pydantic_deep.capabilities.hooks"):
+        with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.hooks.capability"):
             result = await handler(_sec_input("execute", {"command": "rm -rf /"}))
         assert result.allow is True
         assert result.reason is not None

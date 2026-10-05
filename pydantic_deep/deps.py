@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from pydantic_ai.workspaces import Workspace
     from pydantic_ai_shields import CostTracking
     from pydantic_ai_summarization import ContextManagerCapability
 
@@ -24,16 +25,11 @@ if TYPE_CHECKING:
 
 import chardet
 from pydantic_ai.usage import UsageLimits
-from pydantic_ai_backends import StateBackend, ensure_async
-from pydantic_ai_backends.adapter import AsyncBackendAdapter
-from pydantic_ai_backends.protocol import AsyncBackendProtocol
 
-from pydantic_deep.types import FileData, Todo, UploadedFile
+from pydantic_deep.types import Todo, UploadedFile
 
-
-def unwrap_backend(backend: Any) -> Any:
-    """Return the raw sync backend, unwrapping ``AsyncBackendAdapter`` if needed."""
-    return getattr(backend, "unwrap", lambda: backend)()
+DEFAULT_UPLOAD_DIR = "uploads"
+"""Where uploaded files land, relative to the workspace's working directory."""
 
 
 #: pydantic-ai's default `request_limit=50` is too low for autonomous agents
@@ -46,19 +42,16 @@ class DeepAgentDeps:
     """Dependencies for deep agents.
 
     This container holds all the state and resources needed by the agent
-    and its tools during execution.
+    and its tools during execution. Files are not part of it: they live in the
+    run's workspace, `ctx.workspace`, which a workspace capability supplies.
 
     Attributes:
-        backend: File storage backend (StateBackend, FilesystemBackend, etc.)
-        files: In-memory file cache (used with StateBackend)
         todos: Task list for planning
         subagents: Pre-configured subagents available for delegation
         checkpoint_store: Per-session checkpoint store (e.g. InMemoryCheckpointStore).
             When set, overrides the global store passed to `create_deep_agent()`.
     """
 
-    backend: AsyncBackendProtocol | Any = field(default_factory=StateBackend)
-    files: dict[str, FileData] = field(default_factory=dict)
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)  # Agent instances
     uploads: dict[str, UploadedFile] = field(default_factory=dict)  # Uploaded files metadata
@@ -73,24 +66,10 @@ class DeepAgentDeps:
     _branch_cost_tracking: CostTracking | None = field(default=None, repr=False)
     _branch_id: str | None = field(default=None, repr=False)
     _parent_fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
-
-    def __post_init__(self) -> None:
-        """Auto-wrap sync backends and wire StateBackend cache."""
-        # Auto-wrap sync backends so consumer code can always `await backend.X()`
-        if not isinstance(self.backend, AsyncBackendAdapter):
-            wrapped = ensure_async(self.backend)
-            if (
-                wrapped is not self.backend
-            ):  # pragma: no cover - only when backend is already async-native
-                object.__setattr__(self, "backend", wrapped)
-
-        # Cache wiring via unwrap() for StateBackend's shared files dict
-        raw = unwrap_backend(self.backend)
-        if isinstance(raw, StateBackend):
-            if self.files:
-                raw._files = self.files
-            else:
-                object.__setattr__(self, "files", raw._files)
+    _upload_bytes: dict[str, bytes] = field(default_factory=dict, repr=False)
+    _upload_versions: dict[str, int] = field(default_factory=dict, repr=False)
+    _uploads_written: dict[tuple[str, str, str], int] = field(default_factory=dict, repr=False)
+    """Which version of each upload a workspace has, by `(provider, id, path)`."""
 
     def get_todo_prompt(self) -> str:
         """Generate system prompt section for todos.
@@ -113,18 +92,6 @@ class DeepAgentDeps:
 
         return "\n".join(lines)
 
-    def get_files_summary(self) -> str:
-        """Generate summary of files in memory."""
-        if not self.files:
-            return ""
-
-        lines = ["## Files in Memory"]
-        for path, data in sorted(self.files.items()):
-            line_count = len(data["content"])
-            lines.append(f"- {path} ({line_count} lines)")
-
-        return "\n".join(lines)
-
     def get_subagents_summary(self) -> str:
         """Generate summary of available subagents."""
         if not self.subagents:
@@ -141,37 +108,37 @@ class DeepAgentDeps:
         name: str,
         content: bytes,
         *,
-        upload_dir: str = "/uploads",
+        upload_dir: str = DEFAULT_UPLOAD_DIR,
     ) -> str:
-        """Upload a file to the backend and track it.
+        """Upload a file for the next run and track it.
 
-        The file is written to the backend and its metadata is stored
-        for display in the system prompt.
+        The bytes are held here and written into the workspace of every run
+        that starts after this, by `write_uploads`: a workspace is attached to
+        a run, so before one starts there is nowhere to write them, and a run
+        in a new workspace - a new in-memory document - must find the files
+        the prompt lists too. Uploading the same path again replaces the file.
+        The metadata is recorded now for display in the system prompt.
 
         Args:
             name: Original filename (e.g., "sales.csv")
             content: File content as bytes
-            upload_dir: Directory to store uploads (default: "/uploads")
+            upload_dir: Directory to store uploads, relative to the workspace's
+                working directory (default: "uploads")
 
         Returns:
-            The path where the file was stored (e.g., "/uploads/sales.csv")
+            The path the file will be stored at (e.g., "uploads/sales.csv")
 
         Example:
             ```python
-            deps = DeepAgentDeps(backend=StateBackend())
+            deps = DeepAgentDeps()
             path = await deps.upload_file("data.csv", csv_bytes)
-            # Agent can now access the file at /uploads/data.csv
+            # The agent finds it at uploads/data.csv in its workspace
             ```
         """
-        path = f"{upload_dir}/{name}"
+        path = f"{upload_dir.rstrip('/')}/{name}"
+        self._upload_bytes[path] = content
+        self._upload_versions[path] = self._upload_versions.get(path, 0) + 1
 
-        # Write raw bytes to storage
-        res = await self.backend.write(path, content)
-
-        if res.error:  # pragma: no cover
-            raise RuntimeError(f"Failed to upload file: {res.error}")
-
-        # Try to infer metadata after storage
         line_count = None
         is_text = False
 
@@ -202,23 +169,23 @@ class DeepAgentDeps:
         self,
         files: list[tuple[str, bytes]],
         *,
-        upload_dir: str = "/uploads",
+        upload_dir: str = DEFAULT_UPLOAD_DIR,
     ) -> list[str]:
-        """Upload multiple files to the backend.
+        """Upload multiple files for the next run.
 
-        Each file is written independently - failures on one file don't
-        affect others. Failed uploads are silently skipped.
+        Each file is recorded independently - a failure on one file doesn't
+        affect others, and is logged and skipped.
 
         Args:
             files: List of (filename, content) tuples.
-            upload_dir: Directory to store uploads (default: "/uploads").
+            upload_dir: Directory to store uploads (default: "uploads").
 
         Returns:
             List of paths for successfully uploaded files.
 
         Example:
             ```python
-            deps = DeepAgentDeps(backend=StateBackend())
+            deps = DeepAgentDeps()
             paths = await deps.upload_files([
                 ("data.csv", csv_bytes),
                 ("config.json", json_bytes),
@@ -232,11 +199,38 @@ class DeepAgentDeps:
                 paths.append(path)
             except Exception:
                 # Skip failed uploads so one bad file doesn't abort the batch
-                # (backend write errors, encoding/metadata failures) — but log
-                # which file was dropped so it isn't silently lost (B9).
+                # (encoding/metadata failures) — but log which file was
+                # dropped so it isn't silently lost (B9).
                 logging.getLogger(__name__).warning("Skipping upload of %r", name, exc_info=True)
                 continue
         return paths
+
+    async def write_uploads(self, workspace: Workspace) -> None:
+        """Make every uploaded file present, at its latest version, in `workspace`.
+
+        Called when a run starts. A workspace that already holds the latest
+        version - by its ref - is left alone, so a file the agent changed is
+        not overwritten on the next run. One without a ref, such as a fork
+        branch's view of its parent, gets a file only when it does not see one
+        there. A file that cannot be written raises, since the system prompt
+        already tells the agent it is there.
+        """
+        if not self._upload_bytes:
+            return
+        # Opened first, so a workspace created on first use - a new in-memory
+        # document - has the ref the next run of its conversation will carry.
+        await workspace.working_dir()
+        ref = workspace.ref
+        for path, content in self._upload_bytes.items():
+            version = self._upload_versions[path]
+            if ref is None:
+                if not await workspace.exists(path):
+                    await workspace.write_bytes(path, content)
+                continue
+            if self._uploads_written.get((ref.provider, ref.id, path)) == version:
+                continue
+            await workspace.write_bytes(path, content)
+            self._uploads_written[(ref.provider, ref.id, path)] = version
 
     def get_uploads_summary(self) -> str:
         """Generate summary of uploaded files for system prompt."""
@@ -264,10 +258,8 @@ class DeepAgentDeps:
         """Create a new deps instance for a subagent.
 
         Subagents get:
-        - Same backend (shared)
         - Empty todos (isolated) - or same todos if share_todos=True
         - Empty subagents (no nested delegation by default)
-        - Same files (shared)
         - Same uploads (shared)
         - Same ask_user callback (propagated)
         - Same checkpoint_store (shared)
@@ -291,9 +283,10 @@ class DeepAgentDeps:
           `ForkCoordinator.fork` and only meaningful to an agent wired
           with the fork capability; inert on a separately-compiled subagent.
 
-        Every other field (backend, files, uploads, ask_user, share_todos,
-        checkpoint_store, message_queue) is shared with the parent via
-        `replace`, so new shared fields propagate automatically.
+        Every other field (uploads, ask_user, share_todos, checkpoint_store,
+        message_queue) is shared with the parent via `replace`, so new shared
+        fields propagate automatically. Files are shared through the
+        workspace, which the subagent toolset passes to the subagent's run.
 
         Args:
             max_depth: Maximum nesting depth for subagent. If > 0, subagents

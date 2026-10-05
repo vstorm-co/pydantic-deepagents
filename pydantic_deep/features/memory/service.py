@@ -1,18 +1,21 @@
 """Pure memory logic: path computation, loading, and prompt formatting.
 
-No agent/toolset dependencies — just the backend protocol and the data types,
-so the toolset and capability can share one source of truth for the prompt.
+No agent/toolset dependencies — just the workspace and the data types, so the
+toolset and capability can share one source of truth for the prompt.
 """
 
 from __future__ import annotations
 
-from pydantic_ai_backends import AsyncBackendProtocol
+from typing import TYPE_CHECKING
 
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN
 from pydantic_deep.features.memory.types import MemoryAccessError, MemoryFile
 
-DEFAULT_MEMORY_DIR: str = "/.deep/memory"
-"""Default base directory for memory files in the backend."""
+if TYPE_CHECKING:
+    from pydantic_ai.workspaces import Workspace
+
+DEFAULT_MEMORY_DIR: str = ".deep/memory"
+"""Default base directory for memory files, relative to the workspace's working directory."""
 
 DEFAULT_MEMORY_FILENAME: str = "MEMORY.md"
 """Default filename for memory files."""
@@ -38,25 +41,25 @@ def get_memory_path(memory_dir: str, agent_name: str) -> str:
         agent_name: Agent name (e.g., "main", "code-reviewer").
 
     Returns:
-        Full path like "/.deep/memory/main/MEMORY.md".
+        Full path like ".deep/memory/main/MEMORY.md".
     """
     return f"{memory_dir.rstrip('/')}/{agent_name}/{DEFAULT_MEMORY_FILENAME}"
 
 
 async def load_memory(
-    backend: AsyncBackendProtocol,
+    workspace: Workspace,
     path: str,
     agent_name: str = "main",
 ) -> MemoryFile | None:
-    """Load memory file from backend.
+    """Load memory file from the workspace.
 
     Returns None when the file is genuinely missing or empty. Raises
-    `MemoryAccessError` when the backend denies access to the path, so a
+    `MemoryAccessError` when the workspace refuses the path, so a
     misconfigured memory directory is not silently reported as empty memory
-    (issue #135).
+    (issue #135). A workspace that cannot answer at all raises its own error.
 
     Args:
-        backend: Async backend to read from.
+        workspace: Workspace to read from.
         path: Full path to the memory file.
         agent_name: Name of the agent owning this memory.
 
@@ -64,21 +67,19 @@ async def load_memory(
         MemoryFile if found, None if missing or empty.
 
     Raises:
-        MemoryAccessError: If the backend denied access to the path.
+        MemoryAccessError: If the workspace refused the path.
     """
-    raw = await backend.read_bytes(path)
-    if raw:
-        content = raw.decode("utf-8", errors="replace")
-        return MemoryFile(agent_name=agent_name, path=path, content=content)
-
-    # `read_bytes` returns empty for missing, empty, AND denied paths — they
-    # are indistinguishable there. Probe via `read`, which surfaces access
-    # errors as an "Error: ..." string while reporting a missing file as
-    # "Error: ... not found". Anything else (or empty) is missing/empty memory.
-    probe = await backend.read(path)
-    if probe.startswith("Error:") and "not found" not in probe.lower():
-        raise MemoryAccessError(probe.removeprefix("Error:").strip() or "access denied")
-    return None
+    try:
+        raw = await workspace.read_bytes(path)
+    except (FileNotFoundError, NotADirectoryError):
+        return None
+    except (PermissionError, IsADirectoryError) as exc:
+        raise MemoryAccessError(str(exc) or "access denied") from exc
+    if not raw:
+        return None
+    return MemoryFile(
+        agent_name=agent_name, path=path, content=raw.decode("utf-8", errors="replace")
+    )
 
 
 def _select_recent_lines(lines: list[str], max_lines: int, max_tokens: int | None) -> int:

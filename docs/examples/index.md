@@ -33,14 +33,8 @@ uv run python examples/<example_name>.py
 
 <div class="feature-card" markdown>
 <h3 markdown="span">:material-folder: Filesystem</h3>
-<p>Real filesystem operations with FilesystemBackend.</p>
+<p>Real files on disk with LocalWorkspace.</p>
 <a href="filesystem/">View Example →</a>
-</div>
-
-<div class="feature-card" markdown>
-<h3 markdown="span">:material-layers: Composite Backend</h3>
-<p>Combine multiple backends with path-based routing.</p>
-<a href="composite-backend/">View Example →</a>
 </div>
 
 <div class="feature-card" markdown>
@@ -129,11 +123,11 @@ uv run python examples/<example_name>.py
 
 ```python
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run("Say hello!", deps=deps)
     print(result.output)
@@ -146,7 +140,7 @@ asyncio.run(main())
 ```python
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Create a Python function that calculates factorials and save it to /math/factorial.py",
@@ -154,9 +148,9 @@ async def main():
     )
 
     # Check what was created
-    print("Files:", list(deps.backend.files.keys()))
+    print("Files:", [e.path for e in await result.workspace.list_dir("/math")])
     print("\nContent:")
-    print(deps.backend.read("/math/factorial.py"))
+    print(await result.workspace.read_text("/math/factorial.py"))
 ```
 
 ### Plan a Task
@@ -164,7 +158,7 @@ async def main():
 ```python
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         """
@@ -200,10 +194,10 @@ async def main():
     ]
 
     agent = create_deep_agent(subagents=subagents)
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    # Create some code
-    deps.backend.write("/src/app.py", "def add(a, b): return a + b")
+    # Give it some code: it lands at /src/app.py
+    await deps.upload_file("app.py", b"def add(a, b): return a + b", upload_dir="/src")
 
     result = await agent.run(
         "Delegate a code review of /src/app.py to the code-reviewer",
@@ -222,7 +216,7 @@ async def main():
             {"path": "./skills", "recursive": True},
         ],
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         """
@@ -245,7 +239,7 @@ from pydantic_ai.models.test import TestModel
 
 async def main():
     agent = create_deep_agent(model=TestModel())
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # TestModel will return predefined responses
     result = await agent.run("Test prompt", deps=deps)
@@ -256,8 +250,7 @@ async def main():
 | File | Description | Docs Page |
 |------|-------------|-----------|
 | `basic_usage.py` | Core functionality demonstration | [Basic Usage](basic-usage.md) |
-| `filesystem_backend.py` | Real filesystem operations | [Filesystem](filesystem.md) |
-| `composite_backend.py` | Mixed storage strategies | [Composite Backend](composite-backend.md) |
+| `local_workspace.py` | Real filesystem operations | [Filesystem](filesystem.md) |
 | `skills_usage.py` | Skills system | [Skills](skills.md) |
 | `subagents.py` | Task delegation | [Subagents](subagents.md) |
 | `custom_tools.py` | Adding custom tools | [Custom Tools](custom-tools.md) |

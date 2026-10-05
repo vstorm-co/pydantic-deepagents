@@ -2,157 +2,154 @@
 
 One agent, many users — without their state ever touching.
 
-The trick is already built in: **dependencies are per-run, not per-agent.** You create the agent once, then hand each `agent.run()` a fresh `DeepAgentDeps` scoped to *that* user. Same model, same tools, same instructions — different backend, different memory, different sandbox.
+The trick is already built in: **workspaces and dependencies are per-run, not per-agent.** You create the agent once, then hand each `agent.run()` the workspace and the `DeepAgentDeps` of *that* user. Same model, same tools, same instructions — different files, different memory, different sandbox.
 
 ## The one rule
 
-Every stateful feature — memory, checkpoints, plans, evicted files — reads and writes through `ctx.deps.backend`. So the question "do two users share state?" has exactly one answer: *do they share a backend?*
+Every stateful feature — files, memory, plans, evicted output, uploads — reads and writes through the run's workspace, `ctx.workspace`. So the question "do two users share state?" has exactly one answer: *do they share a workspace?*
 
 Give each user their own, and they're isolated. That's the whole idea.
 
 ```python
-from pydantic_deep import create_deep_agent, DeepAgentDeps
-from pydantic_ai_backends import LocalBackend
+from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
+from pydantic_deep import ConfinedWorkspace, create_deep_agent, DeepAgentDeps
 
-agent = create_deep_agent(include_memory=True)  # (1)!
+agent = create_deep_agent(workspace=False, include_memory=True)  # (1)!
 
 
 async def handle_request(user_id: str, message: str) -> str:
-    deps = DeepAgentDeps(
-        backend=LocalBackend(root_dir=f"/workspaces/{user_id}"),  # (2)!
-    )
-    result = await agent.run(message, deps=deps)  # (3)!
+    workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))  # (2)!
+    result = await agent.run(message, deps=DeepAgentDeps(), workspace=workspace)  # (3)!
     return result.output
 ```
 
-1. The agent is built **once**, at import time. It holds no user state.
-2. The `deps` are built **per request**, scoped to one user.
-3. You pass them in at run time — so every user gets the same agent with their own world.
+1. The agent is built **once**, at import time. `workspace=False` means it holds no workspace of its own: every run must bring one.
+2. The workspace is chosen **per request**, scoped to one user.
+3. You pass it in at run time — so every user gets the same agent with their own world.
 
 ## Dissect it
 
 ### One agent, built once
 
 ```python hl_lines="1"
-agent = create_deep_agent(include_memory=True)
+agent = create_deep_agent(workspace=False, include_memory=True)
 ```
 
-`create_deep_agent()` returns a stateless object. It knows *how* to use a filesystem, memory, and a shell — but not *whose*. Create it at module scope and reuse it for every request.
+`create_deep_agent()` returns a stateless object. It knows *how* to use a filesystem, memory, and a shell — but not *whose*. Create it at module scope and reuse it for every request. It keeps the shell tool; pass `include_execute=False` when your runs bring a workspace without commands, such as `StateWorkspace`.
 
-### Deps, built per user
+### A workspace per user
 
-```python hl_lines="2 3"
-deps = DeepAgentDeps(
-    backend=LocalBackend(root_dir=f"/workspaces/{user_id}"),
-)
+```python hl_lines="1"
+workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
 ```
 
-This is where isolation happens. `DeepAgentDeps` is the per-run bundle of "where state lives." Point its backend at a per-user directory and user `alice` can never read user `bob`'s files — they're in different folders on disk.
+This is where isolation happens. Point each run at a per-user directory, confined, and the file tools of user `alice` cannot reach user `bob`'s files: a path outside her directory - absolute, `..`, or through a symlink - is refused.
+
+!!! warning "The shell is not confined"
+    `ConfinedWorkspace` keeps the **file tools** in the directory. A shell
+    command reaches whatever the server process can, `bob`'s folder included.
+    For users you don't trust with your server, give each one a container -
+    the Docker tab below - or turn the shell off with `include_execute=False`.
 
 !!! info "Why this works"
-    Pydantic AI passes `deps` into every tool call as `ctx.deps`. The agent
-    literally cannot reach a backend you didn't give it. Isolation isn't a
-    feature you enable — it's a consequence of building deps per run.
+    Pydantic AI hands every tool the run's workspace as `ctx.workspace`. The
+    agent literally cannot reach a workspace you didn't give it. Isolation isn't a
+    feature you enable — it's a consequence of choosing the workspace per run.
 
-## Choosing a backend
+## Choosing a workspace
 
-The backend is the dial you turn for the isolation-vs-persistence trade-off. Same `handle_request` shape every time — only the backend line changes.
+The workspace is the dial you turn for the isolation-vs-persistence trade-off. Same `handle_request` shape every time — only the workspace line changes.
 
 === "Ephemeral (in memory)"
 
-    ```python hl_lines="4"
-    from pydantic_deep import DeepAgentDeps, InMemoryCheckpointStore
-    from pydantic_ai_backends import StateBackend
+    ```python
+    from pydantic_ai.workspaces import Workspace
+    from pydantic_deep import StateWorkspace
 
-    deps = DeepAgentDeps(
-        backend=StateBackend(),  # gone when the request ends
-        checkpoint_store=InMemoryCheckpointStore(),
-    )
+    workspace = Workspace(StateWorkspace().backend())  # gone with the request
     ```
 
-    Full isolation, zero setup. Nothing survives between sessions — good for
-    one-shot tasks or testing.
+    Full isolation, zero setup, no commands. Nothing survives between
+    sessions — good for one-shot tasks or testing.
 
 === "Persistent (on disk)"
 
-    ```python hl_lines="4 5"
-    from pydantic_deep import DeepAgentDeps, FileCheckpointStore
-    from pydantic_ai_backends import LocalBackend
+    ```python
+    from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
+    from pydantic_deep import ConfinedWorkspace
 
-    deps = DeepAgentDeps(
-        backend=LocalBackend(root_dir=f"/workspaces/{user_id}"),
-        checkpoint_store=FileCheckpointStore(f"/checkpoints/{user_id}"),
-    )
+    workspace = ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
     ```
 
-    Isolation **and** persistence — a user's memory and files are still there
-    next session. No process-level sandbox, so don't run untrusted code here.
+    Persistence — a user's memory and files are still there next session — and
+    file tools confined to their directory. No process-level sandbox, so the
+    shell is not isolated: don't run untrusted code here.
 
 === "Sandboxed (Docker)"
 
-    ```python hl_lines="5 6"
-    from pydantic_deep import DeepAgentDeps, FileCheckpointStore
-    from pydantic_ai_backends import SessionManager
+    ```python
+    from pydantic_ai.workspaces import Workspace
+    from pydantic_deep import DockerWorkspace
 
-    session_manager = SessionManager(workspace_root="/workspaces")
-
-    sandbox = await session_manager.get_or_create(user_id)
-    deps = DeepAgentDeps(
-        backend=sandbox,
-        checkpoint_store=FileCheckpointStore(f"/checkpoints/{user_id}"),
+    workspace = Workspace(
+        DockerWorkspace(
+            volumes={f"/workspaces/{user_id}": "/workspace"},
+            container_name=f"agent-{user_id}",
+        ).backend()
     )
     ```
 
     A real container per user. Full isolation, persistence, and safe execution
     of untrusted code. Needs Docker; costs more per user.
 
-!!! tip "SessionManager reuses containers"
-    `get_or_create(user_id)` hands back the *same* sandbox for a returning user
-    instead of spinning up a fresh one — so persistence and warm starts come for
-    free.
+!!! tip "A named container is reused"
+    The same `container_name` reaches the *same* container for a returning user
+    instead of spinning up a fresh one — so warm starts come for free. Containers
+    are never removed for you: `await DockerWorkspace(...).destroy(ref)` when a
+    user's session ends. See [Docker Runtimes](../examples/docker-runtimes.md#a-container-per-user).
 
 ## Don't forget the side channels
 
-The backend covers most state, but two things live outside it. Scope them per user too, or they leak.
+The workspace covers most state, but two things live outside it. Scope them per user too, or they leak.
 
 | State | Per-user via | If you skip it |
 |-------|--------------|----------------|
-| Files, memory, plans, evicted output | `backend=` | Users see each other's files |
-| Checkpoints | `checkpoint_store=` | Users see each other's checkpoints |
+| Files, memory, plans, evicted output, uploads | `workspace=` | Users see each other's files |
+| Checkpoints | `checkpoint_store=` on `DeepAgentDeps` | Users see each other's checkpoints |
 | Message history | your own store, keyed by user | Conversations bleed together |
 
-Memory, plans, and evicted files all route through the backend, so a per-user backend handles them in one move. Checkpoints use a separate store. Message history is yours to keep — `agent.run()` doesn't remember anything between calls.
+Checkpoints use a separate store. Message history is yours to keep — `agent.run()` doesn't remember anything between calls. A history also carries the ref of the workspace its run worked in, which is what lets an agent *with* a workspace capability come back to the same one; with `workspace=False`, the workspace you pass always wins.
 
 ## Putting it together (FastAPI)
 
-A complete tenant-aware endpoint: one agent, deps per request, history kept per user.
+A complete tenant-aware endpoint: one agent, a workspace and deps per request, history kept per user.
 
-```python hl_lines="11 16 21"
+```python hl_lines="12 13 22"
 from fastapi import FastAPI
-from pydantic_deep import create_deep_agent, DeepAgentDeps, FileCheckpointStore
-from pydantic_ai_backends import LocalBackend
+from pydantic_ai.workspaces import Workspace, LocalWorkspaceBackend
+from pydantic_deep import ConfinedWorkspace, create_deep_agent, DeepAgentDeps, FileCheckpointStore
 
-agent = create_deep_agent(include_memory=True, include_checkpoints=True)
+agent = create_deep_agent(
+    workspace=False, include_execute=False, include_memory=True, include_checkpoints=True
+)
 app = FastAPI()
 
 # One conversation history per user. Use a real datastore in production.
 user_histories: dict[str, list] = {}
 
 
-def get_deps(user_id: str) -> DeepAgentDeps:
-    """Build isolated dependencies for one user."""
-    return DeepAgentDeps(
-        backend=LocalBackend(root_dir=f"/workspaces/{user_id}"),
-        checkpoint_store=FileCheckpointStore(f"/checkpoints/{user_id}"),
-    )
+def user_workspace(user_id: str) -> Workspace:
+    return ConfinedWorkspace(Workspace(LocalWorkspaceBackend(f"/workspaces/{user_id}")))
 
 
 @app.post("/chat/{user_id}")
 async def chat(user_id: str, message: str):
-    deps = get_deps(user_id)
+    deps = DeepAgentDeps(checkpoint_store=FileCheckpointStore(f"/checkpoints/{user_id}"))
     history = user_histories.get(user_id, [])
 
-    result = await agent.run(message, deps=deps, message_history=history)
+    result = await agent.run(
+        message, deps=deps, message_history=history, workspace=user_workspace(user_id)
+    )
     user_histories[user_id] = result.all_messages()  # (1)!
 
     return {"response": result.output}
@@ -168,15 +165,15 @@ async def chat(user_id: str, message: str):
 
 ## Recap
 
-Multi-tenancy falls out of one design decision: deps are per-run.
+Multi-tenancy falls out of one design decision: the workspace is per-run.
 
-- Build the **agent once**; it's stateless and shared across every request.
-- Build **`DeepAgentDeps` per user** — that's where isolation lives.
-- Pick the **backend** for your trade-off: `StateBackend` (ephemeral), `LocalBackend(root_dir=...)` (persistent), or a `SessionManager` sandbox (isolated execution).
-- Scope the **checkpoint store** and **message history** per user too — they live outside the backend.
+- Build the **agent once** with `workspace=False`; it's stateless and shared across every request.
+- Pass **each run its user's workspace** — that's where isolation lives.
+- Pick the **workspace** for your trade-off: `StateWorkspace` (ephemeral), a confined local directory (persistent, file tools only), or a named Docker container (isolated execution).
+- Scope the **checkpoint store** and **message history** per user too — they live outside the workspace.
 
 Where to go next:
 
-- [Backends](../concepts/backends.md) — the full menu of storage and execution backends
+- [Workspaces](../concepts/workspaces.md) — every workspace, and how to choose
 - [Memory & context files](../learn/memory.md) — what persists per user, and where
 - [Sessions & checkpoints](../learn/sessions.md) — saving and resuming a user's conversation

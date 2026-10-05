@@ -32,7 +32,7 @@ InstructionProvider = Callable[["RunContext[DeepAgentDeps]"], str]
 
 
 def uploads_section(ctx: RunContext[DeepAgentDeps]) -> str:
-    """Summarise the files the user uploaded into the run's backend."""
+    """Summarise the files the user uploaded into the run's workspace."""
     return ctx.deps.get_uploads_summary()
 
 

@@ -12,7 +12,7 @@ import asyncio
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import RunContext, ToolDefinition
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 class ToolLogger(AbstractCapability):
@@ -34,7 +34,7 @@ async def main():
         model="anthropic:claude-sonnet-4-6",
         capabilities=[ToolLogger()],
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run("Save 'hi' to note.txt, then read it back.", deps=deps)
     print(result.output)
 

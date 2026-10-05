@@ -1,17 +1,17 @@
 # Filesystem Example
 
-Ready to move off in-memory storage and have the agent touch real files? Swap
-`StateBackend` for `LocalBackend` and the same agent now reads and writes your
-actual disk. Here's what that looks like.
+Ready to move off in-memory storage and have the agent touch real files? Give
+it `LocalWorkspace` and the same agent now reads and writes your actual disk —
+and runs commands there. Here's what that looks like.
 
 !!! info "Full Documentation"
-    For complete backend documentation, see **[pydantic-ai-backend docs](https://vstorm-co.github.io/pydantic-ai-backend/)**.
+    For how workspaces work, see **[Workspaces](../concepts/workspaces.md)**.
 
-## LocalBackend
+## LocalWorkspace
 
 ### Source Code
 
-:material-file-code: `examples/filesystem_backend.py`
+:material-file-code: `examples/local_workspace.py`
 
 ### Overview
 
@@ -24,16 +24,16 @@ from pathlib import Path
 from pydantic_deep import (
     create_deep_agent,
     DeepAgentDeps,
-    LocalBackend,
+    LocalWorkspace,
 )
 
 
 async def main():
-    # Create backend pointing to workspace directory
-    backend = LocalBackend(root_dir="./workspace")
+    workspace = Path("./workspace")
+    workspace.mkdir(exist_ok=True)
 
-    agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=backend)
+    # The agent works in that directory: files and commands
+    agent = create_deep_agent(workspace=LocalWorkspace(workspace))
 
     result = await agent.run(
         """
@@ -43,14 +43,14 @@ async def main():
         3. tests/test_app.py - Test file
         4. README.md - Project description
         """,
-        deps=deps,
+        deps=DeepAgentDeps(),
     )
 
     print(result.output)
 
     # Check what was created
     print("\nFiles created:")
-    for path in Path("./workspace").rglob("*"):
+    for path in workspace.rglob("*"):
         if path.is_file():
             print(f"  {path}")
 
@@ -58,131 +58,47 @@ async def main():
 asyncio.run(main())
 ```
 
-### Security Options
+### Tightening it
 
 ```python
-# Restrict to specific directories
-backend = LocalBackend(
-    allowed_directories=["./workspace", "./data"],
-)
+# Read the project, never change it
+agent = create_deep_agent(workspace=LocalWorkspace("./project", read_only=True))
 
-# Disable shell execution
-backend = LocalBackend(
-    root_dir="./workspace",
-    enable_execute=False,
+# Files only: no shell
+agent = create_deep_agent(
+    workspace=LocalWorkspace("./workspace"),
+    include_execute=False,
 )
 ```
-
-## CompositeBackend
-
-### Source Code
-
-:material-file-code: `examples/composite_backend.py`
-
-### Overview
-
-Route operations to different backends by path prefix:
-
-```python
-"""Mixed storage strategies with CompositeBackend."""
-
-import asyncio
-
-from pydantic_deep import (
-    create_deep_agent,
-    DeepAgentDeps,
-    StateBackend,
-    LocalBackend,
-    CompositeBackend,
-)
-
-
-async def main():
-    # Create backends:
-    # - StateBackend for temporary scratch files
-    # - LocalBackend for persistent project files
-    memory = StateBackend()
-    local = LocalBackend(root_dir="./workspace")
-
-    # Route by path prefix
-    backend = CompositeBackend(
-        default=memory,  # Unmatched paths go here
-        routes={
-            "/project/": local,    # Project files to disk
-            "/workspace/": local,  # Workspace files to disk
-            # /temp/, /scratch/ go to memory (default)
-        },
-    )
-
-    agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=backend)
-
-    result = await agent.run(
-        """
-        Create files in different locations:
-        1. /project/src/app.py - Persistent application code
-        2. /project/README.md - Persistent documentation
-        3. /scratch/notes.txt - Temporary notes (in memory)
-        """,
-        deps=deps,
-    )
-
-    print(result.output)
-
-    # Show what's where
-    print("\nIn memory (temporary):")
-    for path in memory.files.keys():
-        print(f"  {path}")
-
-
-asyncio.run(main())
-```
-
-### Use Cases
-
-| Pattern | Use Case |
-|---------|----------|
-| Memory default + Local routes | Scratch space + persistent output |
-| Multiple local routes | Multi-project workspace |
-| Docker route + Local route | Execute code + persist results |
 
 ## File Operations
 
-All backends support these operations:
+Your own code reaches the same files through the run's workspace — in a tool as
+`ctx.workspace`, after a run as `result.workspace`:
 
 ```python
-# Find all Python files
-matches = backend.glob_info("**/*.py", path="/project")
-for match in matches:
-    print(f"{match['path']} ({match['size']} bytes)")
+workspace = result.workspace
 
-# Search for function definitions
-results = backend.grep_raw(r"def \w+\(", path="/project/src")
-for result in results:
-    print(f"{result['path']}:{result['line_number']}: {result['line']}")
+# List a directory
+for entry in await workspace.list_dir("src"):
+    print(entry.path, "dir" if entry.is_dir else f"{entry.size} bytes")
 
-# Read lines 100-200
-content = backend.read("/large_file.py", offset=99, limit=100)
+# Read and write text
+source = await workspace.read_text("src/app.py")
+await workspace.write_text("src/app.py", source.replace("old_function", "new_function"))
 
-# Edit operations
-result = backend.edit(
-    "/src/app.py",
-    old_string="old_function",
-    new_string="new_function",
-)
+# Commands, where the workspace runs them
+result = await workspace.run(["python", "-m", "pytest", "-q"])
+print(result.exit_code, result.stdout)
 ```
 
 ## Running the Examples
 
 ```bash
-# Local backend
-uv run python examples/filesystem_backend.py
-
-# Composite backend
-uv run python examples/composite_backend.py
+uv run python examples/local_workspace.py
 ```
 
 ## Next Steps
 
 - [Docker Sandbox](docker-sandbox.md) - Isolated execution
-- [pydantic-ai-backend docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/backends/) - Full backend reference
+- [Workspaces](../concepts/workspaces.md) - Every workspace, and how to choose

@@ -10,7 +10,6 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel
-from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.models import DEFAULT_TEAM_MEMBER_MODEL
 
@@ -239,6 +238,9 @@ class TeamMemberHandle:
     status: Literal["idle", "running", "completed", "failed"] = "idle"
     result: str | None = None
     error: str | None = None
+    todo_id: str | None = None
+    """The shared-todo item this member's current task came from, so finishing the
+    task can close the todo."""
 
 
 @dataclass
@@ -254,7 +256,6 @@ class AgentTeam:
     members: list[TeamMember]
     shared_todos: SharedTodoList = field(default_factory=SharedTodoList)
     message_bus: TeamMessageBus = field(default_factory=TeamMessageBus)
-    shared_backend: BackendProtocol = field(default_factory=StateBackend)
     # Subagent `TaskManager`. When set, `wait_all`/`dissolve` manage the
     # real background subagent tasks via `handle.task_id` (the actual flow set
     # up by `assign_task`), rather than the rarely-set `handle.task` field.
@@ -277,6 +278,9 @@ class AgentTeam:
             created_by="team_lead",
         )
         await self.shared_todos.claim(item_id, member_name)
+        handle = self._handles.get(member_name)
+        if handle is not None:
+            handle.todo_id = item_id
         return item_id
 
     async def broadcast(self, message: str) -> None:
@@ -297,6 +301,25 @@ class AgentTeam:
             handle.error = th.error
             handle.status = "failed"
 
+    async def sync_member(self, handle: TeamMemberHandle) -> None:
+        """Refresh a member from the task manager and close its shared todo.
+
+        Without the todo half, a finished member left its task `in_progress` on the
+        shared list forever, so the lead read the work as still outstanding.
+        """
+        self._refresh_from_manager(handle)
+        if handle.todo_id is None:
+            return
+        if handle.status == "completed":
+            await self.shared_todos.complete(handle.todo_id)
+        elif handle.status == "failed":
+            # A failed task is no longer being worked on: release the claim so the
+            # lead can reassign it instead of watching a dead member hold it.
+            item = await self.shared_todos.get(handle.todo_id)
+            if item is not None and item.status == "in_progress":
+                item.status = "pending"
+                item.assigned_to = None
+
     async def wait_all(self) -> dict[str, str]:
         """Wait for all running member tasks to complete."""
         results: dict[str, str] = {}
@@ -312,7 +335,7 @@ class AgentTeam:
                 if task is not None and not task.done():
                     with contextlib.suppress(Exception):
                         await task
-                self._refresh_from_manager(handle)
+                await self.sync_member(handle)
             results[name] = handle.result or handle.error or "no result"
         return results
 

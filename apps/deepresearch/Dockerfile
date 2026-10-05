@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-# System deps: Node.js (npx MCP servers) + Docker CLI (SessionManager sandbox containers)
+# System deps: Node.js (npx MCP servers) + Docker CLI (per-session sandbox containers)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl gnupg ca-certificates \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \

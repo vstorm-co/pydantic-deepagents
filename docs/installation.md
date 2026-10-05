@@ -12,7 +12,7 @@ Both are below.
 The fastest way to get the terminal assistant — no Python knowledge required:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deepagents/main/install.sh | bash
 ```
 
 The script installs [uv](https://docs.astral.sh/uv/) automatically if it is not already present,
@@ -146,7 +146,7 @@ pydantic-deep uses Pydantic AI which supports multiple model providers. Set your
 
 ### Docker (optional)
 
-For using `DockerSandbox`:
+For using `DockerWorkspace` (the `sandbox` extra):
 
 1. Install Docker: [Get Docker](https://docs.docker.com/get-docker/)
 2. Ensure Docker daemon is running
@@ -160,11 +160,11 @@ docker pull python:3.12-slim
 
 ```python
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run("Say hello!", deps=deps)
     print(result.output)

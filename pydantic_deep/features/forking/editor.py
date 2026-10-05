@@ -2,7 +2,7 @@
 
 Detects which diff tool is available on the user's machine and launches it
 against the materialised parent + branch snapshots produced by
-:class:`pydantic_deep.toolsets.forking.materializer.ForkMaterializer`.
+:class:`pydantic_deep.features.forking.materializer.ForkMaterializer`.
 
 Detection priority (per project memory):
 

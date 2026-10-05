@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+import contextlib
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import LocalBackend, ensure_async
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
 
 from pydantic_deep.features.monitoring import (
     MonitorEvent,
@@ -19,8 +20,8 @@ from pydantic_deep.features.monitoring import (
 )
 
 
-def _async_backend(tmp_path: Path) -> Any:
-    return ensure_async(LocalBackend(root_dir=str(tmp_path)))
+def _async_backend(tmp_path: Path) -> Workspace:
+    return Workspace(LocalWorkspaceBackend(tmp_path))
 
 
 async def _drain_until_done(events: list[MonitorEvent], timeout: float = 5.0) -> None:
@@ -143,13 +144,15 @@ class TestMonitorManager:
         # Defensive: a monitor whose drain task was never set still tears down.
         from pydantic_deep.features.monitoring.manager import _Monitor
 
-        mgr = MonitorManager(_async_backend(tmp_path), poll_interval=0.05)
-        handle = await mgr._backend.execute_background("sleep 30")
+        workspace = _async_backend(tmp_path)
+        mgr = MonitorManager(workspace, poll_interval=0.05)
+        process = asyncio.create_task(workspace.run("sleep 30", shell=True))
         mon = _Monitor(
             monitor_id="mon_x",
             label="x",
             command="sleep 30",
-            shell_id=handle.shell_id,
+            log_path=".deep/monitors/mon_x.log",
+            process=process,
             matcher=None,
             match_str=None,
             task=None,
@@ -157,11 +160,88 @@ class TestMonitorManager:
         mgr._monitors["mon_x"] = mon
         assert await mgr.stop("mon_x") is True
         assert mgr.list_monitors() == []
+        assert process.cancelled()
+
+    async def test_stopping_kills_the_command(self, tmp_path: Path) -> None:
+        mgr = MonitorManager(_async_backend(tmp_path), poll_interval=0.05)
+        info = await mgr.start("echo $$ > pid; sleep 30")
+        for _ in range(100):
+            if (tmp_path / "pid").exists() and (tmp_path / "pid").read_text().strip():
+                break
+            await asyncio.sleep(0.02)
+        pid = int((tmp_path / "pid").read_text())
+        await mgr.stop(info.monitor_id)
+        await asyncio.sleep(0.2)
+        import os
+
+        try:
+            os.kill(pid, 0)
+            alive = True
+        except ProcessLookupError:
+            alive = False
+        assert not alive
+
+    async def test_a_command_that_cannot_run_ends_without_an_exit_code(self) -> None:
+        from tests.workspaces import state_workspace
+
+        events: list[MonitorEvent] = []
+
+        async def sink(e: MonitorEvent) -> None:
+            events.append(e)
+
+        mgr = MonitorManager(state_workspace(), on_event=sink, poll_interval=0.05)
+        await mgr.start("echo hi")
+        await _drain_until_done(events)
+        assert [e.exit_code for e in events if not e.running] == [None]
+
+    async def test_a_watch_that_fails_stops_its_command(self, tmp_path: Path) -> None:
+        """Nobody would be watching it, and nothing would ever stop it."""
+
+        class _ReadsFail(LocalWorkspaceBackend):
+            async def run(self, command: Any, **kwargs: Any) -> Any:
+                if isinstance(command, list) and "wc -c" in command[2]:
+                    raise RuntimeError("the log could not be read")
+                return await super().run(command, **kwargs)
+
+        mgr = MonitorManager(Workspace(_ReadsFail(tmp_path)), poll_interval=0.05)
+        info = await mgr.start("sleep 30")
+        mon = mgr._monitors[info.monitor_id]
+        assert mon.task is not None
+        await asyncio.wait_for(mon.task, timeout=5)
+        assert not mon.running
+        with contextlib.suppress(asyncio.CancelledError):
+            await asyncio.wait_for(mon.process, timeout=5)
+        assert mon.process.cancelled()
+
+    async def test_a_log_not_written_yet_reads_as_no_lines(self, tmp_path: Path) -> None:
+        """The first poll can come before the command's first byte. Pinned
+        directly, because whether a real command wins that race varies by host."""
+        mgr = MonitorManager(Workspace(LocalWorkspaceBackend(tmp_path)), poll_interval=0.05)
+        info = await mgr.start("sleep 30")
+        mon = mgr._monitors[info.monitor_id]
+        try:
+            missing = replace(mon, log_path=str(tmp_path / "never-written.log"))
+            assert await mgr._new_lines(missing) == []
+            assert missing.read_offset == 0
+        finally:
+            await mgr.stop(info.monitor_id)
+
+    async def test_each_line_is_read_once(self, tmp_path: Path) -> None:
+        events: list[MonitorEvent] = []
+
+        async def sink(e: MonitorEvent) -> None:
+            events.append(e)
+
+        mgr = MonitorManager(
+            Workspace(LocalWorkspaceBackend(tmp_path)), on_event=sink, poll_interval=0.05
+        )
+        await mgr.start("echo one; sleep 0.3; echo two; sleep 0.3; echo three")
+        await _drain_until_done(events)
+        assert [line for e in events for line in e.lines] == ["one", "two", "three"]
 
 
 @dataclass
 class _Deps:
-    backend: Any
     message_queue: Any = None
     monitor_manager: Any = None
 
@@ -174,8 +254,11 @@ class _FakeQueue:
         self.steered.append(content)
 
 
-def _ctx(deps: _Deps) -> RunContext[Any]:
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage())
+def _ctx(deps: _Deps, workspace: Workspace | None = None) -> RunContext[Any]:
+    ctx = RunContext(deps=deps, model=TestModel(), usage=RunUsage())
+    if workspace is not None:
+        ctx.workspace = workspace
+    return ctx
 
 
 class TestMonitorToolset:
@@ -184,24 +267,26 @@ class TestMonitorToolset:
         for name in ("start_monitor", "list_monitors", "stop_monitor"):
             assert name in ts.tools
 
-    async def test_no_background_backend_errors(self) -> None:
+    async def test_a_workspace_without_commands_errors(self) -> None:
+        from tests.workspaces import state_workspace
+
         ts = create_monitor_toolset()
-        # Every tool reports the same error when the backend can't run bg procs.
+        # Every tool reports the same error when the workspace can't run commands.
         for name, args in (
             ("start_monitor", ("sleep 1",)),
             ("list_monitors", ()),
             ("stop_monitor", ("mon_1",)),
         ):
-            deps = _Deps(backend=object())  # no execute_background
-            out = await ts.tools[name].function(_ctx(deps), *args)
-            assert "background-capable backend" in out
+            for workspace in (None, state_workspace()):
+                out = await ts.tools[name].function(_ctx(_Deps(), workspace), *args)
+                assert "workspace that runs commands" in out
 
     async def test_start_pushes_events_to_queue(self, tmp_path: Path) -> None:
         ts = create_monitor_toolset()
         queue = _FakeQueue()
-        deps = _Deps(backend=_async_backend(tmp_path), message_queue=queue)
+        deps = _Deps(message_queue=queue)
         started = await ts.tools["start_monitor"].function(
-            _ctx(deps), "echo hello-world; sleep 0.1", "greeter"
+            _ctx(deps, _async_backend(tmp_path)), "echo hello-world; sleep 0.1", "greeter"
         )
         assert "Started monitor mon_1" in started
         # Wait for the watch loop to drain output into the queue (react path).
@@ -214,8 +299,10 @@ class TestMonitorToolset:
 
     async def test_list_and_stop_via_tools(self, tmp_path: Path) -> None:
         ts = create_monitor_toolset()
-        deps = _Deps(backend=_async_backend(tmp_path))
-        await ts.tools["start_monitor"].function(_ctx(deps), "sleep 30", "svc")
+        deps = _Deps()
+        await ts.tools["start_monitor"].function(
+            _ctx(deps, _async_backend(tmp_path)), "sleep 30", "svc"
+        )
         listing = await ts.tools["list_monitors"].function(_ctx(deps))
         assert "mon_1" in listing and "svc" in listing
         stopped = await ts.tools["stop_monitor"].function(_ctx(deps), "mon_1")

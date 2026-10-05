@@ -1,4 +1,4 @@
-"""Tests for pydantic_deep.capabilities.message_queue."""
+"""Tests for pydantic_deep.features.message_queue."""
 
 from __future__ import annotations
 

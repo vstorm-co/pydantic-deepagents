@@ -38,7 +38,7 @@ Let's start with the smallest thing that works. An agent that can think, and wri
 
 ```python hl_lines="6 7 8 9"
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -47,8 +47,8 @@ async def main():
         instructions="You are a helpful coding assistant.",
     )
 
-    # StateBackend keeps files in memory — perfect for trying things out.
-    deps = DeepAgentDeps(backend=StateBackend())
+    # Files live in the run's workspace: in memory by default — perfect for trying things out.
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Create a Python function that calculates Fibonacci numbers",
@@ -63,10 +63,11 @@ asyncio.run(main())
 That's it. The agent already has a filesystem, planning, web search, and more — all enabled by default.
 
 !!! note "Where did the file go?"
-    The agent wrote to `deps.backend`. With `StateBackend` it lives in memory; swap in
-    `LocalBackend(root_dir="…")` and the very same code writes to real files on disk.
-    Your code doesn't change — only the backend does. More on that in
-    [Backends](concepts/backends.md).
+    Into the run's workspace — by default an in-memory one, read back with
+    `await result.workspace.read_text(...)`. Pass `workspace=LocalWorkspace("…")`
+    and the very same agent writes to real files on disk. Your prompt doesn't
+    change — only the workspace does. More on that in
+    [Workspaces](concepts/workspaces.md).
 
 ## Adding your own tools
 
@@ -99,7 +100,7 @@ The docstring becomes the tool's description, the type hints become its schema, 
 | **Filesystem** | Read, write, and edit files, with `grep` and `glob` |
 | **Sub-agents** | Delegate focused tasks to isolated specialists |
 | **Skills** | Modular capability packages, loaded on demand |
-| **Backends** | `StateBackend`, `LocalBackend`, `DockerSandbox`, `CompositeBackend` |
+| **Workspaces** | In memory, a local directory, Docker, sandboxd, Kubernetes, Daytona — any Pydantic AI workspace |
 | **Context management** | Automatic summarization so long conversations never overflow |
 
 ## A modular ecosystem
@@ -108,7 +109,7 @@ Pydantic Deep Agents is assembled from standalone packages. Need just one piece?
 
 | Package | What it gives you |
 |---------|-------------------|
-| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage, Docker sandbox, permission controls |
+| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | Workspaces (Docker, sandboxd, Kubernetes, Daytona, in-memory) and the console tools |
 | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning with PostgreSQL and event streaming |
 | [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Multi-agent orchestration |
 | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Context-management processors |
@@ -134,13 +135,13 @@ pip install "pydantic-deep[sandbox]"
 You just saw the whole idea:
 
 1. `create_deep_agent()` gives a model real capabilities — files, web, memory, sub-agents — with sensible defaults.
-2. `DeepAgentDeps` + a backend decide *where* state lives; the same code runs in memory, on disk, or in a sandbox.
+2. The **workspace** decides *where* the work happens; the same code runs in memory, on disk, or in a sandbox.
 3. Your own `async` functions become typed tools with dependency injection, no boilerplate.
 
 Ready to go deeper?
 
 - [Installation](installation.md) — get set up in a couple of minutes
-- [Core Concepts](concepts/index.md) — agents, backends, toolsets, and skills
+- [Core Concepts](concepts/index.md) — agents, workspaces, toolsets, and skills
 - [Examples](examples/index.md) — pydantic-deep in real scenarios
 - [API Reference](api/index.md) — every class and function
 - [Getting Help](getting-help.md) — report a bug or ask a question

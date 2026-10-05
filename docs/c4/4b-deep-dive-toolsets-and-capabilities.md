@@ -35,7 +35,7 @@ Toolsets are `FunctionToolset` or `AbstractToolset` instances registered on the 
 - `edit_file` — Surgical edits (hashline format)
 - `glob` — Pattern-based file search
 - `grep` — Content search with regex
-- `execute` — Shell command execution (requires `SandboxProtocol`)
+- `execute` — Shell command execution (in a workspace that runs commands)
 
 **Configuration:**
 - `require_write_approval` — From `interrupt_on["write_file"]`
@@ -43,7 +43,9 @@ Toolsets are `FunctionToolset` or `AbstractToolset` instances registered on the 
 - `image_support` — Always True (returns `BinaryContent` for images)
 - `edit_format` — Default: `"hashline"`
 
-**Auto-detection:** `include_execute` defaults to `isinstance(backend, SandboxProtocol)`.
+**Auto-detection:** `include_execute` defaults to `not isinstance(workspace, StateWorkspace)` — the default workspace has no commands.
+
+Every tool works in the run's workspace, `ctx.workspace`.
 
 ### 3. SubAgentToolset
 
@@ -132,16 +134,16 @@ skills/
     └── SKILL.md
 ```
 
-**BackendSkillsDirectory** (backend storage):
+**WorkspaceSkillsDirectory** (the run's workspace):
 ```python
-class BackendSkillsDirectory:
-    """Discovers skills from a BackendProtocol storage."""
-    backend: BackendProtocol
-    root_path: str = "/skills"
+class WorkspaceSkillsDirectory:
+    """A folder of skills in the run's workspace, discovered on first use."""
+    path: str = "skills"
 
-    def get_skills() -> list[Skill]
-    def load_skill(name) -> Skill
+    async def discover(workspace: Workspace) -> dict[str, Skill]
 ```
+
+`SkillsToolset` discovers it through `ctx.workspace`, once per workspace.
 
 #### Script Execution
 
@@ -155,15 +157,16 @@ class LocalSkillScriptExecutor:
     async def run(script_path, args) -> str
 ```
 
-**BackendSkillScriptExecutor** — Sandbox execution:
+**WorkspaceSkillScript** — Workspace execution:
 ```python
-class BackendSkillScriptExecutor:
-    """Execute skill scripts via SandboxProtocol.execute()."""
-    backend: SandboxProtocol
+class WorkspaceSkillScript(SkillScript):
+    """A skill's Python script, run in the run's workspace."""
     timeout: int = 30
 
-    async def run(script_path, args) -> str
+    async def run(ctx, args) -> str  # ctx.workspace.run(["python", uri, ...])
 ```
+
+Scripts are offered only by a workspace that runs commands.
 
 ### 5. PlanToolset
 
@@ -270,7 +273,7 @@ This exception propagates out of `agent.run()` because pydantic-ai only catches 
 
 **Tools:** None — instruction injection only
 
-**Purpose:** Loads project context files (`AGENTS.md`, `SOUL.md`) from the backend and injects into the system prompt.
+**Purpose:** Loads project context files (`AGENTS.md`, `SOUL.md`) from the run's workspace and injects into the system prompt.
 
 **Default filenames:**
 - `AGENTS.md` — Project instructions, conventions, architecture (visible to all)
@@ -283,7 +286,7 @@ This exception propagates out of `agent.run()` because pydantic-ai only catches 
 ```python
 class ContextToolset(FunctionToolset[Any]):
     async def get_instructions(ctx) -> list[str] | None:
-        # Load from ctx.deps.backend
+        # Load from ctx.workspace
         # Apply subagent filtering
         # Truncate if needed
 ```
@@ -369,7 +372,6 @@ class AgentTeam:
     members: list[TeamMember]
     shared_todos: SharedTodoList
     message_bus: TeamMessageBus
-    shared_backend: BackendProtocol
 
     async def spawn() -> dict[str, TeamMemberHandle]
     async def assign(member_name, task_content) -> str
@@ -438,7 +440,7 @@ Claude Code-style lifecycle hooks with 8 events:
 @dataclass
 class Hook:
     event: HookEvent
-    command: str | None = None       # Shell command (via SandboxProtocol)
+    command: str | None = None       # Shell command (via ctx.workspace.run)
     handler: Callable | None = None  # Async Python function
     matcher: str | None = None       # Regex for tool_name
     timeout: int = 30
@@ -480,7 +482,7 @@ Wraps `AgentMemoryToolset` with both tools and instruction injection.
 
 ### 4. PlanCapability
 
-**Source:** `pydantic_deep/capabilities/plan.py`
+**Source:** `pydantic_deep/features/plan/`
 
 Wraps `create_plan_toolset()` providing `ask_user` and `save_plan` tools.
 
@@ -497,7 +499,7 @@ Wraps `SkillsToolset` with skill discovery, loading, and instruction injection.
 
 **Parameters:**
 - `skills: list[Skill] | None` — Pre-loaded skills
-- `directories: list[str | Path | SkillsDirectory | BackendSkillsDirectory] | None`
+- `directories: list[str | Path | SkillsDirectory | WorkspaceSkillsDirectory] | None`
 - `validate: bool` — Default: True
 - `max_depth: int | None` — Default: 3
 - `instruction_template: str | None` — Custom prompt template
@@ -507,7 +509,7 @@ Wraps `SkillsToolset` with skill discovery, loading, and instruction injection.
 
 ### 6. TeamCapability
 
-**Source:** `pydantic_deep/capabilities/teams.py`
+**Source:** `pydantic_deep/features/teams/`
 
 Wraps `create_team_toolset()` for multi-agent coordination.
 
@@ -532,7 +534,7 @@ Raw History
     │
     ▼
 ┌─────────────────────────┐
-│  EvictionProcessor      │  Saves large tool outputs to backend,
+│  EvictionProcessor      │  Saves large tool outputs to workspace,
 │  (async)                │  replaces with head/tail preview + file path
 └───────────┬─────────────┘
             │
@@ -605,11 +607,11 @@ def _find_orphaned_results(messages) -> set[tuple[int, str]]:
 
 **Source:** `pydantic_deep/features/eviction/capability.py`
 
-Saves large tool outputs to the backend and replaces them with a preview.
+Saves large tool outputs to the run's workspace and replaces them with a preview.
 
 **Configuration:**
 - `token_limit: int` — Default: 20,000 (estimated via `NUM_CHARS_PER_TOKEN = 4`)
-- `eviction_path: str` — Default: `/large_tool_results`
+- `eviction_path: str` — Default: `.deep/large_tool_results`
 - `head_lines: int` — Default: 5
 - `tail_lines: int` — Default: 5
 
@@ -617,7 +619,7 @@ Saves large tool outputs to the backend and replaces them with a preview.
 1. Scan each `ModelRequest` for `ToolReturnPart`s
 2. Estimate tokens: `len(content) / 4`
 3. If exceeds limit:
-   - Write full content to backend at `/large_tool_results/{sanitized_id}`
+   - Write full content to the workspace at `.deep/large_tool_results/{sanitized_id}`
    - Replace with preview template
 4. Track evicted IDs in `_evicted_ids` set (prevents re-processing)
 
@@ -632,7 +634,7 @@ Preview (head/tail):
 {content_sample}
 ```
 
-**Backend resolution:** Prefers `ctx.deps.backend` (same as console tools), falls back to `self.backend`.
+**Where it writes:** `ctx.workspace`, the same workspace the console tools read from; a write that fails leaves the result in place.
 
 **Callback:** `on_eviction(tool_name, file_path, original_chars, preview_chars)` supports sync/async.
 
@@ -833,7 +835,7 @@ classDiagram
 ```mermaid
 flowchart TD
     A["Raw Message History"] --> B{"EvictionProcessor<br/>(async)"}
-    B -->|"ToolReturnPart<br/>exceeds token_limit"| C["Save to backend<br/>/large_tool_results/"]
+    B -->|"ToolReturnPart<br/>exceeds token_limit"| C["Save to workspace<br/>.deep/large_tool_results/"]
     C --> D["Replace with<br/>head/tail preview"]
     B -->|"Within limit"| E["Pass through"]
     D --> F["Patched History"]
@@ -847,7 +849,7 @@ flowchart TD
     I --> K
     J --> K
 
-    K --> L{"ContextManager<br/>(pydantic-ai-summarization)"}
+    K --> L{"ContextManager<br/>(summarization-pydantic-ai)"}
     L -->|"Token budget<br/>exceeded"| M["LLM-based<br/>summarization"]
     M --> N["Save full history<br/>to messages.json"]
     N --> O["Compressed History"]
@@ -898,8 +900,6 @@ class XxxCapability(AbstractCapability[Any]):
         toolset = self._toolset
 
         async def _instructions(ctx: RunContext[Any]) -> str | None:
-            if toolset is None or not hasattr(ctx.deps, "backend"):
-                return None
             parts = await toolset.get_instructions(ctx)
             return "\n\n".join(parts) if parts else None
 

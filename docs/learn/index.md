@@ -10,7 +10,7 @@ All the code blocks can be copied and run directly. Every example is a complete,
 
 It is **highly encouraged** that you write or copy the code, edit it, and run it locally. Using it in your editor is what really shows you the benefits — how little code you write, how everything is typed, how completion just works.
 
-Most examples use an in-memory backend (`StateBackend`), so there's nothing to set up: paste, run, watch.
+Most examples work in the default in-memory workspace (`StateWorkspace`), so there's nothing to set up: paste, run, watch.
 
 ## Install
 

@@ -9,14 +9,6 @@ Markdown instructions, along with optional resource files and executable scripts
 
 from typing import TYPE_CHECKING, Any
 
-from pydantic_deep.features.skills.backend import (
-    BackendSkillResource,
-    BackendSkillScript,
-    BackendSkillScriptExecutor,
-    BackendSkillsDirectory,
-    create_backend_resource,
-    create_backend_script,
-)
 from pydantic_deep.features.skills.directory import SkillsDirectory
 from pydantic_deep.features.skills.exceptions import (
     SkillException,
@@ -46,6 +38,11 @@ from pydantic_deep.features.skills.types import (
     SkillWrapper,
     normalize_skill_name,
 )
+from pydantic_deep.features.skills.workspace import (
+    WorkspaceSkillResource,
+    WorkspaceSkillScript,
+    WorkspaceSkillsDirectory,
+)
 
 __all__ = [
     # Toolset
@@ -61,13 +58,10 @@ __all__ = [
     "normalize_skill_name",
     # Directory
     "SkillsDirectory",
-    # Backend
-    "BackendSkillResource",
-    "BackendSkillScript",
-    "BackendSkillScriptExecutor",
-    "BackendSkillsDirectory",
-    "create_backend_resource",
-    "create_backend_script",
+    # Workspace
+    "WorkspaceSkillResource",
+    "WorkspaceSkillScript",
+    "WorkspaceSkillsDirectory",
     # Local
     "FileBasedSkillResource",
     "FileBasedSkillScript",

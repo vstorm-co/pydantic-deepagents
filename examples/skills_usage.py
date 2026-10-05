@@ -14,7 +14,7 @@ containing a SKILL.md file with YAML frontmatter and Markdown instructions.
 import asyncio
 from pathlib import Path
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 # Get the skills directory relative to this example
 SKILLS_DIR = Path(__file__).parent / "skills"
@@ -38,7 +38,7 @@ async def main():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Example 1: List available skills
     print("=" * 60)
@@ -56,10 +56,10 @@ async def main():
     print("Example 2: Using the code-review skill")
     print("=" * 60)
 
-    # First, create a file to review
-    deps.backend.write(
-        "/code/example.py",
-        """def calculate_total(items):
+    # First, give the agent a file to review: it lands at /code/example.py
+    await deps.upload_file(
+        "example.py",
+        b"""def calculate_total(items):
     total = 0
     for item in items:
         total = total + item["price"] * item["quantity"]
@@ -69,6 +69,7 @@ def get_user_data(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query)
 """,
+        upload_dir="code",
     )
 
     result = await agent.run(
@@ -96,43 +97,40 @@ def get_user_data(user_id):
     print("\n" + "=" * 60)
     print("Files created:")
     print("=" * 60)
-    for path in sorted(deps.backend.files.keys()):
-        print(f"  {path}")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else ""))
 
 
 async def demo_skill_discovery():
-    """Demonstrate skill discovery from multiple directories."""
-    from pydantic_deep.toolsets.skills import discover_skills
+    """Demonstrate skill discovery from a directory."""
+    from pydantic_deep.features.skills import SkillsDirectory
 
     print("Discovering skills from:", SKILLS_DIR)
     print()
 
-    skills = discover_skills([{"path": str(SKILLS_DIR), "recursive": True}])
-
-    for skill in skills:
-        print(f"Skill: {skill['name']}")
-        print(f"  Description: {skill['description']}")
-        print(f"  Version: {skill['version']}")
-        print(f"  Tags: {', '.join(skill['tags'])}")
-        print(f"  Path: {skill['path']}")
-        if skill.get("resources"):
-            print(f"  Resources: {', '.join(skill['resources'])}")
+    for uri, skill in SkillsDirectory(path=SKILLS_DIR).get_skills().items():
+        print(f"Skill: {skill.name}")
+        print(f"  Description: {skill.description}")
+        print(f"  URI: {uri}")
+        if skill.resources:
+            print(f"  Resources: {', '.join(r.name for r in skill.resources)}")
+        if skill.scripts:
+            print(f"  Scripts: {', '.join(s.name for s in skill.scripts)}")
         print()
 
 
 async def demo_skill_loading():
     """Demonstrate loading full skill instructions."""
-    from pydantic_deep.toolsets.skills import discover_skills, load_skill_instructions
+    from pydantic_deep.features.skills import SkillsDirectory
 
-    skills = discover_skills([{"path": str(SKILLS_DIR), "recursive": True}])
+    skills = list(SkillsDirectory(path=SKILLS_DIR).get_skills().values())
 
     if skills:
         skill = skills[0]
-        print(f"Loading full instructions for: {skill['name']}")
+        print(f"Loading full instructions for: {skill.name}")
         print("=" * 60)
 
-        instructions = load_skill_instructions(skill["path"])
-        print(instructions[:500] + "..." if len(instructions) > 500 else instructions)
+        print(skill.content[:500] + "..." if len(skill.content) > 500 else skill.content)
 
 
 if __name__ == "__main__":

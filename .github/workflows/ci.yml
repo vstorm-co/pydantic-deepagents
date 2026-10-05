@@ -124,10 +124,38 @@ jobs:
       - name: Build docs
         run: uv run mkdocs build
 
+  install:
+    # Every job above syncs the development environment, which holds far more
+    # than `pip install pydantic-deep` does - so 0.3.45 shipped importing `httpx`
+    # and building a DuckDuckGo search fallback that neither it nor its
+    # dependencies installed. This installs the package alone and builds the
+    # default agent.
+    name: Fresh Install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install the package alone
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/fresh"
+          uv pip install --python "$RUNNER_TEMP/fresh/bin/python" .
+
+      - name: Import it and build the default agent
+        run: |
+          "$RUNNER_TEMP/fresh/bin/python" - <<'PY'
+          from pydantic_deep import create_deep_agent
+
+          create_deep_agent(model="test")
+          print("the default agent builds")
+          PY
+
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, security, test, docs]
+    needs: [lint, typecheck, security, test, docs, install]
     steps:
       - name: All checks passed
         run: echo "All CI checks passed successfully!"

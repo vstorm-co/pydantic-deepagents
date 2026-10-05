@@ -84,8 +84,9 @@ from pydantic_ai import (
     PartDeltaEvent,
 )
 from pydantic_ai.messages import ModelMessage
+from pydantic_ai.workspaces import Workspace
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 # ANSI color codes
 RESET = "\033[0m"
@@ -132,16 +133,17 @@ def print_todos(deps: DeepAgentDeps) -> None:
     print(f"{MAGENTA}└─────────────────────────────────────────────────────────┘{RESET}\n")
 
 
-def print_files(deps: DeepAgentDeps) -> None:
-    """Print the files in storage."""
-    if not deps.files:
-        print(f"{DIM}No files in storage{RESET}")
+async def print_files(workspace: Workspace | None) -> None:
+    """Print the files in the conversation's workspace."""
+    entries = await workspace.list_dir("/") if workspace is not None else []
+    if not entries:
+        print(f"{DIM}No files in the workspace{RESET}")
         return
 
     print(f"\n{BOLD}{BLUE}┌─ Files ────────────────────────────────────────────────┐{RESET}")
-    for path, data in sorted(deps.files.items()):
-        lines = len(data["content"])
-        print(f"{BLUE}│{RESET} {path} ({lines} lines)")
+    for entry in sorted(entries, key=lambda e: e.path):
+        size = "dir" if entry.is_dir else f"{entry.size} bytes"
+        print(f"{BLUE}│{RESET} {entry.path} ({size})")
     print(f"{BLUE}└────────────────────────────────────────────────────────┘{RESET}\n")
 
 
@@ -152,6 +154,8 @@ class StreamState:
     showed_tools: bool = False
     needs_text_prefix: bool = False
     message_history: list[ModelMessage] = field(default_factory=list)
+    # The conversation's workspace; the history carries its ref to the next run
+    workspace: Workspace | None = None
 
 
 async def process_stream(
@@ -191,6 +195,7 @@ async def process_stream(
         elif isinstance(event, AgentRunResultEvent):
             # Save message history for next turn
             state.message_history = event.result.all_messages()
+            state.workspace = event.result.workspace
 
     if state.current_text and not state.current_text.endswith("\n"):
         print()
@@ -213,11 +218,12 @@ async def chat_loop(agent: Agent[DeepAgentDeps, str], deps: DeepAgentDeps) -> No
                 break
             if user_input.lower() == "/clear":
                 state.message_history = []
+                state.workspace = None  # the next run starts a new one
                 deps.todos = []
                 print(f"{DIM}Conversation cleared.{RESET}\n")
                 continue
             if user_input.lower() == "/files":
-                print_files(deps)
+                await print_files(state.workspace)
                 continue
             if user_input.lower() == "/todos":
                 print_todos(deps)
@@ -261,7 +267,7 @@ When working on complex tasks:
 Be concise but informative in your responses.""",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     await chat_loop(agent, deps)
 
 

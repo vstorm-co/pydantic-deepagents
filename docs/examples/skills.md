@@ -87,7 +87,7 @@ Generate comprehensive pytest tests...
 import asyncio
 from pathlib import Path
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 SKILLS_DIR = Path(__file__).parent / "skills"
@@ -112,12 +112,12 @@ async def main():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    # Create some code to review
-    deps.backend.write(
-        "/code/example.py",
-        '''def calculate_total(items):
+    # Give the agent some code to review: it lands at /code/example.py
+    await deps.upload_file(
+        "example.py",
+        b'''def calculate_total(items):
     total = 0
     for item in items:
         total = total + item["price"] * item["quantity"]
@@ -127,6 +127,7 @@ def get_user_data(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query)
 ''',
+        upload_dir="/code",
     )
 
     # Ask agent to use skills

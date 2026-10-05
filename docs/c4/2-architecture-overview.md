@@ -63,11 +63,11 @@ Provides the core intelligence layer. The system supports multiple providers:
 - **OpenAI** - GPT models
 - **OpenRouter** - Multi-provider routing
 
-#### Filesystem
-The execution environment for file operations and command execution:
-- **Local Backend** - Direct filesystem access
-- **Docker Sandbox** - Isolated container execution
-- **State Backend** - Abstract state management
+#### Workspace
+The execution environment for file operations and command execution — a Pydantic AI workspace:
+- **Local** - A directory on this machine
+- **Docker, sandboxd, Kubernetes, Daytona** - Isolated containers and sandboxes
+- **State** - An in-memory document, files only (the default)
 
 #### MCP Servers
 External tool servers that extend agent capabilities:
@@ -107,7 +107,7 @@ flowchart TD
     end
 
     subgraph ExternalPackages["Component Packages"]
-        BACKEND["pydantic-ai-backend<br/>Backend Abstraction"]
+        BACKEND["pydantic-ai-backend<br/>Workspaces & Console Tools"]
         TODO["pydantic-ai-todo<br/>Todo Management"]
         SUBAGENTS["subagents-pydantic-ai<br/>SubAgent Delegation"]
         SUMMARY["summarization-pydantic-ai<br/>History Summarization"]
@@ -189,7 +189,7 @@ Independent packages that provide specialized functionality:
 
 | Package | Purpose |
 |---------|---------|
-| `pydantic-ai-backend` | Abstracts filesystem operations (Local, Docker, State backends) |
+| `pydantic-ai-backend` | Workspace capabilities (Docker, sandboxd, Kubernetes, Daytona, State) and the console tools |
 | `pydantic-ai-todo` | Todo list management with read/write operations |
 | `subagents-pydantic-ai` | SubAgent creation, delegation, and monitoring |
 | `summarization-pydantic-ai` | Message history summarization for context management |
@@ -304,23 +304,19 @@ flowchart TD
 **Purpose**: Hold all runtime state for agent execution
 
 **Key Components**:
-- `DeepAgentDeps` - Dataclass with 8 attributes:
-  - `backend` - BackendProtocol for file I/O
-  - `files` - List of uploaded files
+- `DeepAgentDeps` - Dataclass holding the run's state (files live in the workspace, not here):
   - `todos` - Todo list state
   - `subagents` - SubAgent instances
   - `uploads` - Uploaded file data
   - `context_middleware` - Context processing middleware
 - `clone_for_subagent()` - Creates isolated copy for nested agents
-- File upload methods for managing attachments
+- File upload methods: uploads are queued and written into the run's workspace when it starts
 
-**Dependencies**: BackendProtocol, UploadedFile, FileData, Todo types
+**Dependencies**: UploadedFile, Todo types
 
 ```mermaid
 flowchart TD
     subgraph DepsStructure["DeepAgentDeps Structure"]
-        BACKEND["backend<br/>(BackendProtocol)"]
-        FILES["files<br/>(List of FileData)"]
         TODOS["todos<br/>(TodoState)"]
         SUBAGENTS["subagents<br/>(SubAgentManager)"]
         UPLOADS["uploads<br/>(UploadedFile list)"]
@@ -329,7 +325,7 @@ flowchart TD
 
     subgraph DepsMethods["Methods"]
         CLONE["clone_for_subagent()<br/>Isolated Copy"]
-        UPLOAD["upload_file()<br/>Add Attachment"]
+        UPLOAD["upload_file()<br/>Queue Attachment"]
     end
 
     CLONE -->|"Creates New"| DepsStructure
@@ -411,10 +407,10 @@ flowchart TD
 | Processor | Type | Purpose |
 |-----------|------|---------|
 | **patch_tool_calls_processor** | Sync | Fixes orphaned tool call/result pairs |
-| **EvictionProcessor** | Async | Saves large tool outputs to backend, replaces with preview |
+| **EvictionProcessor** | Async | Saves large tool outputs to the workspace, replaces with preview |
 | **history_archive** | Toolset | `search_conversation_history` tool |
 
-**Dependencies**: pydantic-ai messages, pydantic-ai-backend BackendProtocol
+**Dependencies**: pydantic-ai messages and workspaces
 
 ```mermaid
 flowchart LR
@@ -485,22 +481,22 @@ flowchart TD
     TS3 -->|"Register Tools"| AGENT
 ```
 
-### Backend Abstraction
-`BackendProtocol` abstracts filesystem operations, enabling Docker sandboxing without changing agent code.
+### Workspaces
+Every file and command goes through the run's workspace, `ctx.workspace` — Pydantic AI's abstraction — so sandboxing never changes agent code. A workspace capability supplies it; `agent.run(workspace=...)` overrides it for one run.
 
 ```mermaid
 flowchart TD
-    subgraph Backends["Backend Implementations"]
-        LOCAL["LocalBackend<br/>(Direct Filesystem)"]
-        DOCKER["DockerSandbox<br/>(Container Isolation)"]
-        STATE["StateBackend<br/>(Abstract State)"]
+    subgraph Capabilities["Workspace Capabilities"]
+        LOCAL["LocalWorkspace<br/>(Directory on this machine)"]
+        DOCKER["DockerWorkspace, SandboxdWorkspace,<br/>KubernetesWorkspace, DaytonaWorkspace<br/>(Isolation)"]
+        STATE["StateWorkspace<br/>(In-memory, the default)"]
     end
 
-    PROTO["BackendProtocol"] --> LOCAL
-    PROTO --> DOCKER
-    PROTO --> STATE
+    LOCAL --> WS["ctx.workspace"]
+    DOCKER --> WS
+    STATE --> WS
 
-    AGENT["Agent Code"] -->|"Uses"| PROTO
+    AGENT["Tools & Capabilities"] -->|"Use"| WS
 ```
 
 ### Dependency Injection
@@ -552,13 +548,13 @@ flowchart LR
 | **Rationale** | Enables version-controlled agent configs, easier sharing and reproducibility |
 | **Trade-offs** | Some features (callbacks, Python tools) cannot be fully serialized |
 
-### Decision 3: Backend Abstraction for All File I/O
+### Decision 3: Pydantic AI Workspaces for All File I/O
 
 | Aspect | Details |
 |--------|---------|
-| **Decision** | Abstract all filesystem operations through BackendProtocol |
-| **Rationale** | Enables Docker sandboxing without changing agent code; supports multiple execution environments |
-| **Trade-offs** | Indirect access adds a layer of abstraction; slight performance overhead |
+| **Decision** | Route all file and command operations through the run's Pydantic AI workspace |
+| **Rationale** | Enables sandboxing without changing agent code; any workspace capability works, including ones from other libraries |
+| **Trade-offs** | One workspace per run: no routing different paths to different storage |
 
 ### Decision 4: Capability-Based Feature Composition
 
@@ -594,8 +590,8 @@ flowchart LR
 | Attribute | Details |
 |-----------|---------|
 | **Purpose** | Hold all runtime state for agent execution |
-| **Key Components** | `DeepAgentDeps` dataclass with 8 attributes, file upload methods, subagent cloning |
-| **Dependencies** | BackendProtocol, UploadedFile, FileData, Todo types |
+| **Key Components** | `DeepAgentDeps` dataclass, file upload methods, subagent cloning |
+| **Dependencies** | UploadedFile, Todo types |
 | **Location** | `pydantic_deep/deps.py` |
 
 ### Module: Toolsets (`features/*/toolset.py`)
@@ -622,7 +618,7 @@ flowchart LR
 |-----------|---------|
 | **Purpose** | Transform message history before sending to LLM |
 | **Key Components** | 2 processors + 1 search toolset |
-| **Dependencies** | pydantic-ai messages, pydantic-ai-backend BackendProtocol |
+| **Dependencies** | pydantic-ai messages and workspaces |
 | **Location** | `pydantic_deep/features/{eviction,patch,history_archive}/` |
 
 ---

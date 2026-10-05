@@ -5,6 +5,138 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A fresh install of 0.3.45 failed on import.** `pydantic-ai-backend` 0.2.32
+  imported `httpx` for every workspace without declaring it in the `workspaces`
+  extra, so `import pydantic_deep` raised `ModuleNotFoundError: No module named
+  'httpx'` outside a development environment. The requirement is now
+  `pydantic-ai-backend>=0.2.33`, which declares it.
+- **`create_deep_agent()` needed a package it did not install.** Web search is on
+  by default with a DuckDuckGo fallback for models without a native search tool,
+  and Pydantic AI now builds that fallback with the agent - so a plain
+  `pip install pydantic-deep` raised "requires the `duckduckgo` optional group".
+  The `duckduckgo` group is now part of the base requirement. A new CI job installs
+  the package alone and builds the default agent.
+
+## [0.3.45] - 2026-10-06
+
+**⚠️ Breaking: deep agents now run on Pydantic AI workspaces.** Pydantic AI 2.52
+gave every run one environment to work in, `ctx.workspace`, and
+`pydantic-ai-backend` 0.2.30 replaced its backend protocol with it. Every
+feature here that read or wrote `ctx.deps.backend` now works in the run's
+workspace instead, so any Pydantic AI workspace capability works as the agent's
+environment — including the harness's E2B, Modal and Sprites. Requires
+`pydantic-ai-slim>=2.52.0`, `pydantic-ai-backend>=0.2.32` and
+`subagents-pydantic-ai>=0.2.25`. See the new "Workspaces" page, and the table on
+it for what replaces each removed name.
+
+### Changed
+
+- **`create_deep_agent(workspace=...)`** chooses where runs work:
+  `StateWorkspace()` (the default — an in-memory document, files only),
+  `LocalWorkspace(path)`, `DockerWorkspace(...)`, `SandboxdWorkspace(...)`,
+  `KubernetesWorkspace(...)`, `DaytonaWorkspace(...)` or any other workspace
+  capability. `False` attaches none, for applications that pass each run its own
+  with `agent.run(workspace=...)`. `include_execute` now defaults to on unless the
+  workspace is `StateWorkspace`, which has no commands; subagents follow the
+  parent's choice.
+- **`DeepAgentDeps` holds no files.** `backend`, `files` and `get_files_summary()`
+  are gone; read a run's files from `result.workspace` or, in a tool,
+  `ctx.workspace`. `upload_file()` queues the bytes and the run writes them into
+  its workspace when it starts (`write_pending_uploads()` does it by hand), so
+  uploads land in `uploads/` relative to the workspace's working directory rather
+  than at `/uploads`. `create_default_deps()` takes no arguments.
+- **Memory, context files, plans, evicted tool output, LiteParse screenshots and
+  hooks work in the run's workspace.** Their default directories are relative to
+  its working directory: `.deep/memory`, `.deep/large_tool_results`, `plans`,
+  `screenshots`. Command hooks need a workspace that runs commands and raise when
+  the run's workspace has none.
+- **Monitors run in the workspace**, their output going to a log under
+  `.deep/monitors/`; in a workspace without commands the tools say so.
+- **`WorkspaceSkillsDirectory` replaces `BackendSkillsDirectory`**: a folder of
+  skills inside the run's workspace, discovered through `ctx.workspace` on first
+  use in each workspace. Scripts are offered only where the workspace runs
+  commands.
+- **Forked branches work in an overlay of the parent's workspace**, flushed onto
+  it when a branch wins. `BranchIsolation.backend` is now
+  `BranchIsolation.workspace`; `LocalBranchOverlay` runs a branch's
+  `test_command` in a temporary copy of a local project; `branch_workspace`
+  gives the workspace a branch runs in.
+- **The CLI works in a confined local workspace or one Docker container per
+  project and workspace name**, mounting the project at `/workspace`; a session
+  without a workspace name gets a container of its own, removed when the session
+  ends. Locally, file tools stay inside the project (`ConfinedWorkspace`, as
+  `LocalBackend(root_dir=...)` kept them) and commands get the user's
+  environment; every run passes the session's workspace, so a history saved by
+  another process or before a model switch keeps working.
+- **The ACP server and the deepresearch app** pass each session's workspace to
+  its runs; the ACP server's is confined to the editor's project.
+- **Uploads reach every run's workspace.** `deps.upload_file` keeps the bytes,
+  and each run writes the latest version of every upload into its workspace
+  when it starts - once, so a file the agent changed is not overwritten. A run
+  in a new in-memory document finds what the prompt lists.
+- **A command hook that cannot decide refuses rather than ends the run.** One
+  that times out, floods its output or runs in a workspace without commands -
+  the default, or a fork branch's view of a container - is undecided: before a
+  tool, the call is refused with the reason, and the run goes on. Before, a
+  timeout allowed the call.
+- **`LocalWorkspace` is Pydantic AI's, and confines nothing**: its file tools
+  reach any path, and its commands get only `PATH`, `HOME` and the locale.
+  Wrap it in `ConfinedWorkspace` to keep file operations in its directory; pass
+  `env=` for more of the environment.
+- **The CLI's local sandbox needs Linux or macOS.** Pydantic AI's local workspace
+  runs commands on POSIX only, so on Windows `pydantic-deep` refuses
+  `--sandbox local` up front and points to `--sandbox docker` (or WSL), rather
+  than failing while it builds the agent.
+
+### Removed
+
+- `DeepAgentDeps(backend=...)`, `DeepAgentDeps.files`, `get_files_summary()`,
+  `unwrap_backend`, `BackendSkillsDirectory`, `BackendSkillResource`,
+  `BackendSkillScript`, `BackendSkillScriptExecutor`, and the re-exports of
+  `BackendProtocol`, `SandboxProtocol`, `LocalBackend`, `CompositeBackend`,
+  `BaseSandbox`, `AsyncBaseSandbox`, `is_async_backend`, `DockerSandbox`,
+  `SessionManager`, `ConsoleDeps`, `WriteResult`, `EditResult`,
+  `ExecuteResponse` and `GrepMatch`. A workspace has no equivalent of `CompositeBackend`'s path
+  routing: one workspace serves a run, and its example is gone.
+- **The CLI's background shells panel** (`/shells`): background processes were a
+  feature of the old local backend.
+
+### Fixed
+
+- **Tests and type checks pass on Pydantic AI 2.54**, which `main` had drifted
+  from.
+
+## [0.3.44] - 2026-10-05
+
+### Fixed
+
+- **A fresh install broke on import.** `pydantic-ai-backend` 0.2.30 replaced its
+  backend protocol with Pydantic AI workspaces and removed `LocalBackend`,
+  `AsyncBaseSandbox` and the rest of the names this package imports, and the
+  requirement had no upper bound, so `pip install pydantic-deep` resolved it and
+  `import pydantic_deep` raised `ImportError`. Both the `console` and `docker`
+  requirements are now `>=0.2.25,<0.2.30` until this package moves to
+  workspaces.
+
+## [0.3.43] - 2026-08-05
+
+### Changed
+
+- **Requires `subagents-pydantic-ai>=0.2.18`**. That release removes the implicit
+  `default_model="openai:gpt-4.1"` from the subagent toolset: there is no
+  library-chosen default any more, so a toolset that leaves the general-purpose
+  delegate on with no model now raises at construction instead of running that
+  delegate on whatever provider credential the process environment happens to
+  hold. Deep-agent construction is unaffected — it already passes `default_model`
+  and `include_general_purpose=False`. The one place that relied on the old
+  default was a test, now updated.
+- **Requires `pydantic-ai-backend>=0.2.25`** (from `>=0.2.18`), a maintenance
+  bump of the backend dependency for both the `console` and `docker` extras.
+
 ## [0.3.42] - 2026-08-01
 
 ### Changed

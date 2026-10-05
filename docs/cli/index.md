@@ -17,7 +17,7 @@ That's the whole install. The `[cli]` extra pulls in Textual and the TUI depende
     [uv](https://docs.astral.sh/uv/) for you and then does the rest:
 
     ```bash
-    curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deep/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/vstorm-co/pydantic-deepagents/main/install.sh | bash
     ```
 
 ## Launch it

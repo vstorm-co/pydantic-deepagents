@@ -91,11 +91,12 @@ python -m apps.acp --cwd /path/to/project             # Working directory
 
 ```python
 from apps.acp.server import DeepAgentACP, AgentSessionContext
-from pydantic_deep import create_deep_agent
+from pydantic_deep import LocalWorkspace, create_deep_agent
 
 def build_agent(ctx: AgentSessionContext):
     return create_deep_agent(
         model=ctx.model,
+        workspace=LocalWorkspace(ctx.cwd),
         include_memory=True,
         context_discovery=True,
         thinking="high",

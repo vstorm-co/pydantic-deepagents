@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.workspaces import LocalWorkspaceBackend, WorkspaceRef
+from pydantic_ai_backends.workspaces import DockerWorkspace, DockerWorkspaceBackend
 
 from apps.cli.agent import (
+    _PROCESS_CONTAINER_ID,
     _detect_fork_test_command,
     _make_shell_allow_list_hook,
     create_cli_agent,
@@ -29,7 +34,7 @@ class TestCreateCliAgent:
         )
         assert agent is not None
         assert deps is not None
-        assert deps.backend is not None
+        assert agent._cli_workspace is not None
 
     def test_uses_cwd_when_no_working_dir(self) -> None:
         agent, deps = create_cli_agent(
@@ -158,14 +163,11 @@ class TestCreateCliAgent:
         agent, deps = create_cli_agent(
             model=TEST_MODEL,
             working_dir=str(tmp_path),
-            # workspace without sandbox="docker" → LocalBackend (no Docker needed)
+            # workspace without sandbox="docker" → this machine (no Docker needed)
             workspace="ml-env",
         )
-        assert agent is not None
         # Local sandbox — workspace ignored when Docker is not active
-        from pydantic_ai_backends import LocalBackend
-
-        assert isinstance(deps.backend.unwrap(), LocalBackend)
+        assert isinstance(agent._cli_workspace.backend, LocalWorkspaceBackend)
 
     def test_sandbox_local_is_default(self, tmp_path: Path) -> None:
         """Default sandbox is local (no Docker)."""
@@ -173,9 +175,8 @@ class TestCreateCliAgent:
             model=TEST_MODEL,
             working_dir=str(tmp_path),
         )
-        from pydantic_ai_backends import LocalBackend
-
-        assert isinstance(deps.backend.unwrap(), LocalBackend)
+        assert isinstance(agent._cli_workspace.backend, LocalWorkspaceBackend)
+        assert agent._cli_workspace_cleanup is None
 
 
 class TestShellAllowListHook:
@@ -283,215 +284,136 @@ class TestBuildCliInstructions:
         assert len(non_interactive) > len(interactive)
 
 
+def _docker_agent(tmp_path: Path, **kwargs: Any) -> tuple[Any, MagicMock]:
+    """A CLI agent in Docker, and the spy its `DockerWorkspace` was built through.
+
+    Building one touches no Docker: the container is created on first use.
+    """
+    with patch("pydantic_ai_backends.DockerWorkspace", wraps=DockerWorkspace) as spy:
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(tmp_path), **kwargs)
+    return agent, spy
+
+
+class TestDockerSandbox:
+    """`sandbox="docker"`: the session works in a container on this host."""
+
+    def test_the_project_is_mounted_as_the_working_directory(self, tmp_path: Path) -> None:
+        agent, spy = _docker_agent(tmp_path, sandbox="docker")
+
+        kwargs = spy.call_args.kwargs
+        assert kwargs["image"] == "python:3.12-slim"
+        assert kwargs["work_dir"] == "/workspace"
+        assert kwargs["volumes"] == {str(tmp_path.resolve()): "/workspace"}
+        assert kwargs["env"] is None
+        assert isinstance(agent._cli_workspace.backend, DockerWorkspaceBackend)
+
+    def test_an_unnamed_session_gets_its_own_container_removed_at_exit(
+        self, tmp_path: Path
+    ) -> None:
+        agent, spy = _docker_agent(tmp_path, sandbox="docker")
+
+        container_name = spy.call_args.kwargs["container_name"]
+        assert container_name.endswith(f"-{_PROCESS_CONTAINER_ID}")
+        with patch.object(DockerWorkspace, "destroy", new_callable=AsyncMock) as destroy:
+            asyncio.run(agent._cli_workspace_cleanup())
+        destroy.assert_awaited_once_with(WorkspaceRef(provider="docker", id=container_name))
+
+    def test_a_named_workspace_is_one_container_kept_across_sessions(self, tmp_path: Path) -> None:
+        agent, spy = _docker_agent(tmp_path, sandbox="docker", workspace="ml-env")
+
+        assert spy.call_args.kwargs["container_name"].endswith("-ml-env")
+        assert agent._cli_workspace_cleanup is None
+
+    def test_the_same_project_names_the_same_container(self, tmp_path: Path) -> None:
+        _, first = _docker_agent(tmp_path, sandbox="docker", workspace="ml-env")
+        _, second = _docker_agent(tmp_path, sandbox="docker", workspace="ml-env")
+
+        assert first.call_args.kwargs["container_name"] == second.call_args.kwargs["container_name"]
+
+    def test_the_fork_test_runner_is_off(self, tmp_path: Path) -> None:
+        """Its command runs on this machine, not in the container."""
+        (tmp_path / "pytest.ini").write_text("[pytest]\n")
+        with patch("apps.cli.agent._detect_fork_test_command", return_value=None) as detect:
+            _docker_agent(tmp_path, sandbox="docker")
+        detect.assert_called_once_with(None)
+
+    def test_a_custom_image(self, tmp_path: Path) -> None:
+        _, spy = _docker_agent(tmp_path, sandbox="docker", sandbox_image="python:3.11-slim")
+
+        assert spy.call_args.kwargs["image"] == "python:3.11-slim"
+
+
 class TestSandboxEnvVars:
-    """Tests for sandbox_env_vars support in create_cli_agent()."""
+    """Variables the Docker sandbox's commands see."""
 
-    def test_sandbox_env_vars_creates_runtime_config(self, tmp_path: Path) -> None:
-        """When sandbox_env_vars is provided, DockerSandbox receives a RuntimeConfig."""
-        from unittest.mock import MagicMock, patch
-
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
-        mock_runtime_config_instance = MagicMock()
-        mock_runtime_config_cls.return_value = mock_runtime_config_instance
-
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox) as mock_docker,
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                sandbox="docker",
-                sandbox_env_vars={
-                    "JIRA_API_TOKEN": "tok",
-                    "JIRA_BASE_URL": "https://jira.example.com",
-                },
-            )
-
-        mock_runtime_config_cls.assert_called_once_with(
-            name="cli-sandbox",
-            base_image="python:3.12-slim",
-            env_vars={"JIRA_API_TOKEN": "tok", "JIRA_BASE_URL": "https://jira.example.com"},
-            cache_image=False,
-        )
-        call_kwargs = mock_docker.call_args.kwargs
-        assert call_kwargs["runtime"] is mock_runtime_config_instance
-        assert "image" not in call_kwargs
-
-    def test_sandbox_env_vars_empty_uses_image(self, tmp_path: Path) -> None:
-        """When no sandbox_env_vars, DockerSandbox uses plain image kwarg (no RuntimeConfig)."""
-        from unittest.mock import MagicMock, patch
-
-        mock_sandbox = MagicMock()
-
-        with patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox) as mock_docker:
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                sandbox="docker",
-            )
-
-        call_kwargs = mock_docker.call_args.kwargs
-        assert "image" in call_kwargs
-        assert "runtime" not in call_kwargs
-
-    def test_sandbox_env_vars_custom_image_in_runtime(self, tmp_path: Path) -> None:
-        """sandbox_image is used as base_image in RuntimeConfig when env vars are set."""
-        from unittest.mock import MagicMock, patch
-
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
-
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                sandbox="docker",
-                sandbox_image="python:3.11-slim",
-                sandbox_env_vars={"KEY": "val"},
-            )
-
-        mock_runtime_config_cls.assert_called_once_with(
-            name="cli-sandbox",
-            base_image="python:3.11-slim",
-            env_vars={"KEY": "val"},
-            cache_image=False,
+    def test_explicit_vars(self, tmp_path: Path) -> None:
+        _, spy = _docker_agent(
+            tmp_path,
+            sandbox="docker",
+            sandbox_env_vars={"JIRA_API_TOKEN": "tok", "JIRA_BASE_URL": "https://jira.example.com"},
         )
 
-    def test_sandbox_env_file_loaded(self, tmp_path: Path) -> None:
-        """Variables from a .env file are passed to DockerSandbox via RuntimeConfig."""
-        from unittest.mock import MagicMock, patch
+        assert spy.call_args.kwargs["env"] == {
+            "JIRA_API_TOKEN": "tok",
+            "JIRA_BASE_URL": "https://jira.example.com",
+        }
 
+    def test_an_env_file(self, tmp_path: Path) -> None:
         env_file = tmp_path / ".env"
         env_file.write_text("JIRA_API_TOKEN=file-token\nJIRA_BASE_URL=https://jira.example.com\n")
 
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
+        _, spy = _docker_agent(tmp_path, sandbox="docker", sandbox_env_file=str(env_file))
 
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                sandbox="docker",
-                sandbox_env_file=str(env_file),
-            )
+        assert spy.call_args.kwargs["env"] == {
+            "JIRA_API_TOKEN": "file-token",
+            "JIRA_BASE_URL": "https://jira.example.com",
+        }
 
-        mock_runtime_config_cls.assert_called_once_with(
-            name="cli-sandbox",
-            base_image="python:3.12-slim",
-            env_vars={"JIRA_API_TOKEN": "file-token", "JIRA_BASE_URL": "https://jira.example.com"},
-            cache_image=False,
-        )
-
-    def test_sandbox_env_vars_override_file(self, tmp_path: Path) -> None:
-        """Explicit sandbox_env_vars take priority over .env file values."""
-        from unittest.mock import MagicMock, patch
-
+    def test_explicit_vars_override_the_file(self, tmp_path: Path) -> None:
         env_file = tmp_path / ".env"
         env_file.write_text("JIRA_API_TOKEN=file-token\nEXTRA=from-file\n")
 
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
+        _, spy = _docker_agent(
+            tmp_path,
+            sandbox="docker",
+            sandbox_env_file=str(env_file),
+            sandbox_env_vars={"JIRA_API_TOKEN": "explicit-token"},
+        )
 
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                sandbox="docker",
-                sandbox_env_file=str(env_file),
-                sandbox_env_vars={"JIRA_API_TOKEN": "explicit-token"},
-            )
+        assert spy.call_args.kwargs["env"] == {
+            "JIRA_API_TOKEN": "explicit-token",
+            "EXTRA": "from-file",
+        }
 
-        call_kwargs = mock_runtime_config_cls.call_args.kwargs
-        assert call_kwargs["env_vars"]["JIRA_API_TOKEN"] == "explicit-token"
-        assert call_kwargs["env_vars"]["EXTRA"] == "from-file"
-
-    def test_sandbox_env_file_from_config(self, tmp_path: Path) -> None:
-        """sandbox_env_file in config.toml is used when no explicit param is given."""
-        from unittest.mock import MagicMock, patch
-
+    def test_an_env_file_from_config(self, tmp_path: Path) -> None:
         env_file = tmp_path / ".env"
         env_file.write_text("FROM_FILE=yes\n")
-
         config_file = tmp_path / ".pydantic-deep" / "config.toml"
         config_file.parent.mkdir()
         config_file.write_text(f'sandbox = "docker"\nsandbox_env_file = "{env_file}"\n')
 
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
+        _, spy = _docker_agent(tmp_path, config_path=config_file)
 
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                config_path=config_file,
-            )
+        assert spy.call_args.kwargs["env"] == {"FROM_FILE": "yes"}
 
-        call_kwargs = mock_runtime_config_cls.call_args.kwargs
-        assert call_kwargs["env_vars"] == {"FROM_FILE": "yes"}
-
-    def test_sandbox_env_vars_from_config(self, tmp_path: Path) -> None:
-        """sandbox_env_vars in config.toml is used when no explicit param is given."""
-        from unittest.mock import MagicMock, patch
-
+    def test_vars_from_config(self, tmp_path: Path) -> None:
         config_file = tmp_path / ".pydantic-deep" / "config.toml"
         config_file.parent.mkdir()
         config_file.write_text(
             'sandbox = "docker"\n\n[sandbox_env_vars]\nMY_TOKEN = "from-config"\n'
         )
 
-        mock_sandbox = MagicMock()
-        mock_runtime_config_cls = MagicMock()
+        _, spy = _docker_agent(tmp_path, config_path=config_file)
 
-        with (
-            patch("pydantic_ai_backends.DockerSandbox", return_value=mock_sandbox),
-            patch("pydantic_ai_backends.RuntimeConfig", mock_runtime_config_cls),
-        ):
-            create_cli_agent(
-                model=TEST_MODEL,
-                working_dir=str(tmp_path),
-                config_path=config_file,
-            )
-
-        mock_runtime_config_cls.assert_called_once_with(
-            name="cli-sandbox",
-            base_image="python:3.12-slim",
-            env_vars={"MY_TOKEN": "from-config"},
-            cache_image=False,
-        )
+        assert spy.call_args.kwargs["env"] == {"MY_TOKEN": "from-config"}
 
 
 class TestDetectForkTestCommand:
     """Tests for _detect_fork_test_command()."""
 
-    def test_returns_none_for_backend_without_root_dir(self) -> None:
-        """StateBackend (no root_dir attr) → None; fork runner disabled."""
-
-        class FakeBackend:
-            pass
-
-        assert _detect_fork_test_command(FakeBackend()) is None
-
-    def test_returns_none_for_none_root_dir(self) -> None:
-        """backend.root_dir = None → None."""
-
-        class FakeBackend:
-            root_dir: None = None
-
-        assert _detect_fork_test_command(FakeBackend()) is None
+    def test_returns_none_without_a_local_root(self) -> None:
+        """No directory on this machine (Docker) → None; fork runner disabled."""
+        assert _detect_fork_test_command(None) is None
 
     def test_detects_pytest_via_pyproject_toml(self, tmp_path: Path) -> None:
         """pyproject.toml with [tool.pytest.ini_options] → uv run pytest."""
@@ -499,46 +421,31 @@ class TestDetectForkTestCommand:
             "[tool.pytest.ini_options]\ntestpaths = ['tests']\n"
         )
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "uv run pytest -q --tb=short"
+        assert _detect_fork_test_command(tmp_path) == "uv run pytest -q --tb=short"
 
     def test_detects_pytest_via_tool_pytest_section(self, tmp_path: Path) -> None:
         """pyproject.toml with [tool.pytest] (non-standard but still matches) → uv run pytest."""
         (tmp_path / "pyproject.toml").write_text("[tool.pytest]\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "uv run pytest -q --tb=short"
+        assert _detect_fork_test_command(tmp_path) == "uv run pytest -q --tb=short"
 
     def test_no_pytest_marker_in_pyproject_returns_next_check(self, tmp_path: Path) -> None:
         """pyproject.toml without pytest section, no other markers → None."""
         (tmp_path / "pyproject.toml").write_text("[build-system]\nrequires = ['setuptools']\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) is None
+        assert _detect_fork_test_command(tmp_path) is None
 
     def test_detects_pytest_via_pytest_ini(self, tmp_path: Path) -> None:
         """pytest.ini present → uv run pytest."""
         (tmp_path / "pytest.ini").write_text("[pytest]\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "uv run pytest -q --tb=short"
+        assert _detect_fork_test_command(tmp_path) == "uv run pytest -q --tb=short"
 
     def test_detects_pytest_via_setup_cfg(self, tmp_path: Path) -> None:
         """setup.cfg present → uv run pytest."""
         (tmp_path / "setup.cfg").write_text("[metadata]\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "uv run pytest -q --tb=short"
+        assert _detect_fork_test_command(tmp_path) == "uv run pytest -q --tb=short"
 
     def test_detects_npm_test_via_package_json(self, tmp_path: Path) -> None:
         """package.json with scripts.test → npm test."""
@@ -546,10 +453,7 @@ class TestDetectForkTestCommand:
 
         (tmp_path / "package.json").write_text(json.dumps({"scripts": {"test": "jest"}}))
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "npm test"
+        assert _detect_fork_test_command(tmp_path) == "npm test"
 
     def test_package_json_without_test_script_skipped(self, tmp_path: Path) -> None:
         """package.json without scripts.test → falls through to None."""
@@ -557,28 +461,19 @@ class TestDetectForkTestCommand:
 
         (tmp_path / "package.json").write_text(json.dumps({"scripts": {"build": "tsc"}}))
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) is None
+        assert _detect_fork_test_command(tmp_path) is None
 
     def test_detects_make_test_via_makefile(self, tmp_path: Path) -> None:
         """Makefile with test: target → make test."""
         (tmp_path / "Makefile").write_text("test:\n\tpytest tests/\n\nbuild:\n\techo done\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "make test"
+        assert _detect_fork_test_command(tmp_path) == "make test"
 
     def test_makefile_without_test_target_returns_none(self, tmp_path: Path) -> None:
         """Makefile with no test target → None."""
         (tmp_path / "Makefile").write_text("build:\n\techo done\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) is None
+        assert _detect_fork_test_command(tmp_path) is None
 
     def test_pytest_takes_priority_over_npm(self, tmp_path: Path) -> None:
         """When both pyproject.toml (pytest) and package.json exist, pytest wins."""
@@ -587,10 +482,7 @@ class TestDetectForkTestCommand:
         (tmp_path / "pyproject.toml").write_text("[tool.pytest.ini_options]\n")
         (tmp_path / "package.json").write_text(json.dumps({"scripts": {"test": "jest"}}))
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "uv run pytest -q --tb=short"
+        assert _detect_fork_test_command(tmp_path) == "uv run pytest -q --tb=short"
 
     def test_npm_takes_priority_over_makefile(self, tmp_path: Path) -> None:
         """When package.json has test script and Makefile also has test target, npm wins."""
@@ -599,15 +491,76 @@ class TestDetectForkTestCommand:
         (tmp_path / "package.json").write_text(json.dumps({"scripts": {"test": "jest"}}))
         (tmp_path / "Makefile").write_text("test:\n\tpytest\n")
 
-        class FakeBackend:
-            root_dir = tmp_path
-
-        assert _detect_fork_test_command(FakeBackend()) == "npm test"
+        assert _detect_fork_test_command(tmp_path) == "npm test"
 
     def test_empty_directory_returns_none(self, tmp_path: Path) -> None:
         """Empty project dir → None."""
 
-        class FakeBackend:
-            root_dir = tmp_path
+        assert _detect_fork_test_command(tmp_path) is None
 
-        assert _detect_fork_test_command(FakeBackend()) is None
+
+class TestLocalSession:
+    """`sandbox="local"`: the project on this machine, as `LocalBackend` had it."""
+
+    async def test_file_tools_stay_inside_the_project(self, tmp_path: Path) -> None:
+        project = tmp_path / "project"
+        project.mkdir()
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(project))
+        workspace = agent._cli_workspace
+        await workspace.write_text("inside.txt", "ok")
+        assert (project / "inside.txt").read_text() == "ok"
+        with pytest.raises(PermissionError, match="outside the workspace"):
+            await workspace.write_text(str(tmp_path / "outside.txt"), "no")
+        assert not (tmp_path / "outside.txt").exists()
+
+    async def test_commands_get_the_users_environment(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`git push` needs the SSH agent; a bare PATH and HOME broke it."""
+        monkeypatch.setenv("PYDANTIC_DEEP_TEST_VAR", "from-the-user")
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(tmp_path))
+        result = await agent._cli_workspace.run("printf %s $PYDANTIC_DEEP_TEST_VAR", shell=True)
+        assert result.stdout == "from-the-user"
+
+    def test_host_files_go_under_the_project(self, tmp_path: Path) -> None:
+        from pydantic_deep.agent import _local_working_dir
+
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(tmp_path))
+        capability = next(
+            c
+            for c in agent._root_capability.capabilities
+            if type(c).__name__ == "_SessionWorkspace"
+        )
+        assert _local_working_dir(capability) == tmp_path
+
+
+class TestBranchRunner:
+    async def test_a_branch_writes_into_its_overlay_not_the_project(self, tmp_path: Path) -> None:
+        """The runner left out `workspace=`, so every branch wrote straight into the project."""
+        from types import SimpleNamespace
+
+        from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+        from pydantic_ai.workspaces import Workspace
+
+        from apps.cli.screens.chat import _stream_branch_via_iter
+        from pydantic_deep import DeepAgentDeps
+        from pydantic_deep.features.forking.isolation import branch_workspace
+        from pydantic_deep.features.forking.types import BranchIsolation
+
+        def model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            if len(messages) == 1:
+                return ModelResponse(
+                    parts=[ToolCallPart("write_file", {"path": "branch.txt", "content": "b"})]
+                )
+            return ModelResponse(parts=[TextPart("done")])
+
+        agent, _ = create_cli_agent(model=FunctionModel(model), working_dir=str(tmp_path))
+        workspace, overlay = branch_workspace(Workspace(agent._cli_workspace), BranchIsolation())
+        assert overlay is not None
+        runtime = SimpleNamespace(workspace=workspace, overlay=overlay)
+
+        await _stream_branch_via_iter(agent, "go", [], DeepAgentDeps(), None, runtime)
+
+        assert not (tmp_path / "branch.txt").exists()
+        assert [change.path for change in overlay.changes()] == [str(tmp_path / "branch.txt")]

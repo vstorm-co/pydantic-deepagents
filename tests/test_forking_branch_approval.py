@@ -25,7 +25,6 @@ from typing import Any
 
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import DeferredToolRequests
-from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.forking.coordinator import (
@@ -34,6 +33,7 @@ from pydantic_deep.features.forking.coordinator import (
 )
 from pydantic_deep.features.forking.store import InMemoryForkStateStore
 from pydantic_deep.features.forking.types import BranchIsolation, BranchSpec
+from tests.workspaces import Document, state_workspace
 
 
 class _NormalResult:
@@ -79,6 +79,7 @@ class _DeferringAgent:
         message_history: Any = None,
         deps: Any = None,
         deferred_tool_results: Any = None,
+        workspace: Any = None,
     ) -> Any:
         self.run_invocations += 1
         if deferred_tool_results is not None:
@@ -100,16 +101,17 @@ class _NoDeferAgent:
         message_history: Any = None,
         deps: Any = None,
         deferred_tool_results: Any = None,
+        workspace: Any = None,
     ) -> Any:
         return _NormalResult()
 
 
 def _make_coord(
     agent: Any,
-    parent: BackendProtocol,
+    parent: Document,
     tmp_path: Path,
 ) -> ForkCoordinator:
-    deps = DeepAgentDeps(backend=parent)
+    deps = DeepAgentDeps()
     return ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -141,9 +143,10 @@ async def test_branch_deny_records_blocked_command(tmp_path: Path) -> None:
         tool_call_id="call-1",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -169,9 +172,10 @@ async def test_branch_approve_does_not_record_blocked(tmp_path: Path) -> None:
         tool_call_id="call-2",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -198,9 +202,10 @@ async def test_branch_denied_commands_surface_in_merge_result(tmp_path: Path) ->
         tool_call_id="call-3",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -217,9 +222,10 @@ async def test_branch_denied_commands_surface_in_merge_result(tmp_path: Path) ->
 
 async def test_branch_without_deferrals_keeps_blocked_empty(tmp_path: Path) -> None:
     """A branch that never triggers approval has empty `blocked_commands`."""
-    coord = _make_coord(_NoDeferAgent(), StateBackend(), tmp_path)
+    coord = _make_coord(_NoDeferAgent(), Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -239,9 +245,10 @@ async def test_pending_approval_cleared_after_response(tmp_path: Path) -> None:
         tool_call_id="call-4",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -270,9 +277,10 @@ async def test_pending_approval_cleared_after_cancellation(tmp_path: Path) -> No
         tool_call_id="call-cancel",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     handle = await coord.fork(
         [BranchSpec(label="alpha", steer="alpha")],
+        workspace=state_workspace(),
         parent_history=[],
         isolation=BranchIsolation(),
     )
@@ -307,11 +315,13 @@ async def test_approval_helper_denies_when_runtime_missing(tmp_path: Path) -> No
         tool_call_id="call-x",
     )
     agent = _DeferringAgent([deferred_call])
-    coord = _make_coord(agent, StateBackend(), tmp_path)
+    coord = _make_coord(agent, Document(), tmp_path)
     spec = BranchSpec(label="alpha", steer="alpha")
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
-    result = await coord._run_branch_with_approval("never-inserted", spec, [], deps)
+    result = await coord._run_branch_with_approval(
+        "never-inserted", spec, [], deps, state_workspace()
+    )
 
     # Branch still completes in two invocations (one denial doesn't hang),
     # and the denial is passed through to pydantic-ai.

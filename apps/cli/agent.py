@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import hashlib
+import os
+import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai_backends import LocalBackend
+from pydantic_ai import RunContext
+from pydantic_ai.capabilities import AbstractCapability
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace, WorkspaceBackend, WorkspaceRef
+from pydantic_ai_backends import ConfinedWorkspace
 
 from apps.cli.config import load_config
 from apps.cli.model_resolve import resolve_cli_model
@@ -21,12 +28,40 @@ from pydantic_deep.prompts import build_system_prompt
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
 
+_PROCESS_CONTAINER_ID = uuid.uuid4().hex[:8]
+"""Names this process's own Docker container, so an agent rebuilt mid-session
+(a model switch) keeps working in it rather than starting an empty one."""
 
-def _detect_fork_test_command(backend: Any) -> str | None:
+
+@dataclass
+class _SessionWorkspace(AbstractCapability[Any]):
+    """The workspace of a CLI session, for a run that does not pass its own.
+
+    The CLI holds the environment for the whole session - `/fork` and the exit
+    cleanup need it outside any run - and every run it starts passes it as
+    `workspace=`, which also overrides a ref the history names (one saved by
+    another process, or before a model switch rebuilt the agent). This answers
+    only a run without history.
+    """
+
+    backend: WorkspaceBackend
+
+    working_dir: Path
+    """The project on this machine: the history archive and improve sessions go
+    under it, whether the session's commands run here or in a container."""
+
+    def get_workspace(
+        self, ctx: RunContext[Any], *, ref: WorkspaceRef | None
+    ) -> WorkspaceBackend | None:
+        del ctx, ref
+        return self.backend
+
+
+def _detect_fork_test_command(root: Path | None) -> str | None:
     """Auto-detect a test command from the project root for the fork test runner.
 
-    Checks common test framework markers in `backend.root_dir` (only
-    :class:`~pydantic_ai_backends.LocalBackend` has a `root_dir`).
+    Checks common test framework markers in `root`, the session's directory on
+    this machine (`None` in Docker, where the fork test runner is off).
     Returns a ready-to-run shell string, or `None` when nothing is
     detected — the fork runner stays disabled in that case and
     `auto_with_fallback` falls through to the manual picker as before.
@@ -36,10 +71,8 @@ def _detect_fork_test_command(backend: Any) -> str | None:
     2. `package.json` with a `test` script → npm test
     3. `Makefile` with a `test:` or `test :` target → make test
     """
-    root_obj = getattr(backend, "root_dir", None)
-    if root_obj is None:
+    if root is None:
         return None
-    root = Path(root_obj)
 
     # pytest markers
     pyproject = root / "pyproject.toml"
@@ -126,7 +159,6 @@ def create_cli_agent(  # noqa: C901
     on_reminder: Callable[[int, str], None] | None = None,
     summarization_model: str | None = None,
     extra_middleware: list[Any] | None = None,
-    backend: Any | None = None,
     sandbox: str | None = None,
     sandbox_image: str | None = None,
     sandbox_env_vars: dict[str, str] | None = None,
@@ -174,18 +206,14 @@ def create_cli_agent(  # noqa: C901
         on_cost_update: Callback for cost updates.
         on_context_update: Callback for context usage updates.
         extra_middleware: Additional middleware to include.
-        backend: Override the file storage backend (e.g., DockerSandbox).
-            Takes precedence over `sandbox`.
         sandbox: Sandbox type: `"local"` or `"docker"`. When `"docker"`,
-            creates a DockerSandbox with the working directory mounted at
-            `/workspace`. Falls back to `config.sandbox`.
+            the agent works in a Docker container with the working directory
+            mounted at `/workspace`. Falls back to `config.sandbox`.
         sandbox_image: Docker image for the sandbox container. Falls back to
             `config.sandbox_image` (default: `python:3.12-slim`).
-        sandbox_env_vars: Environment variables to inject into the Docker sandbox
-            container. Falls back to `config.sandbox_env_vars`. Only applied when
-            `sandbox="docker"`. Values are passed at container start-time via
-            `RuntimeConfig` with `cache_image=False` so they are not baked
-            permanently into a cached Docker image.
+        sandbox_env_vars: Environment variables every command in the Docker
+            sandbox gets. Falls back to `config.sandbox_env_vars`. Only applied
+            when `sandbox="docker"`.
         sandbox_env_file: Path to a `.env` file whose variables are injected into
             the Docker sandbox container. Falls back to `config.sandbox_env_file`.
             Merged with `sandbox_env_vars`; explicit `sandbox_env_vars` take
@@ -195,6 +223,8 @@ def create_cli_agent(  # noqa: C901
             files outside the mounted volume survive restarts. Multiple threads
             (conversation histories) can share the same workspace. The actual
             Docker container name is `pydantic-deep-{dir_hash}-{workspace}`.
+            Without it the session gets a container of its own, removed when
+            the session ends.
         include_skills: Whether to include the skills toolset.
         include_plan: Whether to include the planner subagent.
         include_memory: Whether to include persistent agent memory.
@@ -217,7 +247,9 @@ def create_cli_agent(  # noqa: C901
             Defaults to `config.reminder_model`, then falls back to the main model.
 
     Returns:
-        Tuple of (agent, deps) ready for agent.run().
+        Tuple of (agent, deps) ready for agent.run(). The session's workspace is
+        `agent._cli_workspace`, and `agent._cli_workspace_cleanup` (when not
+        `None`) removes it at the end of the session.
     """
 
     config = load_config(config_path)
@@ -231,8 +263,10 @@ def create_cli_agent(  # noqa: C901
 
     # Resolve sandbox: explicit param > config
     effective_sandbox = sandbox or config.sandbox
-    if effective_sandbox == "docker" and backend is None:
-        from pydantic_ai_backends import DockerSandbox, RuntimeConfig
+    host_root: Path | None = root
+    cleanup: Callable[[], Awaitable[None]] | None = None
+    if effective_sandbox == "docker":
+        from pydantic_ai_backends import DockerWorkspace
 
         file_env_vars: dict[str, str] = {}
         effective_env_file = (
@@ -251,32 +285,36 @@ def create_cli_agent(  # noqa: C901
             **(sandbox_env_vars or {}),
         }
 
-        docker_kwargs: dict[str, Any] = {
-            "volumes": {str(root.resolve()): "/workspace"},
-            "work_dir": "/workspace",
-        }
+        # Named workspace → reusable container (packages + state persist between
+        # threads and sessions). No workspace → this session's own container,
+        # removed when the session ends.
+        dir_hash = hashlib.md5(str(root.resolve()).encode()).hexdigest()[:8]
+        container_name = f"pydantic-deep-{dir_hash}-{workspace or _PROCESS_CONTAINER_ID}"
+        docker = DockerWorkspace(
+            image=sandbox_image or config.sandbox_image,
+            work_dir="/workspace",
+            volumes={str(root.resolve()): "/workspace"},
+            container_name=container_name,
+            env=effective_env_vars or None,
+        )
+        session_workspace = Workspace(docker.backend())
+        host_root = None
+        if not workspace:
+            ref = WorkspaceRef(provider="docker", id=container_name)
 
-        if effective_env_vars:
-            docker_kwargs["runtime"] = RuntimeConfig(
-                name="cli-sandbox",
-                base_image=sandbox_image or config.sandbox_image,
-                env_vars=effective_env_vars,
-                cache_image=False,
-            )
-        else:
-            docker_kwargs["image"] = sandbox_image or config.sandbox_image
+            async def _remove_container() -> None:
+                await docker.destroy(ref)
 
-        # Named workspace → reusable container (packages + state persist between threads)
-        # No workspace → ephemeral container (clean slate every time)
-        if workspace:
-            import hashlib
-
-            dir_hash = hashlib.md5(str(root.resolve()).encode()).hexdigest()[:8]
-            docker_kwargs["container_name"] = f"pydantic-deep-{dir_hash}-{workspace}"
-
-        effective_backend: Any = DockerSandbox(**docker_kwargs)
+            cleanup = _remove_container
     else:
-        effective_backend = backend or LocalBackend(root_dir=root)
+        # Confined, as `LocalBackend(root_dir=...)` was: the file tools run
+        # without approval, and Pydantic AI's local workspace lets an absolute
+        # path or a `..` reach any file. Commands get the user's environment, as
+        # they did before - the CLI is their terminal, and `git push` needs the
+        # SSH agent.
+        session_workspace = ConfinedWorkspace(
+            Workspace(LocalWorkspaceBackend(root, env=dict(os.environ)))
+        )
 
     hooks: list[Hook] = []
     if effective_allow_list is not None:
@@ -399,7 +437,7 @@ def create_cli_agent(  # noqa: C901
     if temperature is not None:
         effective_model_settings["temperature"] = temperature
 
-    # Per-session plans directory (relative to backend root)
+    # Per-session plans directory (relative to the workspace's working directory)
     if session_id:
         plans_dir = f".pydantic-deep/sessions/{session_id}/plans"
     else:
@@ -461,7 +499,7 @@ def create_cli_agent(  # noqa: C901
         model=model_for_agent,
         fallback_model=fallback_for_agent,
         instructions=instructions,
-        backend=effective_backend,
+        workspace=_SessionWorkspace(session_workspace, working_dir=root),
         skill_directories=skill_dirs if effective_skills else None,
         interrupt_on=interrupt_on,
         model_settings=effective_model_settings or None,
@@ -484,7 +522,7 @@ def create_cli_agent(  # noqa: C901
         # Defer the situational tool surface so only the core loop loads upfront.
         tool_search=effective_tool_search,
         forking=(
-            LiveForkCapability(test_command=_detect_fork_test_command(effective_backend))
+            LiveForkCapability(test_command=_detect_fork_test_command(host_root))
             if _forking
             else False
         ),
@@ -538,8 +576,10 @@ def create_cli_agent(  # noqa: C901
     context_mw = getattr(agent, "_context_middleware", None)
     task_mgr = getattr(agent, "_task_manager", None)
 
+    agent._cli_workspace = session_workspace  # type: ignore[attr-defined]
+    agent._cli_workspace_cleanup = cleanup  # type: ignore[attr-defined]
+
     deps = DeepAgentDeps(
-        backend=effective_backend,
         context_middleware=context_mw,
         message_queue=queue,
     )

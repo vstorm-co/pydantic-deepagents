@@ -2,7 +2,7 @@
 
 `EvictionCapability` intercepts oversized tool results in `after_tool_execute`
 - before they enter message history - and replaces them with a compact preview
-plus a file reference written to the runtime backend, so console tools
+plus a file reference written to the run's workspace, so console tools
 (`read_file`, `grep`) can still retrieve the full content. It also bounds the
 number of multimodal `BinaryContent` parts kept in history.
 """
@@ -16,7 +16,7 @@ import logging
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.messages import (
@@ -29,16 +29,18 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.tools import RunContext, ToolDefinition
-from pydantic_ai_backends import AsyncBackendProtocol
 
 from pydantic_deep._text import NUM_CHARS_PER_TOKEN, create_content_preview
 from pydantic_deep.deps import DeepAgentDeps
 
+if TYPE_CHECKING:
+    from pydantic_ai.workspaces import Workspace
+
 DEFAULT_TOKEN_LIMIT = 20_000
 """Default token limit before eviction (20K tokens)."""
 
-DEFAULT_EVICTION_PATH = "/large_tool_results"
-"""Default directory path for evicted tool outputs."""
+DEFAULT_EVICTION_PATH = ".deep/large_tool_results"
+"""Default directory for evicted tool outputs, relative to the workspace's working directory."""
 
 DEFAULT_HEAD_LINES = 5
 """Default number of lines to show from the start of content in preview."""
@@ -169,19 +171,19 @@ logger = logging.getLogger(__name__)
 class EvictionCapability(AbstractCapability[DeepAgentDeps]):
     """Capability that intercepts large tool outputs via `after_tool_execute`.
 
-    The oversized result is saved to a file via the backend and replaced with a
+    The oversized result is saved to a file in the run's workspace and replaced with a
     compact preview plus a file reference, so the large output never enters the
     message list. For `ToolReturn` values only `return_value` is size-checked;
     multimodal `content` (e.g. `BinaryContent` screenshots) is preserved.
 
     Multimodal binary parts accumulating across messages are bounded by
     `max_binary_content` in `before_model_request`: older binaries are written to
-    the backend and replaced with a retrievable text reference.
+    the workspace and replaced with a retrievable text reference. A run with no
+    workspace attached evicts nothing.
 
     Args:
-        backend: Fallback backend for writing evicted files.
         token_limit: Maximum estimated tokens before eviction (default: 20K).
-        eviction_path: Directory in the backend for evicted files.
+        eviction_path: Directory in the workspace for evicted files.
         head_lines: Lines from start in preview.
         tail_lines: Lines from end in preview.
         max_binary_content: Maximum multimodal binary parts to keep in history.
@@ -189,7 +191,6 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
         on_eviction: Optional callback `(tool_name, file_path, original_chars, preview_chars)`.
     """
 
-    backend: AsyncBackendProtocol | None = None
     token_limit: int = DEFAULT_TOKEN_LIMIT
     eviction_path: str = DEFAULT_EVICTION_PATH
     head_lines: int = DEFAULT_HEAD_LINES
@@ -200,13 +201,6 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
     def __post_init__(self) -> None:
         if self.token_limit <= 0:
             raise ValueError(f"token_limit must be positive, got {self.token_limit}")
-
-    def _resolve_backend(self, ctx: RunContext[DeepAgentDeps]) -> AsyncBackendProtocol | None:
-        """Prefer the runtime backend from deps; fall back to `self.backend`."""
-        deps_backend = getattr(ctx.deps, "backend", None)
-        if deps_backend is not None and isinstance(deps_backend, AsyncBackendProtocol):
-            return deps_backend
-        return self.backend
 
     async def after_tool_execute(
         self,
@@ -249,8 +243,7 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
         if len(content_str) <= char_limit:
             return None
 
-        backend = self._resolve_backend(ctx)
-        if backend is None:
+        if not ctx.workspace.attached:
             return None
 
         preview = create_content_preview(
@@ -262,16 +255,16 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
 
         sanitized_id = _sanitize_id(call.tool_call_id)
         file_path = f"{self.eviction_path}/{sanitized_id}"
-        write_result = await backend.write(file_path, content_str)
-
-        if write_result.error:
+        try:
+            await ctx.workspace.write_bytes(file_path, content_str.encode("utf-8"))
+        except OSError as exc:
             # The write failed, so the agent can't read the file back. Returning
             # the original (oversized) content would silently defeat eviction and
             # blow the context, so return the truncated preview instead (B4).
             logger.warning(
                 "Eviction write to %s failed (%s); returning truncated preview",
                 file_path,
-                write_result.error,
+                exc,
             )
             return preview
 
@@ -302,21 +295,20 @@ class EvictionCapability(AbstractCapability[DeepAgentDeps]):
 
         Walks messages newest-to-oldest, keeps the most recent
         `max_binary_content` `BinaryContent` parts, and replaces older ones with
-        a retrievable text reference. Binaries are left untouched when no backend
-        is available or a write fails.
+        a retrievable text reference. Binaries are left untouched when no workspace
+        is attached or a write fails.
         """
         limit = self.max_binary_content
         if limit is None or limit < 0:
             return request_context
 
-        backend = self._resolve_backend(ctx)
-        if backend is None:
+        if not ctx.workspace.attached:
             return request_context
 
         request_context.messages = await _prune_binaries_in_messages(
             request_context.messages,
             max_binary_content=limit,
-            backend=backend,
+            workspace=ctx.workspace,
             eviction_path=self.eviction_path,
         )
         return request_context
@@ -326,10 +318,10 @@ async def _prune_binaries_in_messages(
     messages: list[ModelMessage],
     *,
     max_binary_content: int,
-    backend: AsyncBackendProtocol,
+    workspace: Workspace,
     eviction_path: str,
 ) -> list[ModelMessage]:
-    """Return `messages` with older binary parts pruned and stored in `backend`."""
+    """Return `messages` with older binary parts pruned and stored in `workspace`."""
     kept = 0
     new_messages: list[ModelMessage] = list(messages)
 
@@ -349,7 +341,7 @@ async def _prune_binaries_in_messages(
                     part.content,
                     kept=kept,
                     max_binary_content=max_binary_content,
-                    backend=backend,
+                    workspace=workspace,
                     eviction_path=eviction_path,
                 )
                 if part_modified:
@@ -364,7 +356,7 @@ async def _prune_binaries_in_messages(
                     part.content,
                     kept=kept,
                     max_binary_content=max_binary_content,
-                    backend=backend,
+                    workspace=workspace,
                     eviction_path=eviction_path,
                 )
                 if part_modified:
@@ -392,7 +384,7 @@ async def _prune_user_content(
     *,
     kept: int,
     max_binary_content: int,
-    backend: AsyncBackendProtocol,
+    workspace: Workspace,
     eviction_path: str,
 ) -> tuple[str | list[Any], int, bool]:
     """Prune binaries from a `UserPromptPart.content` value (newest kept)."""
@@ -410,7 +402,7 @@ async def _prune_user_content(
             kept += 1
             continue
         replacement = await _store_and_replace_binary(
-            item, backend=backend, eviction_path=eviction_path
+            item, workspace=workspace, eviction_path=eviction_path
         )
         if replacement is None:
             kept += 1
@@ -426,7 +418,7 @@ async def _prune_tool_return_content(
     *,
     kept: int,
     max_binary_content: int,
-    backend: AsyncBackendProtocol,
+    workspace: Workspace,
     eviction_path: str,
 ) -> tuple[Any, int, bool]:
     """Prune binaries from a `ToolReturnPart.content` value (newest kept).
@@ -438,7 +430,7 @@ async def _prune_tool_return_content(
         if kept < max_binary_content:
             return content, kept + 1, False
         replacement = await _store_and_replace_binary(
-            content, backend=backend, eviction_path=eviction_path
+            content, workspace=workspace, eviction_path=eviction_path
         )
         if replacement is None:
             return content, kept + 1, False
@@ -456,7 +448,7 @@ async def _prune_tool_return_content(
                 kept += 1
                 continue
             replacement = await _store_and_replace_binary(
-                item, backend=backend, eviction_path=eviction_path
+                item, workspace=workspace, eviction_path=eviction_path
             )
             if replacement is None:
                 kept += 1
@@ -472,12 +464,14 @@ async def _prune_tool_return_content(
 async def _store_and_replace_binary(
     binary: BinaryContent,
     *,
-    backend: AsyncBackendProtocol,
+    workspace: Workspace,
     eviction_path: str,
 ) -> str | None:
-    """Persist `binary` to the backend and return a text replacement, or `None` on failure."""
+    """Persist `binary` to the workspace and return a text replacement, or `None` on failure."""
     file_path = _binary_storage_path(eviction_path, binary)
-    write_result = await backend.write(file_path, binary.data)  # type: ignore[attr-defined, unused-ignore]
-    if write_result.error:
+    try:
+        await workspace.write_bytes(file_path, binary.data)
+    except OSError as exc:
+        logger.warning("Storing a binary at %s failed (%s); keeping it in history", file_path, exc)
         return None
     return _binary_replacement_text(binary, file_path)

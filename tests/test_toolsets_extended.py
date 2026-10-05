@@ -35,7 +35,7 @@ class TestSubagentToolsetExtended:
                 instructions="You research topics thoroughly.",
             ),
         ]
-        toolset = create_subagent_toolset(subagents=subagents)
+        toolset = create_subagent_toolset(default_model="test", subagents=subagents)
         assert toolset is not None
 
     def test_create_without_general_purpose(self):

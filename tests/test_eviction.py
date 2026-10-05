@@ -14,7 +14,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext, ToolDefinition
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend, WriteResult, ensure_async
 
 from pydantic_deep import (
     DEFAULT_EVICTION_PATH,
@@ -27,23 +26,18 @@ from pydantic_deep import (
     create_deep_agent,
 )
 from pydantic_deep.features.eviction.capability import _content_to_str, _sanitize_id
+from tests.workspaces import Document, as_workspace, run_context
 
 TEST_MODEL = TestModel()
 
 
-def _make_ctx(backend: StateBackend | None = None) -> RunContext[DeepAgentDeps]:
-    """Create a RunContext with DeepAgentDeps for testing."""
-    b = backend or StateBackend()
-    deps = DeepAgentDeps(backend=b)
-    return RunContext(
-        deps=deps,
-        model=TEST_MODEL,
-        usage=RunUsage(),
-    )
+def _make_ctx(backend: Document | None = None) -> RunContext[DeepAgentDeps]:
+    """Create a RunContext whose workspace holds `backend`'s files."""
+    return run_context(DeepAgentDeps(), as_workspace(backend or Document()))
 
 
 def _make_ctx_no_backend() -> RunContext[object]:
-    """Create a RunContext with deps that have no backend attribute."""
+    """Create a RunContext with no workspace attached."""
     return RunContext(
         deps=object(),
         model=TEST_MODEL,
@@ -243,8 +237,8 @@ class TestExports:
         assert DEFAULT_TOKEN_LIMIT == 20_000
 
     def test_default_eviction_path(self):
-        """DEFAULT_EVICTION_PATH is /large_tool_results."""
-        assert DEFAULT_EVICTION_PATH == "/large_tool_results"
+        """DEFAULT_EVICTION_PATH is .deep/large_tool_results, in the working directory."""
+        assert DEFAULT_EVICTION_PATH == ".deep/large_tool_results"
 
     def test_eviction_message_template(self):
         """EVICTION_MESSAGE_TEMPLATE contains expected placeholders."""
@@ -308,7 +302,7 @@ class TestAgentIntegration:
             web_fetch=False,
         )
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         result = await agent.run("Hello", deps=deps)
         assert result.output is not None
 
@@ -331,8 +325,8 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_small_result_unchanged(self):
         """Results below threshold pass through unchanged."""
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=100)
+        backend = Document()
+        cap = EvictionCapability(token_limit=100)
         ctx = _make_ctx(backend)
 
         result = await cap.after_tool_execute(
@@ -347,8 +341,8 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_large_result_evicted(self):
         """Results above threshold are saved to file and replaced with preview."""
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)  # 40 chars
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)  # 40 chars
         ctx = _make_ctx(backend)
 
         large = _make_large_content(20)
@@ -361,36 +355,15 @@ class TestEvictionCapability:
         )
 
         assert "Tool result too large" in result
-        assert "/large_tool_results/call_big" in result
+        assert ".deep/large_tool_results/call_big" in result
         # File was written
-        evicted = backend.read_bytes("/large_tool_results/call_big")
+        evicted = backend.read_bytes("/.deep/large_tool_results/call_big")
         assert evicted == large.encode()
 
     @pytest.mark.anyio
-    async def test_uses_deps_backend(self):
-        """Resolves backend from ctx.deps over fallback."""
-        fallback = StateBackend()
-        deps_backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(fallback), token_limit=10)
-        ctx = _make_ctx(deps_backend)
-
-        large = "x" * 500
-        await cap.after_tool_execute(
-            ctx,
-            call=_cap_call(call_id="call_deps"),
-            tool_def=_cap_td(),
-            args={},
-            result=large,
-        )
-
-        # Written to deps_backend, not fallback
-        assert deps_backend.read_bytes("/large_tool_results/call_deps") not in (None, b"")
-        assert fallback.read_bytes("/large_tool_results/call_deps") in (None, b"")
-
-    @pytest.mark.anyio
     async def test_no_backend_passes_through(self):
-        """No backend available - returns result unchanged."""
-        cap = EvictionCapability(backend=None, token_limit=10)
+        """No workspace attached - returns result unchanged."""
+        cap = EvictionCapability(token_limit=10)
         ctx = _make_ctx_no_backend()
 
         large = "x" * 500
@@ -406,11 +379,9 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_on_eviction_callback(self):
         """on_eviction callback is invoked on eviction."""
-        backend = StateBackend()
+        backend = Document()
         callback = MagicMock()
-        cap = EvictionCapability(
-            backend=ensure_async(backend), token_limit=10, on_eviction=callback
-        )
+        cap = EvictionCapability(token_limit=10, on_eviction=callback)
         ctx = _make_ctx(backend)
 
         await cap.after_tool_execute(
@@ -429,13 +400,13 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_write_failure_returns_truncated_preview(self):
         """B4: when the backend write fails, return a truncated preview, not the full blob."""
-        backend = StateBackend()
+        backend = Document()
 
-        def failing_write(path: str, content: str | bytes) -> WriteResult:
-            return WriteResult(path=path, error="disk full")
+        def failing_write(path: str, data: bytes) -> None:
+            raise OSError("disk full")
 
-        backend.write = failing_write
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)
+        backend.write_bytes = failing_write  # type: ignore[method-assign]
+        cap = EvictionCapability(token_limit=10)
         ctx = _make_ctx(backend)
 
         large = _make_large_content(100)  # well over the 2 000-char preview cap
@@ -459,12 +430,12 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_on_eviction_exception_does_not_abort(self):
         """B10: a raising on_eviction callback is swallowed, eviction still completes."""
-        backend = StateBackend()
+        backend = Document()
 
         def boom(tool_name: str, file_path: str, original: int, preview: int) -> None:
             raise RuntimeError("callback blew up")
 
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10, on_eviction=boom)
+        cap = EvictionCapability(token_limit=10, on_eviction=boom)
         ctx = _make_ctx(backend)
         result = await cap.after_tool_execute(
             ctx,
@@ -478,15 +449,13 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_async_on_eviction_callback(self):
         """Async on_eviction callback is awaited."""
-        backend = StateBackend()
+        backend = Document()
         called_with: list[tuple[str, str, int, int]] = []
 
         async def async_cb(tool_name: str, file_path: str, orig: int, preview: int) -> None:
             called_with.append((tool_name, file_path, orig, preview))
 
-        cap = EvictionCapability(
-            backend=ensure_async(backend), token_limit=10, on_eviction=async_cb
-        )
+        cap = EvictionCapability(token_limit=10, on_eviction=async_cb)
         ctx = _make_ctx(backend)
 
         await cap.after_tool_execute(
@@ -504,8 +473,8 @@ class TestEvictionCapability:
     @pytest.mark.anyio
     async def test_dict_result_evicted(self):
         """Non-string results (dicts) are also evicted when large."""
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)
         ctx = _make_ctx(backend)
 
         large_dict = {"data": "x" * 500}
@@ -539,8 +508,8 @@ class TestEvictionCapabilityToolReturn:
         """ToolReturn with BinaryContent in `content` is not collapsed by text eviction."""
         from pydantic_ai.messages import BinaryContent, ToolReturn
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)
         ctx = _make_ctx(backend)
 
         screenshot = BinaryContent(data=b"\xff\xd8" + b"x" * 1024, media_type="image/jpeg")
@@ -563,15 +532,15 @@ class TestEvictionCapabilityToolReturn:
         # content (with the BinaryContent) is preserved as-is
         assert result.content == original.content
         # Backend was not asked to store anything (no eviction)
-        assert backend.read_bytes("/large_tool_results/call_screenshot") in (None, b"")
+        assert not backend.exists("/.deep/large_tool_results/call_screenshot")
 
     @pytest.mark.anyio
     async def test_toolreturn_evicts_only_return_value(self):
         """Large ToolReturn.return_value is evicted but content is preserved."""
         from pydantic_ai.messages import BinaryContent, ToolReturn
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)  # 40 chars
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)  # 40 chars
         ctx = _make_ctx(backend)
 
         large_text = _make_large_content(20)
@@ -593,21 +562,21 @@ class TestEvictionCapabilityToolReturn:
         assert isinstance(result, ToolReturn)
         assert isinstance(result.return_value, str)
         assert "Tool result too large" in result.return_value
-        assert "/large_tool_results/call_big_tr" in result.return_value
+        assert ".deep/large_tool_results/call_big_tr" in result.return_value
         # content (with the BinaryContent) is preserved as-is
         assert result.content == original.content
         # metadata is preserved
         assert result.metadata == {"trace_id": "abc"}
         # The text value was actually written to the backend
-        assert backend.read_bytes("/large_tool_results/call_big_tr") == large_text.encode()
+        assert backend.read_bytes("/.deep/large_tool_results/call_big_tr") == large_text.encode()
 
     @pytest.mark.anyio
     async def test_toolreturn_small_passes_through(self):
         """Small ToolReturn passes through unchanged (same instance)."""
         from pydantic_ai.messages import BinaryContent, ToolReturn
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=1000)
+        backend = Document()
+        cap = EvictionCapability(token_limit=1000)
         ctx = _make_ctx(backend)
 
         screenshot = BinaryContent(data=b"x" * 32, media_type="image/jpeg")
@@ -629,8 +598,8 @@ class TestEvictionCapabilityToolReturn:
         returned as-is - never coerced into its ~100KB text repr."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)  # 40-char threshold
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)  # 40-char threshold
         ctx = _make_ctx(backend)
 
         image = BinaryContent(data=b"\x89PNG" + b"\x00" * 100_000, media_type="image/png")
@@ -646,7 +615,7 @@ class TestEvictionCapabilityToolReturn:
         assert result is image
         assert isinstance(result, BinaryContent)
         # Nothing was written to the eviction path.
-        assert backend.read_bytes("/large_tool_results/call_bare_img") in (None, b"")
+        assert not backend.exists("/.deep/large_tool_results/call_bare_img")
 
     @pytest.mark.anyio
     async def test_list_with_binary_content_returned_unchanged(self):
@@ -654,8 +623,8 @@ class TestEvictionCapabilityToolReturn:
         binary is not lost to text eviction."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), token_limit=10)
+        backend = Document()
+        cap = EvictionCapability(token_limit=10)
         ctx = _make_ctx(backend)
 
         image = BinaryContent(data=b"\xff\xd8" + b"x" * 100_000, media_type="image/jpeg")
@@ -669,7 +638,7 @@ class TestEvictionCapabilityToolReturn:
         )
 
         assert result is original
-        assert backend.read_bytes("/large_tool_results/call_list_img") in (None, b"")
+        assert not backend.exists("/.deep/large_tool_results/call_list_img")
 
 
 # ---------------------------------------------------------------------------
@@ -733,8 +702,8 @@ class TestBinaryContentRetention:
         """The N most recent binaries are kept; older ones are pruned and stored."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=2)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=2)
         ctx = _make_ctx(backend)
 
         # 4 messages, each with one image - newest last
@@ -767,7 +736,7 @@ class TestBinaryContentRetention:
 
         # Pruned binaries were stored to backend with deterministic paths
         first_bin = BinaryContent(data=b"image-0-bytes" * 8, media_type="image/jpeg")
-        path = f"/large_tool_results/binary_{first_bin.identifier}.jpg"
+        path = f"/.deep/large_tool_results/binary_{first_bin.identifier}.jpg"
         assert backend.read_bytes(path) == b"image-0-bytes" * 8
 
         # Older messages now contain the text reference
@@ -781,8 +750,8 @@ class TestBinaryContentRetention:
     @pytest.mark.anyio
     async def test_under_limit_unchanged(self):
         """When binaries are at or under the limit, messages pass through unchanged."""
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=3)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=3)
         ctx = _make_ctx(backend)
 
         messages: list[ModelMessage] = [
@@ -803,8 +772,8 @@ class TestBinaryContentRetention:
         """`max_binary_content=None` keeps every binary in history."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=None)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=None)
         ctx = _make_ctx(backend)
 
         messages: list[ModelMessage] = [
@@ -825,8 +794,8 @@ class TestBinaryContentRetention:
         """Binary parts inside `ToolReturnPart.content` are also pruned and stored."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         old_bytes = b"old-image-bytes" * 4
@@ -858,7 +827,7 @@ class TestBinaryContentRetention:
 
         # Stored bytes match the original BinaryContent.data
         old_bin = BinaryContent(data=old_bytes, media_type="image/jpeg")
-        path = f"/large_tool_results/binary_{old_bin.identifier}.jpg"
+        path = f"/.deep/large_tool_results/binary_{old_bin.identifier}.jpg"
         assert backend.read_bytes(path) == old_bytes
 
         # ToolReturnPart metadata is preserved
@@ -870,7 +839,7 @@ class TestBinaryContentRetention:
         """With no backend available, binaries are left in place."""
         from pydantic_ai.messages import BinaryContent
 
-        cap = EvictionCapability(backend=None, max_binary_content=1)
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx_no_backend()
 
         messages: list[ModelMessage] = [
@@ -892,13 +861,13 @@ class TestBinaryContentRetention:
         """A backend write failure keeps the binary in history rather than dropping it."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
+        backend = Document()
 
-        def failing_write(path: str, content: str | bytes) -> WriteResult:
-            return WriteResult(path=path, error="disk full")
+        def failing_write(path: str, data: bytes) -> None:
+            raise OSError("disk full")
 
-        backend.write = failing_write
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend.write_bytes = failing_write  # type: ignore[method-assign]
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         messages: list[ModelMessage] = [
@@ -1007,8 +976,8 @@ class TestBinaryRetentionEdgeCases:
         """Bare `BinaryContent` (not in a list) on `ToolReturnPart.content` is pruned."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         old_bytes = b"old-bare-binary"
@@ -1053,7 +1022,7 @@ class TestBinaryRetentionEdgeCases:
 
         # Stored bytes match the original
         old_bin = BinaryContent(data=old_bytes, media_type="image/png")
-        path = f"/large_tool_results/binary_{old_bin.identifier}.png"
+        path = f"/.deep/large_tool_results/binary_{old_bin.identifier}.png"
         assert backend.read_bytes(path) == old_bytes
 
     @pytest.mark.anyio
@@ -1061,8 +1030,8 @@ class TestBinaryRetentionEdgeCases:
         """Bare `BinaryContent` under the limit is left untouched."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=3)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=3)
         ctx = _make_ctx(backend)
 
         msg = ModelRequest(
@@ -1087,13 +1056,13 @@ class TestBinaryRetentionEdgeCases:
         """A failed backend write leaves a bare `BinaryContent` untouched."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
+        backend = Document()
 
-        def failing_write(path: str, content: str | bytes) -> WriteResult:
-            return WriteResult(path=path, error="disk full")
+        def failing_write(path: str, data: bytes) -> None:
+            raise OSError("disk full")
 
-        backend.write = failing_write
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend.write_bytes = failing_write  # type: ignore[method-assign]
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         old_bin = BinaryContent(data=b"old-bare", media_type="image/png")
@@ -1139,13 +1108,13 @@ class TestBinaryRetentionEdgeCases:
         """A failed backend write leaves list-form binaries untouched."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
+        backend = Document()
 
-        def failing_write(path: str, content: str | bytes) -> WriteResult:
-            return WriteResult(path=path, error="disk full")
+        def failing_write(path: str, data: bytes) -> None:
+            raise OSError("disk full")
 
-        backend.write = failing_write
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend.write_bytes = failing_write  # type: ignore[method-assign]
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         msg_old = ModelRequest(
@@ -1190,8 +1159,8 @@ class TestBinaryRetentionEdgeCases:
         """Non user/tool-return parts (e.g. `RetryPromptPart`) are passed over."""
         from pydantic_ai.messages import RetryPromptPart
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         retry_msg = ModelRequest(
@@ -1210,8 +1179,8 @@ class TestBinaryRetentionEdgeCases:
         """Scalar non-binary `ToolReturnPart.content` (e.g. a dict) is left as-is."""
         from pydantic_ai.messages import BinaryContent
 
-        backend = StateBackend()
-        cap = EvictionCapability(backend=ensure_async(backend), max_binary_content=1)
+        backend = Document()
+        cap = EvictionCapability(max_binary_content=1)
         ctx = _make_ctx(backend)
 
         # A dict-form content that should not be touched, alongside a binary

@@ -7,11 +7,11 @@ Long runs fill up. An agent that greps a huge file, reads a dozen sources, and p
 You don't have to do anything to get this:
 
 ```python
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
 
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 result = await agent.run("Research the FastAPI request lifecycle and summarize it.", deps=deps)
 print(result.output)
 ```

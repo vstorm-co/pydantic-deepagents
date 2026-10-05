@@ -11,7 +11,6 @@ from typing import Any
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import (
     BranchIsolation,
@@ -23,6 +22,11 @@ from pydantic_deep import (
 from pydantic_deep.features.forking.isolation import BranchOverlay
 from pydantic_deep.features.forking.materializer import ForkMaterializer
 from pydantic_deep.features.forking.types import BranchStatus, FileChange
+from tests.workspaces import Document, as_workspace, state_workspace
+
+
+def _as_bytes(path: str, content: str | bytes) -> tuple[str, bytes]:
+    return path, content.encode() if isinstance(content, str) else content
 
 
 def _seed_history(text: str) -> list[Any]:
@@ -36,7 +40,7 @@ def _seed_history(text: str) -> list[Any]:
 
 async def test_fork_creates_directory_layout(tmp_path: Path) -> None:
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -47,6 +51,7 @@ async def test_fork_creates_directory_layout(tmp_path: Path) -> None:
     )
     handle = await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("seed"),
         isolation=BranchIsolation(),
     )
@@ -62,14 +67,14 @@ async def test_fork_creates_directory_layout(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_overlay_write_mirrors_to_disk_within_100ms(tmp_path: Path) -> None:
+async def test_overlay_write_mirrors_to_disk_within_100ms(tmp_path: Path) -> None:
     materializer = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
+    parent = Document()
+    overlay = BranchOverlay(as_workspace(parent))
     overlay.attach_materializer(materializer, "approach_a")
 
     t0 = time.perf_counter()
-    overlay.write("foo.py", "print('hello')")
+    await overlay.write_bytes(*_as_bytes("foo.py", "print('hello')"))
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
     mirror = tmp_path / "fork1" / "branches" / "approach_a" / "foo.py"
@@ -83,14 +88,14 @@ def test_overlay_write_mirrors_to_disk_within_100ms(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_parent_snapshot_is_frozen(tmp_path: Path) -> None:
+async def test_parent_snapshot_is_frozen(tmp_path: Path) -> None:
     materializer = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
-    parent = StateBackend()
+    parent = Document()
     parent.write("foo.py", "v1")
-    overlay = BranchOverlay(parent)
+    overlay = BranchOverlay(as_workspace(parent))
     overlay.attach_materializer(materializer, "approach_a")
     # First overlay write triggers the lazy parent snapshot.
-    overlay.write("foo.py", "branch_v1")
+    await overlay.write_bytes(*_as_bytes("foo.py", "branch_v1"))
 
     snap = tmp_path / "fork1" / "parent" / "foo.py"
     assert snap.read_bytes() == b"v1"
@@ -109,7 +114,7 @@ def test_parent_snapshot_is_frozen(tmp_path: Path) -> None:
 
 async def test_manifest_updates_on_status_transitions(tmp_path: Path) -> None:
     agent = Agent(TestModel(), deps_type=DeepAgentDeps)
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -120,6 +125,7 @@ async def test_manifest_updates_on_status_transitions(tmp_path: Path) -> None:
     )
     handle = await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("seed"),
         isolation=BranchIsolation(),
     )
@@ -244,16 +250,18 @@ def test_update_manifest_writes_status_list(tmp_path: Path) -> None:
     }
 
 
-def test_mirror_to_disk_logs_oserror_but_does_not_propagate(tmp_path: Path, caplog: Any) -> None:
+async def test_mirror_to_disk_logs_oserror_but_does_not_propagate(
+    tmp_path: Path, caplog: Any
+) -> None:
     """When materializer.flush_change raises OSError, BranchOverlay.write must
     still succeed and the overlay must hold the new content — the materializer
     is best-effort. The failure is logged so it does not vanish silently.
     """
     import logging
 
-    parent = StateBackend()
+    parent = Document()
     parent.write("a.py", "before")
-    overlay = BranchOverlay(parent)
+    overlay = BranchOverlay(as_workspace(parent))
     materializer = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
 
     def _raise(*_args: Any, **_kwargs: Any) -> None:
@@ -263,12 +271,11 @@ def test_mirror_to_disk_logs_oserror_but_does_not_propagate(tmp_path: Path, capl
     overlay.attach_materializer(materializer, "approach_a")
 
     with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
-        result = overlay.write("a.py", "after")
+        await overlay.write_bytes(*_as_bytes("a.py", "after"))
 
-    assert result.error is None
-    assert overlay.read_bytes("a.py") == b"after"
+    assert await overlay.read_bytes("a.py") == b"after"
     assert parent.read_bytes("a.py") == b"before"  # parent untouched
-    assert any("flush_change failed" in record.message for record in caplog.records)
+    assert any("materializer mirror failed" in record.message for record in caplog.records)
 
 
 def test_safe_relative_strips_leading_slash(tmp_path: Path) -> None:

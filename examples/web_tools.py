@@ -6,14 +6,14 @@ and how to use custom capabilities for advanced control.
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def main():
     # Default: both web_search and web_fetch enabled
     agent = create_deep_agent()
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Agent can search the web and fetch URLs
     result = await agent.run(
@@ -31,7 +31,7 @@ async def search_only():
         web_fetch=False,  # Can search but not fetch full pages
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run(
         "Search for the best Python async frameworks in 2026",
         deps=deps,
@@ -52,7 +52,7 @@ async def custom_web_capabilities():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     result = await agent.run(
         "Search Python documentation for information about pattern matching",
         deps=deps,

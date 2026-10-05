@@ -1,23 +1,24 @@
 # Docker Runtimes
 
-This guide shows how to use `RuntimeConfig` and `SessionManager` for Docker-based code execution with pre-configured environments.
+This guide shows how to use `RuntimeConfig` with `DockerWorkspace` for
+pre-configured environments, and how to give each user a container of their own.
 
 ## Quick Start
 
 ```python
-from pydantic_deep import DockerSandbox, DeepAgentDeps, create_deep_agent
+from pydantic_ai.workspaces import WorkspaceRef
+from pydantic_deep import DeepAgentDeps, DockerWorkspace, create_deep_agent
 
 # Use a built-in runtime with pre-installed packages
-sandbox = DockerSandbox(runtime="python-datascience")
-deps = DeepAgentDeps(backend=sandbox)
+docker = DockerWorkspace(runtime="python-datascience", container_name="analysis")
+agent = create_deep_agent(workspace=docker)
 
-agent = create_deep_agent()
-result = await agent.run(
-    "Load /uploads/data.csv and create a visualization",
-    deps=deps,
-)
-
-sandbox.stop()
+deps = DeepAgentDeps()
+await deps.upload_file("data.csv", csv_bytes)  # lands at /workspace/uploads/data.csv
+try:
+    result = await agent.run("Load uploads/data.csv and create a visualization", deps=deps)
+finally:
+    await docker.destroy(WorkspaceRef(provider="docker", id="analysis"))
 ```
 
 ## RuntimeConfig
@@ -37,19 +38,19 @@ pydantic-deep provides several built-in runtimes:
 | `node-react` | React development | TypeScript, Vite, React |
 
 ```python
-from pydantic_deep import DockerSandbox, BUILTIN_RUNTIMES
+from pydantic_deep import BUILTIN_RUNTIMES, DockerWorkspace
 
 # Option 1: Use runtime name (string)
-sandbox = DockerSandbox(runtime="python-datascience")
+docker = DockerWorkspace(runtime="python-datascience")
 
 # Option 2: Use RuntimeConfig directly
-sandbox = DockerSandbox(runtime=BUILTIN_RUNTIMES["python-datascience"])
+docker = DockerWorkspace(runtime=BUILTIN_RUNTIMES["python-datascience"])
 ```
 
 ### Creating Custom Runtimes
 
 ```python
-from pydantic_deep import RuntimeConfig, DockerSandbox
+from pydantic_deep import DockerWorkspace, RuntimeConfig
 
 # Custom ML runtime
 ml_runtime = RuntimeConfig(
@@ -62,7 +63,7 @@ ml_runtime = RuntimeConfig(
     work_dir="/workspace",
 )
 
-sandbox = DockerSandbox(runtime=ml_runtime)
+docker = DockerWorkspace(runtime=ml_runtime)
 ```
 
 ### Runtime Configuration Options
@@ -91,95 +92,53 @@ RuntimeConfig(
 )
 ```
 
-## SessionManager
+The image is built the first time a container needs it; with `cache_image=True`
+later containers reuse it.
 
-For multi-user applications, use `SessionManager` to manage isolated containers per user.
+## A container per user
 
-### Basic Usage
+For multi-user applications, give each user a named container and pass every
+run its user's workspace. The agent itself stays shared and stateless.
 
 ```python
-from pydantic_deep import SessionManager, DeepAgentDeps, create_deep_agent
+from pathlib import Path
 
-# Create manager with default runtime
-manager = SessionManager(default_runtime="python-datascience")
+from pydantic_ai.workspaces import Workspace, WorkspaceRef
+from pydantic_deep import DeepAgentDeps, DockerWorkspace, create_deep_agent
 
-async def handle_user_request(user_id: str, query: str):
-    # Get or create sandbox for this user
-    sandbox = await manager.get_or_create(user_id)
+WORKSPACES = Path("/var/app/workspaces")
 
-    deps = DeepAgentDeps(backend=sandbox)
-    agent = create_deep_agent()
+agent = create_deep_agent(workspace=False)
 
-    result = await agent.run(query, deps=deps)
+
+def user_container(user_id: str) -> DockerWorkspace:
+    host_dir = WORKSPACES / user_id / "workspace"
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return DockerWorkspace(
+        runtime="python-datascience",
+        volumes={str(host_dir): "/workspace"},  # files outlive the container
+        container_name=f"agent-{user_id}",
+    )
+
+
+async def handle_user_request(user_id: str, query: str) -> str:
+    workspace = Workspace(user_container(user_id).backend())
+    result = await agent.run(query, deps=DeepAgentDeps(), workspace=workspace)
     return result.output
 
-# Clean up idle sessions periodically
-await manager.cleanup_idle(max_idle=1800)  # 30 minutes
 
-# Shutdown all sessions when done
-await manager.shutdown()
+async def remove_user_container(user_id: str) -> None:
+    await user_container(user_id).destroy(
+        WorkspaceRef(provider="docker", id=f"agent-{user_id}")
+    )
 ```
 
-### Session Persistence
+### Persistence
 
-Sessions persist between requests for the same user:
-
-```python
-# Request 1: Create a file
-sandbox = await manager.get_or_create("user-123")
-sandbox.execute("echo 'hello' > /workspace/greeting.txt")
-
-# Request 2: File still exists!
-sandbox = await manager.get_or_create("user-123")  # Same container
-result = sandbox.execute("cat /workspace/greeting.txt")
-print(result.output)  # "hello"
-```
-
-### Automatic Cleanup
-
-```python
-# Start background cleanup loop
-manager.start_cleanup_loop(interval=300)  # Check every 5 minutes
-
-# ... your application runs ...
-
-# Stop cleanup when shutting down
-manager.stop_cleanup_loop()
-await manager.shutdown()
-```
-
-### Configuration Options
-
-```python
-SessionManager(
-    default_runtime="python-datascience",  # Default for new sessions
-    default_idle_timeout=3600,             # 1 hour idle timeout
-    workspace_root="/var/app/workspaces",  # Persistent storage directory
-)
-```
-
-### Persistent Storage with workspace_root
-
-By default, files in Docker containers are lost when the container stops. Use `workspace_root` to automatically persist files for each session:
-
-```python
-manager = SessionManager(
-    default_runtime="python-datascience",
-    workspace_root="/var/app/workspaces",  # Base directory
-)
-
-# For user-123, creates: /var/app/workspaces/user-123/workspace/
-# Mounted as /workspace in container
-sandbox = await manager.get_or_create("user-123")
-
-# Files persist even after container stops
-await sandbox.write("/workspace/report.pdf", pdf_content)
-await manager.shutdown()
-
-# Later, when user returns...
-sandbox = await manager.get_or_create("user-123")
-content = await sandbox.read("/workspace/report.pdf")  # Still there!
-```
+The same `container_name` reaches the same container, from this process or the
+next, so a user's installed packages and running state survive between
+requests. The mounted host directory keeps their files even after the container
+is removed:
 
 !!! tip "Directory Structure"
     ```
@@ -195,82 +154,12 @@ content = await sandbox.read("/workspace/report.pdf")  # Still there!
         └── workspace/
     ```
 
-## Complete Example
+### Cleanup
 
-```python
-import asyncio
-from pydantic_deep import (
-    create_deep_agent,
-    DeepAgentDeps,
-    SessionManager,
-    RuntimeConfig,
-)
-
-async def main():
-    # Custom runtime for data analysis
-    runtime = RuntimeConfig(
-        name="analysis-env",
-        description="Data analysis environment",
-        base_image="python:3.12-slim",
-        packages=["pandas", "numpy", "matplotlib", "seaborn"],
-    )
-
-    # Session manager for multiple users
-    manager = SessionManager(
-        default_runtime=runtime,
-        default_idle_timeout=1800,  # 30 minutes
-        workspace_root="./workspaces",  # Persist user files
-    )
-
-    try:
-        # Simulate multiple users
-        for user_id in ["alice", "bob", "charlie"]:
-            sandbox = await manager.get_or_create(user_id)
-            deps = DeepAgentDeps(backend=sandbox)
-
-            # Upload user-specific data
-            with open(f"{user_id}_data.csv", "rb") as f:
-                deps.upload_file("data.csv", f.read())
-
-            agent = create_deep_agent()
-            result = await agent.run(
-                "Analyze /uploads/data.csv and create a summary",
-                deps=deps,
-            )
-            print(f"{user_id}: {result.output[:100]}...")
-
-        # Check active sessions
-        print(f"Active sessions: {manager.session_count}")
-
-    finally:
-        # Clean up all sessions
-        count = await manager.shutdown()
-        print(f"Cleaned up {count} sessions")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-## System Prompt Integration
-
-When using a runtime with DockerSandbox, the agent automatically receives information about the available packages:
-
-```
-## Runtime Environment
-
-**Name:** python-datascience
-**Description:** Python with pandas, numpy, matplotlib, scikit-learn, seaborn
-**Working directory:** /workspace
-
-**Pre-installed packages** (use directly without installation):
-- pandas
-- numpy
-- matplotlib
-- scikit-learn
-- seaborn
-```
-
-This helps the agent understand what tools are available without needing to install packages.
+Containers are never removed for you. Remove a user's when their session ends,
+and every user's when the application shuts down — the files stay on the host.
+For idle cleanup, remove the containers of users you have not seen for a while
+from a periodic task of your own.
 
 ## Best Practices
 
@@ -278,12 +167,9 @@ This helps the agent understand what tools are available without needing to inst
 
 2. **Enable image caching** - Set `cache_image=True` (default) to avoid rebuilding images.
 
-3. **Set appropriate idle timeouts** - Balance resource usage vs user experience.
+3. **Mount a host directory per user** - The files then outlive the container.
 
-4. **Always clean up** - Use `sandbox.stop()` or `manager.shutdown()` to release resources.
+4. **Always clean up** - `await capability.destroy(ref)` removes a container.
 
-5. **Consider pre-warming** - For latency-sensitive apps, pre-create containers:
-   ```python
-   sandbox = DockerSandbox(runtime="python-datascience")
-   sandbox.start()  # Start container immediately
-   ```
+5. **Limit the container** - `network_mode`, `mem_limit`, `cpus` and `oci_runtime`
+   on `DockerWorkspace`; see [Docker Sandbox](docker-sandbox.md#limits-and-isolation).

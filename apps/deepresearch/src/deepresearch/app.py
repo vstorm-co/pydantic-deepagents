@@ -28,6 +28,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -81,13 +82,14 @@ from pydantic_ai.tools import (  # noqa: E402
     ToolDenied,
 )
 from pydantic_ai.toolsets import AbstractToolset  # noqa: E402
+from pydantic_ai.workspaces import Workspace, WorkspaceRef  # noqa: E402
 from subagents_pydantic_ai.types import TaskStatus  # noqa: E402
 
 from pydantic_deep import (  # noqa: E402
     DeepAgentDeps,
+    DockerWorkspace,
     InMemoryCheckpointStore,
     RewindRequested,
-    SessionManager,
     fork_from_checkpoint,
 )
 
@@ -246,6 +248,8 @@ class UserSession:
 
     session_id: str
     deps: DeepAgentDeps
+    workspace: Workspace
+    """The session's container, which every run and file endpoint of it works in."""
     message_history: list[ModelMessage] = field(default_factory=list)
     pending_approval_state: dict[str, Any] = field(default_factory=dict)
     cancel_event: asyncio.Event = field(default_factory=asyncio.Event)
@@ -461,8 +465,46 @@ def create_ask_user_callback(websocket: WebSocket, session: UserSession) -> Any:
 
 
 agent: Agent[DeepAgentDeps, str] | None = None
-session_manager: SessionManager | None = None
 user_sessions: dict[str, UserSession] = {}
+
+
+def _session_host_dir(session_id: str) -> Path:
+    """The host directory a session's container mounts at /workspace.
+
+    The id arrives from the client, so it must be one this app issues - a UUID -
+    and the directory must stay inside `WORKSPACES_DIR`; anything else would
+    mount a directory of the client's choosing into a container.
+    """
+    try:
+        canonical = str(uuid.UUID(session_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session id") from None
+    root = WORKSPACES_DIR.resolve()
+    host_dir = (root / canonical / "workspace").resolve()
+    if not host_dir.is_relative_to(root):
+        raise HTTPException(status_code=400, detail="Invalid session id")
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return host_dir
+
+
+def _session_container(session_id: str) -> DockerWorkspace:
+    """The session's Docker container, with its host directory mounted at /workspace.
+
+    Named after the session, so a restarted server reaches the same container;
+    the files live on the host, so a removed container loses none of them.
+    """
+    host_dir = _session_host_dir(session_id)
+    return DockerWorkspace(
+        runtime="python-datascience",
+        volumes={str(host_dir): "/workspace"},
+        container_name=f"deepresearch-{session_id}",
+    )
+
+
+async def _remove_session_container(session_id: str) -> None:
+    container = _session_container(session_id)
+    assert container.container_name is not None
+    await container.destroy(WorkspaceRef(provider="docker", id=container.container_name))
 
 
 _DEEP_MD_PATH = APP_DIR / "workspace" / "DEEP.md"
@@ -539,24 +581,25 @@ async def _switch_canvas_session(session_id: str) -> None:
 
 async def get_or_create_session(session_id: str) -> UserSession:
     """Get existing session or create a new one with isolated Docker container."""
-    global session_manager, user_sessions
+    global user_sessions
 
     if session_id in user_sessions:
         return user_sessions[session_id]
 
-    assert session_manager is not None
-    sandbox = await session_manager.get_or_create(session_id)
+    workspace = Workspace(_session_container(session_id).backend())
 
     # Seed workspace with context files
     if _DEEP_MD_PATH.exists():
-        sandbox.write("/workspace/DEEP.md", _DEEP_MD_PATH.read_text())
+        await workspace.write_bytes("DEEP.md", _DEEP_MD_PATH.read_bytes())
     if _MEMORY_MD_PATH.exists():
-        sandbox.write("/workspace/MEMORY.md", _MEMORY_MD_PATH.read_text())
+        await workspace.write_bytes("MEMORY.md", _MEMORY_MD_PATH.read_bytes())
 
     cp_store = InMemoryCheckpointStore()
-    deps = DeepAgentDeps(backend=sandbox, checkpoint_store=cp_store)
+    deps = DeepAgentDeps(checkpoint_store=cp_store)
 
-    session = UserSession(session_id=session_id, deps=deps, checkpoint_store=cp_store)
+    session = UserSession(
+        session_id=session_id, deps=deps, workspace=workspace, checkpoint_store=cp_store
+    )
 
     # Restore message history from disk if available
     restored = _restore_history(session_id)
@@ -609,17 +652,10 @@ def _get_failed_server_names(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize agent with MCP servers and session manager."""
-    global agent, session_manager
+    global agent
 
     mcp_servers = create_mcp_servers()
     agent = create_research_agent(mcp_servers=mcp_servers, middleware=[audit_cap, permission_cap])
-
-    session_manager = SessionManager(
-        default_runtime="python-datascience",
-        default_idle_timeout=3600,
-        workspace_root=WORKSPACES_DIR,
-    )
-    session_manager.start_cleanup_loop(interval=300)
 
     def _print_banner(servers: list) -> None:
         names = [getattr(s, "tool_prefix", "unknown") for s in servers]
@@ -657,9 +693,16 @@ async def lifespan(app: FastAPI):
         async with agent:
             yield
 
-    # Shutdown
-    count = await session_manager.shutdown()
-    print(f"Shutdown complete. Stopped {count} sessions.")
+    # Shutdown: the files stay on the host, the containers go - each one tried,
+    # so one Docker error does not leave the rest running.
+    removed = 0
+    for session_id in list(user_sessions):
+        try:
+            await _remove_session_container(session_id)
+            removed += 1
+        except Exception:
+            logger.exception("Could not remove the container of session %s", session_id)
+    print(f"Shutdown complete. Removed {removed} of {len(user_sessions)} session containers.")
 
 
 app = FastAPI(title="DeepResearch", lifespan=lifespan)
@@ -825,6 +868,7 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
 
                     # Save to container first
                     upload_path = await session.deps.upload_file(name, data)
+                    await session.deps.write_uploads(session.workspace)
                     logger.info(f"Attachment saved: {name} ({len(data)} bytes) -> {upload_path}")
 
                     if media_type.startswith("image/"):
@@ -999,6 +1043,7 @@ async def run_agent_with_streaming(
         deps=session.deps,
         message_history=session.message_history,
         deferred_tool_results=deferred_results,
+        workspace=session.workspace,
     ) as run:
         node_count = 0
         async for node in run:
@@ -1350,6 +1395,7 @@ async def upload_file(
         logger.info(f"Uploading file: {filename} ({len(content)} bytes) to session {session_id}")
 
         path = await session.deps.upload_file(filename, content)
+        await session.deps.write_uploads(session.workspace)
         logger.info(f"File uploaded to: {path}")
 
         return JSONResponse(
@@ -1374,15 +1420,12 @@ async def list_files(session_id: str = Query(..., description="Session ID")):
     session = user_sessions[session_id]
     files: dict[str, list[str]] = {"workspace": [], "uploads": []}
 
-    # Use 'find' via execute — ls_info has path quoting issues with DockerSandbox
-    if hasattr(session.deps.backend, "execute"):
-        for key, path in [("workspace", "/workspace"), ("uploads", "/uploads")]:
-            try:
-                result = session.deps.backend.execute(f"find {path} -type f 2>/dev/null")
-                if result.exit_code == 0:
-                    files[key] = [f for f in result.output.strip().split("\n") if f]
-            except Exception:
-                pass
+    result = await session.workspace.run(["find", "/workspace", "-type", "f"])
+    for found in result.stdout.split("\n"):
+        if found:
+            files["uploads" if found.startswith("/workspace/uploads/") else "workspace"].append(
+                found
+            )
 
     return JSONResponse(content=files)
 
@@ -1400,14 +1443,11 @@ async def get_file_content(filepath: str, session_id: str = Query(..., descripti
         decoded_path = "/" + decoded_path
 
     try:
-        result = session.deps.backend.read(decoded_path)
-        if "Error:" in result and len(result) < 200:
-            raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}")
-        return JSONResponse(content={"content": result, "path": decoded_path})
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        data = await session.workspace.read_bytes(decoded_path)
+    except (FileNotFoundError, IsADirectoryError) as e:
+        raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}") from e
+    content = data.decode("utf-8", errors="replace")
+    return JSONResponse(content={"content": content, "path": decoded_path})
 
 
 @app.get("/files/binary/{filepath:path}")
@@ -1427,10 +1467,10 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
     content_type = _CONTENT_TYPES.get(ext, "application/octet-stream")
 
     try:
-        result = session.deps.backend.read_bytes(decoded_path)
-        return Response(content=result, media_type=content_type)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        result = await session.workspace.read_bytes(decoded_path)
+    except (FileNotFoundError, IsADirectoryError) as e:
+        raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}") from e
+    return Response(content=result, media_type=content_type)
 
 
 @app.get("/todos")
@@ -1656,13 +1696,12 @@ async def get_config():
 @app.post("/reset")
 async def reset(session_id: str = Query(..., description="Session ID")):
     """Reset a specific session."""
-    global session_manager, user_sessions
+    global user_sessions
 
     if session_id not in user_sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    if session_manager:
-        await session_manager.release(session_id)
+    await _remove_session_container(session_id)
 
     del user_sessions[session_id]
     audit_cap.reset_stats()
@@ -1721,12 +1760,11 @@ async def get_session_events(session_id: str):
 @app.delete("/sessions/{session_id}")
 async def delete_session(session_id: str):
     """Delete a session and its data."""
-    global session_manager, user_sessions
+    global user_sessions
 
-    # Release container if active
+    # Remove the container if active
     if session_id in user_sessions:
-        if session_manager:
-            await session_manager.release(session_id)
+        await _remove_session_container(session_id)
         del user_sessions[session_id]
 
     # Remove files
@@ -1759,18 +1797,9 @@ async def export_report(
 
     session = user_sessions[session_id]
 
-    # Read and strip line numbers from backend
     try:
-        raw = session.deps.backend.read(filepath)
-        if isinstance(raw, bytes):
-            raw = raw.decode("utf-8")
-        content = "\n".join(
-            line.split("\t", 1)[1]
-            if "\t" in line and line.split("\t")[0].strip().isdigit()
-            else line
-            for line in raw.split("\n")
-        )
-    except Exception as e:
+        content = (await session.workspace.read_bytes(filepath)).decode("utf-8")
+    except (FileNotFoundError, IsADirectoryError, UnicodeDecodeError) as e:
         raise HTTPException(status_code=404, detail=f"Report not found: {e}") from e
 
     if fmt in ("md", "markdown"):
@@ -1848,10 +1877,10 @@ async def preview_file(session_id: str, filepath: str):
     content_type = _CONTENT_TYPES.get(ext, "text/plain")
 
     try:
-        result = session.deps.backend.read_bytes(filepath)
-        return Response(content=result, media_type=content_type)
-    except Exception as e:
+        result = await session.workspace.read_bytes(filepath)
+    except (FileNotFoundError, IsADirectoryError) as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    return Response(content=result, media_type=content_type)
 
 
 def main():

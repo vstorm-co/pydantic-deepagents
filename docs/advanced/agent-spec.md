@@ -73,7 +73,7 @@ agent, deps = DeepAgent.from_file("agent.yaml")
 result = await agent.run("…your prompt…", deps=deps)
 ```
 
-From here it's an ordinary agent. `deps` comes pre-built with an in-memory `StateBackend`, so the spec runs with zero extra setup — see [Files & the shell](../learn/files-and-shell.md) to point it at real disk instead.
+From here it's an ordinary agent. It works in the default in-memory workspace, so the spec runs with zero extra setup — see [Files & the shell](../learn/files-and-shell.md) to point it at real disk instead.
 
 ## Turning on more features
 
@@ -108,11 +108,11 @@ Each key is the same flag you'd pass in Python. The full set mirrors `create_dee
 A spec file can only hold things a file can hold: strings, numbers, booleans, lists, and mappings. Live Python objects and callbacks can't be written to YAML — so you pass *those* as keyword overrides when you load.
 
 ```python hl_lines="5 6"
-from pydantic_ai_backends import LocalBackend
+from pydantic_deep import LocalWorkspace
 
 agent, deps = DeepAgent.from_file(
     "agent.yaml",
-    backend=LocalBackend(root_dir="/workspace"),
+    workspace=LocalWorkspace("/workspace"),
     on_cost_update=my_cost_callback,
 )
 ```
@@ -121,15 +121,15 @@ Overrides take precedence over the file, and they're the *only* way to supply no
 
 | In the spec file (serializable) | As a keyword override (runtime) |
 |---|---|
-| `model`, `instructions`, `retries` | `backend` |
+| `model`, `instructions`, `retries` | `workspace` |
 | `include_*` feature flags | `tools`, `toolsets` |
 | `model_settings`, `thinking` | `hooks`, `middleware`, `history_processors` |
 | `subagents`, `skill_directories` | `output_type`, `checkpoint_store` |
 | `memory_dir`, `context_files` | `on_cost_update`, `on_context_update`, `on_eviction`, `on_before_compress`, `on_after_compress` |
 
-!!! info "Backend defaults to in-memory"
-    If you don't pass `backend=`, the loaded `deps` uses a `StateBackend` so the
-    agent runs out of the box. Pass a `LocalBackend` or `DockerSandbox` override
+!!! info "The workspace defaults to in-memory"
+    If you don't pass `workspace=`, the agent works in a `StateWorkspace` so it
+    runs out of the box. Pass a `LocalWorkspace` or `DockerWorkspace` override
     the moment you want files to land somewhere real.
 
 ## Loading from a dict
@@ -143,7 +143,7 @@ agent, deps = DeepAgent.from_spec(
         "include_memory": True,
         "memory_dir": ".pydantic-deep",
     },
-    backend=LocalBackend(root_dir="/workspace"),
+    workspace=LocalWorkspace("/workspace"),
 )
 ```
 
@@ -196,7 +196,7 @@ You can now define agents without writing Python:
 - `DeepAgent.from_file()` (or `from_spec()` for a dict) returns a ready
   `(agent, deps)` tuple, layered on the same defaults as the factory.
 - **Serializable** params (models, flags, `model_settings`, `subagents`) live in
-  the file; **runtime** params (`backend`, `tools`, callbacks, `output_type`)
+  the file; **runtime** params (`workspace`, `tools`, callbacks, `output_type`)
   are passed as keyword overrides — and overrides win.
 - `DeepAgent.to_file()` writes a minimal spec containing only your non-default
   values.

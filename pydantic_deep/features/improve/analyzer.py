@@ -26,12 +26,12 @@ if TYPE_CHECKING:
 
 # Default MEMORY.md path, aligned with the memory toolset's default location
 # (`get_memory_path(DEFAULT_MEMORY_DIR, "main")`) so that improve writes
-# memory changes where the toolset reads them. The leading slash is stripped so
-# the path composes correctly under `working_dir`.
-_DEFAULT_MEMORY_PATH: str = get_memory_path(DEFAULT_MEMORY_DIR, "main").lstrip("/")
+# memory changes where the toolset reads them. Both are relative to the
+# workspace's working directory, which is `working_dir` here.
+_DEFAULT_MEMORY_PATH: str = get_memory_path(DEFAULT_MEMORY_DIR, "main")
 
 # Default context file mapping: logical name -> path relative to working_dir.
-# Callers can override via context_files parameter to match their backend layout.
+# Callers can override via context_files parameter to match their workspace layout.
 DEFAULT_CONTEXT_FILES: dict[str, str] = {
     "SOUL.md": "SOUL.md",
     "AGENTS.md": "AGENTS.md",
@@ -68,15 +68,15 @@ class ImprovementAnalyzer:
     loads current context files, and synthesizes proposed changes.
 
     The `context_files` parameter controls where context files are read
-    from and written to, making this work with any backend layout::
+    from and written to, making this work with any workspace layout::
 
-        # Default (CLI/TUI with LocalBackend):
+        # Default (CLI/TUI with LocalWorkspace):
         analyzer = ImprovementAnalyzer(working_dir=Path("."))
         # reads SOUL.md, AGENTS.md from root
         # reads MEMORY.md from .deep/memory/main/MEMORY.md (aligned with the
         # memory toolset default)
 
-        # Custom layout (e.g., Docker sandbox):
+        # Custom layout (e.g., DockerWorkspace):
         analyzer = ImprovementAnalyzer(
             working_dir=Path("/workspace"),
             context_files={

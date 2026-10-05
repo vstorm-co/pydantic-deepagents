@@ -8,6 +8,7 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 from typing import Any
@@ -147,9 +148,10 @@ def run_tui(
     try:
         app.run()
     finally:
-        deps = app.deps
-        if deps is not None and hasattr(deps.backend, "stop"):
-            deps.backend.stop()
+        # Remove the session's own Docker container; a named one is kept.
+        cleanup = getattr(app.agent, "_cli_workspace_cleanup", None)
+        if cleanup is not None:
+            asyncio.run(cleanup())
 
 
 def run_preview() -> None:

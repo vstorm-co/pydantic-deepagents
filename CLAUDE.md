@@ -38,23 +38,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `create_deep_agent()`: Main factory function for creating configured agents
 - `create_default_deps()`: Helper for creating DeepAgentDeps with sensible defaults
 - Built on top of pydantic-ai's Agent class
-- Requires pydantic-ai>=1.77.0
+- Requires pydantic-ai>=2.52.0 (workspaces)
+- `workspace=`: the capability that supplies each run's workspace; default `StateWorkspace()` (in-memory, no commands), `False` leaves it to `agent.run(workspace=...)`
 
 **Dependencies (`pydantic_deep/deps.py`)**
-- `DeepAgentDeps`: Dataclass holding agent dependencies (backend, working_dir, skills_dirs, subagents)
+- `DeepAgentDeps`: Dataclass holding agent dependencies (todos, subagents, uploads, checkpoint store, message queue)
 - Passed to agent.run() for runtime configuration
+- Holds no files: those live in the run's workspace, `ctx.workspace`. `upload_file()` queues bytes that `write_pending_uploads()` writes when the run starts
 
-**Backends (from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend))**
-- `BackendProtocol`: Interface for file storage backends
-- `StateBackend`: In-memory file storage (for testing, ephemeral use)
-- `LocalBackend`: Real filesystem operations
-- `DockerSandbox`: Isolated Docker container execution
-- `CompositeBackend`: Combines multiple backends with routing
-- `BaseSandbox` / `AsyncBaseSandbox`: Bases for a custom sandbox — implement
-  `execute` and `edit` and every file operation is derived from shell commands.
-  Use the async one for a natively async transport (asyncssh, an async SDK)
-  rather than a sync facade, which `ensure_async` cannot see through and which
-  deadlocks against its own thread pool under load.
+**Workspaces (Pydantic AI; capabilities from [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend))**
+- Every file and command goes through the run's workspace, `ctx.workspace` (read_bytes/write_bytes/read_text/write_text/list_dir/stat/exists/make_dir/remove, and `run` where the backend `SupportsCommands`)
+- `StateWorkspace`: In-memory `StateBackend` document, files only (the default)
+- `LocalWorkspace`: A directory on this machine (from `pydantic_ai.capabilities`)
+- `DockerWorkspace`, `SandboxdWorkspace`, `KubernetesWorkspace`, `DaytonaWorkspace`: sandboxes, created on first use, kept after the run, removed with `await capability.destroy(ref)`
+- A files-only workspace raises `UserError` from `run`: check `isinstance(workspace.backend, SupportsCommands)` before running anything a model asked for
+- Tests: `tests/workspaces.py` has `state_workspace(files)`, `as_workspace(state)` and `run_context(deps, workspace)`
 
 **Toolsets (`pydantic_deep/features/<name>/toolset.py`)**
 - `TodoToolset`: Task planning and tracking tools (read_todos, write_todos) - from [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo)
@@ -78,7 +76,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Types (`pydantic_deep/types.py`)**
 - Pydantic models for all data structures
-- `FileData`, `FileInfo`, `WriteResult`, `EditResult`, `GrepMatch`
+- `FileData`, `FileInfo` (re-exported from pydantic-ai-backend), `UploadedFile`
 - `Todo`, `SubAgentConfig`, `CompiledSubAgent`
 - `Skill`, `SkillDirectory`, `SkillFrontmatter`
 - `ResponseFormat`: Alias for structured output specification
@@ -139,7 +137,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `ContextFile`: Loaded context file (name, path, content)
 - `ContextToolset`: FunctionToolset that injects context files via get_instructions()
 - `discover_context_files()`: Auto-discover DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md
-- `load_context_files()`: Load from backend (missing files silently skipped)
+- `load_context_files()`: Load from the workspace (missing files silently skipped)
 - `format_context_prompt()`: Format with subagent filtering and truncation
 - `DEFAULT_CONTEXT_FILENAMES`: [DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md]
 - `SUBAGENT_CONTEXT_ALLOWLIST`: {AGENTS.md, CLAUDE.md} — subagents don't see SOUL.md/.cursorrules/etc.
@@ -148,15 +146,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `EvictionCapability`: Capability — intercepts large tool outputs via `after_tool_execute` before they enter history
 - `create_content_preview()`: Head/tail preview with truncation marker
 - Default threshold: 20,000 tokens (80,000 chars)
-- Uses runtime `ctx.deps.backend` for writing
+- Writes into `ctx.workspace` (`.deep/large_tool_results/`); a failed write keeps the output in history
 - Supports `on_eviction` callback for notification when content is evicted
 
 **Monitor — watch & react (`pydantic_deep/features/monitoring/`)**
-- `MonitorManager`: spawns a long-lived command via the backend's background-process support, drains its output on an interval, filters new lines by an optional regex, and pushes each batch as a `MonitorEvent` through an `on_event` sink
+- `MonitorManager`: runs a long-lived command in the workspace with its output redirected to a log under `.deep/monitors/`, drains the log on an interval, filters new lines by an optional regex, and pushes each batch as a `MonitorEvent` through an `on_event` sink
 - `create_monitor_toolset()`: agent tools `start_monitor` / `list_monitors` / `stop_monitor`
 - `MonitorEvent`, `MonitorInfo`: event batch + status snapshot
 - "React" path: the toolset wires `on_event` to `ctx.deps.message_queue` (steering), so new output is delivered back into the conversation and the agent reacts without polling
-- Requires a background-capable backend (e.g. `LocalBackend`); tools no-op gracefully otherwise
+- Requires a workspace that runs commands; tools no-op gracefully otherwise
 - Enabled by default via `include_monitoring=True`; lives on `deps.monitor_manager` (lazily created, reset for subagents)
 
 **Stuck Loop Detection (`pydantic_deep/features/stuck_loop/capability.py`)**
@@ -205,24 +203,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Key Design Patterns
 
-**Backend Abstraction**
+**Workspaces**
 ```python
-from pydantic_ai_backends import StateBackend, LocalBackend, CompositeBackend
+from pydantic_deep import DockerWorkspace, LocalWorkspace, create_deep_agent
 
-# In-memory for testing
-backend = StateBackend()
+# In-memory for testing (the default: StateWorkspace())
+agent = create_deep_agent()
 
 # Real filesystem
-backend = LocalBackend(root_dir="/path/to/workspace")
+agent = create_deep_agent(workspace=LocalWorkspace("/path/to/workspace"))
 
-# Combined backends with routing
-# LocalBackend must be the default, not in routes (routes use StateBackend or sandboxes)
-backend = CompositeBackend(
-    default=LocalBackend(root_dir="/home/user/project"),
-    routes={
-        "/scratch/": StateBackend(),  # Ephemeral virtual space
-    },
-)
+# Container; kept after the run, removed with `await docker.destroy(ref)`
+agent = create_deep_agent(workspace=DockerWorkspace(runtime="python-datascience"))
+
+# Per run (one workspace per session)
+agent = create_deep_agent(workspace=False)
+result = await agent.run(prompt, deps=deps, workspace=session_workspace)
 ```
 
 **Toolset Registration**
@@ -256,11 +252,12 @@ agent = create_deep_agent(
 
 **Skills System**
 ```python
-# Skills are markdown files with YAML frontmatter
-# Located in skills_dirs specified in DeepAgentDeps
-deps = DeepAgentDeps(
-    backend=StateBackend(),
-    skills_dirs=["/path/to/skills"],
+# Skills are markdown files with YAML frontmatter, in folders on this machine
+# or in the run's workspace
+from pydantic_deep import WorkspaceSkillsDirectory
+
+agent = create_deep_agent(
+    skill_directories=["/path/to/skills", WorkspaceSkillsDirectory(path="skills")],
 )
 ```
 
@@ -316,11 +313,11 @@ agent = create_deep_agent(history_processors=[processor])
 
 ## Important Implementation Notes
 
-- **Backend Protocol**: All backends implement `BackendProtocol` for consistent file operations
+- **Workspaces**: All file and command access goes through `ctx.workspace`; never reach into a provider directly
 - **Async-First**: Most operations are async, use `await` appropriately
 - **Type Safety**: Full type annotations with Pyright strict mode
-- **Sandbox Support**: DockerSandbox requires `docker` optional dependency
-- **Minimum pydantic-ai version**: Requires pydantic-ai>=1.77.0 for native Capabilities API
+- **Sandbox Support**: DockerWorkspace requires the `sandbox` optional dependency
+- **Minimum pydantic-ai version**: Requires pydantic-ai>=2.52.0 for workspaces
 
 ## Documentation Development
 

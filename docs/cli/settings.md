@@ -83,6 +83,8 @@ model = "openai-compatible:qwen2.5"   # name after the prefix is the served mode
 base_url = "http://localhost:8080/v1"
 ```
 
+The same entry reaches a **hosted gateway** that speaks the OpenAI API - a model router or an LLM proxy - with no provider of its own in the CLI: enter the gateway's endpoint as the URL (for example `https://gateway.example.com/v1`), the model as the gateway names it after the prefix, and its key when asked.
+
 `base_url` is only consulted when `model` carries the `openai-compatible:` prefix, so switching to any other model via `/model` leaves it untouched. If the endpoint needs an API key (e.g. a remote LM Studio or a keyed vLLM deployment), it's stored in the keystore under `OPENAI_COMPATIBLE_API_KEY` — never in `config.toml` — so the project tree never carries the secret. Most local servers ignore the key, so you can leave it blank; when you do set one, it shows up in `/keys` and `pydantic-deep keys list` like any other credential. Your `OPENAI_API_KEY` is never sent to a local endpoint, even when it's set.
 
 The prefix is a CLI-level marker, not something pydantic-ai understands, so everything that spins up its own small model off the session model — the LLM reminder generator, the `/goal` evaluator, `/improve`, and a `fallback_model` — resolves it the same way. Pointing all of those at your local server is the default; nothing quietly falls back to a cloud model.
@@ -112,6 +114,8 @@ sandbox_image = "python:3.12-slim"
 ```
 
 `local` runs the agent's shell against your filesystem; `docker` isolates execution inside a container built from `sandbox_image`. The Docker path needs the `docker` extra.
+
+`local` needs Linux or macOS: Pydantic AI runs local commands on POSIX only. On Windows, use `docker`, or run the CLI under WSL.
 
 ## Slash commands that write config
 

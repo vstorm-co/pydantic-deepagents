@@ -4,7 +4,7 @@
 
 Sometimes you don't know which approach is best until you try a few. Live Run Forking lets you split an in-flight `agent.run()` into several parallel branches — they all share the conversation history up to the fork point, then explore different ideas in isolation. When they finish, you keep one winner and throw the rest away.
 
-The branches run concurrently as `asyncio.Task`s, each with its own [`DeepAgentDeps`][pydantic_deep.DeepAgentDeps] — separate backends, todos, and message queues. Pick a winner and its file writes are flushed onto the parent backend; the losers are cancelled and their writes discarded.
+The branches run concurrently as `asyncio.Task`s, each with its own [`DeepAgentDeps`][pydantic_deep.DeepAgentDeps] — separate todos and message queues — and its own overlay of the run's workspace. Pick a winner and its file writes are flushed onto the parent workspace; the losers are cancelled and their writes discarded.
 
 ## Enable it
 
@@ -16,7 +16,6 @@ import asyncio
 from pydantic_deep import (
     DeepAgentDeps,
     InMemoryCheckpointStore,
-    StateBackend,
     create_deep_agent,
 )
 
@@ -28,7 +27,6 @@ async def main() -> None:
         include_checkpoints=True,     # the rewind safety net
     )
     deps = DeepAgentDeps(
-        backend=StateBackend(),
         checkpoint_store=InMemoryCheckpointStore(),
     )
 
@@ -116,8 +114,9 @@ Confidence blends three signals — how much the branches disagree, an optional 
     LiveForkCapability(test_command="pytest -q", test_timeout_s=60.0)
     ```
 
-    The command runs against each branch's materialised tree (requires a
-    `LocalBackend`); the ratio comes from the process exit code.
+    The command runs against each branch's materialised tree, a temporary copy
+    of the project with the branch's writes on top (requires a
+    `LocalWorkspace`); the ratio comes from the process exit code.
 
 ## Driving it from Python
 
@@ -145,7 +144,7 @@ merge = await coordinator.merge_or_select(f"pick:{handle.branches[0]}")
 print(merge.winner_branch_id, len(merge.history_after_merge))
 ```
 
-Merging flushes the winner's overlay writes onto the parent backend and adopts its history into the parent run. If a third actor changed a file during the fork, the winner's write still lands (last-write-wins) and the divergence shows up in [`MergeResult.conflicts`][pydantic_deep.features.forking.types.MergeResult].
+Merging flushes the winner's overlay writes onto the parent workspace and adopts its history into the parent run. If a third actor changed a file during the fork, the winner's change to it is **not** applied - the newer content stays - and the path shows up in [`MergeResult.conflicts`][pydantic_deep.features.forking.types.MergeResult] for you to resolve.
 
 !!! warning "Rewind restores history, not files"
     The `post-fork:<id>` checkpoint captures conversation history only. After a
@@ -160,7 +159,7 @@ The terminal assistant has full forking support, baked in. You can fork the curr
 
 - `forking=True` turns on Live Run Forking with sensible defaults; pass a `LiveForkCapability` to tune limits, store, and `test_command`.
 - The agent forks with `fork_run`, watches with `inspect_branches`, and resolves with `merge_or_select` — three tools among seven.
-- Branches share history but isolate their backends, todos, and queues, so they never collide; the winner's writes flush onto the parent on merge.
+- Branches share history but isolate their files (an overlay of the workspace), todos, and queues, so they never collide; the winner's writes flush onto the parent on merge.
 - Acceptance modes range from fully `manual` to `auto`, `auto_with_fallback` (the default), and a multi-judge `vote`.
 - Keep `include_checkpoints=True` so you always have a rewind anchor.
 

@@ -18,7 +18,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import create_deep_agent
 from pydantic_deep.deps import DeepAgentDeps
@@ -38,7 +37,7 @@ _MODEL = TestModel()
 
 def _ctx() -> RunContext[Any]:
     return RunContext(
-        deps=DeepAgentDeps(backend=StateBackend()),
+        deps=DeepAgentDeps(),
         model=_MODEL,
         usage=RunUsage(),
     )
@@ -152,7 +151,9 @@ class TestDefaultGenerate:
         assert result == "Stay on task. Focus on completing your original objective."
 
     def test_fallback_when_only_non_string_content(self) -> None:
-        part = UserPromptPart(content=[{"type": "text", "text": "hi"}])
+        from pydantic_ai.messages import ImageUrl
+
+        part = UserPromptPart(content=[ImageUrl(url="https://example.com/a.png")])
         msgs: list[ModelMessage] = [ModelRequest(parts=[part])]
         result = _default_generate(msgs)
         assert result == "Stay on task. Focus on completing your original objective."

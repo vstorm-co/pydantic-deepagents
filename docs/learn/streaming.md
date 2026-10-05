@@ -14,7 +14,7 @@ from pydantic_ai import (
     PartDeltaEvent,
 )
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -23,7 +23,7 @@ async def main():
         instructions="You are a helpful coding assistant.",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     async for event in agent.run_stream_events(
         "Write a Python function that returns the nth Fibonacci number, "
@@ -38,7 +38,8 @@ async def main():
             print(f"\n[tool] {event.part.tool_name}", flush=True)
 
         elif isinstance(event, AgentRunResultEvent):
-            print(f"\n\nDone. Files: {sorted(event.result.deps.files)}")
+            entries = await event.result.workspace.list_dir("/")
+            print(f"\n\nDone. Files: {sorted(e.path for e in entries)}")
 
 
 asyncio.run(main())
@@ -112,7 +113,7 @@ elif isinstance(event, AgentRunResultEvent):
     print(event.result.output)
 ```
 
-The very last event is an `AgentRunResultEvent`. Its `event.result` is the same `AgentRunResult` you'd get from `agent.run()` — so `event.result.output`, `event.result.usage()`, and `event.result.deps` are all there when the stream ends.
+The very last event is an `AgentRunResultEvent`. Its `event.result` is the same `AgentRunResult` you'd get from `agent.run()` — so `event.result.output`, `event.result.usage`, and `event.result.deps` are all there when the stream ends.
 
 ## Watching the agent think
 

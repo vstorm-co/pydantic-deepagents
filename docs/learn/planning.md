@@ -5,7 +5,7 @@ Give your agent a multi-step job and it won't just dive in — it writes a plan 
 ```python
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -14,7 +14,7 @@ async def main():
         instructions="You are a helpful coding assistant.",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Build a small CLI calculator: write calc.py with add/sub/mul/div, "
@@ -80,7 +80,7 @@ The agent's instructions nudge it to use them for anything non-trivial: break th
 ### The list you read
 
 ```python hl_lines="2"
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 # ... after the run ...
 for todo in deps.todos:
     print(f"[{todo.status}] {todo.content}")
@@ -106,9 +106,8 @@ When your agent delegates to a [subagent](subagents.md), the subagent gets its *
 
 If you *do* want one shared plan across the parent and its subagents, flip `share_todos` on the deps:
 
-```python hl_lines="3"
+```python hl_lines="2"
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     share_todos=True,  # subagents read and write the same todo list
 )
 ```

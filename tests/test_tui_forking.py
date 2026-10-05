@@ -15,7 +15,6 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 
 from apps.cli.app import DeepApp
 from apps.cli.forking import (
@@ -35,6 +34,7 @@ from apps.cli.widgets.fork_overview import ForkOverviewWidget
 from apps.cli.widgets.fork_tabs import OVERVIEW_TAB_ID, ForkTabsWidget
 from pydantic_deep import DeepAgentDeps, LiveForkCapability, create_deep_agent
 from pydantic_deep.features.forking.types import BranchSpec
+from tests.workspaces import state_workspace
 
 
 def _make_fork_agent() -> Agent[DeepAgentDeps, str]:
@@ -59,7 +59,8 @@ def _make_fork_agent() -> Agent[DeepAgentDeps, str]:
 
 def _make_app() -> DeepApp:
     agent = _make_fork_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
+    agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
     app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
     app.message_history = [ModelRequest(parts=[UserPromptPart(content="seed turn")])]
     return app
@@ -524,7 +525,8 @@ class TestForkingDisabled:
             stuck_loop_detection=False,
             context_discovery=False,
         )
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
+        agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
         app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
         async with app.run_test(size=(140, 40)) as pilot:
             await pilot.pause()
@@ -551,7 +553,8 @@ class TestForkingDisabled:
             stuck_loop_detection=False,
             context_discovery=False,
         )
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
+        agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
         app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
         with pytest.raises(ForkingNotEnabledError):
             await start_fork_from_cli(app, ForkPickerResult(specs=_specs()))
@@ -732,7 +735,8 @@ class TestMergePickerModalRendering:
         ]
 
         agent = _make_fork_agent()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
+        agent._cli_workspace = state_workspace()  # type: ignore[attr-defined]
         app = DeepApp(agent=agent, deps=deps, model="test", version="0.3.3")
 
         async with app.run_test(size=(140, 40)) as pilot:
@@ -1057,7 +1061,7 @@ class TestForkOpenDiffCommand:
             # Trigger a branch write so the picker has at least one path to render.
             for rt in session.coordinator.branches.values():
                 if rt.overlay is not None:
-                    rt.overlay.write("foo.py", "branch content")
+                    await rt.overlay.write_bytes("/foo.py", b"branch content")
                     break
 
             with patch(
@@ -1943,7 +1947,6 @@ class TestBranchStreamRunner:
 
     async def test_e1a_d_coordinator_without_runner_uses_agent_run(self) -> None:
         """E1A.d - coordinator without branch_runner uses agent.run() (default path)."""
-        from pydantic_ai_backends import StateBackend
 
         from pydantic_deep import DeepAgentDeps
         from pydantic_deep.features.forking.coordinator import ForkCoordinator
@@ -1951,7 +1954,7 @@ class TestBranchStreamRunner:
         from pydantic_deep.features.forking.types import BranchSpec
 
         agent = _make_fork_agent()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         coord = ForkCoordinator(
             agent=agent,
             parent_deps=deps,
@@ -1962,6 +1965,7 @@ class TestBranchStreamRunner:
         assert coord.branch_runner is None
         handle = await coord.fork(
             [BranchSpec(label="x", steer="go")],
+            workspace=state_workspace(),
             parent_history=[ModelRequest(parts=[UserPromptPart(content="seed")])],
         )
         assert len(handle.branches) == 1

@@ -8,7 +8,7 @@ This example demonstrates the core functionality:
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 async def main():
@@ -24,8 +24,8 @@ async def main():
         """,
     )
 
-    # Create dependencies with in-memory storage
-    deps = DeepAgentDeps(backend=StateBackend())
+    # Files live in the run's workspace: by default an in-memory document
+    deps = DeepAgentDeps()
 
     # Run the agent
     result = await agent.run(
@@ -38,12 +38,13 @@ async def main():
     print(result.output)
 
     # Check what files were created
-    print("\nFiles in memory:")
-    for path, data in deps.files.items():
-        print(f"  {path}: {len(data['content'])} lines")
+    workspace = result.workspace
+    print("\nFiles in the workspace:")
+    for entry in await workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else f": {entry.size} bytes"))
 
     # Read the created file
-    content = deps.backend.read("/calculator.py")
+    content = await workspace.read_text("/calculator.py")
     print("\nCreated file content:")
     print(content)
 

@@ -38,7 +38,7 @@ def main() -> None:
                     if key and key not in os.environ:
                         os.environ[key] = value
 
-    from pydantic_deep import create_deep_agent
+    from pydantic_deep import LocalWorkspace, create_deep_agent
 
     # Auto-detect default model from available API keys
     default_model = args.model or os.environ.get("PYDANTIC_DEEP_MODEL")
@@ -68,6 +68,7 @@ def main() -> None:
     def build_agent(ctx: AgentSessionContext):
         return create_deep_agent(
             model=ctx.model or default_model,
+            workspace=LocalWorkspace(ctx.cwd),
             context_discovery=True,
         )
 

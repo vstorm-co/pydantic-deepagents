@@ -21,6 +21,30 @@ runner = CliRunner()
 class TestRunCommand:
     """Tests for the 'run' CLI command."""
 
+    def test_the_local_sandbox_is_refused_where_it_cannot_run(self) -> None:
+        """Windows: Pydantic AI's local workspace is POSIX-only, so the run would
+        fail while building the agent. It is refused first, naming the way out."""
+        with (
+            patch("apps.cli.main._runs_local_commands", return_value=False),
+            patch("apps.cli.run.execute_headless", new_callable=AsyncMock) as mock_exec,
+        ):
+            result = runner.invoke(app, ["run", "Fix the bug", "--sandbox", "local"])
+
+        assert result.exit_code == 1
+        assert "--sandbox docker" in result.output
+        mock_exec.assert_not_called()
+
+    def test_docker_runs_where_the_local_shell_cannot(self) -> None:
+        with (
+            patch("apps.cli.main._runs_local_commands", return_value=False),
+            patch("apps.cli.run.execute_headless", new_callable=AsyncMock) as mock_exec,
+        ):
+            mock_exec.return_value = 0
+            result = runner.invoke(app, ["run", "Fix the bug", "--sandbox", "docker"])
+
+        assert result.exit_code == 0
+        mock_exec.assert_called_once()
+
     def test_no_task_or_file(self) -> None:
         result = runner.invoke(app, ["run"])
         assert result.exit_code == 1
@@ -121,11 +145,36 @@ class TestExecuteHeadless:
         # pydantic-ai 2.0: `result.usage` is a property, not a method.
         mock_result.usage = mock_usage
         agent.run = AsyncMock(return_value=mock_result)
+        agent._cli_workspace_cleanup = AsyncMock()
         return agent
 
     @pytest.fixture()
     def mock_deps(self) -> MagicMock:
         return MagicMock()
+
+    async def test_the_session_workspace_is_cleaned_up(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            await execute_headless(task="Fix the bug", working_dir="/tmp")
+
+        mock_agent._cli_workspace_cleanup.assert_awaited_once_with()
+
+    async def test_the_run_works_in_the_session_workspace(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        """Passed, not left to the capability, so it overrides a ref in a history."""
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            await execute_headless(task="Fix the bug", working_dir="/tmp")
+
+        assert mock_agent.run.await_args.kwargs["workspace"] is mock_agent._cli_workspace
+
+    async def test_a_kept_workspace_needs_no_cleanup(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        mock_agent._cli_workspace_cleanup = None
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            assert await execute_headless(task="Fix the bug", working_dir="/tmp") == 0
 
     async def test_basic_run(
         self, mock_agent: MagicMock, mock_deps: MagicMock, capsys: pytest.CaptureFixture[str]

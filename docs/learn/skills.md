@@ -36,7 +36,7 @@ Now the agent. Point it at the folder that contains the skill:
 ```python hl_lines="13 14 15"
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -51,7 +51,7 @@ async def main():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "I just fixed a null-pointer crash in the auth login flow. "
@@ -170,11 +170,11 @@ agent = create_deep_agent(
 )
 ```
 
-!!! note "Skills in other backends"
-    `skill_directories` reads local files. To discover skills stored in an
-    in-memory `StateBackend`, a `DockerSandbox`, or remote storage, use
-    [`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory]
-    instead — same idea, routed through the backend. See
+!!! note "Skills in the workspace"
+    `skill_directories` reads local files. To discover skills stored where the
+    agent works — its Docker container, its sandbox, its in-memory document — use
+    [`WorkspaceSkillsDirectory`][pydantic_deep.features.skills.workspace.WorkspaceSkillsDirectory]
+    instead — same idea, read through the run's workspace. See
     [Concepts: Skills](../concepts/skills.md) for the full rundown.
 
 ## Recap

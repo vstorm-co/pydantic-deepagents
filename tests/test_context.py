@@ -4,7 +4,6 @@ import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend, ensure_async
 
 from pydantic_deep import (
     DEFAULT_CONTEXT_FILENAMES,
@@ -19,19 +18,14 @@ from pydantic_deep import (
     load_context_files,
 )
 from pydantic_deep.features.context.service import _discover_and_load
+from tests.workspaces import Document, as_workspace, run_context
 
 TEST_MODEL = TestModel()
 
 
-def _make_ctx(backend: StateBackend | None = None) -> RunContext[DeepAgentDeps]:
-    """Create a RunContext with DeepAgentDeps for testing."""
-    b = backend or StateBackend()
-    deps = DeepAgentDeps(backend=b)
-    return RunContext(
-        deps=deps,
-        model=TEST_MODEL,
-        usage=RunUsage(),
-    )
+def _make_ctx(backend: Document | None = None) -> RunContext[DeepAgentDeps]:
+    """Create a RunContext whose workspace holds `backend`'s files."""
+    return run_context(DeepAgentDeps(), as_workspace(backend or Document()))
 
 
 class TestContextFile:
@@ -50,10 +44,10 @@ class TestLoadContextFiles:
 
     async def test_load_existing_file(self):
         """Test loading an existing context file."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "# Project Rules\nUse Python 3.12")
 
-        files = await load_context_files(ensure_async(backend), ["/DEEP.md"])
+        files = await load_context_files(as_workspace(backend), ["/DEEP.md"])
         assert len(files) == 1
         assert files[0].name == "DEEP.md"
         assert files[0].path == "/DEEP.md"
@@ -61,51 +55,51 @@ class TestLoadContextFiles:
 
     async def test_load_multiple_files(self):
         """Test loading multiple context files."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "# Deep rules")
         backend.write("/AGENTS.md", "# Agent instructions")
 
-        files = await load_context_files(ensure_async(backend), ["/DEEP.md", "/AGENTS.md"])
+        files = await load_context_files(as_workspace(backend), ["/DEEP.md", "/AGENTS.md"])
         assert len(files) == 2
         assert files[0].name == "DEEP.md"
         assert files[1].name == "AGENTS.md"
 
     async def test_skip_missing_files(self):
         """Test that missing files are silently skipped."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "# Exists")
 
-        files = await load_context_files(ensure_async(backend), ["/DEEP.md", "/MISSING.md"])
+        files = await load_context_files(as_workspace(backend), ["/DEEP.md", "/MISSING.md"])
         assert len(files) == 1
         assert files[0].name == "DEEP.md"
 
     async def test_all_missing(self):
         """Test that all missing files returns empty list."""
-        backend = StateBackend()
-        files = await load_context_files(ensure_async(backend), ["/MISSING.md", "/ALSO_MISSING.md"])
+        backend = Document()
+        files = await load_context_files(as_workspace(backend), ["/MISSING.md", "/ALSO_MISSING.md"])
         assert files == []
 
     async def test_empty_paths(self):
         """Test with empty paths list."""
-        backend = StateBackend()
-        files = await load_context_files(ensure_async(backend), [])
+        backend = Document()
+        files = await load_context_files(as_workspace(backend), [])
         assert files == []
 
     async def test_utf8_content(self):
         """Test loading file with non-ASCII content."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "# Projekt\nUżyj polskich znaków: ąęćżź")
 
-        files = await load_context_files(ensure_async(backend), ["/DEEP.md"])
+        files = await load_context_files(as_workspace(backend), ["/DEEP.md"])
         assert len(files) == 1
         assert "ąęćżź" in files[0].content
 
     async def test_nested_path(self):
         """Test loading file from nested path."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/project/config/DEEP.md", "# Nested")
 
-        files = await load_context_files(ensure_async(backend), ["/project/config/DEEP.md"])
+        files = await load_context_files(as_workspace(backend), ["/project/config/DEEP.md"])
         assert len(files) == 1
         assert files[0].name == "DEEP.md"
         assert files[0].path == "/project/config/DEEP.md"
@@ -116,25 +110,25 @@ class TestDiscoverContextFiles:
 
     async def test_discover_at_root(self):
         """Test discovering context files at root."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agents")
 
-        found = await discover_context_files(ensure_async(backend))
+        found = await discover_context_files(as_workspace(backend))
         # Root discovery yields relative paths (readable by both Local and State backends).
         assert "AGENTS.md" in found
 
     async def test_discover_partial(self):
         """Test discovering when only some files exist."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agents")
 
-        found = await discover_context_files(ensure_async(backend))
+        found = await discover_context_files(as_workspace(backend))
         assert found == ["AGENTS.md"]
 
     async def test_discover_none_found(self):
         """Test discovering when no files exist."""
-        backend = StateBackend()
-        found = await discover_context_files(ensure_async(backend))
+        backend = Document()
+        found = await discover_context_files(as_workspace(backend))
         assert found == []
 
     async def test_discover_at_root_works_with_local_backend(self, tmp_path):
@@ -144,20 +138,33 @@ class TestDiscoverContextFiles:
         root and silently found nothing — so AGENTS.md/CLAUDE.md/SOUL.md were
         never injected in the CLI or benchmark.
         """
-        from pydantic_ai_backends import LocalBackend
+        from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
 
         (tmp_path / "AGENTS.md").write_text("# Project rules")
-        found = await discover_context_files(ensure_async(LocalBackend(root_dir=str(tmp_path))))
+        found = await discover_context_files(Workspace(LocalWorkspaceBackend(tmp_path)))
         assert found == ["AGENTS.md"]
+
+    async def test_an_unreadable_file_is_skipped_with_a_warning(self, tmp_path, caplog):
+        from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
+
+        secret = tmp_path / "AGENTS.md"
+        secret.write_text("# Project rules")
+        secret.chmod(0)
+        try:
+            found = await discover_context_files(Workspace(LocalWorkspaceBackend(tmp_path)))
+        finally:
+            secret.chmod(0o644)
+        assert found == []
+        assert "Skipping context file AGENTS.md" in caplog.text
 
     async def test_discover_custom_filenames(self):
         """Test discovering with custom filenames."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/CUSTOM.md", "# Custom")
         backend.write("/RULES.md", "# Rules")
 
         found = await discover_context_files(
-            ensure_async(backend), filenames=["CUSTOM.md", "RULES.md", "MISSING.md"]
+            as_workspace(backend), filenames=["CUSTOM.md", "RULES.md", "MISSING.md"]
         )
         assert "CUSTOM.md" in found
         assert "RULES.md" in found
@@ -165,18 +172,18 @@ class TestDiscoverContextFiles:
 
     async def test_discover_custom_search_path(self):
         """Test discovering at a custom search path."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/project/AGENTS.md", "# Agents")
 
-        found = await discover_context_files(ensure_async(backend), search_path="/project")
+        found = await discover_context_files(as_workspace(backend), search_path="/project")
         assert found == ["/project/AGENTS.md"]
 
     async def test_discover_trailing_slash(self):
         """Test that trailing slash is handled correctly."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/project/AGENTS.md", "# Agents")
 
-        found = await discover_context_files(ensure_async(backend), search_path="/project/")
+        found = await discover_context_files(as_workspace(backend), search_path="/project/")
         assert found == ["/project/AGENTS.md"]
 
 
@@ -185,27 +192,27 @@ class TestDiscoverAndLoad:
 
     async def test_returns_loaded_files(self):
         """Test discovery and loading in one pass."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agents")
         backend.write("/SOUL.md", "# Soul")
 
-        files = await _discover_and_load(ensure_async(backend))
+        files = await _discover_and_load(as_workspace(backend))
         names = {f.name for f in files}
         assert "AGENTS.md" in names
         assert "SOUL.md" in names
 
     async def test_none_found(self):
         """Test empty backend returns empty list."""
-        backend = StateBackend()
-        assert await _discover_and_load(ensure_async(backend)) == []
+        backend = Document()
+        assert await _discover_and_load(as_workspace(backend)) == []
 
     async def test_custom_filenames_and_search_path(self):
         """Test custom filenames and search path with trailing slash."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/project/CUSTOM.md", "# Custom")
 
         files = await _discover_and_load(
-            ensure_async(backend), search_path="/project/", filenames=["CUSTOM.md", "MISSING.md"]
+            as_workspace(backend), search_path="/project/", filenames=["CUSTOM.md", "MISSING.md"]
         )
         assert len(files) == 1
         assert files[0].name == "CUSTOM.md"
@@ -310,7 +317,7 @@ class TestContextToolset:
 
     async def test_get_instructions_explicit_files(self):
         """Test get_instructions with explicit context_files."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "# Project Rules")
         ctx = _make_ctx(backend)
 
@@ -325,7 +332,7 @@ class TestContextToolset:
 
     async def test_get_instructions_discovery(self):
         """Test get_instructions with auto-discovery."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agent instructions")
         ctx = _make_ctx(backend)
 
@@ -354,7 +361,7 @@ class TestContextToolset:
 
     async def test_get_instructions_subagent(self):
         """Test get_instructions with is_subagent=True filters files."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agents")
         backend.write("/SOUL.md", "# Soul")
         ctx = _make_ctx(backend)
@@ -372,7 +379,7 @@ class TestContextToolset:
 
     async def test_get_instructions_subagent_all_filtered(self):
         """Test subagent with only non-allowed files returns None."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/SOUL.md", "# Soul")
         ctx = _make_ctx(backend)
 
@@ -385,7 +392,7 @@ class TestContextToolset:
 
     async def test_get_instructions_custom_max_chars(self):
         """Test get_instructions respects max_chars."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/DEEP.md", "x" * 30_000)
         ctx = _make_ctx(backend)
 
@@ -404,17 +411,9 @@ class TestContextToolset:
         result = await toolset.get_instructions(ctx)
         assert result is None
 
-    async def test_get_instructions_no_backend_returns_none(self):
-        """Test get_instructions returns None when deps has no backend attribute."""
-
-        class _NoBackendDeps:
-            pass
-
-        ctx = RunContext(
-            deps=_NoBackendDeps(),
-            model=TEST_MODEL,
-            usage=RunUsage(),
-        )
+    async def test_get_instructions_without_a_workspace_returns_none(self):
+        """A run with no workspace attached has no context files to read."""
+        ctx = RunContext(deps=DeepAgentDeps(), model=TEST_MODEL, usage=RunUsage())
 
         toolset = ContextToolset(context_discovery=True)
         result = await toolset.get_instructions(ctx)
@@ -424,12 +423,12 @@ class TestContextToolset:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test discovery reads each context file's bytes only once."""
-        backend = StateBackend()
+        backend = Document()
         backend.write("/AGENTS.md", "# Agents")
         ctx = _make_ctx(backend)
 
         read_counts: dict[str, int] = {}
-        # read_bytes is the sync read that AsyncBackendAdapter delegates to.
+        # The document's read_bytes is what the workspace backend reads through.
         original_read = backend.read_bytes
 
         def _counting_read(path: str) -> bytes:
@@ -444,8 +443,8 @@ class TestContextToolset:
 
         assert result is not None
         # Found files must be read exactly once, not once to test existence and
-        # again to load contents. Discovery uses the relative path at root.
-        assert read_counts["AGENTS.md"] == 1
+        # again to load contents.
+        assert read_counts["/AGENTS.md"] == 1
 
 
 class TestCreateDeepAgentContext:

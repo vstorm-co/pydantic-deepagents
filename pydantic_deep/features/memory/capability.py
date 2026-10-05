@@ -35,7 +35,7 @@ class MemoryCapability(AbstractCapability[DeepAgentDeps]):
     max_lines: int = 200
     max_tokens: int | None = None
     pin_marker: str = DEFAULT_PIN_END_MARKER
-    _toolset: AgentMemoryToolset | None = field(default=None, init=False, repr=False)
+    _toolset: AgentMemoryToolset = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._toolset = AgentMemoryToolset(
@@ -53,9 +53,7 @@ class MemoryCapability(AbstractCapability[DeepAgentDeps]):
         toolset = self._toolset
 
         async def _instructions(ctx: RunContext[DeepAgentDeps]) -> str | None:
-            if toolset is None or not hasattr(ctx.deps, "backend"):
-                return None
-            parts = await toolset.get_instructions(ctx)  # pragma: no cover
-            return "\n\n".join(p.content for p in parts) if parts else None  # pragma: no cover
+            parts = await toolset.get_instructions(ctx)
+            return "\n\n".join(p.content for p in parts) if parts else None
 
         return _instructions

@@ -5,14 +5,16 @@ Some commands never really finish: a log you're tailing, a test runner in watch 
 ```python
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps
-from pydantic_ai_backends import LocalBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps, LocalWorkspace
 
 
 async def main():
-    agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
+    agent = create_deep_agent(
+        model="anthropic:claude-sonnet-4-6",
+        workspace=LocalWorkspace("/tmp/monitor-demo"),
+    )
 
-    deps = DeepAgentDeps(backend=LocalBackend(root_dir="/tmp/monitor-demo"))
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Start a monitor on this command, watching only for ERROR lines:\n"
@@ -78,19 +80,19 @@ stop_monitor(monitor_id)
 
 Stops the watch loop and kills the underlying process. Idempotent-ish: stopping an unknown id just tells you it doesn't exist.
 
-!!! warning "Monitors need a background-capable backend"
-    A monitor spawns a real long-lived process, so it needs a backend that
-    supports background execution — `LocalBackend`
-    or a `DockerSandbox`. On a plain `StateBackend`
-    the tools don't crash; they return a clear "this backend can't run background
-    processes" message and the agent moves on. That's why the example above uses
-    `LocalBackend`.
+!!! warning "Monitors need a workspace that runs commands"
+    A monitor runs a real long-lived process in the run's workspace, with its
+    output going to a log under `.deep/monitors/`, so it needs a workspace that
+    runs commands — `LocalWorkspace`, `DockerWorkspace` or another sandbox. In
+    the default `StateWorkspace` the tools don't crash; they return a clear
+    message and the agent moves on. That's why the example above uses
+    `LocalWorkspace`.
 
 ## How the react path works
 
 This is the part that makes it feel magic. The watch loop and the conversation are connected by the **message queue**.
 
-1. `MonitorManager` polls the background process and collects new lines since the last poll.
+1. `MonitorManager` reads the command's log on an interval and collects new lines since the last read.
 2. It filters them through your `match` regex and, for each non-empty batch, emits a `MonitorEvent`.
 3. The event hits the manager's **`on_event` sink**. By default `create_monitor_toolset` wires that sink to `ctx.deps.message_queue`: each event becomes a steering message via [`queue.steer()`][pydantic_deep.features.message_queue.MessageQueue.steer], tagged with `metadata={"source": "monitor", ...}`.
 4. Steering messages are delivered **before the next model call**, so the agent sees the new output as part of the ongoing turn and reacts — no extra `agent.run()`, no polling tool calls.
@@ -107,18 +109,18 @@ When the process finally exits, one last event with `running=False` is pushed, s
     The monitor toolset is included automatically (`include_monitoring=True` on
     [`create_deep_agent`][pydantic_deep.create_deep_agent]). Pass
     `include_monitoring=False` to leave it out. Because the tools no-op cleanly
-    without a background backend, it's safe to keep on everywhere.
+    in a workspace without commands, it's safe to keep on everywhere.
 
 ## Recap
 
 - A **monitor** runs a long-lived command in the background and reports new output instead of blocking or polling.
 - Three tools: **`start_monitor`** (with an optional `match` regex), **`list_monitors`**, **`stop_monitor`**.
-- It needs a **background-capable backend** — `LocalBackend` or a sandbox, not `StateBackend`.
+- It needs a **workspace that runs commands** — `LocalWorkspace` or a sandbox, not the default `StateWorkspace`.
 - New output reaches the agent through the **message queue**: each `MonitorEvent` becomes a steering message delivered before the next model call, so the agent **reacts** with no polling.
 - A final `running=False` event tells the agent when the process exits.
 
 Where to go next:
 
 - [Message queue & steering →](message-queue.md) — the delivery channel monitors ride on.
-- [Files & the shell →](../learn/files-and-shell.md) — backends and background execution.
+- [Files & the shell →](../learn/files-and-shell.md) — workspaces and the shell.
 - [`create_monitor_toolset`][pydantic_deep.features.monitoring.create_monitor_toolset] in the API reference.

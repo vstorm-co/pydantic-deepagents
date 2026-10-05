@@ -8,16 +8,16 @@ The `liteparse` feature gives your agent two tools: one that pulls the **text** 
 
 Flip a single flag on [`create_deep_agent`][pydantic_deep.agent.create_deep_agent]:
 
-```python hl_lines="7"
-from pydantic_deep import create_deep_agent, create_default_deps
-from pydantic_ai_backends import LocalBackend
+```python hl_lines="5"
+from pydantic_deep import create_deep_agent, create_default_deps, LocalWorkspace
 
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",
     include_liteparse=True,
+    workspace=LocalWorkspace("."),
 )
 
-deps = create_default_deps(LocalBackend(root_dir="."))
+deps = create_default_deps()
 result = await agent.run(
     "Parse report.pdf and summarize the key findings.",
     deps=deps,
@@ -27,9 +27,9 @@ print(result.output)
 
 The agent now has `parse_document` and `screenshot_document` alongside its usual files and shell. When the prompt mentions `report.pdf`, it reaches for `parse_document`, gets the text back, and writes you a summary — no plumbing on your side.
 
-!!! info "Use a real backend"
-    Document parsing reads files from the agent's backend. Use a `LocalBackend`
-    (or any backend with real bytes behind it), not the in-memory `StateBackend`,
+!!! info "Parse files where they are"
+    Document parsing reads files from the run's workspace. Use a `LocalWorkspace`
+    (or a sandbox holding your files), or upload them with `deps.upload_file`,
     so the files you want to parse are actually there.
 
 ## The two tools
@@ -37,11 +37,11 @@ The agent now has `parse_document` and `screenshot_document` alongside its usual
 | Tool | What it does |
 |------|--------------|
 | `parse_document` | Extracts the full text of a document, layout preserved, with OCR for scanned pages. Returns the text (prefixed with the page count). |
-| `screenshot_document` | Renders pages to PNG images, saves them to the backend, and returns the saved paths. Great for visual inspection or handing pages to a multimodal model. |
+| `screenshot_document` | Renders pages to PNG images, saves them to the workspace, and returns the saved paths. Great for visual inspection or handing pages to a multimodal model. |
 
 You don't call these yourself — the agent does, when the task calls for it. Ask it to "read", "summarize", or "extract" and it parses; ask it to "show me page 3" or "screenshot the cover" and it renders.
 
-`parse_document` takes a single `path` into the backend filesystem. `screenshot_document` takes a `path`, an optional `output_dir` (defaults to `/screenshots`), and an optional `target_pages` like `"1-5"` or `"1,3,5"` (omit it for every page).
+`parse_document` takes a single `path` in the workspace. `screenshot_document` takes a `path`, an optional `output_dir` (defaults to `screenshots`), and an optional `target_pages` like `"1-5"` or `"1,3,5"` (omit it for every page).
 
 ## Supported formats
 
@@ -143,14 +143,14 @@ The LiteParse repo ships [reference OCR servers](https://github.com/run-llama/li
 ## Good to know
 
 - `parse_document` streams the file's bytes to the CLI over stdin — no temp file is written for PDFs.
-- `screenshot_document` writes a temp file, renders it, then copies the PNGs into your backend under `output_dir`.
+- `screenshot_document` writes a temp file, renders it, then copies the PNGs into the workspace under `output_dir`.
 - The first call in a process can be slow — Node.js plus the PDF engine has a cold start. Later calls reuse the same parser instance and are quick.
 - Missing the extra or the CLI? The tools return a clear message telling the agent (and you) exactly what to install, rather than crashing the run.
 
 ## Recap
 
 - `include_liteparse=True` hands your agent `parse_document` and `screenshot_document` — local document parsing, no cloud.
-- `parse_document` extracts text (with OCR) from PDF, DOCX, XLSX, PPTX, ODF, and images; `screenshot_document` renders PDFs and images to PNGs in the backend.
+- `parse_document` extracts text (with OCR) from PDF, DOCX, XLSX, PPTX, ODF, and images; `screenshot_document` renders PDFs and images to PNGs in the workspace.
 - It needs Node.js >= 18, the `@llamaindex/liteparse@^1.2.0` CLI (1.x — 2.x dropped the async API), and the `pydantic-deep[liteparse]` extra — pre-install the CLI in Docker.
 - For OCR language, DPI, or a custom OCR server, build [`LiteparseToolset`][pydantic_deep.LiteparseToolset] directly instead of the flag.
 

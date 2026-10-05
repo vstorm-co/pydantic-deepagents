@@ -6,12 +6,12 @@ from dataclasses import dataclass
 
 
 class MemoryAccessError(Exception):
-    """The backend denied access to the memory path.
+    """The workspace refused the memory path.
 
     Raised by `load_memory` when a read fails for a reason other than the
-    file being missing or empty (e.g. the memory directory is outside the
-    backend's allowed directories). This keeps a genuine permission/backend
-    failure distinguishable from "no memory saved yet" — see issue #135.
+    file being missing or empty (permission denied, or a directory where the
+    file should be). This keeps a genuine permission failure distinguishable
+    from "no memory saved yet" — see issue #135.
     """
 
 
@@ -22,6 +22,6 @@ class MemoryFile:
     agent_name: str
     """Agent that owns this memory: "main", "code-reviewer", etc."""
     path: str
-    """Full path in backend: "/.deep/memory/main/MEMORY.md"."""
+    """Path in the workspace: ".deep/memory/main/MEMORY.md"."""
     content: str
     """Memory file content."""

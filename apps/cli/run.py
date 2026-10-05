@@ -131,6 +131,7 @@ async def execute_headless(  # noqa: C901
     try:
         run_kwargs: dict[str, Any] = {
             "usage_limits": DEFAULT_USAGE_LIMITS,
+            "workspace": agent._cli_workspace,
         }
         if max_turns is not None:
             run_kwargs["max_turns"] = max_turns
@@ -179,9 +180,10 @@ async def execute_headless(  # noqa: C901
 
         return 0
     finally:
-        # Stop Docker container if sandbox backend was used
-        if hasattr(deps.backend, "stop"):
-            deps.backend.stop()
+        # Remove the session's own Docker container; a named one is kept.
+        cleanup = getattr(agent, "_cli_workspace_cleanup", None)
+        if cleanup is not None:
+            await cleanup()
 
 
 async def _run_verbose(agent: Any, task: str, deps: Any, run_kwargs: dict[str, Any]) -> Any:

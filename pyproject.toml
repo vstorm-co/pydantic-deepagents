@@ -1,6 +1,6 @@
 [project]
 name = "pydantic-deep"
-version = "0.3.42"
+version = "0.3.45"
 description = "Batteries-included agent harness for Python — tool-calling, sandboxed execution, multi-agent teams, and unlimited context on Pydantic AI"
 readme = "README.md"
 keywords = [
@@ -40,11 +40,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pydantic-ai-slim[web-fetch]>=2.0.0",
+    # `duckduckgo` for the local search fallback `web_search=True` (the default)
+    # builds for a model without a native search tool.
+    "pydantic-ai-slim[web-fetch,duckduckgo]>=2.52.0",
     "pydantic-ai-todo>=0.2.7",
-    "pydantic-ai-backend[console]>=0.2.18",
+    "pydantic-ai-backend[console,workspaces]>=0.2.33",
     "summarization-pydantic-ai>=0.1.11",
-    "subagents-pydantic-ai>=0.2.12",
+    "subagents-pydantic-ai>=0.2.25",
     "pydantic-ai-shields>=0.3.4",
     "pydantic>=2.0",
     "chardet>=5.0.0",
@@ -52,7 +54,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker]>=0.2.18"]
+sandbox = ["pydantic-ai-backend[docker,workspaces]>=0.2.33"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)
@@ -63,7 +65,7 @@ cli = [
     "prompt-toolkit>=3.0.0",
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
-    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=2.0.0",
+    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=2.52.0",
     # Enables read_file image downscaling (backend resizes oversized images);
     # a graceful no-op in the backend when absent.
     "pillow>=10.0.0",
@@ -75,7 +77,7 @@ tui = [
     "rich>=13.0.0",
     "tomli>=2.0; python_version < '3.11'",
     "python-dotenv>=1.0.0",
-    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=2.0.0",
+    "pydantic-ai-slim[anthropic,openai,openrouter,web-fetch,duckduckgo]>=2.52.0",
 ]
 # Web server support (for full_app example)
 web = [
@@ -90,7 +92,7 @@ browser = [
 ]
 # MCP (Model Context Protocol) client support — connect to MCP servers.
 # py-key-value-aio[disk] persists OAuth tokens (e.g. hosted Figma) across runs.
-mcp = ["pydantic-ai-slim[mcp]>=2.0.0", "py-key-value-aio[disk]>=0.4.5"]
+mcp = ["pydantic-ai-slim[mcp]>=2.52.0", "py-key-value-aio[disk]>=0.4.5"]
 # Document parsing via LiteParse (requires Node.js >= 18).
 # Upper bound: 2.x dropped the async API (parse_async/screenshot_async) the toolset uses.
 liteparse = ["liteparse>=1.1.0,<2.0.0"]
@@ -100,7 +102,7 @@ acp = ["agent-client-protocol>=0.8.0"]
 logfire = ["logfire>=4.0"]
 # Google models (Gemini) via both the Developer API (google-gla) and Vertex AI
 # (google-vertex). Both providers are backed by the same google-genai SDK.
-google = ["pydantic-ai-slim[google]>=2.0.0"]
+google = ["pydantic-ai-slim[google]>=2.52.0"]
 # All optional dependencies
 all = [
     "pydantic-deep[sandbox,cli,web,yaml,acp,logfire,browser,liteparse,mcp,google]",
@@ -108,7 +110,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/vstorm-co/pydantic-deepagents"
-Documentation = "https://github.com/vstorm-co/pydantic-deepagents"
+Documentation = "https://vstorm-co.github.io/pydantic-deepagents/"
 Repository = "https://github.com/vstorm-co/pydantic-deepagents"
 Issues = "https://github.com/vstorm-co/pydantic-deepagents/issues"
 

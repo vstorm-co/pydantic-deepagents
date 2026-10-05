@@ -322,7 +322,7 @@ class DeepApp(App):
         log.info("Reconfiguring agent", model=effective, fallback=effective_fallback)
         self.notify(f"Configuring {effective}…", severity="information")
         # create_cli_agent does heavy blocking work (config loads, MCP server
-        # construction, DockerSandbox startup, git subprocesses). Run it off the
+        # construction, git subprocesses). Run it off the
         # event loop so the TUI stays responsive, then apply on the main thread (C2).
         self.run_worker(
             lambda: self._reconfigure_worker(effective, effective_fallback),

@@ -23,14 +23,14 @@ playwright install chromium
 The browser is a [capability](capabilities.md). Add one to your agent and the tools appear:
 
 ```python hl_lines="2 5"
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 from pydantic_deep.features.browser import BrowserCapability
 
 agent = create_deep_agent(
     capabilities=[BrowserCapability()],
 )
 
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 ```
 
 ## Run it

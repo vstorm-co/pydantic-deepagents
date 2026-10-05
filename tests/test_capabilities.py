@@ -128,17 +128,33 @@ class TestInstructionCallables:
         assert result is None or result == ""
 
     @pytest.mark.anyio
-    async def test_context_instructions_no_backend(self):
+    async def test_context_instructions_without_a_workspace(self):
+        from tests.workspaces import run_context
+
         cap = ContextFilesCapability(context_files=["/test.md"])
-        fn = cap.get_instructions()
-        ctx = type("Ctx", (), {"deps": None})()
-        result = await fn(ctx)
-        assert result is None
+        assert await cap.get_instructions()(run_context()) is None
 
     @pytest.mark.anyio
-    async def test_memory_instructions_no_backend(self):
+    async def test_context_instructions_read_the_workspace(self):
+        from tests.workspaces import run_context, state_workspace
+
+        cap = ContextFilesCapability(context_files=["/test.md"])
+        ctx = run_context(workspace=state_workspace({"/test.md": "# Rules"}))
+        assert "# Rules" in await cap.get_instructions()(ctx)
+
+    @pytest.mark.anyio
+    async def test_memory_instructions_without_a_workspace(self):
+        from tests.workspaces import run_context
+
         cap = MemoryCapability()
-        fn = cap.get_instructions()
-        ctx = type("Ctx", (), {"deps": None})()
-        result = await fn(ctx)
-        assert result is None
+        assert await cap.get_instructions()(run_context()) is None
+
+    @pytest.mark.anyio
+    async def test_memory_instructions_read_the_workspace(self):
+        from tests.workspaces import run_context, state_workspace
+
+        cap = MemoryCapability()
+        ctx = run_context(
+            workspace=state_workspace({"/.deep/memory/main/MEMORY.md": "- likes csv"})
+        )
+        assert "likes csv" in await cap.get_instructions()(ctx)

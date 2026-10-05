@@ -9,7 +9,6 @@ import pytest
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import (
     AgentTeam,
@@ -29,10 +28,9 @@ from pydantic_deep.types import Todo
 TEST_MODEL = TestModel()
 
 
-def _make_ctx(backend: StateBackend | None = None) -> RunContext[DeepAgentDeps]:
+def _make_ctx() -> RunContext[DeepAgentDeps]:
     """Create a RunContext with DeepAgentDeps for testing."""
-    b = backend or StateBackend()
-    deps = DeepAgentDeps(backend=b)
+    deps = DeepAgentDeps()
     return RunContext(
         deps=deps,
         model=TEST_MODEL,

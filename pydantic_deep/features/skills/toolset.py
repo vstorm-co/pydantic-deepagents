@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import json
 import warnings
+import weakref
 from collections.abc import Callable
 from inspect import signature as get_signature
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from xml.sax.saxutils import escape as xml_escape
 from xml.sax.saxutils import quoteattr
 
@@ -27,7 +28,6 @@ from pydantic_ai._run_context import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
 
-from .backend import BackendSkillsDirectory
 from .directory import SkillsDirectory
 from .exceptions import SkillNotFoundError, SkillValidationError
 from .types import (
@@ -38,6 +38,10 @@ from .types import (
     SkillWrapper,
     normalize_skill_name,
 )
+from .workspace import WorkspaceSkillsDirectory
+
+if TYPE_CHECKING:
+    from pydantic_ai.workspaces import Workspace
 
 # Default instruction template for skills system prompt
 _INSTRUCTION_SKILLS_HEADER = """\
@@ -154,7 +158,7 @@ class SkillsToolset(FunctionToolset):
         self,
         *,
         skills: list[Skill] | None = None,
-        directories: list[str | Path | SkillsDirectory | BackendSkillsDirectory] | None = None,
+        directories: list[str | Path | SkillsDirectory | WorkspaceSkillsDirectory] | None = None,
         validate: bool = True,
         max_depth: int | None = 3,
         id: str | None = None,
@@ -168,7 +172,8 @@ class SkillsToolset(FunctionToolset):
             skills: List of pre-loaded Skill objects. Can be combined with `directories`.
             directories: List of directories or SkillsDirectory instances to discover
                 skills from. Can be combined with `skills`. If both are None,
-                defaults to `["./skills"]`.
+                defaults to `["./skills"]`. A `WorkspaceSkillsDirectory` is
+                discovered in each run's workspace on first use there.
             validate: Validate skill structure during discovery.
             max_depth: Maximum depth for skill discovery (None for unlimited).
             id: Unique identifier for this toolset.
@@ -208,7 +213,12 @@ class SkillsToolset(FunctionToolset):
 
         # Initialize the skills dict and directories list
         self._skills: dict[str, Skill] = {}
-        self._skill_directories: list[SkillsDirectory | BackendSkillsDirectory] = []
+        self._skill_directories: list[SkillsDirectory] = []
+        self._workspace_directories: list[WorkspaceSkillsDirectory] = []
+        # Weak, so a finished workspace is not kept alive by its skills.
+        self._discovered: weakref.WeakKeyDictionary[Workspace, dict[str, Skill]] = (
+            weakref.WeakKeyDictionary()
+        )
         self._validate = validate
         self._max_depth = max_depth
 
@@ -260,11 +270,14 @@ class SkillsToolset(FunctionToolset):
         return self._skills[name]
 
     def _load_directory_skills(
-        self, directories: list[str | Path | SkillsDirectory | BackendSkillsDirectory]
+        self, directories: list[str | Path | SkillsDirectory | WorkspaceSkillsDirectory]
     ) -> None:
-        """Load skills from configured directories."""
+        """Load skills from configured directories; workspace ones wait for a run."""
         for directory in directories:
-            if isinstance(directory, (SkillsDirectory, BackendSkillsDirectory)):
+            if isinstance(directory, WorkspaceSkillsDirectory):
+                self._workspace_directories.append(directory)
+                continue
+            if isinstance(directory, SkillsDirectory):
                 skill_dir = directory
             else:
                 skill_dir = SkillsDirectory(
@@ -288,6 +301,33 @@ class SkillsToolset(FunctionToolset):
                         stacklevel=3,
                     )
                 self._skills[skill_name] = skill
+
+    async def _available(self, ctx: RunContext[Any]) -> dict[str, Skill]:
+        """The skills this run can use: the loaded ones and its workspace's.
+
+        A workspace's skills are discovered on its first use and kept for as
+        long as the workspace lives, so a skill added during a run appears in
+        the next workspace, not this one. A workspace skill named like a loaded
+        one replaces it, as a later directory does.
+        """
+        if not self._workspace_directories or not ctx.workspace.attached:
+            return self._skills
+        workspace = ctx.workspace
+        found = self._discovered.get(workspace)
+        if found is None:
+            found = dict(self._skills)
+            for directory in self._workspace_directories:
+                for name, skill in (await directory.discover(workspace)).items():
+                    if name in found and found[name].content != skill.content:
+                        warnings.warn(
+                            f"Duplicate skill '{name}' found in the workspace. "
+                            "Overriding previous occurrence.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+                    found[name] = skill
+            self._discovered[workspace] = found
+        return found
 
     def _build_node_xml(self, node: SkillResource | SkillScript, tag: str) -> str:
         """Build the XML representation of a skill resource or script."""
@@ -334,10 +374,11 @@ class SkillsToolset(FunctionToolset):
 
         @self.tool(description=self._descs.get("list_skills", LIST_SKILLS_DESCRIPTION))
         async def list_skills(
-            _ctx: RunContext[Any],
+            ctx: RunContext[Any],
         ) -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
             """Get an overview of all available skills."""
-            return {name: skill.description for name, skill in self._skills.items()}
+            skills = await self._available(ctx)
+            return {name: skill.description for name, skill in skills.items()}
 
     def _register_load_skill(self) -> None:
         """Register the load_skill tool."""
@@ -352,12 +393,12 @@ class SkillsToolset(FunctionToolset):
             Args:
                 skill_name: Exact name from your available skills list.
             """
-            _ = ctx
-            if skill_name not in self._skills:
-                available = ", ".join(sorted(self._skills.keys())) or "none"
+            skills = await self._available(ctx)
+            if skill_name not in skills:
+                available = ", ".join(sorted(skills.keys())) or "none"
                 return f"Error: Skill '{skill_name}' not found. Available: {available}"
 
-            skill = self._skills[skill_name]
+            skill = skills[skill_name]
 
             resources_parts = [self._build_node_xml(res, "resource") for res in skill.resources]
             resources_list = (
@@ -394,11 +435,12 @@ class SkillsToolset(FunctionToolset):
                 resource_name: Exact name of the resource as listed in the skill.
                 args: Arguments for callable resources (optional for static files).
             """
-            if skill_name not in self._skills:
-                available_skills = ", ".join(sorted(self._skills.keys())) or "none"
+            skills = await self._available(ctx)
+            if skill_name not in skills:
+                available_skills = ", ".join(sorted(skills.keys())) or "none"
                 return f"Error: Skill '{skill_name}' not found. Available: {available_skills}"
 
-            skill = self._skills[skill_name]
+            skill = skills[skill_name]
             resource = self._find_skill_resource(skill, resource_name)
 
             if resource is None:
@@ -427,11 +469,12 @@ class SkillsToolset(FunctionToolset):
                 script_name: Exact name of the script as listed in the skill.
                 args: Arguments required by the script.
             """
-            if skill_name not in self._skills:
-                available_skills = ", ".join(sorted(self._skills.keys())) or "none"
+            skills = await self._available(ctx)
+            if skill_name not in skills:
+                available_skills = ", ".join(sorted(skills.keys())) or "none"
                 return f"Error: Skill '{skill_name}' not found. Available: {available_skills}"
 
-            skill = self._skills[skill_name]
+            skill = skills[skill_name]
             script = self._find_skill_script(skill, script_name)
 
             if script is None:
@@ -452,12 +495,13 @@ class SkillsToolset(FunctionToolset):
         Returns:
             The skills system prompt, or None if no skills are loaded.
         """
-        if not self._skills:
+        skills = await self._available(ctx)
+        if not skills:
             return None
 
         # Build skills list in XML format
         skills_list_lines: list[str] = []
-        for skill in sorted(self._skills.values(), key=lambda s: s.name):
+        for skill in sorted(skills.values(), key=lambda s: s.name):
             skills_list_lines.append("<skill>")
             skills_list_lines.append(f"<name>{xml_escape(skill.name)}</name>")
             skills_list_lines.append(f"<description>{xml_escape(skill.description)}</description>")

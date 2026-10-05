@@ -146,7 +146,7 @@ class CliConfig:
     temperature: float | None = None
     reasoning_effort: str | None = None
     sandbox: str = "local"
-    """Sandbox backend: `"local"` (default) or `"docker"`."""
+    """Where the agent works: `"local"` (default) or `"docker"`."""
     sandbox_image: str = "python:3.12-slim"
     """Docker image used when `sandbox = "docker"`."""
     sandbox_env_vars: dict[str, str] = field(default_factory=dict)

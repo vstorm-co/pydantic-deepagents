@@ -7,7 +7,7 @@ The main agent does this through a single built-in tool: `task`.
 ```python
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -16,7 +16,7 @@ async def main():
         instructions="You are a coding assistant. Delegate self-contained jobs.",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Use the general-purpose subagent to write a prime-sieve function "
@@ -41,12 +41,12 @@ $ python main.py
 
 </div>
 
-The main agent calls `task`, spins up a `general-purpose` subagent, and hands it the brief. That subagent writes `primes.py`, writes a test, runs it — all in its **own** conversation — then returns a short summary. The main agent never sees the subagent's intermediate steps, only its final report.
+The main agent calls `task`, spins up a `general-purpose` subagent, and hands it the brief. That subagent writes `primes.py` and a test — all in its **own** conversation — then returns a short summary. The main agent never sees the subagent's intermediate steps, only its final report.
 
 !!! example "Check it"
-    Add `print(sorted(deps.files.keys()))` after the run. `primes.py` is there —
-    the subagent shared your backend, so the files it wrote are really on disk
-    (in memory here, because you used `StateBackend`).
+    Add `print([e.path for e in await result.workspace.list_dir("/")])` after the
+    run. `primes.py` is there — the subagent worked in your agent's workspace, so
+    the files it wrote are really there (in memory here, the default workspace).
 
 ## What just happened
 
@@ -55,7 +55,7 @@ The `task` tool takes two things, and the main agent fills them in:
 - `subagent_type` — *which* specialist to run (here, the built-in `general-purpose`).
 - `description` — the brief. This becomes the subagent's user prompt.
 
-Each call creates a full deep agent — filesystem, shell, web, todos — runs it once with that brief, and returns its output. That is the whole contract: one focused job in, one result out.
+Each call creates a full deep agent — filesystem, web, todos, and a shell when the workspace runs commands — runs it once with that brief, and returns its output. That is the whole contract: one focused job in, one result out.
 
 ## Isolation is the point
 
@@ -63,7 +63,7 @@ A subagent does **not** inherit your conversation. It starts with a clean slate:
 
 - **Fresh context** — it never sees the main agent's message history. The brief is all it knows, so write it self-contained.
 - **Separate todo list** — the subagent plans its own work without inheriting yours, so neither one's plan pollutes the other.
-- **Shared backend** — files are the exception. The subagent reads and writes the *same* backend, so handing work off is as simple as "look at `/src/auth.py`."
+- **Shared workspace** — files are the exception. The subagent reads and writes the *same* workspace, so handing work off is as simple as "look at `/src/auth.py`."
 
 That separation is what keeps the main agent's context small and on-task — the subagent absorbs the noise and returns only the signal.
 
@@ -138,7 +138,7 @@ By default `task` runs **synchronously**: the main agent waits for the result be
 You taught your agent to delegate:
 
 - The main agent calls the `task` tool with a `subagent_type` and a `description` — one focused job in, one clean result out.
-- Subagents are **isolated**: fresh context and their own todo list, but a **shared backend** so files pass between them.
+- Subagents are **isolated**: fresh context and their own todo list, but a **shared workspace** so files pass between them.
 - Three subagents ship for free — `general-purpose`, `research`, and `planner`.
 - Define your own with `SubAgentConfig(name, description, instructions)` — a sharp description so the main agent picks it, focused instructions so it excels.
 

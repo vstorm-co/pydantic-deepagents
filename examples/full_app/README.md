@@ -6,7 +6,7 @@ A complete demonstration of **every** pydantic-deep feature in a web application
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **DockerSandbox** | Full backend with file ops + code execution in isolated containers |
+| 1 | **DockerWorkspace** | File ops + code execution in an isolated container per session |
 | 2 | **Custom Tools** | 5 mock GitHub tools (repos, issues, PRs, users, stats) via `FunctionToolset` |
 | 3 | **Code Execution** | Python code execution in isolated Docker sandbox |
 | 4 | **Human-in-the-Loop** | `interrupt_on` — execute commands require approval dialog |
@@ -15,7 +15,7 @@ A complete demonstration of **every** pydantic-deep feature in a web application
 | 7 | **Subagents** | joke-generator + code-reviewer subagent delegation |
 | 8 | **General-Purpose Subagent** | Built-in general-purpose subagent enabled |
 | 9 | **File Uploads** | Support for CSV, PDF, TXT, JSON, Python, image files |
-| 10 | **Multi-user Sessions** | Isolated Docker containers per user via `SessionManager` |
+| 10 | **Multi-user Sessions** | A named Docker container per session, its files on the host |
 | 11 | **WebSocket Streaming** | Real-time streaming of text, thinking, and tool events |
 | 12 | **BASE_PROMPT** | Instructions extend `BASE_PROMPT` from pydantic-deep |
 | 13 | **Hooks** | `audit_logger` (POST_TOOL_USE, background) + `safety_gate` (PRE_TOOL_USE) |
@@ -181,7 +181,7 @@ The agent is configured in `app.py` with **all** pydantic-deep features:
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",
     instructions=MAIN_INSTRUCTIONS,
-    backend=None,
+    workspace=False,  # each run gets its session's container
     # Toolsets
     include_todo=True,
     include_filesystem=True,
@@ -210,16 +210,25 @@ agent = create_deep_agent(
 )
 ```
 
-Session management with pre-configured runtime:
+One container per session, passed to every run of that session:
 
 ```python
-session_manager = SessionManager(
-    default_runtime="python-datascience",  # pandas, numpy, matplotlib pre-installed
-    default_idle_timeout=3600,
-    workspace_root=WORKSPACES_DIR,
-)
-session_manager.start_cleanup_loop(interval=300)
+def _session_container(session_id: str) -> DockerWorkspace:
+    host_dir = WORKSPACES_DIR / session_id / "workspace"
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return DockerWorkspace(
+        image="python:3.12-slim",  # or runtime="python-datascience"
+        volumes={str(host_dir.resolve()): "/workspace"},
+        container_name=f"full-app-{session_id}",
+    )
+
+workspace = Workspace(_session_container(session_id).backend())
+async with agent.iter(prompt, deps=session.deps, workspace=workspace) as run:
+    ...
 ```
+
+The app removes a session's container on reset and every container at shutdown;
+the files stay on the host.
 
 ## Hooks
 

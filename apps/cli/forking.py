@@ -163,7 +163,7 @@ class CLIForkSession:
     async def merge(self, branch_id: str) -> MergeResult:
         """Resolve the fork by picking `branch_id` as the winner.
 
-        Flushes the winner's overlay onto the parent backend.
+        Flushes the winner's overlay onto the parent workspace.
         """
         return await self.coordinator.merge_or_select(f"pick:{branch_id}")
 
@@ -241,6 +241,7 @@ async def start_fork_from_cli(
     handle = await coordinator.fork(
         result.specs,
         parent_history=safe_history,
+        workspace=app.agent._cli_workspace,
         isolation=isolation,
         aggregate_budget_usd=result.aggregate_budget_usd,
         strategy=merge_strategy,

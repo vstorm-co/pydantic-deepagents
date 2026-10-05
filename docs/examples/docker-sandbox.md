@@ -1,9 +1,10 @@
 # Docker Sandbox Example
 
 !!! info "Full Documentation"
-    For complete Docker sandbox documentation, see **[pydantic-ai-backend Docker docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/docker/)**.
+    For complete Docker documentation, see **[pydantic-ai-backend Docker docs](https://vstorm-co.github.io/pydantic-ai-backend/concepts/docker/)**.
 
-This example demonstrates isolated code execution using DockerSandbox.
+This example demonstrates isolated code execution in a Docker container, with
+`DockerWorkspace` as the agent's workspace.
 
 ## Source Code
 
@@ -20,18 +21,18 @@ This example demonstrates isolated code execution using DockerSandbox.
 # Pull Python image
 docker pull python:3.12-slim
 
-# Install docker package
-uv add pydantic-deep[sandbox]
+# Install the Docker extra
+uv add "pydantic-deep[sandbox]"
 ```
 
 ## Overview
 
-DockerSandbox provides:
+`DockerWorkspace` provides:
 
-- Isolated execution environment
-- Safe code execution
-- Container lifecycle management
-- File operations within container
+- An isolated environment for every file and command of a run
+- A container created on first use and kept after the run
+- Reattachment: a later run carrying the container's ref works in it again
+- Removal when you say so, with `destroy`
 
 ## Full Example
 
@@ -40,32 +41,30 @@ DockerSandbox provides:
 
 import asyncio
 
-from pydantic_deep import DockerSandbox, DeepAgentDeps, create_deep_agent
+from pydantic_ai.workspaces import WorkspaceRef
+
+from pydantic_deep import DeepAgentDeps, DockerWorkspace, create_deep_agent
 
 
 async def main():
-    # Create Docker sandbox
-    sandbox = DockerSandbox(
+    docker = DockerWorkspace(
         image="python:3.12-slim",
         work_dir="/workspace",
+        container_name="fibonacci-demo",
+    )
+    agent = create_deep_agent(
+        model="anthropic:claude-sonnet-4-6",
+        instructions="""
+        You are a Python development assistant.
+        You can write code, save it to files, and execute it.
+        Always test your code by running it.
+        """,
+        workspace=docker,
+        # Require approval for execute (safety)
+        interrupt_on={"execute": True},
     )
 
     try:
-        # Create agent with sandbox backend
-        agent = create_deep_agent(
-            model="anthropic:claude-sonnet-4-6",
-            instructions="""
-            You are a Python development assistant.
-            You can write code, save it to files, and execute it.
-            Always test your code by running it.
-            """,
-            # Require approval for execute (safety)
-            interrupt_on={"execute": True},
-        )
-
-        deps = DeepAgentDeps(backend=sandbox)
-
-        # Run the agent
         result = await agent.run(
             """
             Create a Python script that:
@@ -74,104 +73,92 @@ async def main():
             3. Save it to /workspace/fibonacci.py
             4. Run it and show the output
             """,
-            deps=deps,
+            deps=DeepAgentDeps(),
         )
-
         print(result.output)
-
     finally:
-        # Always clean up the container
-        sandbox.stop()
+        # The container outlives the run: remove it
+        await docker.destroy(WorkspaceRef(provider="docker", id="fibonacci-demo"))
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Sandbox Configuration
+## Configuration
 
 ### Basic Setup
 
 ```python
-sandbox = DockerSandbox(
+docker = DockerWorkspace(
     image="python:3.12-slim",  # Docker image
-    work_dir="/workspace",      # Working directory in container
+    work_dir="/workspace",      # Working directory in the container
 )
 ```
 
-### Custom Configuration
+### Limits and isolation
 
 ```python
-sandbox = DockerSandbox(
-    image="python:3.12",
-    work_dir="/app",
-    auto_remove=True,       # Remove container on stop
-    idle_timeout=3600,      # Container lifetime in seconds
+docker = DockerWorkspace(
+    image="python:3.12-slim",
+    network_mode="none",  # no network
+    mem_limit="512m",
+    cpus=1.0,
+    oci_runtime="runsc",  # gVisor, if installed: a kernel of its own
+    env={"PYTHONUNBUFFERED": "1"},
 )
 ```
+
+A container is only as isolated as its runtime: Docker's default `runc` shares
+the host kernel.
 
 ### Persistent Storage with Volumes
 
-By default, files inside the Docker container are lost when the container stops. Use `volumes` to persist files on the host filesystem:
+Files inside a container live as long as the container. Use `volumes` to keep
+them on the host filesystem — or to let the agent work on a project in place:
 
 ```python
-sandbox = DockerSandbox(
+docker = DockerWorkspace(
     image="python:3.12-slim",
     volumes={
         "/path/on/host": "/workspace",  # host_path: container_path
     },
 )
-
-# Files written to /workspace persist on /path/on/host
-sandbox.write("/workspace/data.json", '{"key": "value"}')
-sandbox.stop()
-
-# Later, files are still there when container restarts
-sandbox = DockerSandbox(
-    image="python:3.12-slim",
-    volumes={"/path/on/host": "/workspace"},
-)
-content = sandbox.read("/workspace/data.json")  # '{"key": "value"}'
 ```
 
 Multiple volume mappings are supported:
 
 ```python
-sandbox = DockerSandbox(
-    image="python:3.12-slim",
+docker = DockerWorkspace(
     volumes={
         "/host/workspace": "/workspace",
         "/host/data": "/data",
-        "/host/config": "/config",
     },
 )
 ```
 
-### Automatic Persistent Storage with SessionManager
+### One container per session
 
-For multi-user applications, `SessionManager` provides automatic per-session persistent storage:
+For multi-user applications, name a container after each session and pass the
+run its workspace — see [Multi-User](../advanced/multi-user.md):
 
 ```python
-from pydantic_deep import SessionManager
+from pydantic_ai.workspaces import Workspace
 
-# Create manager with workspace_root
-manager = SessionManager(
-    workspace_root="/var/app/workspaces",  # Base directory for all sessions
-)
+def session_workspace(session_id: str) -> Workspace:
+    return Workspace(
+        DockerWorkspace(
+            volumes={f"/var/app/workspaces/{session_id}": "/workspace"},
+            container_name=f"session-{session_id}",
+        ).backend()
+    )
 
-# Each session gets its own persistent directory
-sandbox = manager.get_or_create("user-123")
-# Creates: /var/app/workspaces/user-123/workspace/
-# Mounted as: /workspace in container
-
-# User returns later - files still there
-sandbox2 = manager.get_or_create("user-123")
-content = sandbox2.read("/workspace/previous_file.py")  # Still exists!
+agent = create_deep_agent(workspace=False)
+result = await agent.run(prompt, deps=deps, workspace=session_workspace("user-123"))
 ```
 
-!!! tip "When to Use Each Approach"
-    - **`volumes`**: Direct control over mount points, custom paths
-    - **`workspace_root`**: Automatic per-session directories, multi-user apps
+The same name reaches the same container from this process or the next; the
+mounted directory keeps the files even after the container is removed.
 
 ## Execution
 
@@ -182,87 +169,57 @@ The `execute` tool runs commands inside the container:
 execute(command="python script.py", timeout=30)
 ```
 
-Response includes:
-
-```python
-@dataclass
-class ExecuteResponse:
-    output: str        # stdout + stderr
-    exit_code: int     # Process exit code
-    truncated: bool    # True if output was truncated
-```
+It answers with the command's output, and with its exit code when that is not
+zero.
 
 ## Human-in-the-Loop
 
 Always require approval for execution:
 
 ```python
+from pydantic_ai import DeferredToolRequests
+
 agent = create_deep_agent(
+    workspace=docker,
     interrupt_on={"execute": True},
 )
 
 result = await agent.run(prompt, deps=deps)
 
-# Handle approval...
-if hasattr(result, 'deferred_tool_calls'):
-    for call in result.deferred_tool_calls:
+if isinstance(result.output, DeferredToolRequests):
+    for call in result.output.approvals:
         if call.tool_name == "execute":
             print(f"Command: {call.args['command']}")
             # Review and approve/deny
 ```
 
+See [Human-in-the-Loop](../learn/human-in-the-loop.md) for continuing the run.
+
 ## Container Lifecycle
 
-### Automatic Start
-
-The container starts automatically on first operation:
-
-```python
-sandbox = DockerSandbox(image="python:3.12-slim")
-sandbox.write("/test.py", "print('hello')")  # Starts container
-```
-
-### Manual Stop
-
-Always stop the container when done:
+The container is created on the run's first workspace operation, not when you
+build `DockerWorkspace`. It is **kept** after the run — that is what lets a
+conversation come back to it — so remove it yourself:
 
 ```python
-try:
-    # Use sandbox...
-finally:
-    sandbox.stop()
+await docker.destroy(WorkspaceRef(provider="docker", id="fibonacci-demo"))
 ```
 
-Or use context manager pattern:
-
-```python
-async with DockerSandbox(...) as sandbox:
-    # Use sandbox...
-# Container automatically stopped
-```
+Without a `container_name`, take the ref from the run: `result.workspace.ref`.
 
 ## File Operations
 
-All standard file operations work inside the container:
+Your own code works in the container through the run's workspace:
 
 ```python
-# Write file
-sandbox.write("/workspace/app.py", "print('hello')")
+workspace = result.workspace
 
-# Read file
-content = sandbox.read("/workspace/app.py")
+await workspace.write_text("/workspace/app.py", "print('hello')")
+content = await workspace.read_text("/workspace/app.py")
+entries = await workspace.list_dir("/workspace")
 
-# Edit file
-sandbox.edit("/workspace/app.py", "hello", "world")
-
-# List directory
-files = sandbox.ls_info("/workspace")
-
-# Glob pattern
-python_files = sandbox.glob_info("**/*.py", "/workspace")
-
-# Search content
-matches = sandbox.grep_raw("def main", "/workspace")
+run = await workspace.run(["python", "/workspace/app.py"], timeout=30)
+print(run.exit_code, run.stdout, run.stderr)
 ```
 
 ## Security Considerations
@@ -279,39 +236,23 @@ matches = sandbox.grep_raw("def main", "/workspace")
 
 1. **Always require approval** for `execute`
 2. **Use minimal images** (slim variants)
-3. **Set timeouts** on execution
+3. **Limit the container**: `network_mode`, `mem_limit`, `cpus`, `oci_runtime`
 4. **Review commands** before approval
-5. **Clean up containers** after use
+5. **Remove containers** when you are done with them
 
-## Error Handling
+## Alternative: LocalWorkspace
 
-```python
-try:
-    result = sandbox.execute("python script.py", timeout=30)
-    if result.exit_code != 0:
-        print(f"Script failed: {result.output}")
-except TimeoutError:
-    print("Execution timed out")
-except Exception as e:
-    print(f"Error: {e}")
-finally:
-    sandbox.stop()
-```
-
-## Alternative: LocalBackend
-
-For development/testing without Docker, use `LocalBackend` which supports shell execution:
+For development without Docker, `LocalWorkspace` runs commands on this machine:
 
 ```python
-from pydantic_deep import LocalBackend
+from pydantic_deep import LocalWorkspace
 
-# Executes on local machine
-backend = LocalBackend(root_dir="./workspace", enable_execute=True)
+agent = create_deep_agent(workspace=LocalWorkspace("./workspace"))
 ```
 
 !!! warning
-    LocalBackend runs commands on your actual machine with no isolation.
-    Only use for trusted code in development.
+    `LocalWorkspace` runs commands on your actual machine with no isolation.
+    Only use it for trusted code in development.
 
 ## Running the Example
 
@@ -344,6 +285,6 @@ The script successfully calculated and printed the first 10 Fibonacci numbers.
 
 ## Next Steps
 
-- [Concepts: Backends](../concepts/backends.md) - Deep dive
+- [Concepts: Workspaces](../concepts/workspaces.md) - Deep dive
 - [Human-in-the-Loop](../learn/human-in-the-loop.md) - Approval workflows
-- [API Reference](../api/backends.md) - SandboxProtocol API
+- [API Reference](../api/workspaces.md) - Workspaces API

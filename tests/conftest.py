@@ -6,9 +6,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic_ai_backends import LocalBackend, StateBackend
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
 
 from pydantic_deep.deps import DeepAgentDeps
+from tests.workspaces import state_workspace
 
 
 @pytest.fixture(autouse=True)
@@ -41,15 +42,15 @@ def mock_subagent_agent():
 
 
 @pytest.fixture
-def state_backend():
-    """Create a fresh StateBackend."""
-    return StateBackend()
+def workspace() -> Workspace:
+    """A fresh in-memory workspace: files only, no commands."""
+    return state_workspace()
 
 
 @pytest.fixture
-def deps(state_backend):
-    """Create default DeepAgentDeps with StateBackend."""
-    return DeepAgentDeps(backend=state_backend)
+def deps() -> DeepAgentDeps:
+    """Create default DeepAgentDeps."""
+    return DeepAgentDeps()
 
 
 @pytest.fixture
@@ -60,6 +61,6 @@ def temp_dir():
 
 
 @pytest.fixture
-def local_backend(temp_dir):
-    """Create a LocalBackend with temporary directory."""
-    return LocalBackend(temp_dir)
+def local_workspace(temp_dir: Path) -> Workspace:
+    """A workspace on a temporary directory of this machine, commands included."""
+    return Workspace(LocalWorkspaceBackend(temp_dir))

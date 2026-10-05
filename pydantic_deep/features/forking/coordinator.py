@@ -32,11 +32,17 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai_shields import CostInfo, CostTracking
 
-from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
+from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.checkpointing import Checkpoint, CheckpointStore
 from pydantic_deep.features.forking.budget import AggregateBudgetWatcher, BudgetWatcher
 from pydantic_deep.features.forking.diff import build_diff_report
-from pydantic_deep.features.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.features.forking.isolation import (
+    BranchOverlay,
+    LocalBranchOverlay,
+    branch_workspace,
+    clone_for_branch,
+    local_root,
+)
 from pydantic_deep.features.forking.judge import (
     JudgeAgent,
     _majority_pick,
@@ -72,6 +78,7 @@ from pydantic_deep.models import (
 if TYPE_CHECKING:
     from pydantic_ai import RunContext
     from pydantic_ai.models import Model
+    from pydantic_ai.workspaces import Workspace
 
     from pydantic_deep.features.forking.capability import LiveForkCapability
 
@@ -276,6 +283,8 @@ class BranchRuntime:
     spec: BranchSpec
     task: asyncio.Task[Any]
     deps: DeepAgentDeps
+    workspace: Workspace
+    """The workspace the branch runs in: its overlay's, or the parent's when shared."""
     overlay: BranchOverlay | None
     status: BranchStatus
     cost_tracker: CostTracking | None = None
@@ -290,6 +299,8 @@ class BranchRunnerFunc(Protocol):
 
     When set on `ForkCoordinator.branch_runner`, it replaces the plain
     `agent.run(...)` call so the host can observe tokens and tool events.
+    The run must work in `runtime.workspace` (`agent.run(..., workspace=...)`),
+    or the branch's changes land in the wrong environment.
     """
 
     async def __call__(
@@ -323,8 +334,8 @@ class ForkCoordinator:
             `test_pass_ratio` confidence signal. `None` disables the
             runner - the cap-at-0.65 safety rail then keeps
             `auto_with_fallback` falling through to the manual picker.
-            Restricted to :class:`~pydantic_ai_backends.LocalBackend`
-            parents; non-local parents always produce `None`.
+            Restricted to local parents (a `LocalWorkspaceBackend`); any
+            other parent always produces `None`.
             SECURITY: this is operator-configured and runs with the parent
             process's full `os.environ` inherited (only `UV_NO_SYNC=1` is
             added). The environment is deliberately NOT filtered, since most
@@ -462,6 +473,7 @@ class ForkCoordinator:
         specs: list[BranchSpec],
         *,
         parent_history: list[Any],
+        workspace: Workspace,
         isolation: BranchIsolation | None = None,
         strategy: MergeStrategy | None = None,
         aggregate_budget_usd: float | None = None,
@@ -472,6 +484,8 @@ class ForkCoordinator:
             specs: Branch definitions; `len(specs)` must not exceed
                 :attr:`max_branches`.
             parent_history: Parent run's message snapshot at fork time.
+            workspace: The parent run's workspace, which each branch works
+                in a view of (see :func:`branch_workspace`).
             isolation: Per-branch isolation overrides (defaults to
                 :class:`BranchIsolation`).
             strategy: Merge strategy (currently `kind="manual"` only).
@@ -541,10 +555,7 @@ class ForkCoordinator:
             for spec in specs:
                 branch_id = str(uuid.uuid4())
                 cloned_deps = clone_for_branch(self.parent_deps, effective_isolation)
-                # Unwrap async adapter — BranchOverlay is a sync backend that
-                # gets auto-wrapped by DeepAgentDeps.__post_init__.
-                raw_cloned = unwrap_backend(cloned_deps.backend)
-                overlay = raw_cloned if isinstance(raw_cloned, BranchOverlay) else None
+                branch_ws, overlay = branch_workspace(workspace, effective_isolation)
                 if overlay is not None and self.materializer is not None:
                     overlay.attach_materializer(self.materializer, spec.label)
 
@@ -564,7 +575,7 @@ class ForkCoordinator:
 
                 task = asyncio.create_task(
                     self._run_branch_with_approval(
-                        branch_id, spec, list(parent_history), cloned_deps
+                        branch_id, spec, list(parent_history), cloned_deps, branch_ws
                     )
                 )
                 status = BranchStatus(
@@ -578,6 +589,7 @@ class ForkCoordinator:
                     spec=spec,
                     task=task,
                     deps=cloned_deps,
+                    workspace=branch_ws,
                     overlay=overlay,
                     status=status,
                     cost_tracker=branch_cost_cap,
@@ -606,6 +618,7 @@ class ForkCoordinator:
         spec: BranchSpec,
         parent_history: list[Any],
         cloned_deps: DeepAgentDeps,
+        workspace: Workspace,
     ) -> Any:
         """Run a branch's `agent.run()` and route each deferred approval to the user.
 
@@ -630,7 +643,9 @@ class ForkCoordinator:
         """
 
         runtime = self.branches.get(branch_id)
-        result = await self._invoke(spec.steer, parent_history, cloned_deps, runtime, None)
+        result = await self._invoke(
+            spec.steer, parent_history, cloned_deps, workspace, runtime, None
+        )
         while isinstance(getattr(result, "output", None), DeferredToolRequests):
             approvals: dict[str, Any] = {}
             runtime = self.branches.get(branch_id)
@@ -660,6 +675,7 @@ class ForkCoordinator:
                 None,
                 result.all_messages(),
                 cloned_deps,
+                workspace,
                 runtime,
                 DeferredToolResults(approvals=approvals),
             )
@@ -670,15 +686,18 @@ class ForkCoordinator:
         steer: str | None,
         history: list[Any],
         deps: DeepAgentDeps,
+        workspace: Workspace,
         runtime: BranchRuntime | None,
         deferred: DeferredToolResults | None,
     ) -> Any:
-        """Run one branch turn via the host runner if set, else `agent.run`."""
+        """Run one branch turn in `workspace`, via the host runner if set, else `agent.run`."""
         runner = self.branch_runner
         if runner is not None and runtime is not None:
             return await runner(self.agent, steer, list(history), deps, deferred, runtime)
         kwargs: dict[str, Any] = {} if deferred is None else {"deferred_tool_results": deferred}
-        return await self.agent.run(steer, message_history=list(history), deps=deps, **kwargs)
+        return await self.agent.run(
+            steer, message_history=list(history), deps=deps, workspace=workspace, **kwargs
+        )
 
     async def run_on_branch(self, branch_id: str, user_message: str) -> asyncio.Task[Any]:
         """Start a new turn on a finished branch with `user_message`.
@@ -727,7 +746,9 @@ class ForkCoordinator:
             )
 
             task = asyncio.create_task(
-                self._run_branch_with_approval(branch_id, new_spec, effective_history, runtime.deps)
+                self._run_branch_with_approval(
+                    branch_id, new_spec, effective_history, runtime.deps, runtime.workspace
+                )
             )
             runtime.task = task
             task.add_done_callback(functools.partial(self._on_branch_task_done, runtime))
@@ -915,7 +936,7 @@ class ForkCoordinator:
 
         `action="pick:<branch_id>"` awaits the winning branch's task,
         cancels and discards the others, replays the winner's overlay
-        onto the parent backend, releases every overlay, and saves a
+        onto the parent workspace, releases every overlay, and saves a
         `post-fork:<fork_id>` checkpoint when checkpointing is available.
 
         `_auto_deny_approvals` is set by the non-interactive auto/vote commit
@@ -980,9 +1001,7 @@ class ForkCoordinator:
                     if self.materializer is not None
                     else None
                 )
-                # Unwrap adapter — flush_to is sync and expects a raw BackendProtocol.
-                raw_parent: Any = unwrap_backend(self.parent_deps.backend)
-                report = winner_overlay.flush_to(raw_parent, snapshot)
+                report = await winner_overlay.flush_to(winner_overlay.parent, snapshot)
                 applied_paths = list(report.applied_paths)
                 applied_changes = report.applied_changes
                 conflicts = list(report.conflicts)
@@ -1025,7 +1044,7 @@ class ForkCoordinator:
         Use when every branch has failed (or otherwise become unmergeable)
         so the fork can be resolved without picking a winner.  Mirrors the
         cleanup half of :meth:`merge_or_select` but without flushing any
-        overlay onto the parent backend.
+        overlay onto the parent workspace.
 
         Returns the list of branch ids that were aborted.  After this
         call, :attr:`is_resolved` becomes `True` and a new fork can be
@@ -1051,18 +1070,18 @@ class ForkCoordinator:
     async def _run_tests_for_branch(self, rt: BranchRuntime) -> float | None:
         """Run :attr:`test_command` against a snapshot of the branch and return a ratio.
 
-        Materialises the branch (parent `LocalBackend.root_dir` + overlay
+        Materialises the branch (the local parent directory + overlay
         writes / deletions) into a fresh tempdir via
-        :meth:`BranchOverlay.snapshot`, runs the command via
+        :meth:`LocalBranchOverlay.snapshot`, runs the command via
         :func:`asyncio.create_subprocess_exec` (no shell - argv via
         :func:`shlex.split`) with a `test_timeout_s` cap,
         and returns:
 
         - `1.0` on exit code `0`
         - `0.0` on any non-zero exit
-        - `None` when the runner is disabled, the parent backend has no
-          `root_dir` (e.g. :class:`StateBackend` in tests), the branch
-          overlay is gone, the command failed to spawn, or the run timed out
+        - `None` when the runner is disabled, the parent workspace is not a
+          local directory, the branch overlay is gone, the command failed to
+          spawn, or the run timed out
 
         `None` is the "no signal" return - :func:`compute_confidence`
         keeps the cap-at-0.65 safety rail active in that case, identical to
@@ -1086,15 +1105,12 @@ class ForkCoordinator:
         """
         if self.test_command is None:
             return None
-        # Unwrap adapter — root_dir is an attribute on the raw backend (e.g. LocalBackend).
-        raw_parent = unwrap_backend(self.parent_deps.backend)
-        parent_root_obj: Any = getattr(raw_parent, "root_dir", None)
-        if not isinstance(parent_root_obj, (str, Path)):
-            return None
         overlay = rt.overlay
-        if overlay is None:
+        if not isinstance(overlay, LocalBranchOverlay):
             return None
-        parent_root = Path(parent_root_obj)
+        parent_root = local_root(overlay.parent)
+        if parent_root is None:  # pragma: no cover - a LocalBranchOverlay's parent is local
+            return None
         # UV_NO_SYNC=1: editable deps with relative paths break in the temp snapshot.
         env = {**os.environ, "UV_NO_SYNC": "1"}
         # Off the event loop: the snapshot file-copy walk is synchronous and would freeze the TUI.
@@ -1240,7 +1256,7 @@ class ForkCoordinator:
 
         `test_pass_ratio` is read off the winner's :class:`BranchOutcome`
         (populated by :meth:`_run_tests_for_branch`). When the runner is
-        disabled, the parent backend is not a :class:`LocalBackend`, or the
+        disabled, the parent workspace is not a local directory, or the
         run timed out, the value is `None` - :func:`compute_confidence`
         then applies its cap-at-0.65 safety rail, identical to the
         no-test-signal behaviour.

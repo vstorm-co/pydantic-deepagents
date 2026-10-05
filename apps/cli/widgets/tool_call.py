@@ -151,19 +151,12 @@ def _discovered_tool_names(result: str) -> list[str]:
 
 
 def _special_args_preview(tool_name: str, args: dict[str, Any]) -> str | None:
-    """Compact header for background-shell / web / search tools.
+    """Compact header for web / search tools.
 
     Returns ``None`` when ``tool_name`` is not one of these, so the caller falls
     through to the main dispatch. Kept separate so :func:`_format_args_preview`
     stays under the complexity budget.
     """
-    if tool_name == "run_in_background":
-        one_line = " ".join(str(args.get("command", "?")).split())
-        return one_line[:79] + "…" if len(one_line) > 80 else one_line
-    if tool_name in ("read_output", "kill_shell"):
-        return str(args.get("shell_id", "?"))
-    if tool_name == "list_shells":
-        return ""
     if tool_name in ("web_search", "web_fetch"):
         query = args.get("query") or args.get("url", "?")
         return f'"{query[:50]}"'
@@ -446,20 +439,6 @@ class ToolCallWidget(Widget):
                 body.append(
                     f"[dim]{prefix}    ⎿  ... ({len(out_lines) - _PREVIEW_LIMIT} more lines)[/dim]"
                 )
-            return "\n".join([*cmd_lines, *body])
-
-        # Background launch: show the command (▷) then the start confirmation.
-        if self.tool_name == "run_in_background":
-            cmd = str(self.args.get("command", ""))
-            cmd_lines = [
-                f"{prefix}    ⎿  [bold $accent]▷ {_rich_escape(line)}[/]"
-                for line in cmd.splitlines()
-            ]
-            out_lines = result.strip().splitlines()
-            body = [
-                f"[dim]{prefix}    ⎿  {_rich_escape(line)}[/dim]"
-                for line in out_lines[:_PREVIEW_LIMIT]
-            ]
             return "\n".join([*cmd_lines, *body])
 
         # Tool search: show the discovered tool names as accent chips, not raw JSON.

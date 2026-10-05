@@ -11,10 +11,10 @@ from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.toolsets import AbstractToolset
 
 from pydantic_deep.deps import DeepAgentDeps
-from pydantic_deep.features.skills.backend import BackendSkillsDirectory
 from pydantic_deep.features.skills.directory import SkillsDirectory
 from pydantic_deep.features.skills.toolset import SkillsToolset
 from pydantic_deep.features.skills.types import Skill
+from pydantic_deep.features.skills.workspace import WorkspaceSkillsDirectory
 
 
 @dataclass
@@ -36,7 +36,7 @@ class SkillsCapability(AbstractCapability[DeepAgentDeps]):
     """
 
     skills: list[Skill] | None = None
-    directories: list[str | Path | SkillsDirectory | BackendSkillsDirectory] | None = None
+    directories: list[str | Path | SkillsDirectory | WorkspaceSkillsDirectory] | None = None
     validate: bool = True
     max_depth: int | None = 3
     instruction_template: str | None = None

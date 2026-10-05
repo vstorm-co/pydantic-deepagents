@@ -14,14 +14,15 @@ Every headline feature of pydantic-deep is wired into one app here. Each links t
 - **Plan mode** — a `planner` sub-agent asks you clarifying questions *before* it dives into complex research, then saves a plan. See [Plan mode](../advanced/plan-mode.md).
 - **Parallel sub-agents** — `code-reviewer`, `general-purpose`, and a dynamic agent factory let the lead agent spawn a fleet of researchers that work simultaneously. See [Sub-agents](../learn/subagents.md).
 - **Web search & fetch** — Tavily, Brave, and Jina for search; Firecrawl and Playwright for scraping JS-heavy pages. See [Web search & MCP](../learn/web-and-mcp.md).
-- **Code execution in a sandbox** — Python with pandas, numpy, matplotlib, and scikit-learn pre-installed, isolated per user. See [Backends](../concepts/backends.md).
+- **Code execution in a sandbox** — Python with pandas, numpy, matplotlib, and scikit-learn pre-installed, isolated per user. See [Workspaces](../concepts/workspaces.md).
 - **A live Excalidraw canvas** — the agent draws flowcharts and architecture diagrams into a side panel that syncs in real time, over MCP. See [Model Context Protocol](../learn/web-and-mcp.md).
 - **Skills, checkpointing, hooks, and middleware** — research-methodology and report-writing skills, rewind/fork of any turn, safety gates that block dangerous shell commands, and audit logging.
 
 !!! tip "Per-user Docker sandboxes"
-    A `SessionManager` spins up an isolated Docker container per user, so code
-    execution and file writes never touch the host. This is the
-    [`DockerSandbox`](../concepts/backends.md) backend doing the heavy lifting.
+    Each session works in a Docker container of its own, named after the
+    session, so code execution never touches the host; its files live in a
+    host directory mounted into the container. This is
+    [`DockerWorkspace`](../concepts/workspaces.md) doing the heavy lifting.
 
 ## Prerequisites
 
@@ -107,4 +108,4 @@ Where to go next:
 - [Plan mode →](../advanced/plan-mode.md)
 - [Sub-agents →](../learn/subagents.md)
 - [Web search & MCP →](../learn/web-and-mcp.md)
-- [Backends →](../concepts/backends.md)
+- [Workspaces →](../concepts/workspaces.md)

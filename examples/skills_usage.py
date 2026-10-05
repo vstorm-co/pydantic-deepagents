@@ -14,7 +14,7 @@ containing a SKILL.md file with YAML frontmatter and Markdown instructions.
 import asyncio
 from pathlib import Path
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 # Get the skills directory relative to this example
 SKILLS_DIR = Path(__file__).parent / "skills"
@@ -38,7 +38,7 @@ async def main():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Example 1: List available skills
     print("=" * 60)
@@ -56,10 +56,10 @@ async def main():
     print("Example 2: Using the code-review skill")
     print("=" * 60)
 
-    # First, create a file to review
-    deps.backend.write(
-        "/code/example.py",
-        """def calculate_total(items):
+    # First, give the agent a file to review: it lands at /code/example.py
+    await deps.upload_file(
+        "example.py",
+        b"""def calculate_total(items):
     total = 0
     for item in items:
         total = total + item["price"] * item["quantity"]
@@ -69,6 +69,7 @@ def get_user_data(user_id):
     query = f"SELECT * FROM users WHERE id = {user_id}"
     return db.execute(query)
 """,
+        upload_dir="code",
     )
 
     result = await agent.run(
@@ -96,8 +97,8 @@ def get_user_data(user_id):
     print("\n" + "=" * 60)
     print("Files created:")
     print("=" * 60)
-    for path in sorted(deps.backend.files.keys()):
-        print(f"  {path}")
+    for entry in await result.workspace.list_dir("/"):
+        print(f"  {entry.path}" + ("/" if entry.is_dir else ""))
 
 
 async def demo_skill_discovery():

@@ -58,7 +58,8 @@ The 70+ parameters are organized into these logical groups:
 - `include_checkpoints` — Conversation snapshots (default: False)
 - `include_teams` — Multi-agent coordination (default: False)
 - `include_history_archive` — Search compressed history (default: True)
-- `include_execute` — Shell execution (auto-detected from backend type)
+- `include_execute` — Shell execution (default: on unless the workspace is `StateWorkspace`)
+- `workspace` — The capability that supplies each run's workspace (default: `StateWorkspace()`)
 
 **Processing & Context:**
 - `patch_tool_calls` — Fix orphaned tool call/result pairs (default: True)
@@ -87,7 +88,9 @@ set defaults → build subagents → create toolsets → create capabilities
 
 ```pydantic_deep/agent.py#L530-532
 model = model or DEFAULT_MODEL
-backend = backend or StateBackend()
+workspace_capability = StateWorkspace() if workspace is None else workspace
+if include_execute is None:
+    include_execute = not isinstance(workspace_capability, StateWorkspace)
 interrupt_on = interrupt_on or {}
 ```
 
@@ -157,8 +160,8 @@ if patch_tool_calls:
     all_processors.insert(0, patch_tool_calls_processor)
 
 if eviction_token_limit is not None:
-    eviction = EvictionProcessor(backend=backend, token_limit=eviction_token_limit, ...)
-    all_processors.insert(0, eviction)
+    # Writes evicted output into the run's workspace, ctx.workspace
+    all_capabilities.append(EvictionCapability(token_limit=eviction_token_limit, ...))
 ```
 
 #### Step 7: Create Agent + Dynamic Instructions
@@ -245,14 +248,12 @@ def _default_deep_agent_factory(cfg: dict[str, Any]) -> Any:
 
 ### `create_default_deps()`
 
-Creates a default `DeepAgentDeps` with optional backend:
+Creates a default `DeepAgentDeps`. Files are not part of it: they live in the
+workspace the agent's `workspace` capability supplies.
 
-```pydantic_deep/agent.py#L971-983
-def create_default_deps(
-    backend: BackendProtocol | None = None,
-) -> DeepAgentDeps:
-    resolved_backend: BackendProtocol = backend or StateBackend()
-    return DeepAgentDeps(backend=resolved_backend)
+```python
+def create_default_deps() -> DeepAgentDeps:
+    return DeepAgentDeps()
 ```
 
 ### `run_with_files()`
@@ -266,10 +267,10 @@ async def run_with_files(
     deps: DeepAgentDeps,
     files: list[tuple[str, bytes]] | None = None,
     *,
-    upload_dir: str = "/uploads",
+    upload_dir: str = DEFAULT_UPLOAD_DIR,  # "uploads"
 ) -> OutputDataT:
     if files:
-        deps.upload_files(files, upload_dir=upload_dir)
+        await deps.upload_files(files, upload_dir=upload_dir)
     result = await agent.run(query, deps=deps)
     return result.output
 ```
@@ -282,45 +283,40 @@ async def run_with_files(
 
 ### Class Definition
 
-```pydantic_deep/deps.py#L14-28
+Files are not part of the deps: they live in the run's workspace,
+`ctx.workspace`, which a workspace capability supplies.
+
+```python
 @dataclass
 class DeepAgentDeps:
     """Dependencies for deep agents."""
-    backend: BackendProtocol = field(default_factory=StateBackend)
-    files: dict[str, FileData] = field(default_factory=dict)
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)
     uploads: dict[str, UploadedFile] = field(default_factory=dict)
-    ask_user: Any = field(default=None, repr=False)
-    context_middleware: Any = field(default=None, repr=False)
+    ask_user: AskUserCallback | None = field(default=None, repr=False)
+    context_middleware: ContextManagerCapability | None = field(default=None, repr=False)
     share_todos: bool = False
+    checkpoint_store: CheckpointStore | None = field(default=None, repr=False)
+    message_queue: MessageQueue | None = field(default=None, repr=False)
+    monitor_manager: MonitorManager | None = field(default=None, repr=False)
+    fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
+    # ... private fork bookkeeping, and the uploads waiting for the next run
 ```
 
-### 8 Attributes
+### Public Attributes
 
 | Attribute | Type | Purpose |
 |-----------|------|---------|
-| `backend` | `BackendProtocol` | File storage backend (StateBackend, FilesystemBackend, etc.) |
-| `files` | `dict[str, FileData]` | In-memory file cache |
 | `todos` | `list[Todo]` | Task list for planning |
 | `subagents` | `dict[str, Any]` | Pre-configured subagent Agent instances |
 | `uploads` | `dict[str, UploadedFile]` | Uploaded files metadata |
-| `ask_user` | `Any` | Callback for interactive questions |
-| `context_middleware` | `Any` | ContextManagerCapability reference |
+| `ask_user` | `AskUserCallback \| None` | Callback for interactive questions |
+| `context_middleware` | `ContextManagerCapability \| None` | ContextManagerCapability reference |
 | `share_todos` | `bool` | When True, subagents share parent's todo list |
-
-### `__post_init__()` — Backend Sync
-
-When using `StateBackend`, files are synced bidirectionally:
-
-```pydantic_deep/deps.py#L30-38
-def __post_init__(self) -> None:
-    if isinstance(self.backend, StateBackend):
-        if self.files:
-            self.backend._files = self.files
-        else:
-            object.__setattr__(self, "files", self.backend._files)
-```
+| `checkpoint_store` | `CheckpointStore \| None` | Per-session checkpoint store |
+| `message_queue` | `MessageQueue \| None` | Mid-run steering and follow-ups |
+| `monitor_manager` | `MonitorManager \| None` | Background command monitors |
+| `fork_coordinator` | `ForkCoordinator \| None` | Live forking state, set per run |
 
 ### Methods
 
@@ -345,21 +341,6 @@ def get_todo_prompt(self) -> str:
     return "\n".join(lines)
 ```
 
-#### `get_files_summary()`
-
-Lists files in memory with line counts:
-
-```pydantic_deep/deps.py#L55-65
-def get_files_summary(self) -> str:
-    if not self.files:
-        return ""
-    lines = ["## Files in Memory"]
-    for path, data in sorted(self.files.items()):
-        line_count = len(data["content"])
-        lines.append(f"- {path} ({line_count} lines)")
-    return "\n".join(lines)
-```
-
 #### `get_subagents_summary()`
 
 Lists available subagents:
@@ -374,21 +355,28 @@ def get_subagents_summary(self) -> str:
     return "\n".join(lines)
 ```
 
-#### `upload_file()` / `upload_files()`
+#### `upload_file()` / `upload_files()` / `write_uploads()`
 
-Uploads files to backend with encoding detection and metadata tracking:
+Keep a file for the runs that follow, with encoding detection and metadata
+tracking. A workspace is attached to a run, so before one starts there is
+nowhere to write it: the bytes stay in the deps, and `write_uploads` writes the
+latest version of each into the run's workspace when it starts - once per
+workspace, so a file the agent changed is not overwritten, and a run in a new
+in-memory document still finds what the prompt lists.
 
-```pydantic_deep/deps.py#L79-127
-def upload_file(self, name: str, content: bytes, *, upload_dir: str = "/uploads") -> str:
-    path = f"{upload_dir}/{name}"
-    res = self.backend.write(path, content)
-    if res.error:
-        raise RuntimeError(f"Failed to upload file: {res.error}")
-    detection = chardet.detect(content)
-    encoding = detection.get("encoding")
+```python
+async def upload_file(self, name: str, content: bytes, *, upload_dir: str = "uploads") -> str:
+    path = f"{upload_dir.rstrip('/')}/{name}"
+    self._upload_bytes[path] = content
+    self._upload_versions[path] = self._upload_versions.get(path, 0) + 1
     ...
     self.uploads[path] = UploadedFile(name=name, path=path, size=len(content), ...)
     return path
+
+async def write_uploads(self, workspace: Workspace) -> None:
+    # Written when the workspace (by its ref) lacks the latest version;
+    # a workspace without a ref gets a file only when it does not see one.
+    ...
 ```
 
 #### `get_uploads_summary()`
@@ -415,16 +403,16 @@ def get_uploads_summary(self) -> str:
 
 Creates a new deps instance for subagent execution with controlled sharing:
 
-```pydantic_deep/deps.py#L196-217
+```python
 def clone_for_subagent(self, max_depth: int = 0) -> DeepAgentDeps:
-    return DeepAgentDeps(
-        backend=self.backend,                              # Shared reference
-        files=self.files,                                  # Shared reference
+    return replace(
+        self,
         todos=self.todos if self.share_todos else [],      # Shared or isolated
         subagents=self.subagents.copy() if max_depth > 0 else {},  # Nesting control
-        uploads=self.uploads,                              # Shared reference
-        ask_user=self.ask_user,                            # Propagated
-        share_todos=self.share_todos,                      # Propagated
+        context_middleware=None,
+        monitor_manager=None,
+        fork_coordinator=None,
+        ...  # fork bookkeeping reset
     )
 ```
 
@@ -432,12 +420,12 @@ def clone_for_subagent(self, max_depth: int = 0) -> DeepAgentDeps:
 
 | Resource | Shared? | Rationale |
 |----------|---------|-----------|
-| `backend` | Yes | Same filesystem |
-| `files` | Yes | Subagents need to read/write same files |
+| Workspace | Yes | The subagent toolset passes the parent's workspace to the subagent's run |
 | `uploads` | Yes | Subagents need access to user uploads |
 | `todos` | Configurable | `share_todos=True` for collaborative planning |
 | `subagents` | Conditional | Only when `max_depth > 0` (prevents infinite nesting) |
-| `ask_user` | Yes | Subagents can ask questions too |
+| `ask_user`, `checkpoint_store`, `message_queue` | Yes | Propagated through `replace` |
+| `monitor_manager`, `fork_coordinator` | No | A subagent is its own isolation domain |
 
 ---
 
@@ -525,7 +513,7 @@ Separates serializable overrides from non-serializable passthrough:
 @classmethod
 def from_spec(cls, data: dict[str, Any], **overrides: Any) -> tuple[Any, DeepAgentDeps]:
     non_spec_keys = {
-        "backend", "tools", "toolsets", "hooks", "on_context_update",
+        "workspace", "tools", "toolsets", "hooks", "on_context_update",
         "on_before_compress", "on_after_compress", "on_eviction",
         "on_cost_update", "middleware", "checkpoint_store",
         "subagent_registry", "subagent_extra_toolsets",
@@ -550,7 +538,7 @@ def from_spec(cls, data: dict[str, Any], **overrides: Any) -> tuple[Any, DeepAge
     kwargs = spec.model_dump(exclude_none=True)
     kwargs.update(passthrough)
     agent = create_deep_agent(**kwargs)
-    deps = DeepAgentDeps(backend=passthrough.get("backend") or _default_backend())
+    deps = DeepAgentDeps()
     return agent, deps
 ```
 
@@ -589,7 +577,7 @@ model_settings:
 classDiagram
     class AgentFactory {
         +create_deep_agent(model, instructions, ...) Agent
-        +create_default_deps(backend) DeepAgentDeps
+        +create_default_deps() DeepAgentDeps
         +run_with_files(agent, query, deps, files) OutputDataT
     }
 
@@ -600,8 +588,6 @@ classDiagram
     }
 
     class DeepAgentDeps {
-        +backend: BackendProtocol
-        +files: dict
         +todos: list~Todo~
         +subagents: dict
         +uploads: dict~UploadedFile~
@@ -609,10 +595,10 @@ classDiagram
         +context_middleware: Any
         +share_todos: bool
         +get_todo_prompt() str
-        +get_files_summary() str
         +get_subagents_summary() str
         +upload_file(name, content) str
         +upload_files(files) list
+        +write_uploads(workspace) None
         +get_uploads_summary() str
         +clone_for_subagent(max_depth) DeepAgentDeps
     }
@@ -634,14 +620,13 @@ classDiagram
         +to_file(path, params) None
     }
 
-    class BackendProtocol {
-        <<protocol>>
-        +write(path, content) Result
-        +read(path) Result
+    class WorkspaceCapability {
+        <<capability>>
+        +get_workspace(ctx, ref) WorkspaceBackend
     }
 
-    class StateBackend {
-        +_files: dict
+    class StateWorkspace {
+        +store: dict~StateBackend~
     }
 
     AgentFactory ..> _DepsTodoProxy : creates
@@ -650,8 +635,8 @@ classDiagram
     DeepAgent --> DeepAgentSpec : validates with
     DeepAgent --> AgentFactory : delegates to create_deep_agent
     _DepsTodoProxy --> DeepAgentDeps : delegates to
-    DeepAgentDeps --> BackendProtocol : uses
-    StateBackend ..|> BackendProtocol : implements
+    AgentFactory --> WorkspaceCapability : attaches
+    StateWorkspace ..|> WorkspaceCapability : default
 ```
 
 ### Flow: Agent Creation via Spec

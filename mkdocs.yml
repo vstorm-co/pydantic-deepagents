@@ -110,7 +110,7 @@ plugins:
         Core Concepts:
           - concepts/index.md: Core concepts overview
           - concepts/agents.md: Agent creation and configuration
-          - concepts/backends.md: Backend abstraction for file operations
+          - concepts/workspaces.md: Workspaces - where a run works
           - concepts/toolsets.md: Available toolsets and custom tools
           - concepts/skills.md: Skills system
         Advanced:
@@ -149,7 +149,7 @@ plugins:
           - examples/*.md
         API Reference:
           - api/agent.md: Agent factory API
-          - api/backends.md: Backend API
+          - api/workspaces.md: Workspaces API
           - api/toolsets.md: Toolset API
           - api/capabilities.md: Capabilities API
           - api/processors.md: Processor API
@@ -279,7 +279,7 @@ nav:
   - Core Concepts:
     - concepts/index.md
     - Agents: concepts/agents.md
-    - Backends: concepts/backends.md
+    - Workspaces: concepts/workspaces.md
     - Toolsets: concepts/toolsets.md
     - Skills: concepts/skills.md
   - CLI:
@@ -299,7 +299,6 @@ nav:
     - Getting Started:
       - examples/basic-usage.md
       - examples/filesystem.md
-      - examples/composite-backend.md
     - Agent Features:
       - examples/subagents.md
       - examples/custom-tools.md
@@ -319,7 +318,7 @@ nav:
   - API Reference:
     - api/index.md
     - Agent: api/agent.md
-    - Backends: api/backends.md
+    - Workspaces: api/workspaces.md
     - Toolsets: api/toolsets.md
     - Capabilities: api/capabilities.md
     - Processors: api/processors.md

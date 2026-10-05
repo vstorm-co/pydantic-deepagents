@@ -113,6 +113,8 @@ sandbox_image = "python:3.12-slim"
 
 `local` runs the agent's shell against your filesystem; `docker` isolates execution inside a container built from `sandbox_image`. The Docker path needs the `docker` extra.
 
+`local` needs Linux or macOS: Pydantic AI runs local commands on POSIX only. On Windows, use `docker`, or run the CLI under WSL.
+
 ## Slash commands that write config
 
 The `/settings` modal covers the common toggles. A few settings have their own dedicated commands:

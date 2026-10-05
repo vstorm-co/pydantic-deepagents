@@ -21,6 +21,30 @@ runner = CliRunner()
 class TestRunCommand:
     """Tests for the 'run' CLI command."""
 
+    def test_the_local_sandbox_is_refused_where_it_cannot_run(self) -> None:
+        """Windows: Pydantic AI's local workspace is POSIX-only, so the run would
+        fail while building the agent. It is refused first, naming the way out."""
+        with (
+            patch("apps.cli.main._runs_local_commands", return_value=False),
+            patch("apps.cli.run.execute_headless", new_callable=AsyncMock) as mock_exec,
+        ):
+            result = runner.invoke(app, ["run", "Fix the bug", "--sandbox", "local"])
+
+        assert result.exit_code == 1
+        assert "--sandbox docker" in result.output
+        mock_exec.assert_not_called()
+
+    def test_docker_runs_where_the_local_shell_cannot(self) -> None:
+        with (
+            patch("apps.cli.main._runs_local_commands", return_value=False),
+            patch("apps.cli.run.execute_headless", new_callable=AsyncMock) as mock_exec,
+        ):
+            mock_exec.return_value = 0
+            result = runner.invoke(app, ["run", "Fix the bug", "--sandbox", "docker"])
+
+        assert result.exit_code == 0
+        mock_exec.assert_called_once()
+
     def test_no_task_or_file(self) -> None:
         result = runner.invoke(app, ["run"])
         assert result.exit_code == 1

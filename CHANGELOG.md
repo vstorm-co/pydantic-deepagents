@@ -71,6 +71,10 @@ it for what replaces each removed name.
   reach any path, and its commands get only `PATH`, `HOME` and the locale.
   Wrap it in `ConfinedWorkspace` to keep file operations in its directory; pass
   `env=` for more of the environment.
+- **The CLI's local sandbox needs Linux or macOS.** Pydantic AI's local workspace
+  runs commands on POSIX only, so on Windows `pydantic-deep` refuses
+  `--sandbox local` up front and points to `--sandbox docker` (or WSL), rather
+  than failing while it builds the agent.
 
 ### Removed
 

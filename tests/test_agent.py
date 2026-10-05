@@ -447,15 +447,59 @@ class TestDeepAgentDeps:
 
         # The file reaches a workspace when a run starts
         workspace = state_workspace()
-        await deps.write_pending_uploads(workspace)
+        await deps.write_uploads(workspace)
         assert await workspace.read_bytes(path) == content
-        await deps.write_pending_uploads(workspace)  # nothing left to write
 
         # Check upload metadata is tracked
         assert path in deps.uploads
         assert deps.uploads[path]["name"] == "data.csv"
         assert deps.uploads[path]["size"] == len(content)
         assert deps.uploads[path]["line_count"] == 3
+
+    async def test_every_workspace_gets_the_uploads_once(self):
+        """A run in a new in-memory document must find what the prompt lists."""
+        deps = DeepAgentDeps()
+        path = await deps.upload_file("a.csv", b"v1")
+        documents = StateWorkspace()
+        first, second = Workspace(documents.backend()), Workspace(documents.backend())
+        await deps.write_uploads(first)
+        await deps.write_uploads(second)
+        assert await second.read_bytes(path) == b"v1"
+
+        # The agent's own change to an upload survives its next run there...
+        await first.write_bytes(path, b"edited")
+        await deps.write_uploads(first)
+        assert await first.read_bytes(path) == b"edited"
+
+        # ...until the file is uploaded again, which replaces it.
+        await deps.upload_file("a.csv", b"v2")
+        await deps.write_uploads(first)
+        assert await first.read_bytes(path) == b"v2"
+
+    async def test_a_workspace_without_a_ref_gets_only_missing_uploads(self):
+        """A fork branch's view: the parent's file shows through, so nothing is written."""
+        from pydantic_deep import BranchOverlay
+
+        deps = DeepAgentDeps()
+        path = await deps.upload_file("a.csv", b"v1")
+        await deps.upload_file("b.csv", b"b")
+        parent = state_workspace({path: "parent's"})
+        overlay = BranchOverlay(parent)
+        await deps.write_uploads(Workspace(overlay))
+        assert [change.path for change in overlay.changes()] == ["/uploads/b.csv"]
+
+    async def test_a_second_run_in_a_new_document_finds_the_upload(self):
+        agent = create_deep_agent(
+            model=TestModel(call_tools=[]),
+            include_subagents=False,
+            web_search=False,
+            web_fetch=False,
+        )
+        deps = DeepAgentDeps()
+        await deps.upload_file("a.csv", b"x,y")
+        await agent.run("first", deps=deps)
+        second = await agent.run("second", deps=deps)
+        assert await second.workspace.read_bytes("uploads/a.csv") == b"x,y"
 
     async def test_upload_file_custom_dir(self):
         """Test uploading a file to a custom directory."""

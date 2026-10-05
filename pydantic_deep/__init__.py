@@ -50,6 +50,7 @@ Example:
 from pydantic_ai.capabilities import LocalWorkspace
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
+    ConfinedWorkspace,
     DaytonaWorkspace,
     DockerWorkspace,
     FileData,
@@ -339,6 +340,7 @@ __all__ = [
     "DaytonaWorkspace",
     "StateWorkspace",
     "StateBackend",
+    "ConfinedWorkspace",
     # Runtimes
     "RuntimeConfig",
     "BUILTIN_RUNTIMES",

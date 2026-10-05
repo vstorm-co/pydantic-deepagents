@@ -497,3 +497,70 @@ class TestDetectForkTestCommand:
         """Empty project dir → None."""
 
         assert _detect_fork_test_command(tmp_path) is None
+
+
+class TestLocalSession:
+    """`sandbox="local"`: the project on this machine, as `LocalBackend` had it."""
+
+    async def test_file_tools_stay_inside_the_project(self, tmp_path: Path) -> None:
+        project = tmp_path / "project"
+        project.mkdir()
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(project))
+        workspace = agent._cli_workspace
+        await workspace.write_text("inside.txt", "ok")
+        assert (project / "inside.txt").read_text() == "ok"
+        with pytest.raises(PermissionError, match="outside the workspace"):
+            await workspace.write_text(str(tmp_path / "outside.txt"), "no")
+        assert not (tmp_path / "outside.txt").exists()
+
+    async def test_commands_get_the_users_environment(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`git push` needs the SSH agent; a bare PATH and HOME broke it."""
+        monkeypatch.setenv("PYDANTIC_DEEP_TEST_VAR", "from-the-user")
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(tmp_path))
+        result = await agent._cli_workspace.run("printf %s $PYDANTIC_DEEP_TEST_VAR", shell=True)
+        assert result.stdout == "from-the-user"
+
+    def test_host_files_go_under_the_project(self, tmp_path: Path) -> None:
+        from pydantic_deep.agent import _local_working_dir
+
+        agent, _ = create_cli_agent(model=TEST_MODEL, working_dir=str(tmp_path))
+        capability = next(
+            c
+            for c in agent._root_capability.capabilities
+            if type(c).__name__ == "_SessionWorkspace"
+        )
+        assert _local_working_dir(capability) == tmp_path
+
+
+class TestBranchRunner:
+    async def test_a_branch_writes_into_its_overlay_not_the_project(self, tmp_path: Path) -> None:
+        """The runner left out `workspace=`, so every branch wrote straight into the project."""
+        from types import SimpleNamespace
+
+        from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+        from pydantic_ai.workspaces import Workspace
+
+        from apps.cli.screens.chat import _stream_branch_via_iter
+        from pydantic_deep import DeepAgentDeps
+        from pydantic_deep.features.forking.isolation import branch_workspace
+        from pydantic_deep.features.forking.types import BranchIsolation
+
+        def model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            if len(messages) == 1:
+                return ModelResponse(
+                    parts=[ToolCallPart("write_file", {"path": "branch.txt", "content": "b"})]
+                )
+            return ModelResponse(parts=[TextPart("done")])
+
+        agent, _ = create_cli_agent(model=FunctionModel(model), working_dir=str(tmp_path))
+        workspace, overlay = branch_workspace(Workspace(agent._cli_workspace), BranchIsolation())
+        assert overlay is not None
+        runtime = SimpleNamespace(workspace=workspace, overlay=overlay)
+
+        await _stream_branch_via_iter(agent, "go", [], DeepAgentDeps(), None, runtime)
+
+        assert not (tmp_path / "branch.txt").exists()
+        assert [change.path for change in overlay.changes()] == [str(tmp_path / "branch.txt")]

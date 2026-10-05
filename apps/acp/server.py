@@ -24,6 +24,7 @@ Usage:
 """
 
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -35,7 +36,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ToolCallPart,
 )
-from pydantic_ai.workspaces import LocalWorkspaceBackend
+from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
+from pydantic_ai_backends import ConfinedWorkspace
 
 from acp import (
     Agent as ACPAgent,
@@ -139,13 +141,16 @@ class DeepAgentACP(ACPAgent):
             self._session_deps[session_id] = DeepAgentDeps()
         return self._session_deps[session_id]
 
-    def _workspace_for(self, session_id: str) -> LocalWorkspaceBackend:
+    def _workspace_for(self, session_id: str) -> ConfinedWorkspace:
         """The session's working directory, which every run of it works in.
 
         Passed per run because one agent may serve sessions in different
-        directories, and the editor names each session's directory.
+        directories, and the editor names each session's directory. Confined, so
+        the file tools stay in the project the editor opened; commands get the
+        editor's environment, as a terminal in it would.
         """
-        return LocalWorkspaceBackend(self._session_cwds.get(session_id, "."))
+        directory = self._session_cwds.get(session_id, ".")
+        return ConfinedWorkspace(Workspace(LocalWorkspaceBackend(directory, env=dict(os.environ))))
 
     def _build_config_options(self, session_id: str) -> list[SessionConfigOptionSelect]:
         """Build config options (model selector)."""

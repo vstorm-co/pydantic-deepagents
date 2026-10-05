@@ -66,7 +66,10 @@ class DeepAgentDeps:
     _branch_cost_tracking: CostTracking | None = field(default=None, repr=False)
     _branch_id: str | None = field(default=None, repr=False)
     _parent_fork_coordinator: ForkCoordinator | None = field(default=None, repr=False)
-    _pending_uploads: dict[str, bytes] = field(default_factory=dict, repr=False)
+    _upload_bytes: dict[str, bytes] = field(default_factory=dict, repr=False)
+    _upload_versions: dict[str, int] = field(default_factory=dict, repr=False)
+    _uploads_written: dict[tuple[str, str, str], int] = field(default_factory=dict, repr=False)
+    """Which version of each upload a workspace has, by `(provider, id, path)`."""
 
     def get_todo_prompt(self) -> str:
         """Generate system prompt section for todos.
@@ -109,10 +112,12 @@ class DeepAgentDeps:
     ) -> str:
         """Upload a file for the next run and track it.
 
-        The bytes are held here and written to the run's workspace when the
-        run starts, by `write_pending_uploads`: a workspace is attached to a
-        run, so before one starts there is nowhere to write them. The metadata
-        is recorded now for display in the system prompt.
+        The bytes are held here and written into the workspace of every run
+        that starts after this, by `write_uploads`: a workspace is attached to
+        a run, so before one starts there is nowhere to write them, and a run
+        in a new workspace - a new in-memory document - must find the files
+        the prompt lists too. Uploading the same path again replaces the file.
+        The metadata is recorded now for display in the system prompt.
 
         Args:
             name: Original filename (e.g., "sales.csv")
@@ -131,7 +136,8 @@ class DeepAgentDeps:
             ```
         """
         path = f"{upload_dir.rstrip('/')}/{name}"
-        self._pending_uploads[path] = content
+        self._upload_bytes[path] = content
+        self._upload_versions[path] = self._upload_versions.get(path, 0) + 1
 
         line_count = None
         is_text = False
@@ -199,16 +205,32 @@ class DeepAgentDeps:
                 continue
         return paths
 
-    async def write_pending_uploads(self, workspace: Workspace) -> None:
-        """Write the files uploaded since the last run into `workspace`.
+    async def write_uploads(self, workspace: Workspace) -> None:
+        """Make every uploaded file present, at its latest version, in `workspace`.
 
-        Called when a run starts. A file that cannot be written raises, since
-        the system prompt already tells the agent it is there.
+        Called when a run starts. A workspace that already holds the latest
+        version - by its ref - is left alone, so a file the agent changed is
+        not overwritten on the next run. One without a ref, such as a fork
+        branch's view of its parent, gets a file only when it does not see one
+        there. A file that cannot be written raises, since the system prompt
+        already tells the agent it is there.
         """
-        while self._pending_uploads:
-            path, content = next(iter(self._pending_uploads.items()))
+        if not self._upload_bytes:
+            return
+        # Opened first, so a workspace created on first use - a new in-memory
+        # document - has the ref the next run of its conversation will carry.
+        await workspace.working_dir()
+        ref = workspace.ref
+        for path, content in self._upload_bytes.items():
+            version = self._upload_versions[path]
+            if ref is None:
+                if not await workspace.exists(path):
+                    await workspace.write_bytes(path, content)
+                continue
+            if self._uploads_written.get((ref.provider, ref.id, path)) == version:
+                continue
             await workspace.write_bytes(path, content)
-            del self._pending_uploads[path]
+            self._uploads_written[(ref.provider, ref.id, path)] = version
 
     def get_uploads_summary(self) -> str:
         """Generate summary of uploaded files for system prompt."""

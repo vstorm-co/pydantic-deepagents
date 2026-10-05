@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import re
 import shlex
 from collections import deque
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
 
 #: Sink invoked for every emitted event (the "react" hook).
 EventSink = Callable[[MonitorEvent], Awaitable[None]]
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_POLL_INTERVAL = 1.0
 _MAX_RECENT_EVENTS = 20
@@ -123,10 +126,11 @@ class MonitorManager:
     async def stop(self, monitor_id: str) -> bool:
         """Stop a monitor and kill its process. False if unknown."""
         mon = self._monitors.pop(monitor_id, None)
-        if mon is None:
-            return False
-        await self._teardown(mon)
-        return True
+        if mon is not None:
+            await self._teardown(mon)
+        # One return for both outcomes: after awaiting a cancelled task, Python
+        # 3.11's tracer can miss the next line, and the coverage gate with it.
+        return mon is not None
 
     async def stop_all(self) -> None:
         """Stop every monitor (e.g. on session end)."""
@@ -153,13 +157,25 @@ class MonitorManager:
                     await task
 
     async def _new_lines(self, mon: _Monitor) -> list[str]:
-        """The non-blank lines written to the log since the last read."""
-        try:
-            data = await self._workspace.read_bytes(mon.log_path)
-        except FileNotFoundError:
-            return []
-        new, mon.read_offset = data[mon.read_offset :], len(data)
-        return [ln for ln in new.decode("utf-8", errors="replace").splitlines() if ln.strip()]
+        """The non-blank lines written to the log since the last read.
+
+        Only the new bytes cross from the workspace: a watched log grows for as
+        long as the command runs, and reading all of it every poll - a base64
+        transfer, in a container - grew with it. The size comes from the same
+        command, so a line written mid-read is left for the next poll.
+        """
+        script = (
+            'size=$(wc -c < "$1") || exit 1; printf "%s\\n" "$size"; '
+            'tail -c +$(($2 + 1)) "$1" | head -c $((size - $2))'
+        )
+        result = await self._workspace.run(
+            ["sh", "-c", script, "monitor", mon.log_path, str(mon.read_offset)]
+        )
+        if result.exit_code != 0:
+            return []  # not written yet
+        size, _, new = result.stdout.partition("\n")
+        mon.read_offset = int(size)
+        return [ln for ln in new.splitlines() if ln.strip()]
 
     async def _watch(self, mon: _Monitor) -> None:
         """Read new output on an interval and emit events until the command exits."""
@@ -167,7 +183,10 @@ class MonitorManager:
             while True:
                 await asyncio.sleep(self._poll_interval)
                 finished = mon.process.done()
-                lines = await self._new_lines(mon)
+                # A command that could not run - the workspace gone, no
+                # commands - wrote no log, and reading one would fail the same way.
+                failed = finished and mon.process.exception() is not None
+                lines = [] if failed else await self._new_lines(mon)
                 matched = [ln for ln in lines if mon.matcher is None or mon.matcher.search(ln)]
                 if matched:
                     await self._emit(
@@ -176,9 +195,8 @@ class MonitorManager:
                     )
                 if finished:
                     mon.running = False
-                    # A command that could not run - the workspace gone, no
-                    # commands - has no exit code to report.
-                    result = None if mon.process.exception() else mon.process.result()
+                    # ...and has no exit code to report.
+                    result = None if failed else mon.process.result()
                     mon.exit_code = result.exit_code if result is not None else None
                     await self._emit(
                         mon,
@@ -189,8 +207,12 @@ class MonitorManager:
                     return
         except asyncio.CancelledError:
             raise
-        except Exception:  # pragma: no cover - defensive: never let a watch crash loudly
+        except Exception:
+            # Never crash loudly - but nor leave the command running with
+            # nobody watching it.
+            logger.exception("Monitor %s stopped watching", mon.monitor_id)
             mon.running = False
+            mon.process.cancel()
 
     async def _emit(self, mon: _Monitor, event: MonitorEvent) -> None:
         mon.events.append(event)

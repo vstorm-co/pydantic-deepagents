@@ -15,7 +15,6 @@ from pydantic_ai._agent_graph import HistoryProcessor
 from pydantic_ai._run_context import get_current_run_context
 from pydantic_ai.capabilities import (
     AbstractCapability,
-    LocalWorkspace,
     ProcessHistory,
     Thinking,
     WebFetch,
@@ -248,7 +247,7 @@ class _DepsTodoProxy:
 
 
 class _PendingUploads(AbstractCapability[DeepAgentDeps]):
-    """Write the files `deps.upload_file` queued into the run's workspace when a run starts.
+    """Write the files `deps.upload_file` holds into the run's workspace when a run starts.
 
     A file is uploaded before a run has a workspace to hold it, so the bytes
     wait in deps until here. A run with no workspace attached cannot receive
@@ -257,18 +256,19 @@ class _PendingUploads(AbstractCapability[DeepAgentDeps]):
     """
 
     async def before_run(self, ctx: RunContext[DeepAgentDeps]) -> None:
-        await ctx.deps.write_pending_uploads(ctx.workspace)
+        await ctx.deps.write_uploads(ctx.workspace)
 
 
 def _local_working_dir(workspace: AbstractCapability[Any] | Literal[False]) -> Path | None:
-    """This machine's directory the workspace works in, when it is a `LocalWorkspace`.
+    """The directory on this machine the workspace's project is in, when it names one.
 
+    `LocalWorkspace.working_dir`, or the same attribute on a capability of your
+    own - one supplying a container that mounts a project from this machine, say.
     Host-side files that sit beside the project - the history archive, the
     improve sessions - go there.
     """
-    if isinstance(workspace, LocalWorkspace):
-        return Path(workspace.working_dir)
-    return None
+    working_dir = getattr(workspace, "working_dir", None)
+    return Path(working_dir) if isinstance(working_dir, str | Path) else None
 
 
 class _TodoProxyBinder(AbstractCapability[DeepAgentDeps]):

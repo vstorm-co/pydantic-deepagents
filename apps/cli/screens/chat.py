@@ -98,6 +98,9 @@ async def _stream_branch_via_iter(  # noqa: C901
         kwargs: dict[str, Any] = {
             "message_history": message_history,
             "deps": deps,
+            # The branch's overlay, not the session's workspace: without it every
+            # branch wrote straight into the project.
+            "workspace": runtime.workspace,
         }
         if deferred_tool_results is not None:
             kwargs["deferred_tool_results"] = deferred_tool_results
@@ -106,7 +109,11 @@ async def _stream_branch_via_iter(  # noqa: C901
     try:
         msg_list = panel.query_one(MessageList)
     except Exception:  # pragma: no cover
-        kwargs = {"message_history": message_history, "deps": deps}
+        kwargs = {
+            "message_history": message_history,
+            "deps": deps,
+            "workspace": runtime.workspace,
+        }
         if deferred_tool_results is not None:
             kwargs["deferred_tool_results"] = deferred_tool_results
         return await agent.run(prompt, **kwargs)
@@ -115,6 +122,7 @@ async def _stream_branch_via_iter(  # noqa: C901
         "deps": deps,
         "message_history": message_history,
         "usage_limits": DEFAULT_USAGE_LIMITS,
+        "workspace": runtime.workspace,
     }
     if deferred_tool_results is not None:
         iter_kwargs["deferred_tool_results"] = deferred_tool_results
@@ -872,7 +880,13 @@ class ChatScreen(Screen):
             history = patch_tool_calls_processor(list(history))
 
             async with agent.iter(
-                text, deps=deps, message_history=history, usage_limits=DEFAULT_USAGE_LIMITS
+                text,
+                deps=deps,
+                message_history=history,
+                usage_limits=DEFAULT_USAGE_LIMITS,
+                # The session's workspace, over any ref the history names - one
+                # saved by another process, or before a model switch.
+                workspace=getattr(agent, "_cli_workspace", None),
             ) as run:
                 async for node in run:
                     if isinstance(node, UserPromptNode):
@@ -1131,6 +1145,7 @@ class ChatScreen(Screen):
                         message_history=result.all_messages(),
                         deferred_tool_results=DeferredToolResults(approvals=approvals),
                         usage_limits=DEFAULT_USAGE_LIMITS,
+                        workspace=getattr(agent, "_cli_workspace", None),
                     ) as cont_run:
                         async for node in cont_run:
                             if isinstance(node, UserPromptNode):

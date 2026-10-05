@@ -81,15 +81,6 @@ _SNAP_SKIP_DIRS: frozenset[str] = frozenset(
     }
 )
 
-#: Max characters returned from a branch execute call.
-_EXEC_MAX_CHARS: int = 100_000
-
-#: Default timeout (seconds) for a branch `execute` when the caller passes `None`.
-_EXEC_DEFAULT_TIMEOUT_S: int = 120
-
-#: Matches the POSIX `timeout(1)` convention for killed-by-timeout commands.
-_EXIT_TIMEOUT: int = 124
-
 
 def _rel_under(parent_root: Path, path: str) -> Path:
     """Return `path` relative to `parent_root`, falling back to lstripped.
@@ -312,6 +303,11 @@ async def _propagate_mutations(
         await overlay.write_bytes(abs_path, data)
 
 
+def _under(path: str, directory: str) -> bool:
+    """Whether `path` lies strictly below `directory`."""
+    return path.startswith(directory.rstrip("/") + "/")
+
+
 def _entry(path: str, *, is_dir: bool, size: int | None) -> FileEntry:
     return FileEntry(name=posixpath.basename(path), path=path, is_dir=is_dir, size=size)
 
@@ -336,6 +332,9 @@ class BranchOverlay:
         self._overlay = StateBackend()
         self._changes: list[FileChange] = []
         self._deleted: set[str] = set()
+        self._opaque: set[str] = set()
+        """Directories this branch removed and created again: they exist, but
+        nothing the parent had in them shows through."""
         self._materializer: ForkMaterializer | None = None
         self._branch_label: str | None = None
 
@@ -372,10 +371,13 @@ class BranchOverlay:
     # -- reads -------------------------------------------------------------
 
     def _is_deleted(self, path: str) -> bool:
-        """Check if `path` or any of its parent directories has been removed."""
+        """Whether `path` is hidden: removed, under a removed directory, or the
+        parent's content of a directory this branch removed and recreated."""
         if path in self._deleted:
             return True
-        return any(path.startswith(d.rstrip("/") + "/") for d in self._deleted)
+        if any(_under(path, d) for d in self._deleted):
+            return True
+        return any(_under(path, d) for d in self._opaque) and not self._overlay.exists(path)
 
     async def exists(self, path: str) -> bool:
         if self._is_deleted(path):
@@ -416,10 +418,22 @@ class BranchOverlay:
 
     # -- writes ------------------------------------------------------------
 
-    def _undelete(self, path: str) -> None:
-        """Remove `path` and any deleted-parent-directory entry covering it."""
+    def _undelete(self, path: str, *, as_dir: bool = False) -> bool:
+        """Make `path` visible again; whether it had been removed itself.
+
+        A removed directory that something is created in exists again, but
+        empty of what the parent had in it - merging replays the removal before
+        the creation, and the branch's view has to agree with that.
+        """
+        covering = {d for d in self._deleted if _under(path, d)}
+        self._deleted -= covering
+        self._opaque |= covering
+        if path not in self._deleted:
+            return False
         self._deleted.discard(path)
-        self._deleted -= {d for d in self._deleted if path.startswith(d.rstrip("/") + "/")}
+        if as_dir:
+            self._opaque.add(path)
+        return True
 
     def _record(self, path: str, op: FileChangeOp) -> None:
         change = FileChange(path=path, op=op, timestamp=datetime.now(timezone.utc))
@@ -437,8 +451,8 @@ class BranchOverlay:
         self._record(path, "write")
 
     async def make_dir(self, path: str) -> None:
-        self._undelete(path)
-        if await self.exists(path):
+        recreated = self._undelete(path, as_dir=True)
+        if not recreated and await self.exists(path):
             if (await self.stat(path)).is_dir:
                 return
             raise FileExistsError(path)
@@ -561,10 +575,14 @@ class BranchOverlay:
         conflict_set = set(conflicts)
         applied_changes = 0
 
-        for change in self._changes:
+        for index, change in enumerate(self._changes):
             # A path a third actor changed since the fork stays in `conflicts`
             # for manual resolution; replaying it would clobber the newer content.
             if change.path in conflict_set:
+                continue
+            # A write the branch removed again: its bytes left the overlay with
+            # the removal, and replaying the removal is what the parent needs.
+            if change.op == "write" and self._removed_later(index):
                 continue
             try:
                 if change.op in ("delete", "rmdir"):
@@ -598,6 +616,14 @@ class BranchOverlay:
             conflicts=conflicts,
             errors=errors,
             deleted_paths=deleted_paths,
+        )
+
+    def _removed_later(self, index: int) -> bool:
+        """Whether a change after `index` removes its path or a directory above it."""
+        path = self._changes[index].path
+        return any(
+            later.op in ("delete", "rmdir") and (later.path == path or _under(path, later.path))
+            for later in self._changes[index + 1 :]
         )
 
     async def _detect_conflicts(

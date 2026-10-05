@@ -131,6 +131,7 @@ async def execute_headless(  # noqa: C901
     try:
         run_kwargs: dict[str, Any] = {
             "usage_limits": DEFAULT_USAGE_LIMITS,
+            "workspace": agent._cli_workspace,
         }
         if max_turns is not None:
             run_kwargs["max_turns"] = max_turns

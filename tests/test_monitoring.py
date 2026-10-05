@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -192,6 +193,38 @@ class TestMonitorManager:
         await mgr.start("echo hi")
         await _drain_until_done(events)
         assert [e.exit_code for e in events if not e.running] == [None]
+
+    async def test_a_watch_that_fails_stops_its_command(self, tmp_path: Path) -> None:
+        """Nobody would be watching it, and nothing would ever stop it."""
+
+        class _ReadsFail(LocalWorkspaceBackend):
+            async def run(self, command: Any, **kwargs: Any) -> Any:
+                if isinstance(command, list) and "wc -c" in command[2]:
+                    raise RuntimeError("the log could not be read")
+                return await super().run(command, **kwargs)
+
+        mgr = MonitorManager(Workspace(_ReadsFail(tmp_path)), poll_interval=0.05)
+        info = await mgr.start("sleep 30")
+        mon = mgr._monitors[info.monitor_id]
+        assert mon.task is not None
+        await asyncio.wait_for(mon.task, timeout=5)
+        assert not mon.running
+        with contextlib.suppress(asyncio.CancelledError):
+            await asyncio.wait_for(mon.process, timeout=5)
+        assert mon.process.cancelled()
+
+    async def test_each_line_is_read_once(self, tmp_path: Path) -> None:
+        events: list[MonitorEvent] = []
+
+        async def sink(e: MonitorEvent) -> None:
+            events.append(e)
+
+        mgr = MonitorManager(
+            Workspace(LocalWorkspaceBackend(tmp_path)), on_event=sink, poll_interval=0.05
+        )
+        await mgr.start("echo one; sleep 0.3; echo two; sleep 0.3; echo three")
+        await _drain_until_done(events)
+        assert [line for e in events for line in e.lines] == ["one", "two", "three"]
 
 
 @dataclass

@@ -136,6 +136,15 @@ class TestExecuteHeadless:
 
         mock_agent._cli_workspace_cleanup.assert_awaited_once_with()
 
+    async def test_the_run_works_in_the_session_workspace(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        """Passed, not left to the capability, so it overrides a ref in a history."""
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            await execute_headless(task="Fix the bug", working_dir="/tmp")
+
+        assert mock_agent.run.await_args.kwargs["workspace"] is mock_agent._cli_workspace
+
     async def test_a_kept_workspace_needs_no_cleanup(
         self, mock_agent: MagicMock, mock_deps: MagicMock
     ) -> None:

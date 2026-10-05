@@ -693,7 +693,10 @@ class TestFallbackModel:
         assert len(backend.executed) == 1
         assert "model_fallback_triggered" in backend.executed[0]
 
-    async def test_model_fallback_command_hook_outside_a_run_has_no_workspace(self) -> None:
+    async def test_model_fallback_command_hook_outside_a_run_still_falls_back(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """No workspace to run the hook in: it is undecided, logged, and the fallback goes on."""
         from pydantic_deep.agent import _wrap_with_fallback_and_hooks
         from pydantic_deep.features.hooks import Hook, HookEvent
 
@@ -702,11 +705,13 @@ class TestFallbackModel:
             [TestModel()],
             [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
         )
-        with pytest.raises(RuntimeError, match="runs commands"):
-            await cast(
+        with caplog.at_level("WARNING"):
+            falls_back = await cast(
                 "Awaitable[bool]",
                 model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
             )
+        assert falls_back is True
+        assert "runs commands" in caplog.text
 
     async def test_request_stream_resets_hop_counter(self) -> None:
         """`request_stream` must also zero the per-context hop counter."""

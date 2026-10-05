@@ -142,17 +142,77 @@ async def test_removing_a_file_the_branch_wrote_drops_it_from_the_overlay() -> N
     assert not await overlay.exists("/tmp.txt")
 
 
-async def test_writing_inside_a_removed_directory_brings_the_file_back() -> None:
-    overlay = _overlay({"/proj/jajo/old.txt": "old", "/x.py": "v0"})
+async def test_writing_inside_a_removed_directory_recreates_it_empty() -> None:
+    """Merge replays the removal first, so the branch must not see the old files either."""
+    parent = state_workspace({"/proj/jajo/old.txt": "old", "/x.py": "v0"})
+    overlay = BranchOverlay(parent)
     await overlay.remove("/proj/jajo")
     await overlay.write_bytes("/proj/jajo/new.txt", b"new")
     await overlay.remove("/x.py")
     await overlay.make_dir("/x.py.d")
     await overlay.write_bytes("/x.py", b"v1")
     assert await overlay.read_bytes("/proj/jajo/new.txt") == b"new"
-    assert await overlay.exists("/proj/jajo/old.txt")  # the tombstone covering it is gone
+    assert not await overlay.exists("/proj/jajo/old.txt")
+    assert [e.name for e in await overlay.list_dir("/proj/jajo")] == ["new.txt"]
     assert await overlay.read_bytes("/x.py") == b"v1"
     assert "/x.py" not in overlay.deleted()
+
+    await overlay.flush_to(parent)
+    assert [e.name for e in await parent.list_dir("/proj/jajo")] == ["new.txt"]
+
+
+async def test_a_removed_directory_made_again_is_empty_and_merges_empty() -> None:
+    parent = state_workspace({"/d/a.txt": "a"})
+    overlay = BranchOverlay(parent)
+    await overlay.remove("/d")
+    await overlay.make_dir("/d")
+    assert (await overlay.stat("/d")).is_dir
+    assert list(await overlay.list_dir("/d")) == []
+    assert not await overlay.exists("/d/a.txt")
+
+    report = await overlay.flush_to(parent)
+    assert report.errors == []
+    assert (await parent.stat("/d")).is_dir
+    assert list(await parent.list_dir("/d")) == []
+
+
+async def test_a_directory_removed_twice_stays_removed() -> None:
+    overlay = _overlay({"/d/a.txt": "a"})
+    await overlay.remove("/d")
+    await overlay.make_dir("/d")
+    await overlay.remove("/d")
+    assert not await overlay.exists("/d")
+    await overlay.make_dir("/d/e")
+    assert not await overlay.exists("/d/a.txt")
+    assert (await overlay.stat("/d/e")).is_dir
+
+
+async def test_a_directory_made_and_removed_again_is_reported_removed() -> None:
+    parent = state_workspace()
+    overlay = BranchOverlay(parent)
+    await overlay.make_dir("/tmpdir")
+    await overlay.remove("/tmpdir")
+
+    report = await overlay.flush_to(parent)
+
+    assert (report.applied_paths, report.deleted_paths) == ([], ["/tmpdir"])
+    assert not await parent.exists("/tmpdir")
+
+
+async def test_a_write_removed_later_merges_without_errors() -> None:
+    """Its bytes left the overlay with the removal; replaying the write failed."""
+    parent = state_workspace({"/keep.txt": "k"})
+    overlay = BranchOverlay(parent)
+    await overlay.write_bytes("/scratch.txt", b"tmp")
+    await overlay.remove("/scratch.txt")
+    await overlay.write_bytes("/build/out.txt", b"o")
+    await overlay.remove("/build")
+
+    report = await overlay.flush_to(parent)
+
+    assert report.errors == []
+    assert not await parent.exists("/scratch.txt")
+    assert not await parent.exists("/build")
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +270,8 @@ async def test_flush_replays_every_change_onto_the_parent() -> None:
 
     assert report.applied_paths == ["/keep.py", "/newdir", "/again.py"]
     assert report.deleted_paths == ["/old.py", "/olddir"]
-    assert report.applied_changes == 9 - 1
+    # The first write of /again.py is not replayed: the branch removed it again.
+    assert report.applied_changes == 7
     assert (report.conflicts, report.errors) == ([], [])
     assert await parent.read_bytes("/keep.py") == b"k2"
     assert await parent.read_bytes("/again.py") == b"b"

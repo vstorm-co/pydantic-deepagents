@@ -635,20 +635,38 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
 _DEEP_MD_PATH = APP_DIR / "workspace" / "DEEP.md"
 
 
+def _session_host_dir(session_id: str) -> Path:
+    """The host directory a session's container mounts at /workspace.
+
+    The id arrives from the client, so it must be one this app issues - a UUID -
+    and the directory must stay inside `WORKSPACES_DIR`; anything else would
+    mount a directory of the client's choosing into a container.
+    """
+    try:
+        canonical = str(uuid.UUID(session_id))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session id") from None
+    root = WORKSPACES_DIR.resolve()
+    host_dir = (root / canonical / "workspace").resolve()
+    if not host_dir.is_relative_to(root):
+        raise HTTPException(status_code=400, detail="Invalid session id")
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return host_dir
+
+
 def _session_container(session_id: str) -> DockerWorkspace:
     """The session's Docker container, with its host directory mounted at /workspace.
 
     Named after the session, so a restarted server reaches the same container;
     the files live on the host, so a removed container loses none of them.
     """
-    host_dir = WORKSPACES_DIR / session_id / "workspace"
-    host_dir.mkdir(parents=True, exist_ok=True)
+    host_dir = _session_host_dir(session_id)
     return DockerWorkspace(
         # Change to runtime="python-datascience" for pre-installed pandas/numpy/matplotlib
         # (first run will take a few minutes to build the Docker image)
         image="python:3.12-slim",
         env=sandbox_env_vars or None,
-        volumes={str(host_dir.resolve()): "/workspace"},
+        volumes={str(host_dir): "/workspace"},
         container_name=f"full-app-{session_id}",
     )
 
@@ -721,10 +739,16 @@ async def lifespan(app: FastAPI):
     print("=" * 60)
     yield
 
-    # Shutdown: the files stay on the host, the containers go.
+    # Shutdown: the files stay on the host, the containers go - each one tried,
+    # so one Docker error does not leave the rest running.
+    removed = 0
     for session_id in list(user_sessions):
-        await _remove_session_container(session_id)
-    print(f"Shutdown complete. Removed {len(user_sessions)} session containers.")
+        try:
+            await _remove_session_container(session_id)
+            removed += 1
+        except Exception:
+            logger.exception("Could not remove the container of session %s", session_id)
+    print(f"Shutdown complete. Removed {removed} of {len(user_sessions)} session containers.")
 
 
 app = FastAPI(
@@ -871,7 +895,7 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
 
                     # Save to container first
                     upload_path = await session.deps.upload_file(name, data)
-                    await session.deps.write_pending_uploads(session.workspace)
+                    await session.deps.write_uploads(session.workspace)
                     logger.info(f"Attachment saved: {name} ({len(data)} bytes) -> {upload_path}")
 
                     if media_type.startswith("image/"):
@@ -1342,7 +1366,7 @@ async def upload_file(
 
         # Upload into the session's container
         path = await session.deps.upload_file(filename, content)
-        await session.deps.write_pending_uploads(session.workspace)
+        await session.deps.write_uploads(session.workspace)
         logger.info(f"File uploaded to: {path}")
 
         return JSONResponse(

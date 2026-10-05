@@ -37,7 +37,11 @@ from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import ToolDefinition
-from pydantic_ai.workspaces import SupportsCommands
+from pydantic_ai.workspaces import (
+    SupportsCommands,
+    WorkspaceOutputLimitError,
+    WorkspaceTimeoutError,
+)
 
 from pydantic_deep.deps import DeepAgentDeps
 
@@ -193,6 +197,17 @@ def _parse_command_result(response: CommandResult) -> HookResult:
     return result
 
 
+def _undecided(hook: Hook, reason: str) -> HookResult:
+    """The result of a hook that could not run or could not decide.
+
+    It has allowed nothing, so a tool it gates is refused - with the reason, for
+    the model to read - and the run goes on. Raising instead ended the run on
+    one slow hook; allowing let a gate that never ran wave a call through.
+    """
+    logger.warning("Hook %r could not decide: %s", hook.command or hook.handler, reason)
+    return HookResult(allow=False, reason=f"A hook could not decide: {reason}")
+
+
 async def _execute_command_hook(
     hook: Hook,
     hook_input: HookInput,
@@ -200,8 +215,7 @@ async def _execute_command_hook(
 ) -> HookResult:
     """Execute a command hook in the workspace.
 
-    A hook that outlives its timeout raises `WorkspaceTimeoutError` rather than
-    allowing the call: a hook that could not decide has not allowed anything.
+    One that outlives its timeout or floods its output is undecided, not allowed.
     """
     json_str = json.dumps(asdict(hook_input))
     # Escape single quotes for shell safety
@@ -209,7 +223,10 @@ async def _execute_command_hook(
     full_command = f"printf '%s' '{escaped}' | {hook.command}"
     # A hook's command is a shell line by contract (Claude Code's), written by
     # whoever configures the agent, and it runs inside the run's workspace.
-    response = await workspace.run(full_command, shell=True, timeout=hook.timeout)  # nosec B604
+    try:
+        response = await workspace.run(full_command, shell=True, timeout=hook.timeout)  # nosec B604
+    except (WorkspaceTimeoutError, WorkspaceOutputLimitError) as error:
+        return _undecided(hook, str(error))
     return _parse_command_result(response)
 
 
@@ -234,12 +251,15 @@ async def _run_hook(
             or not workspace.attached
             or not isinstance(workspace.backend, SupportsCommands)
         ):
-            msg = (
-                "Command hooks need a workspace that runs commands "
-                "(LocalWorkspace, DockerWorkspace, SandboxdWorkspace, ...). "
-                "This run's workspace does not."
+            # A files-only workspace - the default, or a fork branch's view of a
+            # container - cannot run one. Configuring command hooks there is
+            # usually a mistake, which the refusals and the warning surface.
+            return _undecided(
+                hook,
+                "command hooks need a workspace that runs commands "
+                "(LocalWorkspace, DockerWorkspace, SandboxdWorkspace, ...), "
+                "and this run's workspace does not",
             )
-            raise RuntimeError(msg)
         return await _execute_command_hook(hook, hook_input, workspace)
     return await _execute_handler_hook(hook, hook_input)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace, WorkspaceBackend, WorkspaceRef
+from pydantic_ai_backends import ConfinedWorkspace
 
 from apps.cli.config import load_config
 from apps.cli.model_resolve import resolve_cli_model
@@ -33,14 +35,20 @@ _PROCESS_CONTAINER_ID = uuid.uuid4().hex[:8]
 
 @dataclass
 class _SessionWorkspace(AbstractCapability[Any]):
-    """Give every run of a CLI session the same workspace.
+    """The workspace of a CLI session, for a run that does not pass its own.
 
     The CLI holds the environment for the whole session - `/fork` and the exit
-    cleanup need it outside any run - so each run gets this one backend
-    rather than whatever a ref in the history names.
+    cleanup need it outside any run - and every run it starts passes it as
+    `workspace=`, which also overrides a ref the history names (one saved by
+    another process, or before a model switch rebuilt the agent). This answers
+    only a run without history.
     """
 
     backend: WorkspaceBackend
+
+    working_dir: Path
+    """The project on this machine: the history archive and improve sessions go
+    under it, whether the session's commands run here or in a container."""
 
     def get_workspace(
         self, ctx: RunContext[Any], *, ref: WorkspaceRef | None
@@ -289,7 +297,7 @@ def create_cli_agent(  # noqa: C901
             container_name=container_name,
             env=effective_env_vars or None,
         )
-        session_backend: WorkspaceBackend = docker.backend()
+        session_workspace = Workspace(docker.backend())
         host_root = None
         if not workspace:
             ref = WorkspaceRef(provider="docker", id=container_name)
@@ -299,7 +307,14 @@ def create_cli_agent(  # noqa: C901
 
             cleanup = _remove_container
     else:
-        session_backend = LocalWorkspaceBackend(root)
+        # Confined, as `LocalBackend(root_dir=...)` was: the file tools run
+        # without approval, and Pydantic AI's local workspace lets an absolute
+        # path or a `..` reach any file. Commands get the user's environment, as
+        # they did before - the CLI is their terminal, and `git push` needs the
+        # SSH agent.
+        session_workspace = ConfinedWorkspace(
+            Workspace(LocalWorkspaceBackend(root, env=dict(os.environ)))
+        )
 
     hooks: list[Hook] = []
     if effective_allow_list is not None:
@@ -484,7 +499,7 @@ def create_cli_agent(  # noqa: C901
         model=model_for_agent,
         fallback_model=fallback_for_agent,
         instructions=instructions,
-        workspace=_SessionWorkspace(session_backend),
+        workspace=_SessionWorkspace(session_workspace, working_dir=root),
         skill_directories=skill_dirs if effective_skills else None,
         interrupt_on=interrupt_on,
         model_settings=effective_model_settings or None,
@@ -561,7 +576,7 @@ def create_cli_agent(  # noqa: C901
     context_mw = getattr(agent, "_context_middleware", None)
     task_mgr = getattr(agent, "_task_manager", None)
 
-    agent._cli_workspace = Workspace(session_backend)  # type: ignore[attr-defined]
+    agent._cli_workspace = session_workspace  # type: ignore[attr-defined]
     agent._cli_workspace_cleanup = cleanup  # type: ignore[attr-defined]
 
     deps = DeepAgentDeps(

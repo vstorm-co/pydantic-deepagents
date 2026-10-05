@@ -16,7 +16,13 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import RunUsage
-from pydantic_ai.workspaces import CommandResult, Workspace, WorkspaceRef
+from pydantic_ai.workspaces import (
+    CommandResult,
+    Workspace,
+    WorkspaceOutputLimitError,
+    WorkspaceRef,
+    WorkspaceTimeoutError,
+)
 
 from pydantic_deep import DeepAgentDeps, create_deep_agent, default_security_hook
 from pydantic_deep.features.hooks.capability import (
@@ -66,8 +72,13 @@ def _td(name: str) -> ToolDefinition:
 class FakeSandboxBackend:
     """A workspace backend that runs commands by looking up canned results."""
 
-    def __init__(self, responses: dict[str, CommandResult] | None = None) -> None:
+    def __init__(
+        self,
+        responses: dict[str, CommandResult] | None = None,
+        error: Exception | None = None,
+    ) -> None:
         self.responses = responses or {}
+        self.error = error
         self.executed: list[str] = []
 
     @property
@@ -86,6 +97,8 @@ class FakeSandboxBackend:
         timeout: float | None = None,
     ) -> CommandResult:
         self.executed.append(command)
+        if self.error is not None:
+            raise self.error
         for key, response in self.responses.items():
             if key in command:
                 return response
@@ -448,18 +461,34 @@ class TestRunHook:
         result = await _run_hook(hook, hook_input, None)
         assert result.allow is True
 
-    async def test_command_hook_no_sandbox_raises(self):
+    async def test_command_hook_without_a_workspace_is_undecided(self):
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
-        with pytest.raises(RuntimeError, match="runs commands"):
-            await _run_hook(hook, hook_input, None)
+        result = await _run_hook(hook, hook_input, None)
+        assert result.allow is False
+        assert result.reason is not None and "runs commands" in result.reason
 
-    async def test_command_hook_non_sandbox_backend_raises(self):
+    async def test_command_hook_in_a_workspace_without_commands_is_undecided(self):
+        """A fork branch's view of a container, say: the gate refuses, the run goes on."""
         hook = Hook(event=HookEvent.PRE_TOOL_USE, command="check")
         hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
-        # An in-memory workspace has no commands
-        with pytest.raises(RuntimeError, match="runs commands"):
-            await _run_hook(hook, hook_input, state_workspace())
+        result = await _run_hook(hook, hook_input, state_workspace())
+        assert result.allow is False
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            WorkspaceTimeoutError("timed out after 1 seconds"),
+            WorkspaceOutputLimitError("too much output", limit=10),
+        ],
+    )
+    async def test_a_hook_that_cannot_finish_is_undecided(self, error: Exception) -> None:
+        """Raising ended the run on one slow hook; exit 124 used to allow the call."""
+        hook = Hook(event=HookEvent.PRE_TOOL_USE, command="slow", timeout=1)
+        hook_input = HookInput(event="pre_tool_use", tool_name="t", tool_input={})
+        result = await _run_hook(hook, hook_input, _workspace(FakeSandboxBackend(error=error)))
+        assert result.allow is False
+        assert result.reason is not None and str(error) in result.reason
 
 
 class TestRunBackgroundHook:

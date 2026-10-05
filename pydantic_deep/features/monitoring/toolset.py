@@ -127,7 +127,11 @@ def create_monitor_toolset(
         mgr = _manager(ctx)
         if mgr is None:
             return _no_backend
-        stopped = await mgr.stop(monitor_id)
-        return f"Stopped monitor {monitor_id}." if stopped else f"No such monitor: {monitor_id}."
+        # The await on the returning line: see `MonitorManager.stop`.
+        return (
+            f"Stopped monitor {monitor_id}."
+            if await mgr.stop(monitor_id)
+            else f"No such monitor: {monitor_id}."
+        )
 
     return toolset

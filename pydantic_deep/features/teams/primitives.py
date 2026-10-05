@@ -10,7 +10,6 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel
-from pydantic_ai_backends import BackendProtocol, StateBackend
 
 from pydantic_deep.models import DEFAULT_TEAM_MEMBER_MODEL
 
@@ -257,7 +256,6 @@ class AgentTeam:
     members: list[TeamMember]
     shared_todos: SharedTodoList = field(default_factory=SharedTodoList)
     message_bus: TeamMessageBus = field(default_factory=TeamMessageBus)
-    shared_backend: BackendProtocol = field(default_factory=StateBackend)
     # Subagent `TaskManager`. When set, `wait_all`/`dissolve` manage the
     # real background subagent tasks via `handle.task_id` (the actual flow set
     # up by `assign_task`), rather than the rarely-set `handle.task` field.

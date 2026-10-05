@@ -35,22 +35,27 @@ class BranchSpec:
     budget_usd: float | None = None
 
 
+FileChangeOp = Literal["write", "delete", "mkdir", "rmdir"]
+"""One kind of change a branch makes to its workspace."""
+
+
 @_dataclass(frozen=True)
 class BranchIsolation:
     """Isolation flags controlling what state branches share with the parent.
 
     Defaults match the project's per-branch isolation policy:
-    `history` always copies; `backend`, `memory`, `todos` copy by
+    `history` always copies; `workspace`, `memory`, `todos` copy by
     default; `message_queue` is isolated; `team_bus` is shared
     (peer-to-peer bus - branches can talk to each other by default).
 
-    Only `backend="copy"` and `message_queue="isolated"` are exercised
-    by the current fork pipeline; the other `share` / `share_readonly`
-    values are accepted for forward compatibility.
+    `workspace="copy"` gives each branch a copy-on-write overlay of the
+    parent's workspace; `"share_readonly"` the parent's workspace, read-only;
+    `"share"` the parent's workspace itself. Memory lives in the workspace,
+    so `memory` follows it.
     """
 
     history: Literal["copy"] = "copy"
-    backend: Literal["copy", "share_readonly", "share"] = "copy"
+    workspace: Literal["copy", "share_readonly", "share"] = "copy"
     memory: Literal["copy", "share"] = "copy"
     todos: Literal["copy", "share"] = "copy"
     message_queue: Literal["isolated", "shared"] = "isolated"
@@ -200,13 +205,13 @@ class FlushError:
     """
 
     path: str
-    op: Literal["write", "edit", "delete", "mkdir", "rmdir"]
+    op: FileChangeOp
     message: str
 
 
 @_dataclass(frozen=True)
 class FlushReport:
-    """Outcome of replaying a :class:`BranchOverlay` onto the parent backend.
+    """Outcome of replaying a :class:`BranchOverlay` onto the parent workspace.
 
     Produced by :meth:`BranchOverlay.flush_to` during `merge_or_select`
     when the user picks a winner with default-flush semantics. The fields
@@ -215,7 +220,7 @@ class FlushReport:
     style notifications.
 
     - `applied_paths` lists paths whose final overlay content was
-      written; a path's last write/edit wins, multiple in-overlay edits
+      written; a path's last write wins, multiple in-overlay writes
       to the same path collapse to one entry.
     - `applied_changes` counts every replayed op (≥ `len(applied_paths)`).
     - `conflicts` lists paths where the parent's pre-flush content
@@ -224,14 +229,13 @@ class FlushReport:
       NOT replayed onto the parent (non-destructive): the newer parent
       content is preserved and the path is excluded from `applied_paths`
       so the caller can resolve the conflict manually.
-    - `errors` is one :class:`FlushError` per per-write failure (e.g.
-      parent `WriteResult.error` non-empty or parent raised). The
+    - `errors` is one :class:`FlushError` per failed change (the parent
+      workspace raised). The
       failing path is excluded from `applied_paths`; remaining writes
       still flush.
-    - `deleted_paths` lists paths the branch removed via the `delete`
-      agent tool that were successfully propagated to the parent backend
-      on merge. Paths whose deletion failed (parent raised, or the
-      parent backend cannot delete) land in `errors` instead.
+    - `deleted_paths` lists paths the branch removed that were successfully
+      removed from the parent workspace on merge. Paths whose removal
+      failed land in `errors` instead.
     """
 
     applied_paths: list[str]
@@ -261,40 +265,39 @@ class MergeResult:
 class FileChange:
     """Single overlay mutation event recorded by :class:`BranchOverlay`.
 
-    Event-level log entry: one record per successful `write`, `edit`,
-    or `delete` on the branch overlay. The temporal-ordered list
+    Event-level log entry: one record per successful write, directory
+    creation or removal in the branch overlay. The temporal-ordered list
     returned by :meth:`BranchOverlay.changes` is the data spine consumed
     by every downstream consumer of the fork pipeline:
 
     - :func:`build_diff_report` - uses `path` to know which files a
       branch touched.
     - :class:`ForkMaterializer` - uses `op` to replay `write` /
-      `edit` / `delete` semantics on the on-disk mirror.
+      `delete` semantics on the on-disk mirror.
     - :class:`JudgeAgent` - uses `timestamp` for temporal heuristics
       when scoring branch outcomes.
 
     Not to be confused with :class:`BranchChange`, which is a state-level
     aggregate describing a branch's per-path outcome relative to the
-    parent backend (`"created"` / `"modified"` / `"deleted"` /
+    parent workspace (`"created"` / `"modified"` / `"deleted"` /
     `"untouched"`). `FileChange` logs individual operations;
     `BranchChange` summarises their cumulative effect.
     """
 
     path: str
-    op: Literal["write", "edit", "delete", "mkdir", "rmdir"]
+    op: FileChangeOp
     timestamp: datetime
 
 
 BranchDiffOperation = Literal["created", "modified", "deleted", "untouched"]
-"""What a single branch did to a given path, relative to the parent backend.
+"""What a single branch did to a given path, relative to the parent workspace.
 
-`"deleted"` surfaces when a branch removed the path — either via the
-`delete_file` agent tool, or via a shell `rm` invoked through
-`execute` against a :class:`~pydantic_ai_backends.LocalBackend` parent
-(the snapshot mutation tracker propagates the deletion back into the
-overlay). The classifier `_classify_agreement` treats deletions like
-any other operation: all-deleters → `unanimous_change`, mixed →
-`split`, single deleter → `unique`.
+`"deleted"` surfaces when a branch removed the path — through the workspace,
+or via a shell `rm` invoked through `execute` against a local parent (the
+snapshot mutation tracker propagates the deletion back into the overlay).
+The classifier `_classify_agreement` treats deletions like any other
+operation: all-deleters → `unanimous_change`, mixed → `split`, single
+deleter → `unique`.
 """
 
 
@@ -314,7 +317,7 @@ class BranchChange:
     """One branch's outcome for a single path within a `BranchDiffReport`.
 
     State-level aggregate: describes the END STATE of a path on a single
-    branch relative to the parent backend, classified into one
+    branch relative to the parent workspace, classified into one
     :data:`BranchDiffOperation` (`"created"` / `"modified"` /
     `"deleted"` / `"untouched"`). The classification is derived from
     parent existence + overlay content, NOT from :class:`FileChange.op` -

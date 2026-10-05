@@ -1,6 +1,6 @@
 """Tests for toolset implementations."""
 
-from pydantic_ai_backends import StateBackend, create_console_toolset, get_console_system_prompt
+from pydantic_ai_backends import create_console_toolset, get_console_system_prompt
 from pydantic_ai_todo import create_todo_toolset, get_todo_system_prompt
 
 from pydantic_deep.deps import DeepAgentDeps
@@ -24,7 +24,7 @@ class TestTodoToolset:
 
     def test_get_todo_system_prompt_empty(self):
         """Test system prompt with no todos."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         prompt = get_todo_system_prompt(deps)
 
         assert "Task Management" in prompt
@@ -33,7 +33,6 @@ class TestTodoToolset:
     def test_get_todo_system_prompt_with_todos(self):
         """Test system prompt with todos."""
         deps = DeepAgentDeps(
-            backend=StateBackend(),
             todos=[
                 Todo(content="Task 1", status="completed", active_form="Completing task 1"),
                 Todo(content="Task 2", status="in_progress", active_form="Working on task 2"),

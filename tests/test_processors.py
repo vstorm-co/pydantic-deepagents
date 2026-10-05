@@ -8,7 +8,6 @@ from pydantic_ai.models.test import TestModel
 from pydantic_deep import (
     DeepAgentDeps,
     SlidingWindowProcessor,
-    StateBackend,
     SummarizationProcessor,
     create_deep_agent,
     create_sliding_window_processor,
@@ -64,7 +63,7 @@ class TestAgentWithOutputType:
             web_fetch=False,
         )
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         result = await agent.run("Test question", deps=deps)
         assert isinstance(result.output, SimpleResult)
         assert result.output.answer == "test"
@@ -136,7 +135,7 @@ class TestAgentWithHistoryProcessors:
             web_fetch=False,
         )
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         result = await agent.run("Hello", deps=deps)
         assert result.output is not None
 

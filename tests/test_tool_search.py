@@ -48,13 +48,10 @@ def test_default_always_loaded_contents() -> None:
 
 def test_create_deep_agent_defers_situational_toolsets() -> None:
     """`tool_search=True` wraps the non-core toolsets and adds the capability."""
-    from pydantic_ai_backends import StateBackend
-
     from pydantic_deep import create_deep_agent
 
     agent = create_deep_agent(
         model="test",
-        backend=StateBackend(),
         output_type=str,
         tool_search=True,
         include_skills=False,  # avoid the missing-skills-dir warning
@@ -64,13 +61,10 @@ def test_create_deep_agent_defers_situational_toolsets() -> None:
 
 
 def test_create_deep_agent_tool_search_off_by_default() -> None:
-    from pydantic_ai_backends import StateBackend
-
     from pydantic_deep import create_deep_agent
 
     agent = create_deep_agent(
         model="test",
-        backend=StateBackend(),
         output_type=str,
         include_skills=False,
     )

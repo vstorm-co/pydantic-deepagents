@@ -3,13 +3,13 @@
 from collections.abc import Awaitable
 from typing import Any, cast
 
+import pytest
 from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.models.test import TestModel
 
 from pydantic_deep import (
     DeepAgentDeps,
-    StateBackend,
     create_deep_agent,
 )
 from pydantic_deep.features.skills import Skill as SkillDataclass
@@ -248,60 +248,15 @@ This is a test skill.
 class TestDeepAgentDepsExtended:
     """Extended tests for DeepAgentDeps."""
 
-    def test_post_init_syncs_files(self):
-        """Test that __post_init__ syncs files to StateBackend."""
-        backend = StateBackend()
-        files = {
-            "/test.txt": {
-                "content": ["test content"],
-                "created_at": "2024-01-01",
-                "modified_at": "2024-01-01",
-            }
-        }
-        _ = DeepAgentDeps(backend=backend, files=files)
-
-        # Files should be synced to backend
-        assert "/test.txt" in backend.files
-
-    def test_post_init_with_non_state_backend(self, local_backend):
-        """Test that __post_init__ works with non-StateBackend."""
-        # This covers the branch where backend is NOT a StateBackend
-        deps = DeepAgentDeps(backend=local_backend)
-        assert deps.backend.unwrap() is local_backend
-        # files dict should remain empty (not synced from backend)
-        assert deps.files == {}
-
-    def test_get_files_summary_empty(self):
-        """Test get_files_summary with empty files."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        # Ensure files is empty
-        deps.files.clear()
-        summary = deps.get_files_summary()
-        assert summary == ""
-
-    def test_get_files_summary_with_files(self):
-        """Test get_files_summary with files."""
-        deps = DeepAgentDeps(backend=StateBackend())
-        deps.files["/test.txt"] = {
-            "content": ["line1", "line2"],
-            "created_at": "2024-01-01",
-            "modified_at": "2024-01-01",
-        }
-
-        summary = deps.get_files_summary()
-        assert "Files in Memory" in summary
-        assert "/test.txt" in summary
-        assert "2 lines" in summary
-
     def test_get_subagents_summary_empty(self):
         """Test get_subagents_summary with no subagents."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         summary = deps.get_subagents_summary()
         assert summary == ""
 
     def test_get_subagents_summary_with_subagents(self):
         """Test get_subagents_summary with subagents."""
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         deps.subagents = {"researcher": object(), "writer": object()}
 
         summary = deps.get_subagents_summary()
@@ -637,7 +592,6 @@ class TestFallbackModel:
         instead of shifting (or skipping) the pair from a stale counter."""
         from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
         from pydantic_ai.models import Model, ModelRequestParameters
-        from pydantic_ai_backends import StateBackend
 
         from pydantic_deep.agent import _fallback_hop_cv, _wrap_with_fallback_and_hooks
         from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
@@ -679,7 +633,6 @@ class TestFallbackModel:
             _FailModel(),
             [_OkModel()],
             [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, handler=handler)],
-            StateBackend(),
         )
         msgs = [ModelRequest(parts=[UserPromptPart(content="hi")])]
         params = ModelRequestParameters()
@@ -698,53 +651,71 @@ class TestFallbackModel:
         pairs = {(r.tool_input["primary"], r.tool_input["fallback"]) for r in received}
         assert len(pairs) == 1, f"primary→fallback pair drifted across requests: {pairs}"
 
-    async def test_model_fallback_command_hook_wraps_sync_sandbox_backend(self) -> None:
-        """Regression: fallback command hooks receive the factory's sync backend.
+    async def test_model_fallback_command_hook_runs_in_the_runs_workspace(self) -> None:
+        """A fallback command hook runs in the workspace of the run whose request failed.
 
-        The async migration made command hook dispatch require an async sandbox;
-        the fallback wrapper must normalize the sync sandbox before dispatching.
+        `fallback_on` is given no run context, so the workspace comes from the
+        context the model request runs in.
         """
-        from pydantic_ai_backends import ExecuteResponse
+        from pydantic_ai._run_context import set_current_run_context
+        from pydantic_ai.workspaces import CommandResult, Workspace
 
         from pydantic_deep.agent import _wrap_with_fallback_and_hooks
         from pydantic_deep.features.hooks import Hook, HookEvent
+        from tests.workspaces import run_context
 
-        class _CommandBackend(StateBackend):  # type: ignore[misc]
-            id = "command-backend"
+        class _Commands:
+            ref = None
 
             def __init__(self) -> None:
-                super().__init__()
                 self.executed: list[str] = []
 
-            def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse:
-                self.executed.append(command)
-                return ExecuteResponse(output="", exit_code=0)
+            async def working_dir(self) -> str:
+                return "/"
 
-        backend = _CommandBackend()
+            async def run(self, command: Any, **_: Any) -> CommandResult:
+                self.executed.append(command)
+                return CommandResult(exit_code=0, stdout="", stderr="")
+
+        backend = _Commands()
         model = _wrap_with_fallback_and_hooks(
             TestModel(),
             [TestModel()],
             [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
-            backend,
         )
 
-        _fallback_on = cast(
-            "Awaitable[bool]",
-            model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
-        )
-        assert await _fallback_on is True
+        with set_current_run_context(run_context(workspace=Workspace(backend))):
+            _fallback_on = cast(
+                "Awaitable[bool]",
+                model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
+            )
+            assert await _fallback_on is True
         assert len(backend.executed) == 1
         assert "model_fallback_triggered" in backend.executed[0]
+
+    async def test_model_fallback_command_hook_outside_a_run_has_no_workspace(self) -> None:
+        from pydantic_deep.agent import _wrap_with_fallback_and_hooks
+        from pydantic_deep.features.hooks import Hook, HookEvent
+
+        model = _wrap_with_fallback_and_hooks(
+            TestModel(),
+            [TestModel()],
+            [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
+        )
+        with pytest.raises(RuntimeError, match="runs commands"):
+            await cast(
+                "Awaitable[bool]",
+                model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
+            )
 
     async def test_request_stream_resets_hop_counter(self) -> None:
         """`request_stream` must also zero the per-context hop counter."""
         from pydantic_ai.messages import ModelRequest, UserPromptPart
         from pydantic_ai.models import ModelRequestParameters
-        from pydantic_ai_backends import StateBackend
 
         from pydantic_deep.agent import _fallback_hop_cv, _wrap_with_fallback_and_hooks
 
-        model = _wrap_with_fallback_and_hooks(TestModel(), [TestModel()], [], StateBackend())
+        model = _wrap_with_fallback_and_hooks(TestModel(), [TestModel()], [])
         msgs = [ModelRequest(parts=[UserPromptPart(content="hi")])]
         params = ModelRequestParameters()
 

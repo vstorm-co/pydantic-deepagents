@@ -10,7 +10,6 @@ import pytest
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import (
     BranchChange,
@@ -35,6 +34,11 @@ from pydantic_deep.features.forking.diff import (
     build_diff_report,
 )
 from pydantic_deep.features.forking.types import BranchStatus
+from tests.workspaces import Document, as_workspace, state_workspace
+
+
+def _as_bytes(path: str, content: str | bytes) -> tuple[str, bytes]:
+    return path, content.encode() if isinstance(content, str) else content
 
 
 def _make_status(branch_id: str, label: str) -> BranchStatus:
@@ -69,18 +73,19 @@ async def _make_runtime(
         spec=BranchSpec(label=label, steer=""),
         task=task,
         deps=cast(DeepAgentDeps, object()),
+        workspace=state_workspace(),
         overlay=overlay,
         status=_make_status(branch_id, label),
     )
 
 
 async def _overlay_with_writes(
-    parent: StateBackend,
+    parent: Document,
     writes: dict[str, str | bytes],
 ) -> BranchOverlay:
-    overlay = BranchOverlay(parent)
+    overlay = BranchOverlay(as_workspace(parent))
     for path, content in writes.items():
-        overlay.write(path, content)
+        await overlay.write_bytes(*_as_bytes(path, content))
     return overlay
 
 
@@ -90,7 +95,7 @@ async def _overlay_with_writes(
 
 
 async def test_diff_split_when_branches_modify_same_path_differently() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("foo.py", "parent\n")
 
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "branch-a\n"})
@@ -121,7 +126,7 @@ async def test_diff_split_when_branches_modify_same_path_differently() -> None:
 
 
 async def test_diff_unanimous_change_when_branches_modify_identically() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("shared.py", "v1\n")
 
     overlay_a = await _overlay_with_writes(parent, {"shared.py": "v2\n"})
@@ -147,11 +152,11 @@ async def test_diff_unanimous_change_when_branches_modify_identically() -> None:
 
 
 async def test_diff_unique_when_only_one_branch_touches_path() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("base.py", "x\n")
 
     overlay_a = await _overlay_with_writes(parent, {"only-a.py": "hello\n"})
-    overlay_b = BranchOverlay(parent)  # b touched nothing
+    overlay_b = BranchOverlay(as_workspace(parent))  # b touched nothing
 
     report = await build_diff_report(
         "fork-3",
@@ -177,7 +182,7 @@ async def test_diff_unique_when_only_one_branch_touches_path() -> None:
 
 
 async def test_diff_binary_file_returns_placeholder() -> None:
-    parent = StateBackend()
+    parent = Document()
     binary_payload = b"\x00\x01\x02\x03" * 64
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": binary_payload})
 
@@ -201,7 +206,7 @@ async def test_diff_divergent_binary_writes_are_split() -> None:
     Regression: binary changes carry new_content=None, so classification keyed on
     new_content alone mislabelled divergent binary writes as unanimous_change.
     """
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": b"\x00\x01\x02" * 64})
     overlay_b = await _overlay_with_writes(parent, {"asset.bin": b"\x00\x09\x09" * 64})
 
@@ -221,7 +226,7 @@ async def test_diff_divergent_binary_writes_are_split() -> None:
 
 async def test_diff_identical_binary_writes_are_unanimous() -> None:
     """Two branches writing the SAME binary bytes → unanimous_change (true agreement)."""
-    parent = StateBackend()
+    parent = Document()
     payload = b"\x00\x07\x07" * 64
     overlay_a = await _overlay_with_writes(parent, {"asset.bin": payload})
     overlay_b = await _overlay_with_writes(parent, {"asset.bin": payload})
@@ -297,7 +302,7 @@ def test_binary_placeholder_accepts_precomputed_digest() -> None:
 
 async def test_build_diff_report_rejects_duplicate_status_ids() -> None:
     """Bug 84: duplicate runtime status ids would clobber per-branch maps."""
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "a\n"})
     overlay_b = await _overlay_with_writes(parent, {"foo.py": "b\n"})
     runtime_a = await _make_runtime(branch_id="dup", label="alpha", overlay=overlay_a)
@@ -311,7 +316,7 @@ def test_decode_text_returns_none_for_invalid_utf8() -> None:
 
     Covers the failure path that callers map to `new_content=None` or
     parent_content=None. Tested at the helper boundary because
-    `StateBackend` normalises bytes through `errors="replace"` and
+    `Document` normalises bytes through `errors="replace"` and
     therefore never feeds invalid UTF-8 into the higher-level builder.
     """
     assert _decode_text(b"\xff\xfe latin1") is None
@@ -330,7 +335,7 @@ def test_is_binary_bytes_threshold() -> None:
 
 
 async def test_diff_large_file_truncated() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("big.py", "")
     big_content = "\n".join(f"line {i}" for i in range(700)) + "\n"
     overlay_a = await _overlay_with_writes(parent, {"big.py": big_content})
@@ -350,7 +355,7 @@ async def test_diff_large_file_truncated() -> None:
 
 
 async def test_diff_respects_paths_filter() -> None:
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"keep.py": "x\n", "ignore.py": "y\n"})
 
     report = await build_diff_report(
@@ -364,7 +369,7 @@ async def test_diff_respects_paths_filter() -> None:
 
 
 async def test_diff_paths_filter_keeps_untouched_paths_for_transparency() -> None:
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"touched.py": "y\n"})
 
     report = await build_diff_report(
@@ -387,7 +392,7 @@ async def test_diff_agreement_score_not_falsely_perfect_when_split_filtered_out(
     denominator was the full union, so filtering away a real split path yielded
     agreement_score == 1.0 ("perfect agreement") despite the branches conflicting.
     """
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"conflict.py": "alpha\n"})
     overlay_b = await _overlay_with_writes(parent, {"conflict.py": "beta\n"})
 
@@ -415,7 +420,7 @@ async def test_diff_agreement_score_not_falsely_perfect_when_split_filtered_out(
 
 
 async def test_diff_agreement_score_all_split() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("p1.py", "x\n")
     parent.write("p2.py", "y\n")
     overlay_a = await _overlay_with_writes(parent, {"p1.py": "a1\n", "p2.py": "a2\n"})
@@ -433,7 +438,7 @@ async def test_diff_agreement_score_all_split() -> None:
 
 
 async def test_diff_agreement_score_all_unanimous() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("p1.py", "x\n")
     overlay_a = await _overlay_with_writes(parent, {"p1.py": "same\n"})
     overlay_b = await _overlay_with_writes(parent, {"p1.py": "same\n"})
@@ -449,7 +454,7 @@ async def test_diff_agreement_score_all_unanimous() -> None:
 
 
 async def test_diff_agreement_score_mixed() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("p1.py", "x\n")
     parent.write("p2.py", "y\n")
     parent.write("p3.py", "z\n")
@@ -519,11 +524,11 @@ def test_diff_classifies_deletion_as_split() -> None:
 
 
 async def test_diff_untouched_paths_excluded() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("untouched.py", "stays\n")  # exists in parent but neither branch touches
 
     overlay_a = await _overlay_with_writes(parent, {"changed.py": "new\n"})
-    overlay_b = BranchOverlay(parent)
+    overlay_b = BranchOverlay(as_workspace(parent))
 
     report = await build_diff_report(
         "fork-9",
@@ -544,7 +549,7 @@ async def test_diff_untouched_paths_excluded() -> None:
 
 
 async def test_diff_branch_with_no_overlay_marked_untouched() -> None:
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "a-content\n"})
 
     report = await build_diff_report(
@@ -593,7 +598,7 @@ async def test_diff_unique_when_first_branch_is_untouched() -> None:
     accumulation, which a straightforward dict where the touched branch
     is inserted first would never hit.
     """
-    parent = StateBackend()
+    parent = Document()
     overlay_b = await _overlay_with_writes(parent, {"owned.py": "b!\n"})
 
     # Insert the untouched runtime FIRST so the unique-tally loop must skip it.
@@ -610,9 +615,9 @@ async def test_diff_unique_when_first_branch_is_untouched() -> None:
 
 
 async def test_diff_no_branches_touched_anything() -> None:
-    parent = StateBackend()
-    overlay_a = BranchOverlay(parent)
-    overlay_b = BranchOverlay(parent)
+    parent = Document()
+    overlay_a = BranchOverlay(as_workspace(parent))
+    overlay_b = BranchOverlay(as_workspace(parent))
 
     report = await build_diff_report(
         "fork-empty",
@@ -645,14 +650,14 @@ async def test_diff_empty_runtimes_list() -> None:
 
 
 async def test_diff_branch_with_delete_produces_deleted_operation() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("/x.py", "v0-line1\nv0-line2\n")
 
-    overlay_deleter = BranchOverlay(parent)
-    overlay_deleter.delete("/x.py")
+    overlay_deleter = BranchOverlay(as_workspace(parent))
+    await overlay_deleter.remove("/x.py")
 
-    overlay_modifier = BranchOverlay(parent)
-    overlay_modifier.write("/x.py", "modified\n")
+    overlay_modifier = BranchOverlay(as_workspace(parent))
+    await overlay_modifier.write_bytes(*_as_bytes("/x.py", "modified\n"))
 
     report = await build_diff_report(
         "fork-delete",
@@ -678,13 +683,13 @@ async def test_diff_branch_with_delete_produces_deleted_operation() -> None:
 
 
 async def test_diff_lone_deleter_branch_classified_unique() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("/x.py", "v0\n")
 
-    overlay_deleter = BranchOverlay(parent)
-    overlay_deleter.delete("/x.py")
+    overlay_deleter = BranchOverlay(as_workspace(parent))
+    await overlay_deleter.remove("/x.py")
 
-    overlay_untouched = BranchOverlay(parent)
+    overlay_untouched = BranchOverlay(as_workspace(parent))
 
     report = await build_diff_report(
         "fork-lone-delete",
@@ -700,13 +705,13 @@ async def test_diff_lone_deleter_branch_classified_unique() -> None:
 
 
 async def test_diff_unanimous_delete_classified_as_unanimous_change() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("/x.py", "v0\n")
 
-    overlay_a = BranchOverlay(parent)
-    overlay_a.delete("/x.py")
-    overlay_b = BranchOverlay(parent)
-    overlay_b.delete("/x.py")
+    overlay_a = BranchOverlay(as_workspace(parent))
+    await overlay_a.remove("/x.py")
+    overlay_b = BranchOverlay(as_workspace(parent))
+    await overlay_b.remove("/x.py")
 
     report = await build_diff_report(
         "fork-unanimous-delete",
@@ -726,7 +731,7 @@ async def test_diff_unanimous_delete_classified_as_unanimous_change() -> None:
 
 
 async def test_diff_binary_parent_content() -> None:
-    parent = StateBackend()
+    parent = Document()
     parent.write("img.bin", b"\x00\x01" * 32)
     overlay_a = await _overlay_with_writes(parent, {"img.bin": b"\x00\x02" * 32})
 
@@ -777,7 +782,7 @@ async def _make_coord_with_fork(
     `with_handle=False` (caller wants a coordinator that has not yet forked).
     """
     agent = _make_test_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coordinator = ForkCoordinator(
         agent=agent,
         parent_deps=deps,
@@ -790,6 +795,7 @@ async def _make_coord_with_fork(
     if with_handle:
         handle = await coordinator.fork(
             [BranchSpec(label="alpha", steer="hi"), BranchSpec(label="beta", steer="hello")],
+            workspace=state_workspace(),
             parent_history=_seed_history("user-msg"),
             isolation=BranchIsolation(),
         )
@@ -842,7 +848,7 @@ async def test_diff_tool_no_active_fork_returns_error() -> None:
 
 
 async def test_diff_tool_when_forking_disabled() -> None:
-    deps = DeepAgentDeps(backend=StateBackend())  # fork_coordinator stays None
+    deps = DeepAgentDeps()  # fork_coordinator stays None
     diff_tool = _diff_tool_from(create_fork_toolset())
 
     result = await diff_tool.function(_make_tool_ctx(deps), "any-id", None)
@@ -859,7 +865,7 @@ async def test_diff_tool_returns_typed_report_on_success() -> None:
     # manually for deterministic assertions.
     for rt in coordinator.branches.values():
         assert rt.overlay is not None
-        rt.overlay.write("hello.py", f"hi from {rt.spec.label}\n")
+        await rt.overlay.write_bytes(*_as_bytes("hello.py", f"hi from {rt.spec.label}\n"))
 
     diff_tool = _diff_tool_from(create_fork_toolset())
     result = await diff_tool.function(_make_tool_ctx(deps), handle.fork_id, None)
@@ -882,7 +888,7 @@ async def test_public_build_diff_report_entry_point() -> None:
     """`build_diff_report` is re-exported and produces the same report shape."""
     from pydantic_deep import build_diff_report
 
-    parent = StateBackend()
+    parent = Document()
     overlay_a = await _overlay_with_writes(parent, {"foo.py": "a\n"})
     overlay_b = await _overlay_with_writes(parent, {"foo.py": "b\n"})
 
@@ -940,19 +946,20 @@ async def test_diff_branches_tool_wired_through_create_deep_agent() -> None:
             break
     assert fork_cap is not None, "LiveForkCapability must be registered on agent"
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     await fork_cap.for_run(_make_tool_ctx(deps))
     coordinator = deps.fork_coordinator
     assert coordinator is not None
 
     handle = await coordinator.fork(
         [BranchSpec(label="alpha", steer="x"), BranchSpec(label="beta", steer="y")],
+        workspace=state_workspace(),
         parent_history=_seed_history("warmup"),
         isolation=BranchIsolation(),
     )
     for rt in coordinator.branches.values():
         assert rt.overlay is not None
-        rt.overlay.write("readme.md", f"# {rt.spec.label}\n")
+        await rt.overlay.write_bytes(*_as_bytes("readme.md", f"# {rt.spec.label}\n"))
 
     diff_tool = _diff_tool_from(forking_toolset)
     result = await diff_tool.function(_make_tool_ctx(deps), handle.fork_id, None)

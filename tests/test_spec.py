@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -102,7 +103,7 @@ class TestDeepAgentSpec:
                 "mcp_servers",
                 "capabilities",
                 "skills",
-                "backend",
+                "workspace",
                 "subagent_registry",
                 "subagent_extra_toolsets",
                 "subagent_usage_limits",
@@ -249,18 +250,28 @@ class TestDeepAgentFromSpec:
         # The agent should be created successfully with include_memory=False
         assert agent is not None
 
-    def test_from_spec_with_backend(self) -> None:
-        """Non-serializable params (backend) passed as overrides."""
-        from pydantic_ai_backends import StateBackend
+    def test_from_spec_with_workspace(self, monkeypatch: Any) -> None:
+        """Non-serializable params (workspace) passed as overrides reach the factory."""
+        from pydantic_ai.capabilities import LocalWorkspace
 
-        backend = StateBackend()
-        agent, deps = DeepAgent.from_spec(
+        import pydantic_deep.spec as spec_module
+        from pydantic_deep.agent import create_deep_agent as real
+
+        seen: dict[str, Any] = {}
+
+        def spy(**kwargs: Any) -> Any:
+            seen.update(kwargs)
+            return real(**kwargs)
+
+        monkeypatch.setattr(spec_module, "create_deep_agent", spy)
+        workspace = LocalWorkspace(".")
+        DeepAgent.from_spec(
             {"include_subagents": False, "include_skills": False},
             model=TEST_MODEL,
-            backend=backend,
+            workspace=workspace,
             cost_tracking=False,
         )
-        assert deps.backend.unwrap() is backend
+        assert seen["workspace"] is workspace
 
     def test_from_spec_empty_dict(self) -> None:
         """Empty dict uses all defaults."""
@@ -275,22 +286,21 @@ class TestDeepAgentFromSpec:
 
     def test_from_spec_data_non_serializable_value(self) -> None:
         """A non-serializable spec value in data is routed to passthrough."""
-        from pydantic_ai_backends import StateBackend
+        from pydantic_ai.capabilities import LocalWorkspace
 
-        backend = StateBackend()
-        # backend is a non-spec key; model=TEST_MODEL is a non-serializable
+        # workspace is a non-spec key; model=TEST_MODEL is a non-serializable
         # value for a spec field. Both supplied via data (not overrides).
         agent, deps = DeepAgent.from_spec(
             {
                 "model": TEST_MODEL,
-                "backend": backend,
+                "workspace": LocalWorkspace("."),
                 "include_subagents": False,
                 "include_skills": False,
                 "cost_tracking": False,
             },
         )
         assert agent is not None
-        assert deps.backend.unwrap() is backend
+        assert deps is not None
 
 
 class TestDeepAgentFromFile:

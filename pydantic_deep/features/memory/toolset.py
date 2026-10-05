@@ -1,6 +1,6 @@
 """Persistent agent memory toolset with read/write/update tools.
 
-Each agent/subagent can have its own MEMORY.md file stored in the backend.
+Each agent/subagent can have its own MEMORY.md file in the run's workspace.
 Memory is auto-loaded into the system prompt (first N lines) and agents
 can read, append, and update memory via tools.
 
@@ -16,7 +16,6 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
-from pydantic_ai_backends import AsyncBackendProtocol
 
 from pydantic_deep.features.memory.service import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -57,13 +56,26 @@ not found, or if it appears more than once, no change is made and an \
 error is returned; add surrounding context to old_text to make it unique."""
 
 
+async def _save(ctx: RunContext[Any], path: str, content: str) -> str | None:
+    """Write the memory file, or the error to show the model when it cannot be written.
+
+    A refusal about the path - read-only workspace, permission, a file in the
+    way - is the model's to read; a workspace that cannot answer at all raises.
+    """
+    try:
+        await ctx.workspace.write_bytes(path, content.encode("utf-8"))
+    except OSError as exc:
+        return f"Error: failed to save memory to '{path}': {exc}"
+    return None
+
+
 class AgentMemoryToolset(FunctionToolset[Any]):
     """Toolset for persistent agent memory.
 
     Provides system prompt injection (via `get_instructions()`) and
     tools for reading, appending, and updating memory.
 
-    Memory is stored as a MEMORY.md file in the backend at
+    Memory is stored as a MEMORY.md file in the run's workspace at
     `{memory_dir}/{agent_name}/MEMORY.md`.
 
     Tools:
@@ -86,7 +98,7 @@ class AgentMemoryToolset(FunctionToolset[Any]):
 
         Args:
             agent_name: Name of the agent (used for path and prompt label).
-            memory_dir: Base directory for memory files in the backend.
+            memory_dir: Base directory for memory files in the workspace.
             max_lines: Max body lines to inject into the system prompt. The most
                 recent lines are kept (`write_memory` appends to the end).
             max_tokens: Optional approximate token budget for injection. When set
@@ -110,9 +122,8 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         @self.tool(description=self._descs.get("read_memory", READ_MEMORY_DESCRIPTION))
         async def read_memory(ctx: RunContext[Any]) -> str:
             """Read your persistent memory."""
-            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                mem = await load_memory(backend, self._path, self._agent_name)
+                mem = await load_memory(ctx.workspace, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot read memory at '{self._path}': {exc}"
             if mem is None:
@@ -126,15 +137,14 @@ class AgentMemoryToolset(FunctionToolset[Any]):
             Args:
                 content: Text to append to memory (markdown recommended).
             """
-            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                existing = await load_memory(backend, self._path, self._agent_name)
+                existing = await load_memory(ctx.workspace, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot access memory at '{self._path}': {exc}"
             new_content = existing.content.rstrip("\n") + "\n\n" + content if existing else content
-            result = await backend.write(self._path, new_content.encode("utf-8"))
-            if result.error:
-                return f"Error: failed to save memory to '{self._path}': {result.error}"
+            error = await _save(ctx, self._path, new_content)
+            if error is not None:
+                return error
             line_count = len(new_content.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
@@ -154,9 +164,8 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                 old_text: The exact text to find in memory (must be unique).
                 new_text: The text to replace it with.
             """
-            backend: AsyncBackendProtocol = ctx.deps.backend
             try:
-                mem = await load_memory(backend, self._path, self._agent_name)
+                mem = await load_memory(ctx.workspace, self._path, self._agent_name)
             except MemoryAccessError as exc:
                 return f"Error: cannot access memory at '{self._path}': {exc}"
             if mem is None:
@@ -171,9 +180,9 @@ class AgentMemoryToolset(FunctionToolset[Any]):
                     "so it matches exactly once."
                 )
             updated = mem.content.replace(old_text, new_text, 1)
-            result = await backend.write(self._path, updated.encode("utf-8"))
-            if result.error:
-                return f"Error: failed to save memory to '{self._path}': {result.error}"
+            error = await _save(ctx, self._path, updated)
+            if error is not None:
+                return error
             line_count = len(updated.splitlines())
             return f"Memory updated ({line_count} lines total)."
 
@@ -181,14 +190,15 @@ class AgentMemoryToolset(FunctionToolset[Any]):
         """Load and inject memory into system prompt.
 
         Args:
-            ctx: The run context with access to backend via deps.
+            ctx: The run context, whose workspace holds the memory file.
 
         Returns:
             Formatted memory prompt, or None if no memory exists.
         """
-        backend: AsyncBackendProtocol = ctx.deps.backend
+        if not ctx.workspace.attached:
+            return None
         try:
-            mem = await load_memory(backend, self._path, self._agent_name)
+            mem = await load_memory(ctx.workspace, self._path, self._agent_name)
         except MemoryAccessError:
             # Prompt injection runs on every request; a denied path must not
             # abort the run. Skip injection here — the failure is surfaced

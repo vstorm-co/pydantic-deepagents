@@ -150,7 +150,7 @@ def tui(
     ] = None,
     sandbox: Annotated[
         str | None,
-        typer.Option("--sandbox", "-s", help="Sandbox backend: local or docker (from config)"),
+        typer.Option("--sandbox", "-s", help="Where the agent works: local or docker"),
     ] = None,
     workspace: Annotated[
         str | None,
@@ -260,7 +260,7 @@ def run(
     ] = None,
     sandbox: Annotated[
         str | None,
-        typer.Option("--sandbox", "-s", help="Sandbox backend: local or docker (from config)"),
+        typer.Option("--sandbox", "-s", help="Where the agent works: local or docker"),
     ] = None,
     workspace: Annotated[
         str | None,

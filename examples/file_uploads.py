@@ -4,12 +4,13 @@ This example demonstrates how to upload files for agent processing:
 - Using run_with_files() helper function
 - Using deps.upload_file() directly
 - Agent sees uploaded files in system prompt
+- Uploads are written into the run's workspace when the run starts
 - Agent uses file tools to analyze uploaded content
 """
 
 import asyncio
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent, run_with_files
+from pydantic_deep import DeepAgentDeps, create_deep_agent, run_with_files
 
 
 async def example_run_with_files():
@@ -28,7 +29,7 @@ async def example_run_with_files():
         3. Provide insights
         """,
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Sample CSV data
     csv_data = b"""product,sales,region
@@ -66,14 +67,14 @@ async def example_direct_upload():
         model="anthropic:claude-sonnet-4-6",
         instructions="You are a helpful assistant that analyzes JSON configs.",
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Upload multiple files
     await deps.upload_file("config.json", b'{"debug": true, "max_workers": 4}')
     await deps.upload_file(
         "settings.json",
         b'{"theme": "dark", "language": "en"}',
-        upload_dir="/configs",  # Custom upload directory
+        upload_dir="configs",  # Custom upload directory
     )
 
     # Check uploads
@@ -104,7 +105,7 @@ async def example_large_file():
         - Use grep to search for specific patterns
         """,
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Generate a larger log file
     log_lines = []
@@ -138,7 +139,7 @@ async def example_binary_file():
     print("Example 4: Binary file (no line count)")
     print("=" * 60)
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Upload a binary file (e.g., image header simulation)
     binary_data = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])  # PNG header

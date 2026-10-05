@@ -68,18 +68,18 @@ PARSE_DOCUMENT_DESCRIPTION = """\
 Parse a document (PDF, DOCX, XLSX, PPTX, images, etc.) and extract its text content.
 
 Returns the full text of the document with spatial layout preserved. Supports OCR for
-scanned documents. Pass the path to the file in the backend filesystem.
+scanned documents. Pass the path to the file in the workspace.
 
 Supported formats: PDF, DOCX, XLSX, PPTX, PNG, JPG, TIFF, and more."""
 
 SCREENSHOT_DOCUMENT_DESCRIPTION = """\
 Generate page screenshots from a document (PDF or images).
 
-Saves screenshot images to the backend and returns a list of their paths. Useful for
+Saves screenshot images to the workspace and returns a list of their paths. Useful for
 visual inspection or passing pages to a multimodal model.
 
 Args:
-    path: Path to the document in the backend filesystem.
+    path: Path to the document in the workspace.
     output_dir: Backend directory to save screenshots (default: /screenshots).
     target_pages: Pages to screenshot, e.g. "1-5" or "1,3,5". None means all pages."""
 
@@ -99,7 +99,7 @@ class LiteparseToolset(FunctionToolset[Any]):
 
     Tools:
         - `parse_document`: Extract text content from a document
-        - `screenshot_document`: Generate page screenshots saved to the backend
+        - `screenshot_document`: Generate page screenshots saved to the workspace
     """
 
     def __init__(
@@ -141,13 +141,12 @@ class LiteparseToolset(FunctionToolset[Any]):
             """Extract text content from a document.
 
             Args:
-                path: Path to the document in the backend filesystem.
+                path: Path to the document in the workspace.
             """
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
-            backend = ctx.deps.backend
-            file_bytes: bytes | None = await backend.read_bytes(path)
-            if not file_bytes:
+            file_bytes = await _read_document(ctx, path)
+            if file_bytes is None:
                 return f"File not found: {path}"
             try:
                 parser = self._get_parser()
@@ -169,21 +168,20 @@ class LiteparseToolset(FunctionToolset[Any]):
         async def screenshot_document(
             ctx: RunContext[Any],
             path: str,
-            output_dir: str = "/screenshots",
+            output_dir: str = "screenshots",
             target_pages: str | None = None,
         ) -> str:
             """Generate page screenshots from a document.
 
             Args:
-                path: Path to the document in the backend filesystem.
-                output_dir: Backend directory where screenshots are saved.
+                path: Path to the document in the workspace.
+                output_dir: Workspace directory where screenshots are saved.
                 target_pages: Pages to screenshot, e.g. "1-5" or "1,3,5". None for all.
             """
             if not _HAS_LITEPARSE:
                 return _NOT_INSTALLED_MSG
-            backend = ctx.deps.backend
-            file_bytes = await backend.read_bytes(path)
-            if not file_bytes:
+            file_bytes = await _read_document(ctx, path)
+            if file_bytes is None:
                 return f"File not found: {path}"
             try:
                 parser = self._get_parser()
@@ -207,7 +205,7 @@ class LiteparseToolset(FunctionToolset[Any]):
                     for screenshot in ss_result:
                         if screenshot.image_bytes:
                             out_path = f"{output_dir.rstrip('/')}/page_{screenshot.page_num}.png"
-                            await backend.write(out_path, screenshot.image_bytes)
+                            await ctx.workspace.write_bytes(out_path, screenshot.image_bytes)
                             saved.append(out_path)
 
                     if not saved:
@@ -224,6 +222,15 @@ class LiteparseToolset(FunctionToolset[Any]):
         if self._parser is None:
             self._parser = _LiteParse(install_if_not_available=self._install_if_not_available)
         return self._parser
+
+
+async def _read_document(ctx: RunContext[Any], path: str) -> bytes | None:
+    """The document's bytes, or `None` when there is no file to parse at `path`."""
+    try:
+        data = await ctx.workspace.read_bytes(path)
+    except (FileNotFoundError, IsADirectoryError, NotADirectoryError):
+        return None
+    return data or None
 
 
 LiteparseCliNotFoundError = _CLINotFoundError

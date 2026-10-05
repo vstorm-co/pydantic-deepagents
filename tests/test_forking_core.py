@@ -12,14 +12,12 @@ import pytest
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 from pydantic_ai.models.test import TestModel
-from pydantic_ai_backends import StateBackend
 
 from pydantic_deep import (
     BranchIsolation,
     BranchOverlay,
     BranchSpec,
     DeepAgentDeps,
-    FileChange,
     ForkBranchLimitError,
     ForkCoordinator,
     ForkDepthLimitError,
@@ -34,8 +32,8 @@ from pydantic_deep import (
 from pydantic_deep.features.checkpointing import InMemoryCheckpointStore
 from pydantic_deep.features.forking import NOT_ENABLED_MESSAGE, create_fork_toolset
 from pydantic_deep.features.forking.coordinator import _APPROVAL_POLL_INTERVAL_S
-from pydantic_deep.features.forking.isolation import _read_backend_bytes
 from pydantic_deep.features.message_queue import MessageQueue
+from tests.workspaces import state_workspace
 
 
 def _make_test_agent() -> Agent[DeepAgentDeps, str]:
@@ -72,13 +70,14 @@ def _seed_history(text: str) -> list[Any]:
 
 
 async def test_fork_spawns_two_tasks_with_parent_history():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, checkpoint_store=InMemoryCheckpointStore())
 
     parent_history = _seed_history("parent turn 1")
     handle = await coord.fork(
         [BranchSpec(label="a", steer="explore A"), BranchSpec(label="b", steer="explore B")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
 
@@ -108,7 +107,7 @@ async def test_fork_enforces_unique_non_empty_labels():
     The agent-facing fork_run tool passes labels through verbatim and has no
     picker to enforce distinctness, so the coordinator must.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(
         agent, deps, max_branches=4, checkpoint_store=InMemoryCheckpointStore()
@@ -121,6 +120,7 @@ async def test_fork_enforces_unique_non_empty_labels():
             BranchSpec(label="", steer="C"),
             BranchSpec(label="   ", steer="D"),
         ],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -140,13 +140,14 @@ async def test_fork_enforces_unique_non_empty_labels():
 
 
 async def test_each_branch_steer_is_first_new_user_prompt():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps, checkpoint_store=InMemoryCheckpointStore())
 
     parent_history = _seed_history("parent")
     await coord.fork(
         [BranchSpec(label="a", steer="A steer"), BranchSpec(label="b", steer="B steer")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
 
@@ -167,326 +168,13 @@ async def test_each_branch_steer_is_first_new_user_prompt():
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — BranchOverlay isolates writes.
-# ---------------------------------------------------------------------------
-
-
-def test_branch_overlay_isolates_writes():
-    parent = StateBackend()
-    parent.write("/foo.py", "v0")
-
-    overlay_a = BranchOverlay(parent)
-    overlay_b = BranchOverlay(parent)
-
-    overlay_a.write("/foo.py", "vA")
-
-    assert "vA" in overlay_a.read("/foo.py")
-    assert "v0" in overlay_b.read("/foo.py")
-    assert "v0" in parent.read("/foo.py")  # Parent untouched
-
-
-def test_branch_overlay_records_changes():
-    parent = StateBackend()
-    parent.write("/foo.py", "v0")
-    overlay = BranchOverlay(parent)
-
-    overlay.write("/foo.py", "vA")
-    overlay.edit("/foo.py", "vA", "vB")
-
-    changes = overlay.changes()
-    assert len(changes) == 2
-    assert all(isinstance(c, FileChange) for c in changes)
-    assert changes[0].op == "write"
-    assert changes[1].op == "edit"
-    # Mutating the returned list does not affect the overlay's history
-    changes.clear()
-    assert len(overlay.changes()) == 2
-
-
-def test_branch_overlay_edit_materializes_from_parent():
-    parent = StateBackend()
-    parent.write("/foo.py", "hello world")
-    overlay = BranchOverlay(parent)
-
-    result = overlay.edit("/foo.py", "hello", "hi")
-    assert result.error is None
-    assert "hi world" in overlay.read("/foo.py")
-    # Parent unchanged
-    assert "hello world" in parent.read("/foo.py")
-
-
-def test_branch_overlay_ls_and_glob_merge():
-    parent = StateBackend()
-    parent.write("/a.py", "x")
-    overlay = BranchOverlay(parent)
-    overlay.write("/b.py", "y")
-
-    paths_ls = {e["path"] for e in overlay.ls_info("/")}
-    assert "/a.py" in paths_ls
-    assert "/b.py" in paths_ls
-
-    paths_glob = {e["path"] for e in overlay.glob_info("**/*.py")}
-    assert "/a.py" in paths_glob
-    assert "/b.py" in paths_glob
-
-
-def test_branch_overlay_grep_forwards():
-    parent = StateBackend()
-    parent.write("/a.py", "hello world")
-    overlay = BranchOverlay(parent)
-
-    result = overlay.grep_raw("hello", path="/")
-    assert result is not None
-
-
-def test_branch_overlay_read_bytes_overlay_and_parent():
-    parent = StateBackend()
-    parent.write("/a.py", "from-parent")
-    overlay = BranchOverlay(parent)
-
-    # Falls through to parent
-    assert overlay.read_bytes("/a.py") == b"from-parent"
-
-    overlay.write("/a.py", "from-overlay")
-    assert overlay.read_bytes("/a.py") == b"from-overlay"
-
-
-def test_read_backend_bytes_falls_back_to_private_reader():
-    class LegacyBackend:
-        def _read_bytes(self, path: str) -> bytes:
-            assert path == "/legacy.txt"
-            return b"legacy"
-
-    assert _read_backend_bytes(LegacyBackend(), "/legacy.txt") == b"legacy"
-
-
-def test_branch_overlay_parent_property():
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
-    assert overlay.parent is parent
-
-
-def test_branch_overlay_exists_falls_through_to_parent():
-    """`exists()` returns True for files in either layer, False otherwise."""
-    parent = StateBackend()
-    parent.write("/parent_only.py", "v0")
-    overlay = BranchOverlay(parent)
-
-    # In parent only — fall-through hit.
-    assert overlay.exists("/parent_only.py") is True
-    # Branch writes — present in overlay.
-    overlay.write("/branch_only.py", "vA")
-    assert overlay.exists("/branch_only.py") is True
-    # Nowhere — False.
-    assert overlay.exists("/nothing.py") is False
-
-
-# ---------------------------------------------------------------------------
-# BranchOverlay.delete — tombstone semantics, exists/read masking, mirror to disk
-# ---------------------------------------------------------------------------
-
-
-def test_branch_overlay_delete_records_change():
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-
-    overlay.delete("/x.py")
-
-    changes = overlay.changes()
-    assert len(changes) == 1
-    assert changes[0].op == "delete"
-    assert changes[0].path == "/x.py"
-
-
-def test_branch_overlay_delete_hides_path_from_exists():
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-
-    assert overlay.exists("/x.py") is True
-    overlay.delete("/x.py")
-    assert overlay.exists("/x.py") is False
-    # Parent untouched.
-    assert parent.exists("/x.py") is True
-
-
-def test_branch_overlay_delete_hides_from_reads():
-    import pytest as _pytest
-
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-    overlay.delete("/x.py")
-
-    with _pytest.raises(FileNotFoundError):
-        overlay.read("/x.py")
-    with _pytest.raises(FileNotFoundError):
-        overlay.read_bytes("/x.py")
-
-
-def test_rmdir_hides_directory_from_ls_info():
-    """record_rmdir hides the directory and its children from ls_info."""
-    parent = StateBackend()
-    parent.write("/proj/jajo/file.txt", "content")
-    parent.write("/proj/keep/other.txt", "keep")
-    overlay = BranchOverlay(parent)
-
-    entries_before = {e["path"] for e in overlay.ls_info("/proj")}
-    assert any(p == "/proj/jajo" or p.startswith("/proj/jajo/") for p in entries_before)
-
-    overlay.record_rmdir("/proj/jajo")
-
-    entries_after = {e["path"] for e in overlay.ls_info("/proj")}
-    assert not any(p == "/proj/jajo" or p.startswith("/proj/jajo/") for p in entries_after)
-    assert any(p.startswith("/proj/keep") for p in entries_after)
-
-
-def test_write_inside_rmdir_directory_resurrects_file():
-    """Writing a file inside a record_rmdir-ed directory un-deletes it."""
-    parent = StateBackend()
-    parent.write("/proj/jajo/old.txt", "old")
-    overlay = BranchOverlay(parent)
-
-    overlay.record_rmdir("/proj/jajo")
-    assert overlay.exists("/proj/jajo/old.txt") is False
-
-    overlay.write("/proj/jajo/new.txt", "new content")
-    assert overlay.exists("/proj/jajo/new.txt") is True
-    assert overlay.read_bytes("/proj/jajo/new.txt") == b"new content"
-    # The old file is also visible again because the directory deletion was lifted.
-    assert overlay.exists("/proj/jajo/old.txt") is True
-
-
-def test_rmdir_hides_children_from_exists():
-    """record_rmdir makes children of the deleted directory invisible via exists."""
-    parent = StateBackend()
-    parent.write("/proj/jajo/file.txt", "content")
-    overlay = BranchOverlay(parent)
-
-    assert overlay.exists("/proj/jajo/file.txt") is True
-
-    overlay.record_rmdir("/proj/jajo")
-
-    assert overlay.exists("/proj/jajo/file.txt") is False
-
-
-def test_rmdir_hides_children_from_read():
-    """record_rmdir makes children unreadable."""
-    parent = StateBackend()
-    parent.write("/proj/jajo/file.txt", "content")
-    overlay = BranchOverlay(parent)
-
-    overlay.record_rmdir("/proj/jajo")
-
-    with pytest.raises(FileNotFoundError):
-        overlay.read("/proj/jajo/file.txt")
-    with pytest.raises(FileNotFoundError):
-        overlay.read_bytes("/proj/jajo/file.txt")
-
-
-def test_rmdir_hides_from_glob_info():
-    """record_rmdir hides directory entries from glob_info."""
-    parent = StateBackend()
-    parent.write("/proj/jajo/file.txt", "content")
-    parent.write("/proj/keep/other.txt", "keep")
-    overlay = BranchOverlay(parent)
-
-    overlay.record_rmdir("/proj/jajo")
-
-    entries = [e["path"] for e in overlay.glob_info("**/*", "/proj")]
-    assert not any("jajo" in p for p in entries)
-    assert any("keep" in p for p in entries)
-
-
-def test_branch_overlay_write_undeletes_path():
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-    overlay.delete("/x.py")
-    overlay.write("/x.py", "v1")
-
-    assert overlay.exists("/x.py") is True
-    assert "v1" in overlay.read("/x.py")
-    assert "/x.py" not in overlay.deleted()
-
-
-def test_branch_overlay_edit_undeletes_path():
-    parent = StateBackend()
-    parent.write("/x.py", "abcdef")
-    overlay = BranchOverlay(parent)
-    overlay.delete("/x.py")
-    # Edit re-materialises from parent then applies the edit; the tombstone
-    # must be cleared first so the edit pathway re-reads parent bytes.
-    res = overlay.edit("/x.py", "abc", "ZZZ")
-    assert res.error is None
-    assert "/x.py" not in overlay.deleted()
-    assert "ZZZ" in overlay.read("/x.py")
-
-
-def test_branch_overlay_deleted_returns_copy():
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-    overlay.delete("/x.py")
-
-    snapshot = overlay.deleted()
-    snapshot.clear()
-    assert overlay.deleted() == {"/x.py"}
-
-
-def test_branch_overlay_mirror_delete_swallows_oserror(tmp_path):
-    """OSError from materializer.flush_delete is logged, not propagated."""
-    from unittest.mock import patch as _patch
-
-    from pydantic_deep.features.forking.materializer import ForkMaterializer
-
-    parent = StateBackend()
-    parent.write("/x.py", "v0")
-    materializer = ForkMaterializer(root=tmp_path / "fork1", fork_id="fork1")
-    overlay = BranchOverlay(parent)
-    overlay.attach_materializer(materializer, "approach_a")
-
-    with _patch.object(materializer, "flush_delete", side_effect=OSError("disk fault")):
-        # Must not raise.
-        overlay.delete("/x.py")
-
-    assert "/x.py" in overlay.deleted()
-
-
-def test_flush_to_dedupes_repeat_delete_for_same_path():
-    """A path appearing in two consecutive delete ops surfaces once."""
-
-    class _Counting(StateBackend):  # type: ignore[misc]
-        def __init__(self) -> None:
-            super().__init__()
-            self.deleted_calls: list[str] = []
-
-        def delete(self, path: str) -> None:
-            self.deleted_calls.append(path)
-
-    parent = _Counting()
-    parent.write("/x.py", "v0")
-    overlay = BranchOverlay(parent)
-    # Two consecutive deletes — the second exercises the dedup branch
-    # in `_flush_delete` (path already in `deleted_set`).
-    overlay.delete("/x.py")
-    overlay.delete("/x.py")
-
-    report = overlay.flush_to(parent)
-    assert report.deleted_paths == ["/x.py"]
-    # Both deletes still propagate to the parent — the dedup is bookkeeping.
-    assert parent.deleted_calls == ["/x.py", "/x.py"]
-
-
-# ---------------------------------------------------------------------------
 # Test 4 — clone_for_branch honours message_queue isolation flag.
 # ---------------------------------------------------------------------------
 
 
 def test_clone_for_branch_isolated_message_queue():
     parent_queue = MessageQueue()
-    deps = DeepAgentDeps(backend=StateBackend(), message_queue=parent_queue)
+    deps = DeepAgentDeps(message_queue=parent_queue)
     cloned = clone_for_branch(deps, BranchIsolation(message_queue="isolated"))
     assert cloned.message_queue is not None
     assert cloned.message_queue is not parent_queue
@@ -494,13 +182,13 @@ def test_clone_for_branch_isolated_message_queue():
 
 def test_clone_for_branch_shared_message_queue():
     parent_queue = MessageQueue()
-    deps = DeepAgentDeps(backend=StateBackend(), message_queue=parent_queue)
+    deps = DeepAgentDeps(message_queue=parent_queue)
     cloned = clone_for_branch(deps, BranchIsolation(message_queue="shared"))
     assert cloned.message_queue is parent_queue
 
 
 def test_clone_for_branch_copy_todos():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     deps.todos.append({"id": "1", "content": "x", "status": "pending"})
     cloned = clone_for_branch(deps, BranchIsolation(todos="copy"))
     # "copy" inherits an independent copy of the parent's in-progress plan ...
@@ -512,30 +200,33 @@ def test_clone_for_branch_copy_todos():
 
 
 def test_clone_for_branch_share_todos():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     deps.todos.append({"id": "1", "content": "x", "status": "pending"})
     cloned = clone_for_branch(deps, BranchIsolation(todos="share"))
     assert cloned.todos is deps.todos
 
 
-def test_clone_for_branch_share_readonly_backend_no_overlay():
-    parent_backend = StateBackend()
-    deps = DeepAgentDeps(backend=parent_backend)
-    cloned = clone_for_branch(deps, BranchIsolation(backend="share_readonly"))
-    assert cloned.backend.unwrap() is parent_backend
-    cloned2 = clone_for_branch(deps, BranchIsolation(backend="share"))
-    assert cloned2.backend.unwrap() is parent_backend
+def test_shared_isolation_runs_branches_in_the_parent_workspace():
+    from pydantic_ai.workspaces import ReadOnlyWorkspace
+
+    from pydantic_deep import branch_workspace
+
+    parent = state_workspace()
+    shared, no_overlay = branch_workspace(parent, BranchIsolation(workspace="share"))
+    readonly, also_none = branch_workspace(parent, BranchIsolation(workspace="share_readonly"))
+    assert shared is parent and no_overlay is None and also_none is None
+    assert isinstance(readonly, ReadOnlyWorkspace) and readonly.backend is parent.backend
 
 
 def test_clone_for_branch_increments_depth():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     assert deps._fork_depth == 0
     cloned = clone_for_branch(deps, BranchIsolation())
     assert cloned._fork_depth == 1
 
 
 def test_clone_for_branch_drops_subagents_and_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend(), subagents={"foo": object()})
+    deps = DeepAgentDeps(subagents={"foo": object()})
     deps.fork_coordinator = cast(Any, "sentinel")
     cloned = clone_for_branch(deps, BranchIsolation())
     assert cloned.subagents == {}
@@ -548,7 +239,7 @@ def test_clone_for_branch_drops_subagents_and_coordinator():
 
 
 async def test_terminate_branch_cancels_task_and_marks_terminated():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     sleep_event = asyncio.Event()
 
@@ -560,6 +251,7 @@ async def test_terminate_branch_cancels_task_and_marks_terminated():
     coord = _make_coordinator(_SlowAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="slow", steer="go")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
@@ -572,17 +264,18 @@ async def test_terminate_branch_cancels_task_and_marks_terminated():
 
 
 async def test_terminate_branch_unknown_id_raises():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps)
     with pytest.raises(ValueError):
         await coord.terminate_branch("does-not-exist")
 
 
 async def test_terminate_branch_idempotent_for_finished_task():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="quick", steer="go")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
@@ -598,7 +291,7 @@ async def test_terminate_branch_idempotent_for_finished_task():
 
 
 async def test_merge_or_select_picks_winner_and_releases_overlays():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     cp_store = InMemoryCheckpointStore()
     coord = _make_coordinator(agent, deps, checkpoint_store=cp_store)
@@ -606,6 +299,7 @@ async def test_merge_or_select_picks_winner_and_releases_overlays():
     parent_history = _seed_history("parent")
     handle = await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
 
@@ -634,7 +328,7 @@ async def test_merge_or_select_quiesces_losers_before_winner_flush():
     shared parent could observe the winner's just-flushed bytes — cross-branch
     state leaking into its tool results / partial_history.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Result:
         def all_messages(self) -> list[Any]:
@@ -650,6 +344,7 @@ async def test_merge_or_select_quiesces_losers_before_winner_flush():
     coord = _make_coordinator(_SteerAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     winner_id = next(bid for bid, rt in coord.branches.items() if rt.spec.steer == "A")
@@ -677,10 +372,11 @@ async def test_merge_or_select_quiesces_losers_before_winner_flush():
 
 
 async def test_merge_or_select_invalid_action_raises():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     with pytest.raises(ValueError):
@@ -697,7 +393,7 @@ async def test_merge_or_select_invalid_action_raises():
 
 
 async def test_max_branches_rejects_third():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     with pytest.raises(ForkBranchLimitError):
         await coord.fork(
@@ -706,15 +402,16 @@ async def test_max_branches_rejects_third():
                 BranchSpec(label="b", steer="B"),
                 BranchSpec(label="c", steer="C"),
             ],
+            workspace=state_workspace(),
             parent_history=_seed_history("p"),
         )
 
 
 async def test_empty_specs_rejected():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     with pytest.raises(ValueError):
-        await coord.fork([], parent_history=_seed_history("p"))
+        await coord.fork([], workspace=state_workspace(), parent_history=_seed_history("p"))
 
 
 # ---------------------------------------------------------------------------
@@ -724,11 +421,12 @@ async def test_empty_specs_rejected():
 
 async def test_max_depth_rejects_nested():
     # Parent already at depth 1 (e.g. running inside a branch)
-    deps = DeepAgentDeps(backend=StateBackend(), _fork_depth=1)
+    deps = DeepAgentDeps(_fork_depth=1)
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     with pytest.raises(ForkDepthLimitError):
         await coord.fork(
             [BranchSpec(label="a", steer="A")],
+            workspace=state_workspace(),
             parent_history=_seed_history("p"),
         )
 
@@ -742,8 +440,8 @@ async def test_for_run_produces_independent_coordinators():
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
 
-    deps1 = DeepAgentDeps(backend=StateBackend())
-    deps2 = DeepAgentDeps(backend=StateBackend())
+    deps1 = DeepAgentDeps()
+    deps2 = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, deps: DeepAgentDeps) -> None:
@@ -786,7 +484,7 @@ async def test_capability_before_model_request_tracks_messages():
     seeded = [object(), object()]
 
     class _Ctx:
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
     result = await cap.before_model_request(_Ctx(), _Req(seeded))
     assert cap._latest_messages == seeded
@@ -799,12 +497,13 @@ async def test_capability_before_model_request_tracks_messages():
 
 
 async def test_fork_warns_when_no_checkpoint_store():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=None)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         handle = await coord.fork(
             [BranchSpec(label="a", steer="A")],
+            workspace=state_workspace(),
             parent_history=_seed_history("p"),
         )
     assert any("checkpoint" in str(w.message).lower() for w in caught)
@@ -812,13 +511,14 @@ async def test_fork_warns_when_no_checkpoint_store():
 
 
 async def test_fork_no_warning_with_checkpoint_store():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cp_store = InMemoryCheckpointStore()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=cp_store)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         handle = await coord.fork(
             [BranchSpec(label="a", steer="A")],
+            workspace=state_workspace(),
             parent_history=_seed_history("p"),
         )
     assert handle.parent_checkpoint_id is not None
@@ -827,11 +527,12 @@ async def test_fork_no_warning_with_checkpoint_store():
 
 async def test_fork_uses_deps_checkpoint_store_when_explicit_none():
     cp_store = InMemoryCheckpointStore()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     deps.checkpoint_store = cp_store
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=None)
     handle = await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     assert handle.parent_checkpoint_id is not None
@@ -843,10 +544,11 @@ async def test_fork_uses_deps_checkpoint_store_when_explicit_none():
 
 
 async def test_branch_status_transitions_to_done_on_success():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     rt = next(iter(coord.branches.values()))
@@ -856,7 +558,7 @@ async def test_branch_status_transitions_to_done_on_success():
 
 
 async def test_branch_status_transitions_to_failed_on_exception():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _FailingAgent:
         async def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -865,6 +567,7 @@ async def test_branch_status_transitions_to_failed_on_exception():
     coord = _make_coordinator(_FailingAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     rt = next(iter(coord.branches.values()))
@@ -881,7 +584,7 @@ async def test_branch_status_transitions_to_failed_on_exception():
 
 
 async def test_coordinator_aclose_cancels_outstanding_tasks():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     sleep_event = asyncio.Event()
 
     class _SlowAgent:
@@ -892,6 +595,7 @@ async def test_coordinator_aclose_cancels_outstanding_tasks():
     coord = _make_coordinator(_SlowAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await coord.aclose()
@@ -907,7 +611,7 @@ async def test_coordinator_aclose_awaits_tasks_before_cleanup(tmp_path: Path) ->
     directory after cleanup, leaking an orphaned dir. The slow agent here keeps
     running until cancelled and only finishes its unwind after an extra await.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     started = asyncio.Event()
 
     class _SlowUnwindAgent:
@@ -929,6 +633,7 @@ async def test_coordinator_aclose_awaits_tasks_before_cleanup(tmp_path: Path) ->
     )
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await started.wait()
@@ -960,7 +665,7 @@ async def test_merge_or_select_falls_back_to_pre_fork_history_when_winner_termin
     merge falls back to the pre-fork parent history so the resolution still
     completes.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     sleep_event = asyncio.Event()
 
     class _SlowAgent:
@@ -972,6 +677,7 @@ async def test_merge_or_select_falls_back_to_pre_fork_history_when_winner_termin
     parent_history = _seed_history("p")
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
     branch_id = next(iter(coord.branches))
@@ -993,7 +699,7 @@ async def test_merge_or_select_raises_if_winner_cancelled_in_non_exhausted_state
     out-of-band cancellation that leaves the status non-terminal must surface
     the original RuntimeError so callers can handle the unexpected case.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     sleep_event = asyncio.Event()
 
     class _SlowAgent:
@@ -1004,6 +710,7 @@ async def test_merge_or_select_raises_if_winner_cancelled_in_non_exhausted_state
     coord = _make_coordinator(_SlowAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
@@ -1028,7 +735,7 @@ async def test_merge_or_select_wraps_failed_winner_exception():
     RuntimeError)` — proving picking a failed branch resolves gracefully instead
     of aborting agent.run().
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _FailingAgent:
         async def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -1037,6 +744,7 @@ async def test_merge_or_select_wraps_failed_winner_exception():
     coord = _make_coordinator(_FailingAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
@@ -1062,7 +770,7 @@ async def test_merge_or_select_does_not_hold_lock_while_awaiting_winner():
     otherwise hold the coordinator lock for that unbounded duration, freezing
     every other lock user (fork, run_on_branch, abort, the budget watcher).
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     release = asyncio.Event()
 
     class _Result:
@@ -1077,6 +785,7 @@ async def test_merge_or_select_does_not_hold_lock_while_awaiting_winner():
     coord = _make_coordinator(_BlockingAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     branch_id = next(iter(coord.branches))
@@ -1103,12 +812,13 @@ async def test_merge_or_select_does_not_hold_lock_while_awaiting_winner():
 
 
 async def test_inspect_branches_returns_snapshot():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     snap = coord.inspect_branches()
     assert snap == []
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     snap = coord.inspect_branches()
@@ -1139,12 +849,13 @@ def _build_capability_with_coordinator(deps: DeepAgentDeps) -> LiveForkCapabilit
 
 
 class _StubCtx:
-    def __init__(self, deps: DeepAgentDeps) -> None:
+    def __init__(self, deps: DeepAgentDeps, workspace: Any = None) -> None:
         self.deps = deps
+        self.workspace = workspace if workspace is not None else state_workspace()
 
 
 async def test_fork_tool_returns_disabled_when_no_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
     out = await fork_fn(_StubCtx(deps), [{"label": "a", "steer": "go"}], None, None)
@@ -1152,7 +863,7 @@ async def test_fork_tool_returns_disabled_when_no_coordinator():
 
 
 async def test_inspect_tool_returns_disabled_when_no_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     inspect_fn = toolset.tools["inspect_branches"].function
     out = await inspect_fn(_StubCtx(deps))
@@ -1160,7 +871,7 @@ async def test_inspect_tool_returns_disabled_when_no_coordinator():
 
 
 async def test_merge_tool_returns_disabled_when_no_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     merge_fn = toolset.tools["merge_or_select"].function
     out = await merge_fn(_StubCtx(deps), "pick:x")
@@ -1168,7 +879,7 @@ async def test_merge_tool_returns_disabled_when_no_coordinator():
 
 
 async def test_terminate_tool_returns_disabled_when_no_coordinator():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     terminate_fn = toolset.tools["terminate_branch"].function
     out = await terminate_fn(_StubCtx(deps), "x")
@@ -1176,7 +887,7 @@ async def test_terminate_tool_returns_disabled_when_no_coordinator():
 
 
 async def test_fork_tool_happy_path():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1201,7 +912,7 @@ async def test_fork_tool_strips_trailing_model_request_from_parent_history():
     create two consecutive ModelRequests, which pydantic-ai rejects.  The tool
     must strip it so branches receive a history ending with a ModelResponse.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
     # Simulate a snapshot that includes the current in-progress ModelRequest
@@ -1252,7 +963,7 @@ async def test_fork_tool_strips_trailing_model_request_from_parent_history():
 
 async def test_fork_tool_no_strip_when_history_ends_with_response():
     """When latest_messages ends with a ModelResponse, nothing is stripped."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
     cap._latest_messages = [
@@ -1284,7 +995,7 @@ async def test_fork_tool_no_strip_when_history_ends_with_response():
 
 
 async def test_fork_tool_returns_error_string_on_limit():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cap = LiveForkCapability(max_branches=2)
     cap._agent_ref = _make_test_agent()
     cap._latest_messages = _seed_history("parent")
@@ -1316,7 +1027,7 @@ async def test_fork_tool_returns_error_string_on_limit():
 
 
 async def test_inspect_tool_renders_status():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cap = _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1331,7 +1042,7 @@ async def test_inspect_tool_renders_status():
 
 
 async def test_inspect_tool_no_active_branches():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     inspect_fn = toolset.tools["inspect_branches"].function
@@ -1340,7 +1051,7 @@ async def test_inspect_tool_no_active_branches():
 
 
 async def test_merge_tool_returns_error_on_bad_action():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1355,7 +1066,7 @@ async def test_merge_tool_returns_error_on_bad_action():
 
 
 async def test_merge_tool_happy_path():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1376,7 +1087,7 @@ async def test_merge_tool_action_auto_uses_judge_and_commits():
 
     from pydantic_deep import JudgeVerdict
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1411,7 +1122,7 @@ async def test_merge_tool_action_auto_uses_judge_and_commits():
 
 async def test_merge_tool_action_auto_on_manual_strategy_returns_advisory():
     """action='auto' on a manual-strategy fork falls back to a human-readable error."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1439,7 +1150,7 @@ async def test_merge_tool_action_auto_on_manual_strategy_returns_advisory():
 
 async def test_merge_tool_action_abort_discards_all_branches():
     """action='abort' releases overlays and cancels every branch without merging."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1463,7 +1174,7 @@ async def test_merge_tool_action_abort_discards_all_branches():
 
 async def test_merge_tool_action_auto_autoaborts_when_all_branches_failed():
     """action='auto' auto-aborts when every branch is in a failed state."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1492,7 +1203,7 @@ async def test_merge_tool_action_auto_autoaborts_when_all_branches_failed():
 
 async def test_coordinator_abort_fork_releases_overlays():
     """ForkCoordinator.abort_fork cancels tasks and releases overlays."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1511,7 +1222,7 @@ async def test_coordinator_abort_fork_releases_overlays():
 
 async def test_coordinator_abort_fork_raises_when_not_forked():
     """abort_fork on a coordinator without an active fork raises RuntimeError."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     cap = _build_capability_with_coordinator(deps)
     assert deps.fork_coordinator is not None
     # Don't call fork(); abort_fork should error.
@@ -1522,7 +1233,7 @@ async def test_coordinator_abort_fork_raises_when_not_forked():
 
 async def test_merge_tool_abort_fails_gracefully_when_no_fork():
     """action='abort' on a coordinator without an active fork returns a clean error."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     merge_fn = toolset.tools["merge_or_select"].function
@@ -1531,7 +1242,7 @@ async def test_merge_tool_abort_fails_gracefully_when_no_fork():
 
 
 async def test_terminate_tool_happy_path():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1544,7 +1255,7 @@ async def test_terminate_tool_happy_path():
 
 
 async def test_terminate_tool_unknown_id():
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     terminate_fn = toolset.tools["terminate_branch"].function
@@ -1581,7 +1292,7 @@ async def test_in_memory_fork_state_store_crud():
 
 async def test_merge_or_select_cancels_still_running_discarded_branches():
     """Covers merge_or_select branch that cancels a still-running loser."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     quick_finished = asyncio.Event()
     slow_release = asyncio.Event()
 
@@ -1603,6 +1314,7 @@ async def test_merge_or_select_cancels_still_running_discarded_branches():
     coord = _make_coordinator(_MixedAgent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="fast", steer="fast"), BranchSpec(label="slow", steer="slow")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await quick_finished.wait()
@@ -1614,12 +1326,13 @@ async def test_merge_or_select_cancels_still_running_discarded_branches():
 
 async def test_merge_or_select_no_checkpoint_store_skips_post_fork():
     """Covers merge_or_select branch where checkpoint store is missing."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=None)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         await coord.fork(
             [BranchSpec(label="a", steer="A")],
+            workspace=state_workspace(),
             parent_history=_seed_history("p"),
         )
     branch_id = next(iter(coord.branches))
@@ -1629,10 +1342,11 @@ async def test_merge_or_select_no_checkpoint_store_skips_post_fork():
 
 async def test_aclose_skips_done_tasks():
     """Covers aclose branch where a task is already done."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     # Let task complete normally
@@ -1645,7 +1359,7 @@ async def test_aclose_skips_done_tasks():
 
 async def test_fork_tool_passes_isolation_dict():
     """Covers `_coerce_isolation` non-None branch."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -1658,36 +1372,6 @@ async def test_fork_tool_passes_isolation_dict():
     assert "Forked: fork_id=" in out
     assert deps.fork_coordinator is not None
     await asyncio.gather(*(rt.task for rt in deps.fork_coordinator.branches.values()))
-
-
-async def test_branch_overlay_records_no_change_on_edit_failure():
-    """Covers the `if not result.error` False branch in edit()."""
-    parent = StateBackend()
-    parent.write("/foo.py", "hello world")
-    overlay = BranchOverlay(parent)
-    res = overlay.edit("/foo.py", "NOT-PRESENT", "X")
-    assert res.error is not None
-    # No FileChange recorded for a failed edit
-    assert all(c.op == "write" for c in overlay.changes())
-    # _overlay.write() bypasses the _changes log; no edit op recorded.
-    edit_ops = [c for c in overlay.changes() if c.op == "edit"]
-    assert edit_ops == []
-
-
-def test_branch_overlay_records_no_change_on_write_failure():
-    """Covers the `if not result.error` False branch in write() via a stub backend."""
-    from pydantic_ai_backends import WriteResult
-
-    class _FailingBackend(StateBackend):  # type: ignore[misc]
-        def write(self, path: str, content: str | bytes) -> WriteResult:
-            return WriteResult(path=None, error="forced failure")
-
-    overlay = BranchOverlay(StateBackend())
-    # Swap the internal overlay backend with the failing one
-    overlay._overlay = _FailingBackend()
-    res = overlay.write("/x.py", "y")
-    assert res.error == "forced failure"
-    assert overlay.changes() == []
 
 
 def test_factory_wires_forking_true():
@@ -1713,1078 +1397,13 @@ def test_factory_rejects_invalid_forking_value():
         create_deep_agent(model=TestModel(), forking=cast(Any, "yes"))
 
 
-# ---------------------------------------------------------------------------
-# BranchOverlay.execute / async_execute — snapshot isolation
-# ---------------------------------------------------------------------------
-
-
-def test_branch_overlay_execute_rm_isolated(tmp_path: Path) -> None:
-    """`rm` inside a branch snapshot removes the file only from the snapshot."""
-    from pydantic_ai_backends import LocalBackend
-
-    # Create a real file in a temp parent root.
-    real_file = tmp_path / "target.py"
-    real_file.write_text("# real")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    result = overlay.execute(f"rm {real_file}")
-
-    # Command succeeds.
-    assert result.exit_code == 0
-    # Real file is untouched.
-    assert real_file.exists(), "rm inside branch must not delete the real file"
-
-
-def test_branch_overlay_execute_mkdir_isolated(tmp_path: Path) -> None:
-    """`mkdir` inside a branch snapshot does not create the dir on the real FS."""
-    from pydantic_ai_backends import LocalBackend
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    new_dir = tmp_path / "newdir"
-    result = overlay.execute(f"mkdir {new_dir}")
-
-    assert result.exit_code == 0
-    assert not new_dir.exists(), "mkdir inside branch must not create dir on real FS"
-
-
-def test_branch_overlay_execute_sees_overlay_writes(tmp_path: Path) -> None:
-    """Files written via the overlay are visible to execute in the snapshot."""
-    from pydantic_ai_backends import LocalBackend
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-    overlay.write(str(tmp_path / "hello.py"), "print('branch')")
-
-    result = overlay.execute(f"cat {tmp_path / 'hello.py'}")
-
-    assert result.exit_code == 0
-    assert "branch" in result.output
-
-
-def test_branch_overlay_execute_sees_deleted_as_absent(tmp_path: Path) -> None:
-    """A file deleted via the overlay is absent in the execute snapshot."""
-    from pydantic_ai_backends import LocalBackend
-
-    real_file = tmp_path / "gone.py"
-    real_file.write_text("# gone")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-    overlay.delete(str(real_file))
-
-    result = overlay.execute(f"ls {tmp_path}")
-
-    assert "gone.py" not in result.output
-    assert real_file.exists(), "overlay delete must not touch the real file"
-
-
-def test_branch_overlay_execute_mv_isolated(tmp_path: Path) -> None:
-    """`mv` inside a branch snapshot does not rename on the real FS."""
-    from pydantic_ai_backends import LocalBackend
-
-    src = tmp_path / "old.py"
-    src.write_text("# old")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    result = overlay.execute(f"mv {src} {tmp_path / 'new.py'}")
-
-    assert result.exit_code == 0
-    assert src.exists(), "mv inside branch must not rename the real file"
-    assert not (tmp_path / "new.py").exists()
-
-
-def test_branch_overlay_execute_forwards_when_no_root_dir() -> None:
-    """With a StateBackend parent (no root_dir) the call is forwarded as-is."""
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
-    # StateBackend.execute doesn't exist in the protocol; the forward
-    # will raise AttributeError, confirming the forwarding path was taken.
-    import pytest
-
-    with pytest.raises((AttributeError, RuntimeError)):
-        overlay.execute("ls")
-
-
-async def test_branch_overlay_async_execute_rm_isolated(tmp_path: Path) -> None:
-    """async_execute also isolates rm via asyncio.to_thread."""
-    from pydantic_ai_backends import LocalBackend
-
-    real_file = tmp_path / "async_target.py"
-    real_file.write_text("# real")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    result = await overlay.async_execute(f"rm {real_file}")
-
-    assert result.exit_code == 0
-    assert real_file.exists(), "async rm inside branch must not delete the real file"
-
-
-# ---------------------------------------------------------------------------
-# BranchOverlay.execute — mutation propagation back to overlay
-# ---------------------------------------------------------------------------
-
-
-def test_execute_rm_propagates_delete_to_overlay(tmp_path: Path) -> None:
-    """After execute(rm …), the path appears in overlay.deleted() for merge."""
-    from pydantic_ai_backends import LocalBackend
-
-    real_file = tmp_path / "todelete.py"
-    real_file.write_text("# will be removed by branch")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    result = overlay.execute(f"rm {real_file}")
-
-    assert result.exit_code == 0
-    # Real file must be untouched.
-    assert real_file.exists()
-    # But the overlay must record the deletion so flush_to propagates it.
-    assert str(real_file) in overlay.deleted()
-
-
-def test_execute_create_file_propagates_write_to_overlay(tmp_path: Path) -> None:
-    """A file created by execute is captured in the overlay as a write."""
-    from pydantic_ai_backends import LocalBackend
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-    new_file = tmp_path / "created.py"
-
-    result = overlay.execute(f'echo "# new" > {new_file}')
-
-    assert result.exit_code == 0
-    # Not on real FS.
-    assert not new_file.exists()
-    # Captured in overlay.
-    assert overlay.exists(str(new_file))
-    content = overlay.read(str(new_file))
-    assert "new" in content
-
-
-def test_execute_modify_existing_propagates_write_to_overlay(tmp_path: Path) -> None:
-    """Modifying an existing file via execute captures the change in the overlay
-    WITHOUT touching the real parent file (copy-on-write isolation).
-
-    Regression for the symlink-escape bug: the snapshot copies parent files, so an
-    in-place `>` redirection lands on the copy, never the real parent. The
-    overlay still records the update for a later merge/flush.
-    """
-    from pydantic_ai_backends import LocalBackend
-
-    real_file = tmp_path / "existing.py"
-    real_file.write_text("original content")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    result = overlay.execute(f'echo "modified" > {real_file}')
-
-    assert result.exit_code == 0
-    # Overlay must have captured the modified version.
-    assert overlay.exists(str(real_file))
-    assert "modified" in overlay.read(str(real_file))
-    # CRITICAL: the real parent file must be untouched — the branch write did not
-    # escape onto the parent.
-    assert real_file.read_text() == "original content"
-
-
-def test_execute_mv_propagates_delete_and_create_to_overlay(tmp_path: Path) -> None:
-    """mv via execute records the old path as deleted and new path as written."""
-    from pydantic_ai_backends import LocalBackend
-
-    src = tmp_path / "src.py"
-    src.write_text("# src content")
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-    dst = tmp_path / "dst.py"
-
-    result = overlay.execute(f"mv {src} {dst}")
-
-    assert result.exit_code == 0
-    # Real FS untouched.
-    assert src.exists()
-    assert not dst.exists()
-    # src deleted in overlay.
-    assert str(src) in overlay.deleted()
-    # dst created in overlay.
-    assert overlay.exists(str(dst))
-
-
-def test_execute_timeout_still_propagates_partial_mutations(tmp_path: Path) -> None:
-    """A command that writes a file then hangs until timeout still records the write.
-
-    Regression: mutations made before a TimeoutExpired must be mirrored into the
-    overlay, not silently discarded from changes()/merge.
-    """
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import _EXIT_TIMEOUT
-
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-    partial = tmp_path / "partial.py"
-
-    # Create the file, then sleep past the timeout so the command is killed.
-    result = overlay.execute(f'echo "# partial work" > {partial}; sleep 30', timeout=1)
-
-    assert result.exit_code == _EXIT_TIMEOUT
-    # Real FS untouched (copy-on-write isolation).
-    assert not partial.exists()
-    # The partial mutation must survive into the overlay despite the timeout.
-    assert overlay.exists(str(partial))
-    assert "partial work" in overlay.read(str(partial))
-
-
-def test_execute_crash_still_propagates_partial_mutations(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A non-timeout subprocess failure after a mutation still records the write.
-
-    Simulates `subprocess.run` raising a generic exception after the file was
-    created in the snapshot; the finally-block propagation must still run.
-    """
-    import subprocess
-
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking import isolation
-
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-    created = tmp_path / "crashed.py"
-
-    real_run = subprocess.run
-
-    def fake_run(args: Any, **kwargs: Any) -> Any:
-        # Let the command create the file, then crash before returning.
-        real_run(args, **kwargs)
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr(f"{isolation.__name__}.subprocess.run", fake_run)
-
-    result = overlay.execute(f'echo "# crash work" > {created}')
-
-    assert result.exit_code == 1
-    assert "boom" in result.output
-    # Real FS untouched.
-    assert not created.exists()
-    # The mutation made before the crash must survive into the overlay.
-    assert overlay.exists(str(created))
-    assert "crash work" in overlay.read(str(created))
-
-
-# ---------------------------------------------------------------------------
-# Directory create/delete propagation via execute
-# ---------------------------------------------------------------------------
-
-
-def test_execute_mkdir_propagates_to_overlay(tmp_path: Path) -> None:
-    """mkdir via execute records a 'mkdir' FileChange in the overlay."""
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-
-    new_dir = tmp_path / "subdir"
-    result = overlay.execute(f"mkdir -p {new_dir}")
-    assert result.exit_code == 0
-
-    mkdir_changes = [c for c in overlay.changes() if c.op == "mkdir"]
-    assert len(mkdir_changes) == 1
-    assert mkdir_changes[0].path == str(new_dir)
-
-
-def test_execute_rmdir_propagates_to_overlay(tmp_path: Path) -> None:
-    """rmdir via execute records a 'rmdir' FileChange in the overlay."""
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    target_dir = tmp_path / "existing"
-    target_dir.mkdir()
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-
-    result = overlay.execute(f"rm -rf {target_dir}")
-    assert result.exit_code == 0
-
-    rmdir_changes = [c for c in overlay.changes() if c.op == "rmdir"]
-    assert len(rmdir_changes) == 1
-    assert rmdir_changes[0].path == str(target_dir)
-
-
-def test_flush_mkdir_creates_directory_on_parent(tmp_path: Path) -> None:
-    """flush_to with a mkdir change creates the directory on the parent backend."""
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-
-    new_dir = tmp_path / "created_by_flush"
-    overlay.record_mkdir(str(new_dir))
-
-    report = overlay.flush_to(parent)
-    assert new_dir.is_dir()
-    assert str(new_dir) in report.applied_paths
-
-
-def test_flush_rmdir_removes_directory_on_parent(tmp_path: Path) -> None:
-    """flush_to with an rmdir change removes the directory on the parent backend."""
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    target_dir = tmp_path / "to_remove"
-    target_dir.mkdir()
-    assert target_dir.exists()
-
-    parent = LocalBackend(root_dir=str(tmp_path))
-    overlay = BranchOverlay(parent)
-
-    overlay.record_rmdir(str(target_dir))
-
-    report = overlay.flush_to(parent)
-    assert not target_dir.exists()
-    assert str(target_dir) in report.deleted_paths
-
-
-def test_flush_mkdir_no_execute_reports_error() -> None:
-    """flush_to mkdir on a backend without execute reports a FlushError."""
-    from pydantic_ai_backends import StateBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
-    overlay.record_mkdir("/fake/dir")
-
-    report = overlay.flush_to(parent)
-    assert len(report.errors) == 1
-    assert report.errors[0].op == "mkdir"
-
-
-def test_flush_rmdir_no_execute_reports_error() -> None:
-    """flush_to rmdir on a backend without execute reports a FlushError."""
-    from pydantic_ai_backends import StateBackend
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
-    overlay.record_rmdir("/fake/dir")
-
-    report = overlay.flush_to(parent)
-    assert len(report.errors) == 1
-    assert report.errors[0].op == "rmdir"
-
-
-def test_collect_state_records_empty_directories(tmp_path: Path) -> None:
-    """_collect_state records empty directories as entries ending with '/'."""
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    empty_dir = tmp_path / "empty"
-    empty_dir.mkdir()
-
-    state: dict[str, tuple[bool, float]] = {}
-    _collect_state(tmp_path, tmp_path, state)
-    assert "empty/" in state
-
-
-def test_flush_mkdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
-    """flush_to mkdir that returns non-zero exit code reports FlushError."""
-    from datetime import datetime, timezone
-    from unittest.mock import MagicMock
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-    from pydantic_deep.features.forking.types import FileChange
-
-    parent = MagicMock()
-    parent.execute_enabled = True
-    response = MagicMock()
-    response.exit_code = 1
-    response.output = "permission denied"
-    parent.execute.return_value = response
-
-    change = FileChange(path="/fake/dir", op="mkdir", timestamp=datetime.now(timezone.utc))
-    errors: list[Any] = []
-    result = BranchOverlay._flush_mkdir(parent, change, errors)
-    assert result is False
-    assert len(errors) == 1
-    assert errors[0].op == "mkdir"
-
-
-def test_flush_rmdir_nonzero_exit_reports_error(tmp_path: Path) -> None:
-    """flush_to rmdir that returns non-zero exit code reports FlushError."""
-    from datetime import datetime, timezone
-    from unittest.mock import MagicMock
-
-    from pydantic_deep.features.forking.isolation import BranchOverlay
-    from pydantic_deep.features.forking.types import FileChange
-
-    parent = MagicMock()
-    parent.execute_enabled = True
-    response = MagicMock()
-    response.exit_code = 1
-    response.output = "permission denied"
-    parent.execute.return_value = response
-
-    change = FileChange(path="/fake/dir", op="rmdir", timestamp=datetime.now(timezone.utc))
-    errors: list[Any] = []
-    deleted_paths: list[str] = []
-    deleted_set: set[str] = set()
-    result = BranchOverlay._flush_rmdir(parent, change, errors, deleted_paths, deleted_set)
-    assert result is False
-    assert len(errors) == 1
-    assert errors[0].op == "rmdir"
-
-
-def test_propagate_mutations_handles_directory_create(tmp_path: Path) -> None:
-    """_propagate_mutations detects a new empty directory and calls record_mkdir."""
-    from unittest.mock import MagicMock
-
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    parent_root = tmp_path / "root"
-    parent_root.mkdir()
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    pre: dict[str, tuple[bool, float]] = {}
-    post: dict[str, tuple[bool, float]] = {"newdir/": (False, 0.0)}
-
-    overlay = MagicMock()
-    _propagate_mutations(snap, parent_root, pre, post, overlay)
-    overlay.record_mkdir.assert_called_once_with(str(parent_root / "newdir"))
-
-
-def test_propagate_mutations_handles_directory_delete(tmp_path: Path) -> None:
-    """_propagate_mutations detects a removed directory and calls record_rmdir."""
-    from unittest.mock import MagicMock
-
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    parent_root = tmp_path / "root"
-    parent_root.mkdir()
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    pre: dict[str, tuple[bool, float]] = {"olddir/": (False, 0.0)}
-    post: dict[str, tuple[bool, float]] = {}
-
-    overlay = MagicMock()
-    _propagate_mutations(snap, parent_root, pre, post, overlay)
-    overlay.record_rmdir.assert_called_once_with(str(parent_root / "olddir"))
-
-
-def test_propagate_mutations_unchanged_directory_is_noop(tmp_path: Path) -> None:
-    """_propagate_mutations skips directories present in both pre and post."""
-    from unittest.mock import MagicMock
-
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    parent_root = tmp_path / "root"
-    parent_root.mkdir()
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    pre: dict[str, tuple[bool, float]] = {"stable/": (False, 0.0)}
-    post: dict[str, tuple[bool, float]] = {"stable/": (False, 0.0)}
-
-    overlay = MagicMock()
-    _propagate_mutations(snap, parent_root, pre, post, overlay)
-    overlay.record_mkdir.assert_not_called()
-    overlay.record_rmdir.assert_not_called()
-
-
-def test_collect_state_does_not_record_nonempty_directories(tmp_path: Path) -> None:
-    """_collect_state does NOT record directories that contain files."""
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    nonempty = tmp_path / "has_file"
-    nonempty.mkdir()
-    (nonempty / "f.txt").write_text("content")
-
-    state: dict[str, tuple[bool, float]] = {}
-    _collect_state(tmp_path, tmp_path, state)
-    assert "has_file/" not in state
-    assert "has_file/f.txt" in state
-
-
-# ---------------------------------------------------------------------------
-# _rewrite_parent_root — path-boundary rewriting (no naive substring replace)
-# ---------------------------------------------------------------------------
-
-
-def test_rewrite_parent_root_only_on_path_boundaries() -> None:
-    from pydantic_deep.features.forking.isolation import _rewrite_parent_root
-
-    root = "/home/u/proj"
-    snap = "/tmp/snap"
-
-    # Boundary matches ARE rewritten: separator, end-of-string, whitespace, quote.
-    assert _rewrite_parent_root(f"cat {root}/a.py", root, snap) == f"cat {snap}/a.py"
-    assert _rewrite_parent_root(f"cd {root}", root, snap) == f"cd {snap}"
-    assert _rewrite_parent_root(f"ls {root} -la", root, snap) == f"ls {snap} -la"
-    assert _rewrite_parent_root(f"cat '{root}/a.py'", root, snap) == f"cat '{snap}/a.py'"
-
-    # A sibling sharing the prefix must NOT be mangled.
-    assert _rewrite_parent_root(f"cat {root}_backup/x", root, snap) == f"cat {root}_backup/x"
-    # The root inside an unrelated literal token must NOT be rewritten.
-    assert _rewrite_parent_root(f"echo {root}xyz", root, snap) == f"echo {root}xyz"
-
-    # Empty root is a no-op.
-    assert _rewrite_parent_root("ls -la", "", snap) == "ls -la"
-
-
-# ---------------------------------------------------------------------------
-# _copy_tree — subdirectory recursion and _SNAP_SKIP_DIRS skip
-# ---------------------------------------------------------------------------
-
-
-def test_copy_tree_recurses_into_subdirectory(tmp_path: Path) -> None:
-    """_copy_tree mirrors subdirectory structure as real copies and skips _SNAP_SKIP_DIRS."""
-    from pydantic_deep.features.forking.isolation import _SNAP_SKIP_DIRS, _copy_tree
-
-    src = tmp_path / "src"
-    src.mkdir()
-    (src / "root_file.py").write_text("root")
-    subdir = src / "subdir"
-    subdir.mkdir()
-    (subdir / "nested.py").write_text("nested")
-    # Add a _SNAP_SKIP_DIRS entry — should be skipped.
-    skip_name = next(iter(_SNAP_SKIP_DIRS))
-    (src / skip_name).mkdir()
-    (src / skip_name / "ignored.py").write_text("ignored")
-
-    dst = tmp_path / "dst"
-    dst.mkdir()
-    _copy_tree(src, dst)
-
-    # Files are detached real copies, NOT symlinks (copy-on-write isolation).
-    assert (dst / "root_file.py").is_file()
-    assert not (dst / "root_file.py").is_symlink()
-    assert (dst / "root_file.py").read_text() == "root"
-    assert (dst / "subdir").is_dir()
-    assert (dst / "subdir" / "nested.py").is_file()
-    assert not (dst / "subdir" / "nested.py").is_symlink()
-    assert (dst / "subdir" / "nested.py").read_text() == "nested"
-    assert not (dst / skip_name).exists()
-
-    # Writing into the copy must not touch the source (the isolation guarantee).
-    (dst / "root_file.py").write_text("branch-modified")
-    assert (src / "root_file.py").read_text() == "root"
-
-
-def test_copy_tree_skips_unreadable_entry(tmp_path: Path) -> None:
-    """_copy_tree logs and skips an entry it can't copy (e.g. a dangling symlink)."""
-    from pydantic_deep.features.forking.isolation import _copy_tree
-
-    src = tmp_path / "src"
-    src.mkdir()
-    (src / "good.py").write_text("ok")
-    # Dangling symlink: copy2(follow_symlinks=True) raises FileNotFoundError (OSError).
-    (src / "dangling.py").symlink_to(tmp_path / "missing-target.py")
-
-    dst = tmp_path / "dst"
-    dst.mkdir()
-    _copy_tree(src, dst)
-
-    # The good file is copied; the unreadable entry is skipped (absent), no raise.
-    assert (dst / "good.py").read_text() == "ok"
-    assert not (dst / "dangling.py").exists()
-
-
-# ---------------------------------------------------------------------------
-# _collect_state — error paths, skip dirs, subdirectory, OSError mtime
-# ---------------------------------------------------------------------------
-
-
-def test_collect_state_skips_snap_skip_dirs(tmp_path: Path) -> None:
-    """_collect_state does not recurse into _SNAP_SKIP_DIRS entries."""
-    from pydantic_deep.features.forking.isolation import _SNAP_SKIP_DIRS, _collect_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    (snap / "real.py").write_text("real")
-    skip_name = next(iter(_SNAP_SKIP_DIRS))
-    skip_dir = snap / skip_name
-    skip_dir.mkdir()
-    (skip_dir / "deep.py").write_text("deep")
-
-    out: dict[str, tuple[bool, float]] = {}
-    _collect_state(snap, snap, out)
-
-    assert "real.py" in out
-    assert f"{skip_name}/deep.py" not in out
-    assert not any(k.startswith(skip_name) for k in out)
-
-
-def test_collect_state_recurses_into_subdirectory(tmp_path: Path) -> None:
-    """_collect_state recurses into normal subdirectories."""
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    sub = snap / "pkg"
-    sub.mkdir()
-    (sub / "module.py").write_text("x")
-
-    out: dict[str, tuple[bool, float]] = {}
-    _collect_state(snap, snap, out)
-
-    assert "pkg/module.py" in out
-
-
-def test_collect_state_skips_non_file_non_dir_entries(tmp_path: Path) -> None:
-    """_collect_state ignores entries that are not symlinks, files, or directories."""
-    import os
-
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    (snap / "real.py").write_text("real")
-    # Named pipe is not a symlink, not a regular file, not a directory.
-    fifo = snap / "mypipe"
-    os.mkfifo(fifo)
-
-    out: dict[str, tuple[bool, float]] = {}
-    _collect_state(snap, snap, out)
-
-    assert "real.py" in out
-    assert "mypipe" not in out
-
-
-def test_collect_state_permission_error_returns_silently(tmp_path: Path) -> None:
-    """_collect_state silently returns when os.scandir raises PermissionError."""
-    from unittest.mock import patch
-
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    with patch("os.scandir", side_effect=PermissionError("no access")):
-        out: dict[str, tuple[bool, float]] = {}
-        _collect_state(tmp_path, tmp_path, out)  # must not raise
-    assert out == {}
-
-
-def test_collect_state_symlink_signature_oserror_fallback(tmp_path: Path) -> None:
-    """A dangling symlink → content signature falls back to '' (unreadable)."""
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    link = snap / "dangling.py"
-    link.symlink_to(tmp_path / "does_not_exist.py")
-
-    out: dict[str, tuple[bool, str]] = {}
-    _collect_state(snap, snap, out)
-
-    assert "dangling.py" in out
-    is_sym, sig = out["dangling.py"]
-    assert is_sym
-    assert sig == ""
-
-
-def test_collect_state_file_signature_oserror_fallback(tmp_path: Path) -> None:
-    """_collect_state uses signature='' when a file's content can't be read."""
-    from unittest.mock import MagicMock, patch
-
-    from pydantic_deep.features.forking.isolation import _collect_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    # Mock entry pointing at a path open() can't read → _file_signature returns ''.
-    mock_entry = MagicMock()
-    mock_entry.name = "file.py"
-    mock_entry.path = str(snap / "nonexistent.py")
-    mock_entry.is_symlink.return_value = False
-    mock_entry.is_file.return_value = True
-    mock_entry.is_dir.return_value = False
-
-    with patch("os.scandir", return_value=iter([mock_entry])):
-        out: dict[str, tuple[bool, str]] = {}
-        _collect_state(snap, snap, out)
-
-    assert "nonexistent.py" in out
-    _, sig = out["nonexistent.py"]
-    assert sig == ""
-
-
-def test_snapshot_state_detects_content_change_with_preserved_mtime(tmp_path: Path) -> None:
-    """A same-size content rewrite with mtime restored is still detected.
-
-    Regression for mtime-only detection: the signature is content-based, so a
-    write that preserves mtime (or lands within the mtime tick) still changes
-    the signature.
-    """
-    import os
-
-    from pydantic_deep.features.forking.isolation import _snapshot_state
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    f = snap / "a.py"
-    f.write_text("aaaa")
-    st = os.stat(f)
-    pre = _snapshot_state(snap)
-
-    # Same byte length, different content, mtime restored to the original.
-    f.write_text("bbbb")
-    os.utime(f, (st.st_atime, st.st_mtime))
-    post = _snapshot_state(snap)
-
-    assert pre["a.py"][1] != post["a.py"][1]
-
-
-# ---------------------------------------------------------------------------
-# _branch_snapshot — error / edge-case paths
-# ---------------------------------------------------------------------------
-
-
-def test_branch_snapshot_overlay_read_failure_is_skipped(tmp_path: Path) -> None:
-    """An exception from overlay.read_bytes skips that path without crashing."""
-    from unittest.mock import patch
-
-    from pydantic_deep.features.forking.isolation import _branch_snapshot
-
-    overlay = StateBackend()
-    from datetime import datetime, timezone
-
-    changes = [FileChange(path="/parent/file.py", op="write", timestamp=datetime.now(timezone.utc))]
-    deleted: set[str] = set()
-
-    # Patch StateBackend.read_bytes to raise.
-    with (
-        patch.object(overlay, "read_bytes", side_effect=OSError("bad read")),
-        _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir,
-    ):
-        snap = Path(snap_dir)
-        # The file should NOT appear (exception was swallowed).
-        assert not (snap / "file.py").exists()
-
-
-def test_branch_snapshot_path_not_relative_to_root(tmp_path: Path) -> None:
-    """A path that isn't under parent_root uses lstrip('/') as fallback."""
-    from pydantic_deep.features.forking.isolation import _branch_snapshot
-
-    overlay = StateBackend()
-    # Write a file with a path NOT under tmp_path (different absolute root).
-    from datetime import datetime, timezone
-
-    overlay.write("/tmp/orphan.py", b"content")
-    changes = [FileChange(path="/tmp/orphan.py", op="write", timestamp=datetime.now(timezone.utc))]
-    deleted: set[str] = set()
-
-    # parent_root is tmp_path, but the path is under /tmp — triggers ValueError.
-    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
-        snap = Path(snap_dir)
-        # The fallback `path.lstrip("/")` → "tmp/orphan.py" inside snap.
-        assert (snap / "tmp" / "orphan.py").exists()
-
-
-def test_branch_snapshot_unlinks_existing_symlink_before_overlay_write(
-    tmp_path: Path,
-) -> None:
-    """When overlay writes to a path already symlinked from parent, symlink is removed."""
-    from pydantic_deep.features.forking.isolation import _branch_snapshot
-
-    # Parent has file.py.
-    parent_file = tmp_path / "file.py"
-    parent_file.write_text("original")
-
-    overlay = StateBackend()
-    overlay.write(str(parent_file), b"overlay content")
-    from datetime import datetime, timezone
-
-    changes = [FileChange(path=str(parent_file), op="write", timestamp=datetime.now(timezone.utc))]
-    deleted: set[str] = set()
-
-    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
-        snap = Path(snap_dir)
-        rel = parent_file.relative_to(tmp_path)
-        dst = snap / rel
-        # dst must be a real file (not symlink) with overlay content.
-        assert not dst.is_symlink()
-        assert dst.read_text() == "overlay content"
-
-
-def test_branch_snapshot_deleted_path_not_relative_to_root(tmp_path: Path) -> None:
-    """Deleted paths not under parent_root fall back to lstrip('/') placement."""
-    from pydantic_deep.features.forking.isolation import _branch_snapshot
-
-    overlay = StateBackend()
-    # Create a file in the snapshot that we'll then mark deleted.
-    other_path = "/tmp/_snap_delete_test_orphan.py"
-    changes: list[FileChange] = []
-    deleted: set[str] = {other_path}
-
-    # Just confirm the context manager doesn't raise when the path
-    # isn't under parent_root and the target doesn't exist.
-    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
-        snap = Path(snap_dir)
-        # "tmp/_snap_delete_test_orphan.py" after lstrip — may or may not exist.
-        # The critical check is no exception was raised.
-        assert snap.exists()
-
-
-def test_branch_snapshot_deleted_path_unlinks_existing_entry(tmp_path: Path) -> None:
-    """Deleted path whose symlink exists in snap is removed."""
-    from pydantic_deep.features.forking.isolation import _branch_snapshot
-
-    parent_file = tmp_path / "todel.py"
-    parent_file.write_text("original")
-
-    overlay = StateBackend()
-    changes: list[FileChange] = []
-    deleted = {str(parent_file)}
-
-    with _branch_snapshot(tmp_path, overlay, changes, deleted) as snap_dir:
-        snap = Path(snap_dir)
-        rel = parent_file.relative_to(tmp_path)
-        # Symlink from step 1 must have been removed.
-        assert not (snap / rel).exists()
-
-
-# ---------------------------------------------------------------------------
-# _propagate_mutations — modified-file branches
-# ---------------------------------------------------------------------------
-
-
-def test_propagate_mutations_created_path_snap_file_missing(tmp_path: Path) -> None:
-    """Created path whose snap_file doesn't exist at propagation time is skipped."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    pre: dict[str, tuple[bool, float]] = {}
-    post: dict[str, tuple[bool, float]] = {"ghost.py": (False, 1.0)}
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
-    # Nothing should be written since snap/ghost.py doesn't exist.
-    assert not overlay.exists(str(tmp_path / "ghost.py"))
-
-
-def test_propagate_mutations_symlink_replaced_by_real_file(tmp_path: Path) -> None:
-    """Symlink → real file transition is captured as an overlay write."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    snap_file = snap / "replaced.py"
-    snap_file.write_text("new content")
-
-    pre: dict[str, tuple[bool, float]] = {"replaced.py": (True, 1.0)}  # symlink
-    post: dict[str, tuple[bool, float]] = {"replaced.py": (False, 2.0)}  # real file
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)
-
-    abs_path = str(tmp_path / "replaced.py")
-    assert overlay.exists(abs_path)
-    assert overlay.read_bytes(abs_path) == b"new content"
-
-
-def test_propagate_mutations_real_file_mtime_changed(tmp_path: Path) -> None:
-    """An existing real file whose mtime changed is captured as an overlay write."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    snap_file = snap / "changed.py"
-    snap_file.write_text("updated content")
-
-    pre: dict[str, tuple[bool, float]] = {"changed.py": (False, 1.0)}
-    post: dict[str, tuple[bool, float]] = {"changed.py": (False, 2.0)}  # mtime changed
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)
-
-    abs_path = str(tmp_path / "changed.py")
-    assert overlay.exists(abs_path)
-    assert overlay.read_bytes(abs_path) == b"updated content"
-
-
-def test_propagate_mutations_write_through_symlink_snap_missing(tmp_path: Path) -> None:
-    """Write-through-symlink case where snap_file doesn't exist is skipped."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    # snap/write_through.py does NOT exist.
-
-    pre: dict[str, tuple[bool, float]] = {"write_through.py": (True, 1.0)}
-    post: dict[str, tuple[bool, float]] = {"write_through.py": (True, 2.0)}  # mtime changed
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
-    abs_path = str(tmp_path / "write_through.py")
-    assert not overlay.exists(abs_path)
-
-
-def test_propagate_mutations_symlink_replaced_snap_file_missing(tmp_path: Path) -> None:
-    """Symlink→real-file case where snap_file vanished is skipped silently."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    # snap/gone.py does NOT exist — snap_file.exists() will be False.
-
-    pre: dict[str, tuple[bool, float]] = {"gone.py": (True, 1.0)}  # symlink
-    post: dict[str, tuple[bool, float]] = {"gone.py": (False, 2.0)}  # real file
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
-    assert not overlay.exists(str(tmp_path / "gone.py"))
-
-
-def test_propagate_mutations_real_file_modified_snap_file_missing(tmp_path: Path) -> None:
-    """Real-file mtime change where snap_file vanished is skipped silently."""
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    # snap/gone2.py does NOT exist.
-
-    pre: dict[str, tuple[bool, float]] = {"gone2.py": (False, 1.0)}
-    post: dict[str, tuple[bool, float]] = {"gone2.py": (False, 2.0)}  # mtime changed
-
-    overlay = BranchOverlay(StateBackend())
-    _propagate_mutations(snap, tmp_path, pre, post, overlay)  # must not raise
-    assert not overlay.exists(str(tmp_path / "gone2.py"))
-
-
-def test_propagate_mutations_overlay_write_oserror_is_logged(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    """An `OSError` from `overlay.write` is logged, not silently swallowed."""
-    import logging
-
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-    snap_file = snap / "boom.py"
-    snap_file.write_text("payload")
-
-    pre: dict[str, tuple[bool, float]] = {}
-    post: dict[str, tuple[bool, float]] = {"boom.py": (False, 1.0)}
-
-    class _FailingOverlay(BranchOverlay):
-        def write(self, path: str, content: str | bytes) -> Any:
-            raise OSError("disk full")
-
-    overlay = _FailingOverlay(StateBackend())
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
-        _propagate_mutations(snap, tmp_path, pre, post, overlay)
-    assert any("failed to capture" in rec.message for rec in caplog.records)
-
-
-def test_propagate_mutations_overlay_delete_oserror_is_logged(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    """An `OSError` from `overlay.delete` is logged, not silently swallowed."""
-    import logging
-
-    from pydantic_deep.features.forking.isolation import _propagate_mutations
-
-    snap = tmp_path / "snap"
-    snap.mkdir()
-
-    pre: dict[str, tuple[bool, float]] = {"gone.py": (True, 1.0)}
-    post: dict[str, tuple[bool, float]] = {}
-
-    class _FailingOverlay(BranchOverlay):
-        def delete(self, path: str) -> None:
-            raise OSError("readonly fs")
-
-    overlay = _FailingOverlay(StateBackend())
-    with caplog.at_level(logging.WARNING, logger="pydantic_deep.features.forking.isolation"):
-        _propagate_mutations(snap, tmp_path, pre, post, overlay)
-    assert any("failed to record delete" in rec.message for rec in caplog.records)
-
-
-# ---------------------------------------------------------------------------
-# _run_in_snapshot — timeout, exception, and truncation paths
-# ---------------------------------------------------------------------------
-
-
-def test_run_in_snapshot_timeout_returns_exit_124(tmp_path: Path) -> None:
-    """A timed-out command returns exit_code=124 without raising."""
-    import subprocess
-    from unittest.mock import patch
-
-    from pydantic_ai_backends import LocalBackend
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    with patch(
-        "subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="sleep", timeout=1),
-    ):
-        result = overlay.execute("sleep 100", timeout=1)
-
-    assert result.exit_code == 124
-    assert "timed out" in result.output.lower()
-
-
-def test_run_in_snapshot_generic_exception_returns_exit_1(tmp_path: Path) -> None:
-    """An unexpected exception from subprocess.run returns exit_code=1."""
-    from unittest.mock import patch
-
-    from pydantic_ai_backends import LocalBackend
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    with patch("subprocess.run", side_effect=RuntimeError("bang")):
-        result = overlay.execute("bang")
-
-    assert result.exit_code == 1
-    assert "bang" in result.output
-
-
-def test_run_in_snapshot_output_truncated(tmp_path: Path) -> None:
-    """Output longer than _EXEC_MAX_CHARS is truncated and truncated=True."""
-    from pydantic_ai_backends import LocalBackend
-
-    from pydantic_deep.features.forking.isolation import _EXEC_MAX_CHARS
-
-    parent = LocalBackend(root_dir=tmp_path)
-    overlay = BranchOverlay(parent)
-
-    # Generate output exceeding the limit via python -c.
-    result = overlay.execute(f"python3 -c \"print('x' * {_EXEC_MAX_CHARS + 100})\"")
-
-    assert result.truncated is True
-    assert len(result.output) <= _EXEC_MAX_CHARS
-
-
-# ---------------------------------------------------------------------------
 # delete_file tool — error guards and success path
 # ---------------------------------------------------------------------------
 
 
 async def test_delete_file_tool_outside_branch_returns_error() -> None:
-    """delete_file returns an error message when backend is not a BranchOverlay."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    """delete_file returns an error message outside a branch's overlay."""
+    deps = DeepAgentDeps()
     toolset = create_fork_toolset()
     delete_fn = toolset.tools["delete_file"].function
     result = await delete_fn(_StubCtx(deps), "/any/path.py")
@@ -2793,27 +1412,26 @@ async def test_delete_file_tool_outside_branch_returns_error() -> None:
 
 async def test_delete_file_tool_nonexistent_path_returns_error() -> None:
     """delete_file returns an error when the path doesn't exist in the overlay."""
-    parent = StateBackend()
-    overlay = BranchOverlay(parent)
-    deps = DeepAgentDeps(backend=overlay)
+    from pydantic_ai.workspaces import Workspace
+
+    overlay = BranchOverlay(state_workspace())
     toolset = create_fork_toolset()
     delete_fn = toolset.tools["delete_file"].function
-    result = await delete_fn(_StubCtx(deps), "/missing.py")
+    result = await delete_fn(_StubCtx(DeepAgentDeps(), Workspace(overlay)), "/missing.py")
     assert "does not exist" in result
 
 
 async def test_delete_file_tool_success() -> None:
     """delete_file marks the path deleted in the overlay and returns confirmation."""
-    parent = StateBackend()
-    parent.write("/src/util.py", b"# util")
-    overlay = BranchOverlay(parent)
-    deps = DeepAgentDeps(backend=overlay)
+    from pydantic_ai.workspaces import Workspace
+
+    overlay = BranchOverlay(state_workspace({"/src/util.py": "# util"}))
     toolset = create_fork_toolset()
     delete_fn = toolset.tools["delete_file"].function
-    result = await delete_fn(_StubCtx(deps), "/src/util.py")
+    result = await delete_fn(_StubCtx(DeepAgentDeps(), Workspace(overlay)), "/src/util.py")
     assert result == "deleted: /src/util.py"
     assert "/src/util.py" in overlay.deleted()
-    assert not overlay.exists("/src/util.py")
+    assert not await overlay.exists("/src/util.py")
 
 
 # ---------------------------------------------------------------------------
@@ -2823,17 +1441,18 @@ async def test_delete_file_tool_success() -> None:
 
 def test_coordinator_handle_returns_none_before_fork():
     """`coord.handle` is `None` until `fork()` runs."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps)
     assert coord.handle is None
 
 
 async def test_coordinator_handle_returns_fork_handle_after_fork():
     """`coord.handle` returns the same :class:`ForkHandle` `fork()` returned."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     returned = await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     assert coord.handle is returned
@@ -2841,17 +1460,18 @@ async def test_coordinator_handle_returns_fork_handle_after_fork():
 
 def test_is_resolved_true_when_no_handle():
     """A coordinator that has not forked is resolved (no live state to discard)."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps)
     assert coord.is_resolved is True
 
 
 async def test_is_resolved_false_when_branches_have_overlays():
     """After `fork()` but before merge, `is_resolved` is False."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     await coord.fork(
         [BranchSpec(label="a", steer="A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     assert coord.is_resolved is False
@@ -2860,10 +1480,11 @@ async def test_is_resolved_false_when_branches_have_overlays():
 
 async def test_is_resolved_true_after_merge():
     """`merge_or_select` releases every overlay → `is_resolved` becomes True."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, checkpoint_store=InMemoryCheckpointStore())
     handle = await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -2916,7 +1537,7 @@ async def test_for_run_preserves_unresolved_coordinator():
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, d: DeepAgentDeps) -> None:
@@ -2953,7 +1574,7 @@ async def test_for_run_allocates_new_coordinator_when_previous_resolved():
     """When the previous coordinator is resolved, `for_run` allocates a fresh one."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, d: DeepAgentDeps) -> None:
@@ -2973,7 +1594,7 @@ async def test_for_run_allocates_when_no_existing_coordinator():
     """Happy path: no existing coordinator → a fresh one is allocated."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     assert deps.fork_coordinator is None
 
     class _Ctx:
@@ -2988,7 +1609,7 @@ async def test_after_run_is_passthrough():
     """`after_run` is a documented no-op anchor — returns `result` unchanged."""
     cap = LiveForkCapability()
     cap._agent_ref = _make_test_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, d: DeepAgentDeps) -> None:
@@ -3011,7 +1632,7 @@ async def test_b3a_stash_preserves_coordinator_identity_and_handle():
     cap = LiveForkCapability()
     agent = _make_test_agent()
     cap._agent_ref = agent
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, d: DeepAgentDeps) -> None:
@@ -3023,6 +1644,7 @@ async def test_b3a_stash_preserves_coordinator_identity_and_handle():
 
     handle = await coord.fork(
         [BranchSpec(label="a", steer="explore A")],
+        workspace=state_workspace(),
         parent_history=_seed_history("parent turn"),
     )
     assert handle is not None
@@ -3042,7 +1664,7 @@ async def test_b3b_non_fork_turn_preserves_stashed_coordinator():
     cap = LiveForkCapability()
     agent = _make_test_agent()
     cap._agent_ref = agent
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     class _Ctx:
         def __init__(self, d: DeepAgentDeps) -> None:
@@ -3054,6 +1676,7 @@ async def test_b3b_non_fork_turn_preserves_stashed_coordinator():
 
     await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("initial"),
     )
     assert not coord.is_resolved
@@ -3082,12 +1705,13 @@ async def test_b3b_non_fork_turn_preserves_stashed_coordinator():
 
 async def test_e2_run_on_branch_starts_new_turn():
     """E2.a — run_on_branch on a finished branch starts a new turn."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     parent_history = _seed_history("parent prompt")
     await coord.fork(
         [BranchSpec(label="a", steer="first turn")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3104,7 +1728,7 @@ async def test_e2_run_on_branch_starts_new_turn():
 
 async def test_e2_run_on_branch_rejects_running_branch():
     """E2.d — run_on_branch on a still-running branch raises RuntimeError."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
 
     barrier = asyncio.Event()
@@ -3118,6 +1742,7 @@ async def test_e2_run_on_branch_rejects_running_branch():
     coord = _make_coordinator(agent, deps)
     await coord.fork(
         [BranchSpec(label="a", steer="go")],
+        workspace=state_workspace(),
         parent_history=_seed_history("parent"),
     )
     branch_id = list(coord.branches.keys())[0]
@@ -3131,11 +1756,12 @@ async def test_e2_run_on_branch_rejects_running_branch():
 
 async def test_e2_run_on_branch_rejects_failed_branch():
     """run_on_branch on a failed (but task-done) branch raises RuntimeError."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     await coord.fork(
         [BranchSpec(label="a", steer="go")],
+        workspace=state_workspace(),
         parent_history=_seed_history("parent"),
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3150,11 +1776,12 @@ async def test_e2_run_on_branch_rejects_failed_branch():
 
 async def test_e2_run_on_branch_unknown_id_raises():
     """run_on_branch with unknown branch_id raises ValueError."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     await coord.fork(
         [BranchSpec(label="a", steer="go")],
+        workspace=state_workspace(),
         parent_history=_seed_history("parent"),
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3175,12 +1802,13 @@ def _count_user_prompts(messages: list[Any], text: str) -> int:
 
 async def test_e2_merge_includes_continued_turn_history():
     """E2.b — merging a branch that ran extra turns includes the continued history."""
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     parent_history = _seed_history("parent seed")
     await coord.fork(
         [BranchSpec(label="a", steer="first"), BranchSpec(label="b", steer="other")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3199,12 +1827,13 @@ async def test_run_on_branch_does_not_duplicate_history_across_turns():
     Regression: seeding the next turn from all_messages() + a separately
     accumulated tail duplicated the previous turn after the second continued turn.
     """
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     agent = _make_test_agent()
     coord = _make_coordinator(agent, deps)
     parent_history = _seed_history("parent seed")
     await coord.fork(
         [BranchSpec(label="a", steer="first")],
+        workspace=state_workspace(),
         parent_history=parent_history,
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3234,7 +1863,7 @@ async def test_merge_tool_action_auto_resolve_exception_returns_error_string():
     """action='auto' where coordinator.resolve() raises → clean error string, no crash."""
     from unittest.mock import AsyncMock, patch
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -3262,7 +1891,7 @@ async def test_merge_tool_action_auto_committed_without_verdict():
     from pydantic_deep import MergeResult
     from pydantic_deep.features.forking.types import ResolveOutcome
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -3307,7 +1936,7 @@ async def test_merge_tool_action_auto_not_committed_with_verdict_picks_winner():
     from pydantic_deep import JudgeVerdict
     from pydantic_deep.features.forking.types import ResolveOutcome
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     _build_capability_with_coordinator(deps)
     toolset = create_fork_toolset()
     fork_fn = toolset.tools["fork_run"].function
@@ -3349,7 +1978,7 @@ async def test_await_winner_auto_denies_parked_approval():
     """Non-interactive (auto/vote) commit denies a parked approval instead of hanging."""
     from types import SimpleNamespace
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps)
     approval = PendingApprovalRequest(branch_id="w", description="execute: rm -rf /")
     winner = SimpleNamespace(task=None, pending_approval=approval)
@@ -3372,7 +2001,7 @@ async def test_await_winner_manual_plain_await():
     """Manual mode awaits the task directly (a human answers approvals via the TUI)."""
     from types import SimpleNamespace
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps)
 
     async def _quick() -> str:
@@ -3388,10 +2017,11 @@ async def test_await_winner_manual_plain_await():
 
 
 async def test_aclose_is_idempotent(tmp_path: Path) -> None:
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     coord = _make_coordinator(_make_test_agent(), deps, materializer_root=tmp_path)
     await coord.fork(
         [BranchSpec(label="a", steer="A"), BranchSpec(label="b", steer="B")],
+        workspace=state_workspace(),
         parent_history=_seed_history("p"),
     )
     await asyncio.gather(*(rt.task for rt in coord.branches.values()))
@@ -3411,7 +2041,7 @@ async def test_cancel_branch_task_warns_when_loser_ignores_cancel(
     from pydantic_deep.features.forking import coordinator as _coord_mod
 
     monkeypatch.setattr(_coord_mod, "_CANCEL_CLEANUP_TIMEOUT_S", 0.01)
-    coord = _make_coordinator(_make_test_agent(), DeepAgentDeps(backend=StateBackend()))
+    coord = _make_coordinator(_make_test_agent(), DeepAgentDeps())
     started = asyncio.Event()
 
     async def _stubborn() -> None:

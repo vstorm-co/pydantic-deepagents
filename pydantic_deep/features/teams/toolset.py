@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.function import FunctionToolset
-from pydantic_ai_backends import StateBackend
 from subagents_pydantic_ai import SubAgentConfig, SubAgentToolset
 from subagents_pydantic_ai.toolset import _compile_subagent
 
@@ -134,11 +133,9 @@ def create_team_toolset(  # noqa: C901
             for m in members
         ]
 
-        backend = getattr(ctx.deps, "backend", None) or StateBackend()
         team = AgentTeam(
             name=team_name,
             members=team_members,
-            shared_backend=backend,
             task_manager=task_manager,
         )
         _team[0] = team

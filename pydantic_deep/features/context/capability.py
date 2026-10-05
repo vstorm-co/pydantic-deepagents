@@ -25,7 +25,7 @@ class ContextFilesCapability(AbstractCapability[DeepAgentDeps]):
         from pydantic_deep.features.context import ContextFilesCapability
 
         agent = Agent("anthropic:claude-sonnet-4-6", capabilities=[ContextFilesCapability(
-            context_files=["/workspace/AGENTS.md"],
+            context_files=["AGENTS.md"],
         )])
         ```
     """
@@ -49,9 +49,9 @@ class ContextFilesCapability(AbstractCapability[DeepAgentDeps]):
         toolset = self._toolset
 
         async def _instructions(ctx: RunContext[DeepAgentDeps]) -> str | None:
-            if toolset is None or not hasattr(ctx.deps, "backend"):
+            if toolset is None:
                 return None
-            parts = await toolset.get_instructions(ctx)  # pragma: no cover
-            return "\n\n".join(p.content for p in parts) if parts else None  # pragma: no cover
+            parts = await toolset.get_instructions(ctx)
+            return "\n\n".join(p.content for p in parts) if parts else None
 
         return _instructions

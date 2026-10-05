@@ -40,8 +40,8 @@ class LiveForkCapability(AbstractCapability[DeepAgentDeps]):
             the `test_pass_ratio` confidence signal. `None` leaves the
             ratio at `None` for every branch - :func:`compute_confidence`
             then keeps its cap-at-0.65 safety rail active, identical to
-            "no test signal". Only honoured when the parent backend is a
-            :class:`~pydantic_ai_backends.LocalBackend`.
+            "no test signal". Only honoured when the parent workspace is a
+            local directory (a `LocalWorkspaceBackend`).
         test_timeout_s: Wall-clock cap (seconds) per branch test run. On
             timeout the branch's `test_pass_ratio` is `None` (treated
             as "no signal"), not `0.0`. Independent of

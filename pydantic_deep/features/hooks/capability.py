@@ -1,8 +1,8 @@
 """Claude Code-style hooks system for pydantic-deep.
 
 Hooks allow executing shell commands or Python handlers on tool lifecycle events
-(PreToolUse, PostToolUse, PostToolUseFailure). Command hooks run via the backend's
-SandboxProtocol.execute() and use exit codes for decisions (0=allow, 2=deny).
+(PreToolUse, PostToolUse, PostToolUseFailure). Command hooks run in the run's
+workspace, `ctx.workspace`, and use exit codes for decisions (0=allow, 2=deny).
 
 Example:
     ```python
@@ -37,12 +37,12 @@ from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import ToolDefinition
-from pydantic_ai_backends import AsyncSandboxProtocol, SandboxProtocol
+from pydantic_ai.workspaces import SupportsCommands
 
 from pydantic_deep.deps import DeepAgentDeps
 
 if TYPE_CHECKING:
-    from pydantic_ai_backends import ExecuteResponse
+    from pydantic_ai.workspaces import CommandResult, Workspace
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class Hook:
     """A hook definition that fires on tool lifecycle events.
 
     Either `command` or `handler` must be provided (not both).
-    Command hooks run shell commands via SandboxProtocol.execute().
+    Command hooks run shell commands in the run's workspace.
     Handler hooks call async Python functions.
 
     Args:
@@ -167,18 +167,18 @@ def _build_hook_input(
     )
 
 
-def _parse_command_result(response: ExecuteResponse) -> HookResult:
-    """Parse ExecuteResponse into HookResult using Claude Code exit code conventions."""
+def _parse_command_result(response: CommandResult) -> HookResult:
+    """Parse a command's result into HookResult using Claude Code exit code conventions."""
     # Exit code 2 = deny (Claude Code convention)
     if response.exit_code == EXIT_DENY:
-        reason = response.output.strip() if response.output.strip() else "Denied by hook"
-        return HookResult(allow=False, reason=reason)
+        output = (response.stdout + response.stderr).strip()
+        return HookResult(allow=False, reason=output or "Denied by hook")
 
     # Exit code 0 = allow, try to parse stdout as JSON for modifications
     result = HookResult(allow=True)
-    if response.output.strip():
+    if response.stdout.strip():
         try:
-            data = json.loads(response.output)
+            data = json.loads(response.stdout)
             if isinstance(data, dict):
                 if "modified_args" in data:
                     result.modified_args = data["modified_args"]
@@ -196,14 +196,18 @@ def _parse_command_result(response: ExecuteResponse) -> HookResult:
 async def _execute_command_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: AsyncSandboxProtocol,
+    workspace: Workspace,
 ) -> HookResult:
-    """Execute a command hook via AsyncSandboxProtocol.execute()."""
+    """Execute a command hook in the workspace.
+
+    A hook that outlives its timeout raises `WorkspaceTimeoutError` rather than
+    allowing the call: a hook that could not decide has not allowed anything.
+    """
     json_str = json.dumps(asdict(hook_input))
     # Escape single quotes for shell safety
     escaped = json_str.replace("'", "'\\''")
     full_command = f"printf '%s' '{escaped}' | {hook.command}"
-    response: ExecuteResponse = await backend.execute(full_command, hook.timeout)
+    response = await workspace.run(full_command, shell=True, timeout=hook.timeout)
     return _parse_command_result(response)
 
 
@@ -219,53 +223,42 @@ async def _execute_handler_hook(
 async def _run_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: AsyncSandboxProtocol | None,
+    workspace: Workspace | None,
 ) -> HookResult:
     """Run a single hook (command or handler)."""
-    from pydantic_deep.deps import unwrap_backend
-
     if hook.command is not None:
-        if backend is None or not isinstance(unwrap_backend(backend), SandboxProtocol):
+        if (
+            workspace is None
+            or not workspace.attached
+            or not isinstance(workspace.backend, SupportsCommands)
+        ):
             msg = (
-                "Command hooks require a AsyncSandboxProtocol backend "
-                "(LocalBackend or DockerSandbox). "
-                "Current backend does not support execute()."
+                "Command hooks need a workspace that runs commands "
+                "(LocalWorkspace, DockerWorkspace, SandboxdWorkspace, ...). "
+                "This run's workspace does not."
             )
             raise RuntimeError(msg)
-        return await _execute_command_hook(hook, hook_input, backend)
+        return await _execute_command_hook(hook, hook_input, workspace)
     return await _execute_handler_hook(hook, hook_input)
 
 
 async def _run_background_hook(
     hook: Hook,
     hook_input: HookInput,
-    backend: AsyncSandboxProtocol | None,
+    workspace: Workspace | None,
 ) -> None:
     """Run a background hook, logging errors without propagating."""
     try:
-        await _run_hook(hook, hook_input, backend)
+        await _run_hook(hook, hook_input, workspace)
     except Exception:
         logger.exception("Background hook failed: %s", hook.command or hook.handler)
-
-
-def _get_sandbox_backend(deps: DeepAgentDeps | None) -> AsyncSandboxProtocol | None:
-    """Extract sandbox-capable backend from deps, if available."""
-    if deps is None:
-        return None
-    from pydantic_deep.deps import unwrap_backend
-
-    backend = deps.backend
-    raw = unwrap_backend(backend)
-    if isinstance(raw, SandboxProtocol):
-        return backend  # type: ignore[return-value,unused-ignore]
-    return None
 
 
 @dataclass
 class HooksCapability(AbstractCapability[DeepAgentDeps]):
     """Capability that executes hooks on tool lifecycle events.
 
-    Maps tool events to shell commands (via execute()) or Python handlers,
+    Maps tool events to shell commands (run in the workspace) or Python handlers,
     following Claude Code's hook conventions:
     - PRE_TOOL_USE: before tool execution, can deny
     - POST_TOOL_USE: after successful tool execution
@@ -279,7 +272,7 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         self,
         hook: Hook,
         hook_input: HookInput,
-        backend: AsyncSandboxProtocol | None,
+        workspace: Workspace | None,
     ) -> None:
         """Launch a background hook, retaining a strong reference to its task.
 
@@ -288,7 +281,7 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         We keep each task in `_background_tasks` until it finishes to prevent
         that, discarding it via a done callback.
         """
-        task = asyncio.create_task(_run_background_hook(hook, hook_input, backend))
+        task = asyncio.create_task(_run_background_hook(hook, hook_input, workspace))
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
 
@@ -305,17 +298,16 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         if not matched:
             return args
 
-        deps = ctx.deps
-        backend = _get_sandbox_backend(deps)
+        workspace = ctx.workspace
         hook_input = _build_hook_input(HookEvent.PRE_TOOL_USE, call.tool_name, args)
         current_args = dict(args)
 
         for hook in matched:
             if hook.background:
-                self._spawn_background(hook, hook_input, backend)
+                self._spawn_background(hook, hook_input, workspace)
                 continue
 
-            result = await _run_hook(hook, hook_input, backend)
+            result = await _run_hook(hook, hook_input, workspace)
 
             if not result.allow:
                 raise ModelRetry(result.reason or "Denied by hook")
@@ -340,8 +332,7 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         if not matched:
             return result
 
-        deps = ctx.deps
-        backend = _get_sandbox_backend(deps)
+        workspace = ctx.workspace
         hook_input = _build_hook_input(
             HookEvent.POST_TOOL_USE, call.tool_name, args, tool_result=result
         )
@@ -349,10 +340,10 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
 
         for hook in matched:
             if hook.background:
-                self._spawn_background(hook, hook_input, backend)
+                self._spawn_background(hook, hook_input, workspace)
                 continue
 
-            hook_result = await _run_hook(hook, hook_input, backend)
+            hook_result = await _run_hook(hook, hook_input, workspace)
 
             if hook_result.modified_result is not None:
                 # Hooks only ever see the stringified result (see _build_hook_input),
@@ -390,8 +381,7 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         if not matched:
             raise error
 
-        deps = ctx.deps
-        backend = _get_sandbox_backend(deps)
+        workspace = ctx.workspace
         hook_input = _build_hook_input(
             HookEvent.POST_TOOL_USE_FAILURE,
             call.tool_name,
@@ -401,10 +391,10 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
 
         for hook in matched:
             if hook.background:
-                self._spawn_background(hook, hook_input, backend)
+                self._spawn_background(hook, hook_input, workspace)
                 continue
 
-            await _run_hook(hook, hook_input, backend)
+            await _run_hook(hook, hook_input, workspace)
 
         raise error
 
@@ -420,13 +410,13 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         matched = [h for h in self.hooks if h.event == event]
         if not matched:
             return
-        backend = _get_sandbox_backend(ctx.deps)
+        workspace = ctx.workspace
         hook_input = _build_hook_input(event, "", {}, tool_result=result, tool_error=error)
         for hook in matched:
             if hook.background:
-                self._spawn_background(hook, hook_input, backend)
+                self._spawn_background(hook, hook_input, workspace)
             else:
-                await _run_hook(hook, hook_input, backend)
+                await _run_hook(hook, hook_input, workspace)
 
     async def before_run(self, ctx: RunContext[DeepAgentDeps]) -> None:
         """Run BEFORE_RUN hooks at the start of agent.run()."""
@@ -461,17 +451,17 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         primary: str,
         fallback: str,
         error: Exception,
-        backend: Any,
+        workspace: Workspace | None,
     ) -> None:
         """Dispatch MODEL_FALLBACK_TRIGGERED hooks outside the normal capability lifecycle.
 
         Called by the fallback_on handler in create_deep_agent when FallbackModel
-        switches from the primary to a fallback model.
+        switches from the primary to a fallback model, with the workspace of the
+        run whose request failed.
         """
         matched = [h for h in self.hooks if h.event == HookEvent.MODEL_FALLBACK_TRIGGERED]
         if not matched:
             return
-        sandbox = backend if isinstance(backend, AsyncSandboxProtocol) else None
         hook_input = _build_hook_input(
             HookEvent.MODEL_FALLBACK_TRIGGERED,
             "",
@@ -480,9 +470,9 @@ class HooksCapability(AbstractCapability[DeepAgentDeps]):
         )
         for hook in matched:
             if hook.background:
-                self._spawn_background(hook, hook_input, sandbox)
+                self._spawn_background(hook, hook_input, workspace)
             else:
-                await _run_hook(hook, hook_input, sandbox)
+                await _run_hook(hook, hook_input, workspace)
 
 
 # Default destructive-command patterns matched against the `command` arg of
@@ -561,7 +551,7 @@ def _normalize_path(raw: str) -> str:
 
     Does NOT expand `~` - callers must validate that paths are absolute before
     calling this, because `~` expands against the *controller* HOME which may
-    differ from the agent backend's filesystem namespace.
+    differ from the workspace's filesystem namespace.
     """
     return str(Path(raw).resolve(strict=False))
 
@@ -625,13 +615,13 @@ def _check_write(
         if pattern.search(path):
             return f"Blocked write to sensitive path: {path}"
     if allowed_write_roots:
-        # Reject paths we cannot safely compare against backend-absolute roots.
+        # Reject paths we cannot safely compare against workspace-absolute roots.
         # `~` expands against the controller's HOME which may differ from the
-        # agent backend's filesystem namespace (e.g. DockerSandbox).
+        # workspace's filesystem namespace (e.g. DockerWorkspace).
         if path.startswith("~") or not Path(path).is_absolute():
             return (
                 f"Blocked write: cannot verify relative/home-relative path against "
-                f"allowed roots (use an absolute backend path): {path}"
+                f"allowed roots (use an absolute workspace path): {path}"
             )
         if _path_escapes_roots(path, allowed_write_roots):
             return f"Blocked write outside allowed roots: {path}"
@@ -693,8 +683,8 @@ def default_security_hook(
         allowed_write_roots: If set, `write_file`/`edit_file` paths must
             resolve under one of these roots. Paths must be absolute (no `~`
             or relative segments) - `~` expands against the *controller*
-            HOME, which may differ from the agent backend's filesystem
-            namespace (e.g. DockerSandbox). Path-traversal (`..`) segments
+            HOME, which may differ from the workspace's filesystem
+            namespace (e.g. DockerWorkspace). Path-traversal (`..`) segments
             are blocked unconditionally regardless of this setting.
         blocked_write_paths: Regex patterns matched against the `path` arg of
             `write_file`/`edit_file`. Defaults to `DEFAULT_BLOCKED_WRITE_PATHS`.

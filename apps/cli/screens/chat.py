@@ -30,6 +30,7 @@ from pydantic_ai.messages import (
     TextPartDelta,
     ThinkingPartDelta,
 )
+from pydantic_ai.workspaces import WorkspaceError
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -67,7 +68,6 @@ from apps.cli.widgets.input_area import InputArea
 from apps.cli.widgets.message_list import MessageList
 from apps.cli.widgets.notification import notify_error, notify_success, notify_warning
 from apps.cli.widgets.queued_panel import QueuedWidget
-from apps.cli.widgets.shells_panel import ShellsWidget
 from apps.cli.widgets.status_bar import StatusBar
 from apps.cli.widgets.subagents_panel import SubagentsWidget
 from apps.cli.widgets.todos_panel import TodosWidget
@@ -298,7 +298,6 @@ class ChatScreen(Screen):
         with Vertical(id="bottom-bar"):
             with Vertical(id="activity-dock"):
                 yield SubagentsWidget()
-                yield ShellsWidget()
                 yield ForkBadgeWidget()
                 yield TodosWidget()
                 yield QueuedWidget()
@@ -329,7 +328,6 @@ class ChatScreen(Screen):
             dock = self.query_one("#activity-dock")
             panels = (
                 self.query_one(SubagentsWidget),
-                self.query_one(ShellsWidget),
                 self.query_one(ForkBadgeWidget),
                 self.query_one(TodosWidget),
                 self.query_one(QueuedWidget),
@@ -851,14 +849,6 @@ class ChatScreen(Screen):
                 "dissolve_team",
             }
         )
-        _SHELL_TOOLS = frozenset(
-            {
-                "run_in_background",
-                "read_output",
-                "kill_shell",
-                "list_shells",
-            }
-        )
         _subagent_tasks: dict[str, dict[str, Any]] = {}  # task_id -> info
         _turn_started = _time.monotonic()
         _turn_counts: dict[str, int] = {}
@@ -942,7 +932,7 @@ class ChatScreen(Screen):
                                     # real -/+ diff. FunctionToolCallEvent fires in the
                                     # validation pass before the tool executes, so this
                                     # read is race-free.
-                                    self._capture_old_content(tool_name, args)
+                                    await self._capture_old_content(tool_name, args)
                                     if tool_name not in _TODO_TOOLS:
                                         assistant.add_tool_call(tool_name, args, call_id)
                                         msg_list.scroll_end(animate=False)
@@ -1036,9 +1026,6 @@ class ChatScreen(Screen):
                                             "error" if is_error else "completed"
                                         )
                                         self._update_subagents_panel(_subagent_tasks)
-
-                                    if tool_name in _SHELL_TOOLS:
-                                        self._refresh_shells_panel()
 
                                     if tool_name == "fork_run":
                                         from apps.cli.forking import reconcile_active_fork
@@ -1178,7 +1165,7 @@ class ChatScreen(Screen):
                                             tool_name = event.part.tool_name
                                             t_args = dict(_parse_args(event.part.args))
                                             call_id = getattr(event.part, "tool_call_id", tool_name)
-                                            self._capture_old_content(tool_name, t_args)
+                                            await self._capture_old_content(tool_name, t_args)
                                             if tool_name not in _TODO_TOOLS:
                                                 assistant_cont.add_tool_call(
                                                     tool_name, t_args, call_id
@@ -1448,35 +1435,28 @@ class ChatScreen(Screen):
                 timeout=8,
             )
 
-    def _capture_old_content(self, tool_name: str, args: dict[str, Any]) -> None:
+    async def _capture_old_content(self, tool_name: str, args: dict[str, Any]) -> None:
         """Stash a file's pre-write content under ``args["_old_content"]``.
 
         Lets the write_file tool-call widget render a real ``-``/``+`` diff for
-        overwrites. Best-effort: silently skipped if the backend can't read, the
-        file is too large, or the read returns a sandbox error sentinel.
+        overwrites. Best-effort: skipped when there is no file to read in the
+        session's workspace or it is too large to diff.
         """
         if tool_name != "write_file":
             return
         path = args.get("file_path") or args.get("path")
         if not path:
             return
-        deps = self.app.deps
-        backend = getattr(deps, "backend", None)
-        if backend is None:
+        workspace = getattr(self.app.agent, "_cli_workspace", None)
+        if workspace is None:
             return
         try:
-            if not backend.exists(path):
-                return
-            data = backend.read_bytes(path)
-            if len(data) > self._MAX_DIFF_READ_BYTES:
-                return  # too big to diff meaningfully; skip
-            # Some sandbox backends return an "[Error: ...]" sentinel instead of
-            # raising; don't treat that as real file content.
-            if data.startswith(b"[Error:"):
-                return
-            args["_old_content"] = data.decode("utf-8", "replace")
-        except Exception:
-            pass
+            data = await workspace.read_bytes(path)
+        except (OSError, WorkspaceError):
+            return  # a new file, or one the workspace cannot read: no diff to show
+        if len(data) > self._MAX_DIFF_READ_BYTES:
+            return  # too big to diff meaningfully; skip
+        args["_old_content"] = data.decode("utf-8", "replace")
 
     # Image extensions that `@file` references attach as multimodal content.
     _IMAGE_EXTS: dict[str, str] = {
@@ -1664,24 +1644,6 @@ class ChatScreen(Screen):
             self._sync_activity_dock()
         except Exception:
             pass  # Panel may not be mounted yet
-
-    def _refresh_shells_panel(self) -> None:
-        """Pull the live background-shell registry from the backend and push it
-        into the pinned ShellsWidget. Safe to call from any shell tool result —
-        a backend without background support just yields an empty list."""
-        try:
-            shells_widget = self.query_one(ShellsWidget)
-        except Exception:
-            return  # Panel may not be mounted yet
-        deps = getattr(self.app, "deps", None)
-        backend = getattr(deps, "backend", None)
-        lister = getattr(backend, "list_background", None)
-        shells: list[Any] = []
-        if callable(lister):
-            with contextlib.suppress(Exception):
-                shells = list(lister())
-        shells_widget.shells = shells
-        self._sync_activity_dock()
 
     # Actions
 

@@ -21,7 +21,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelRequest as _ModelRequest
 from pydantic_ai.toolsets import FunctionToolset
 
-from pydantic_deep.deps import DeepAgentDeps, unwrap_backend
+from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.forking.coordinator import (
     BranchRuntime,
     ForkBranchLimitError,
@@ -30,7 +30,12 @@ from pydantic_deep.features.forking.coordinator import (
 )
 from pydantic_deep.features.forking.diff import build_diff_report
 from pydantic_deep.features.forking.editor import EditorDetector, EditorKind
-from pydantic_deep.features.forking.isolation import BranchOverlay, clone_for_branch
+from pydantic_deep.features.forking.isolation import (
+    BranchOverlay,
+    LocalBranchOverlay,
+    branch_workspace,
+    clone_for_branch,
+)
 from pydantic_deep.features.forking.judge import (
     JUDGE_SYSTEM_PROMPT,
     JudgeAgent,
@@ -148,6 +153,7 @@ def create_fork_toolset(  # noqa: C901
             handle = await coordinator.fork(
                 _coerce_specs(specs),
                 parent_history=parent_history,
+                workspace=ctx.workspace,
                 isolation=_coerce_isolation(isolation),
                 strategy=_coerce_strategy(strategy),
                 aggregate_budget_usd=aggregate_budget_usd,
@@ -211,7 +217,7 @@ def create_fork_toolset(  # noqa: C901
 
         `action` syntax:
             `"pick:<branch_id>"` - flush this branch's overlay writes
-            to the parent backend, cancel and discard the other branches,
+            to the parent workspace, cancel and discard the other branches,
             and replay the winner's full message history into the parent
             run.
             `"auto"` - let the judge evaluate all branches and pick the
@@ -322,27 +328,26 @@ def create_fork_toolset(  # noqa: C901
         """Delete a file inside the current branch.
 
         Records the deletion in the branch overlay so it is propagated to
-        the parent backend on merge. Equivalent to `execute('rm <path>')`
-        against a :class:`~pydantic_ai_backends.LocalBackend` parent - the
-        snapshot mutation tracker mirrors shell deletions back into the
-        overlay - but preferred because it works against any backend
-        (`StateBackend` has no shell) and makes the intent explicit.
+        the parent workspace on merge. Equivalent to `execute('rm <path>')`
+        against a local parent - the snapshot mutation tracker mirrors shell
+        deletions back into the overlay - but preferred because it works in
+        any workspace, one without a shell included, and makes the intent
+        explicit.
 
         Args:
-            path: File path to delete (relative to backend root).
+            path: File path to delete (relative to the working directory).
 
         Returns:
             Confirmation string `"deleted: <path>"`, or an error string
             when the path is absent or the tool is invoked outside a
             branch.
         """
-        backend = ctx.deps.backend
-        raw = unwrap_backend(backend)
-        if not isinstance(raw, BranchOverlay):
+        if not isinstance(ctx.workspace.backend, BranchOverlay):
             return "delete_file is only available inside a fork branch."
-        if not raw.exists(path):
+        try:
+            await ctx.workspace.remove(path)
+        except FileNotFoundError:
             return f"error: '{path}' does not exist in this branch"
-        raw.delete(path)
         return f"deleted: {path}"
 
     @toolset.tool
@@ -445,6 +450,7 @@ __all__ = [
     "BranchOutcome",
     "BranchOverlay",
     "BranchRuntime",
+    "LocalBranchOverlay",
     "ConfidenceSignals",
     "EditorDetector",
     "EditorKind",
@@ -462,6 +468,7 @@ __all__ = [
     "JudgeVerdict",
     "NOT_ENABLED_MESSAGE",
     "ResolveOutcome",
+    "branch_workspace",
     "build_diff_report",
     "clone_for_branch",
     "compute_confidence",

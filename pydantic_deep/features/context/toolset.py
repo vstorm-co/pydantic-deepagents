@@ -1,7 +1,7 @@
 """Project context file injection toolset.
 
 Discovers and loads project context files (AGENTS.md, SOUL.md, …) from the
-backend and injects them into the agent's system prompt via
+run's workspace and injects them into the agent's system prompt via
 `FunctionToolset.get_instructions()`. Has no model-callable tools.
 Works with both main agents and subagents (with configurable filtering).
 """
@@ -13,7 +13,6 @@ from typing import Any
 from pydantic_ai import RunContext
 from pydantic_ai.messages import InstructionPart
 from pydantic_ai.toolsets import FunctionToolset
-from pydantic_ai_backends import AsyncBackendProtocol
 
 from pydantic_deep.features.context.service import (
     DEFAULT_MAX_CONTEXT_CHARS,
@@ -27,7 +26,7 @@ class ContextToolset(FunctionToolset[Any]):
     """Toolset that injects project context files into agent system prompt.
 
     Has no tools - only provides instructions via get_instructions().
-    Uses runtime backend (ctx.deps.backend) to load files.
+    Loads files from the run's workspace (`ctx.workspace`).
 
     Works with both main agents and subagents.
     """
@@ -58,19 +57,18 @@ class ContextToolset(FunctionToolset[Any]):
         """Load and format context files for system prompt injection.
 
         Args:
-            ctx: The run context with access to backend via deps.
+            ctx: The run context, whose workspace the files are read from.
 
         Returns:
             Formatted context prompt, or None if no files found.
         """
-        backend: AsyncBackendProtocol | None = getattr(ctx.deps, "backend", None)
-        if backend is None:
+        if not ctx.workspace.attached:
             return None
 
         if self._context_discovery:
-            loaded = await _discover_and_load(backend)
+            loaded = await _discover_and_load(ctx.workspace)
         elif self._context_files:
-            loaded = await load_context_files(backend, self._context_files)
+            loaded = await load_context_files(ctx.workspace, self._context_files)
         else:
             return None
 

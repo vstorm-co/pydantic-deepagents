@@ -5,7 +5,6 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from pydantic_ai_backends import StateBackend
 from pydantic_ai_todo import Todo
 
 from pydantic_deep.deps import DeepAgentDeps
@@ -27,7 +26,7 @@ TEST_MODEL = TestModel()
 
 def _ctx(deps: DeepAgentDeps | None = None) -> RunContext[DeepAgentDeps]:
     return RunContext(
-        deps=deps or DeepAgentDeps(backend=StateBackend()),
+        deps=deps or DeepAgentDeps(),
         model=TEST_MODEL,
         usage=RunUsage(),
     )

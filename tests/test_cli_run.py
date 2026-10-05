@@ -121,11 +121,27 @@ class TestExecuteHeadless:
         # pydantic-ai 2.0: `result.usage` is a property, not a method.
         mock_result.usage = mock_usage
         agent.run = AsyncMock(return_value=mock_result)
+        agent._cli_workspace_cleanup = AsyncMock()
         return agent
 
     @pytest.fixture()
     def mock_deps(self) -> MagicMock:
         return MagicMock()
+
+    async def test_the_session_workspace_is_cleaned_up(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            await execute_headless(task="Fix the bug", working_dir="/tmp")
+
+        mock_agent._cli_workspace_cleanup.assert_awaited_once_with()
+
+    async def test_a_kept_workspace_needs_no_cleanup(
+        self, mock_agent: MagicMock, mock_deps: MagicMock
+    ) -> None:
+        mock_agent._cli_workspace_cleanup = None
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            assert await execute_headless(task="Fix the bug", working_dir="/tmp") == 0
 
     async def test_basic_run(
         self, mock_agent: MagicMock, mock_deps: MagicMock, capsys: pytest.CaptureFixture[str]

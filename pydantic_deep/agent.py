@@ -8,12 +8,14 @@ import warnings
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic_ai import Agent, UsageLimits
 from pydantic_ai._agent_graph import HistoryProcessor
+from pydantic_ai._run_context import get_current_run_context
 from pydantic_ai.capabilities import (
     AbstractCapability,
+    LocalWorkspace,
     ProcessHistory,
     Thinking,
     WebFetch,
@@ -25,13 +27,7 @@ from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.output import OutputSpec
 from pydantic_ai.tools import DeferredToolRequests, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
-from pydantic_ai_backends import (
-    BackendProtocol,
-    SandboxProtocol,
-    StateBackend,
-    create_console_toolset,
-    ensure_async,
-)
+from pydantic_ai_backends import StateWorkspace, create_console_toolset
 from pydantic_ai_shields import CostTracking
 from pydantic_ai_summarization import ContextManagerCapability, LimitWarnerCapability
 from pydantic_ai_todo import create_todo_toolset
@@ -46,7 +42,7 @@ from subagents_pydantic_ai import (
 # registers overloads on 3.11+. The DeepAgentSpec drift-guard test relies on it.
 from typing_extensions import overload
 
-from pydantic_deep.deps import DeepAgentDeps
+from pydantic_deep.deps import DEFAULT_UPLOAD_DIR, DeepAgentDeps
 from pydantic_deep.features.checkpointing import (
     CheckpointMiddleware,
     CheckpointStore,
@@ -76,12 +72,13 @@ from pydantic_deep.features.periodic_reminder import (
     PeriodicReminderConfig,
 )
 from pydantic_deep.features.plan import (
+    DEFAULT_PLANS_DIR,
     PLANNER_DESCRIPTION,
     PLANNER_INSTRUCTIONS,
     create_plan_toolset,
 )
 from pydantic_deep.features.skills import Skill, SkillsToolset
-from pydantic_deep.features.skills.backend import BackendSkillsDirectory
+from pydantic_deep.features.skills.workspace import WorkspaceSkillsDirectory
 from pydantic_deep.features.stuck_loop import StuckLoopDetection
 from pydantic_deep.features.teams import create_team_toolset
 from pydantic_deep.features.tool_search import ToolSearch, defer_situational_toolsets
@@ -157,7 +154,6 @@ def _wrap_with_fallback_and_hooks(
     primary: str | Model,
     fallbacks: list[str | Model],
     fallback_hooks: list[Any],
-    backend: BackendProtocol,
 ) -> FallbackModel:
     """Build a FallbackModel with auth-error filtering and optional hook dispatch.
 
@@ -170,7 +166,6 @@ def _wrap_with_fallback_and_hooks(
     """
 
     hooks_cap = HooksCapability(hooks=fallback_hooks)
-    async_backend = ensure_async(backend)
     # Build a flat list of model names for accurate from/to reporting.
     model_chain: list[str] = [primary if isinstance(primary, str) else str(primary)] + [
         f if isinstance(f, str) else str(f) for f in fallbacks
@@ -193,8 +188,15 @@ def _wrap_with_fallback_and_hooks(
         _fallback_hop_cv.set(hop + 1)
         # Only fire the hook when there is actually a next model to fall back to.
         if hop < len(fallbacks):
+            # The model request runs inside the run's context, so command hooks
+            # run in the workspace of the run whose request failed. Read through
+            # pydantic-ai's private accessor: `fallback_on` is given no context.
+            run_ctx = get_current_run_context()
             await hooks_cap.dispatch_model_fallback(
-                model_chain[hop], model_chain[hop + 1], exc, async_backend
+                model_chain[hop],
+                model_chain[hop + 1],
+                exc,
+                run_ctx.workspace if run_ctx is not None else None,
             )
         return True
 
@@ -243,6 +245,30 @@ class _DepsTodoProxy:
         deps = self._deps_var.get()
         if deps is not None:
             deps.todos = list(value)
+
+
+class _PendingUploads(AbstractCapability[DeepAgentDeps]):
+    """Write the files `deps.upload_file` queued into the run's workspace when a run starts.
+
+    A file is uploaded before a run has a workspace to hold it, so the bytes
+    wait in deps until here. A run with no workspace attached cannot receive
+    them, and raises rather than telling the agent about files that are not
+    there.
+    """
+
+    async def before_run(self, ctx: RunContext[DeepAgentDeps]) -> None:
+        await ctx.deps.write_pending_uploads(ctx.workspace)
+
+
+def _local_working_dir(workspace: AbstractCapability[Any] | Literal[False]) -> Path | None:
+    """This machine's directory the workspace works in, when it is a `LocalWorkspace`.
+
+    Host-side files that sit beside the project - the history archive, the
+    improve sessions - go there.
+    """
+    if isinstance(workspace, LocalWorkspace):
+        return Path(workspace.working_dir)
+    return None
 
 
 class _TodoProxyBinder(AbstractCapability[DeepAgentDeps]):
@@ -307,6 +333,9 @@ def _make_default_deep_agent_factory(
             web_search=web_search,
             web_fetch=web_fetch,
             thinking=False,  # Save tokens on subagents
+            # A subagent works in its parent's workspace, which the subagent
+            # toolset passes to its run.
+            workspace=False,
             include_subagents=False,
             include_skills=False,
             include_plan=False,
@@ -386,8 +415,7 @@ def _set_toolset_retries(toolset: AbstractToolset[DeepAgentDeps], max_retries: i
 def _build_console_toolset(
     *,
     interrupt_on: dict[str, bool],
-    include_execute: bool | None,
-    backend: BackendProtocol,
+    include_execute: bool,
     edit_format: str,
     retries: int,
 ) -> AbstractToolset[DeepAgentDeps]:
@@ -395,20 +423,16 @@ def _build_console_toolset(
 
     Write/edit are gated when `interrupt_on` asks for them; execute is gated
     whenever any interrupt is enabled (the approval channel only exists then),
-    unless `interrupt_on` sets it explicitly. `include_execute`, when not `None`,
-    forces the execute tool on or off; otherwise it is auto-detected from whether
-    the backend is a `SandboxProtocol`.
+    unless `interrupt_on` sets it explicitly. `include_execute` decides whether
+    the execute tool is offered at all.
     """
     require_write_approval = interrupt_on.get("write_file", False) or interrupt_on.get(
         "edit_file", False
     )
     require_execute_approval = interrupt_on.get("execute", any(interrupt_on.values()))
-    should_include_execute = (
-        include_execute if include_execute is not None else isinstance(backend, SandboxProtocol)
-    )
     console_toolset = create_console_toolset(
         id="deep-console",
-        include_execute=should_include_execute,
+        include_execute=include_execute,
         require_write_approval=require_write_approval,
         require_execute_approval=require_execute_approval,
         image_support=True,
@@ -468,10 +492,10 @@ def create_deep_agent(
     subagents: list[SubAgentConfig] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
-    | list[BackendSkillsDirectory]
+    | list[WorkspaceSkillsDirectory]
     | None = None,
     skills: list[Skill] | None = None,
-    backend: BackendProtocol | None = None,
+    workspace: AbstractCapability[Any] | Literal[False] | None = None,
     include_todo: bool = True,
     include_current_todos: bool = False,
     include_filesystem: bool = True,
@@ -549,10 +573,10 @@ def create_deep_agent(
     subagents: list[SubAgentConfig] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
-    | list[BackendSkillsDirectory]
+    | list[WorkspaceSkillsDirectory]
     | None = None,
     skills: list[Skill] | None = None,
-    backend: BackendProtocol | None = None,
+    workspace: AbstractCapability[Any] | Literal[False] | None = None,
     include_todo: bool = True,
     include_current_todos: bool = False,
     include_filesystem: bool = True,
@@ -630,10 +654,10 @@ def create_deep_agent(  # noqa: C901
     subagents: list[SubAgentConfig] | None = None,
     skill_directories: list[dict[str, Any]]
     | list[str]
-    | list[BackendSkillsDirectory]
+    | list[WorkspaceSkillsDirectory]
     | None = None,
     skills: list[Skill] | None = None,
-    backend: BackendProtocol | None = None,
+    workspace: AbstractCapability[Any] | Literal[False] | None = None,
     include_todo: bool = True,
     include_current_todos: bool = False,
     include_filesystem: bool = True,
@@ -691,7 +715,7 @@ def create_deep_agent(  # noqa: C901
     tool_search: bool = False,
     instrument: bool | None = None,
     **agent_kwargs: Any,
-) -> Agent[DeepAgentDeps, OutputDataT] | Agent[DeepAgentDeps, str]:
+) -> Agent[DeepAgentDeps, Any]:  # the overloads above type each call
     """Create a deep agent with planning, filesystem, subagent, and skills capabilities.
 
     This factory function creates a fully-configured Agent with:
@@ -734,9 +758,17 @@ def create_deep_agent(  # noqa: C901
         capabilities: Additional capabilities to register.
         subagents: Subagent configurations for the task tool.
         skill_directories: Directories to discover skills from.
-            Accepts plain string paths or BackendSkillsDirectory instances.
+            Accepts plain string paths, discovered on this machine, or
+            `WorkspaceSkillsDirectory` instances, discovered in each run's
+            workspace.
         skills: Skill instances to register directly.
-        backend: File storage backend (default: StateBackend).
+        workspace: The capability that gives runs their workspace - where every
+            file tool, memory, context file and command works:
+            `LocalWorkspace(".")`, `DockerWorkspace(...)`, `SandboxdWorkspace(...)`,
+            `StateWorkspace()` and the rest. Defaults to `StateWorkspace()`, an
+            in-memory filesystem with no commands. `False` attaches none: each run
+            then needs `agent.run(..., workspace=...)`, which also overrides the
+            capability for one run.
         include_todo: Whether to include the todo toolset.
         include_current_todos: Inject the live todo list into the system prompt.
             Off by default: the instructions open the provider's prompt-cache
@@ -777,9 +809,8 @@ def create_deep_agent(  # noqa: C901
             minutes of that reads as a hung agent. Raise it when a human is
             reliably in the loop.
         include_execute: Whether to include the execute tool. If None (default),
-            automatically determined based on whether backend is a SandboxProtocol.
-            Set to True to force include even when backend is None (useful when
-            backend is provided via deps at runtime).
+            it is included unless `workspace` is a `StateWorkspace`, which has no
+            commands. Set it explicitly when runs pass their own workspace.
         interrupt_on: Map of tool names to approval requirements.
             e.g., {"execute": True, "write_file": True}
         output_type: Structured output type (Pydantic model, dataclass, TypedDict).
@@ -792,7 +823,7 @@ def create_deep_agent(  # noqa: C901
             Set to None to disable eviction.
         max_binary_content: Maximum number of multimodal binary parts
             (e.g. `BinaryContent` screenshots) to keep in model-visible
-            history. Older binaries are written to the backend and replaced
+            history. Older binaries are written to the workspace and replaced
             with a compact `read_file`-able text reference so the agent can
             still retrieve them on demand. Defaults to 3. Set to `None` to
             keep every binary in history. Only applies when
@@ -822,31 +853,31 @@ def create_deep_agent(  # noqa: C901
             summaries. Defaults to `anthropic:claude-haiku-4-5-20251001`. When set,
             the middleware uses its own default. Passed through to
             `ContextManagerMiddleware.summarization_model`.
-        context_files: List of paths to context files in the backend
-            (e.g., ["/project/DEEP.md", "/project/SOUL.md"]).
-            Files are loaded from the runtime backend (ctx.deps.backend)
+        context_files: List of paths to context files in the workspace
+            (e.g., ["DEEP.md", "SOUL.md"]).
+            Files are loaded from the run's workspace (`ctx.workspace`)
             and injected into the system prompt. Missing files are
             silently skipped.
-        context_discovery: Whether to auto-discover context files at the
-            backend root (/). Scans for AGENTS.md, SOUL.md.
+        context_discovery: Whether to auto-discover context files in the
+            workspace's working directory. Scans for AGENTS.md, SOUL.md.
             Defaults to False.
         include_memory: Whether to include the agent memory toolset.
             When True, the main agent and all subagents get persistent
-            memory stored as MEMORY.md files in the backend. Memory is
+            memory stored as MEMORY.md files in the workspace. Memory is
             auto-loaded into the system prompt and writable via tools
             (read_memory, write_memory, update_memory). Per-subagent
             memory can be disabled via `extra={"memory": False}` in
             SubAgentConfig. Defaults to True.
-        memory_dir: Base directory for memory files in the backend.
+        memory_dir: Base directory for memory files in the workspace.
             Each agent gets its own subdirectory:
             `{memory_dir}/{agent_name}/MEMORY.md`.
-            Defaults to `/.deep/memory`.
+            Defaults to `.deep/memory`.
         retries: Maximum number of retries for tool calls. Defaults to 3.
         hooks: List of Hook instances for Claude Code-style lifecycle hooks.
             Hooks execute shell commands or Python handlers on tool events
             (PRE_TOOL_USE, POST_TOOL_USE, POST_TOOL_USE_FAILURE). Command
-            hooks require a SandboxProtocol backend (LocalBackend or
-            DockerSandbox). Adds HooksCapability to the agent.
+            hooks need a workspace that runs commands (LocalWorkspace,
+            DockerWorkspace, ...). Adds HooksCapability to the agent.
         cost_tracking: Whether to enable automatic cost tracking via
             CostTracking capability (from pydantic-ai-shields). When True
             (default), token usage and USD costs are tracked across runs.
@@ -912,7 +943,7 @@ def create_deep_agent(  # noqa: C901
         middleware: List of additional AbstractCapability instances to
             include. These extend the agent with custom lifecycle hooks.
         plans_dir: Directory to save plan files from the planner subagent.
-            Defaults to `/plans` (relative to backend root).
+            Defaults to `plans`, relative to the workspace's working directory.
         message_queue: Optional :class:`MessageQueue` for mid-run message delivery.
             Steering messages are injected before the next LLM call via
             `MessageQueueCapability`; follow-ups are handled by
@@ -949,7 +980,7 @@ def create_deep_agent(  # noqa: C901
         ```python
         from pydantic import BaseModel
         from pydantic_deep import (
-            create_deep_agent, DeepAgentDeps, StateBackend, create_summarization_processor
+            create_deep_agent, DeepAgentDeps, create_summarization_processor
         )
 
         # Basic usage with string output
@@ -975,7 +1006,7 @@ def create_deep_agent(  # noqa: C901
             on_context_update=lambda pct, cur, mx: print(f"{pct:.0%} used"),
         )
 
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
         result = await agent.run("Analyze this code", deps=deps)
         ```
     """
@@ -988,7 +1019,9 @@ def create_deep_agent(  # noqa: C901
         )
 
     model = model or DEFAULT_MODEL
-    backend = backend or StateBackend()
+    workspace_capability = StateWorkspace() if workspace is None else workspace
+    if include_execute is None:
+        include_execute = not isinstance(workspace_capability, StateWorkspace)
     interrupt_on = interrupt_on or {}
 
     # Submodels inherit the primary model when not explicitly set — never a
@@ -1007,7 +1040,7 @@ def create_deep_agent(  # noqa: C901
         _fallback_hooks = [
             h for h in (hooks or []) if h.event == HookEvent.MODEL_FALLBACK_TRIGGERED
         ]
-        model = _wrap_with_fallback_and_hooks(model, _fallbacks, _fallback_hooks, backend)
+        model = _wrap_with_fallback_and_hooks(model, _fallbacks, _fallback_hooks)
 
     # Build effective subagents list (user-provided + built-ins).
     # Shallow-copy each caller-provided config so the agent_factory / toolset
@@ -1019,7 +1052,7 @@ def create_deep_agent(  # noqa: C901
     # subagents list would double the injected context/memory toolsets.
     effective_subagents: list[SubAgentConfig] = [SubAgentConfig(**sa) for sa in (subagents or [])]
     if include_plan and include_subagents:
-        _plans_dir = plans_dir or "/plans"
+        _plans_dir = plans_dir or DEFAULT_PLANS_DIR
         plan_toolset = create_plan_toolset(plans_dir=_plans_dir)
         planner_config: SubAgentConfig = {
             "name": "planner",
@@ -1055,7 +1088,6 @@ def create_deep_agent(  # noqa: C901
             _build_console_toolset(
                 interrupt_on=interrupt_on,
                 include_execute=include_execute,
-                backend=backend,
                 edit_format=edit_format,
                 retries=retries,
             )
@@ -1107,11 +1139,11 @@ def create_deep_agent(  # noqa: C901
     # Skills toolset
     skills_toolset = None
     if include_skills:
-        directories: list[str | BackendSkillsDirectory] | None = None
+        directories: list[str | WorkspaceSkillsDirectory] | None = None
         if skill_directories:
             directories = []
             for sd in skill_directories:
-                if isinstance(sd, BackendSkillsDirectory):
+                if isinstance(sd, WorkspaceSkillsDirectory):
                     directories.append(sd)
                 elif isinstance(sd, dict):
                     directories.append(sd["path"])
@@ -1219,7 +1251,7 @@ def create_deep_agent(  # noqa: C901
         all_toolsets.append(team_toolset)
 
     # Monitor toolset (watch & react) — start_monitor / list_monitors / stop_monitor.
-    # Needs a background-capable backend at runtime; the tools no-op gracefully
+    # Needs a workspace that runs commands; the tools answer with an error
     # otherwise, so it's safe to include by default.
     if include_monitoring:
         all_toolsets.append(create_monitor_toolset())
@@ -1228,11 +1260,8 @@ def create_deep_agent(  # noqa: C901
 
     # Improve toolset (self-improvement from session analysis)
     if include_improve:
-        _improve_sessions = Path(".pydantic-deep/sessions")
-        if backend is not None:  # pragma: no branch
-            _wd = getattr(backend, "root_dir", None)
-            if _wd:  # pragma: no branch
-                _improve_sessions = Path(str(_wd)) / ".pydantic-deep" / "sessions"
+        _host_dir = _local_working_dir(workspace_capability)
+        _improve_sessions = (_host_dir or Path(".")) / ".pydantic-deep" / "sessions"
 
         improve_toolset = ImproveToolset(
             sessions_dir=_improve_sessions,
@@ -1275,10 +1304,11 @@ def create_deep_agent(  # noqa: C901
     # Resolve history_messages_path to absolute for the middleware
     abs_messages_path: str | None = None
     if include_history_archive and context_manager:
+        _history_dir = _local_working_dir(workspace_capability)
         if os.path.isabs(history_messages_path):  # pragma: no cover
             abs_messages_path = history_messages_path
-        elif hasattr(backend, "root_dir"):
-            abs_messages_path = str(backend.root_dir / history_messages_path)  # type: ignore[union-attr,operator,unused-ignore]
+        elif _history_dir is not None:
+            abs_messages_path = str(_history_dir / history_messages_path)
         else:
             abs_messages_path = os.path.join(os.getcwd(), history_messages_path)
 
@@ -1337,7 +1367,9 @@ def create_deep_agent(  # noqa: C901
     if instrument is not None:  # pragma: no cover
         agent_create_kwargs["instrument"] = instrument
 
-    all_capabilities: list[AbstractCapability[Any]] = []
+    all_capabilities: list[AbstractCapability[Any]] = [_PendingUploads()]
+    if workspace_capability is not False:
+        all_capabilities.append(workspace_capability)
 
     if _todo_proxy is not None:
         all_capabilities.append(_TodoProxyBinder(_todo_proxy))
@@ -1348,7 +1380,6 @@ def create_deep_agent(  # noqa: C901
     if eviction_token_limit is not None:
         all_capabilities.append(
             EvictionCapability(
-                backend=ensure_async(backend),
                 token_limit=eviction_token_limit,
                 max_binary_content=max_binary_content,
                 on_eviction=on_eviction,
@@ -1448,8 +1479,7 @@ def create_deep_agent(  # noqa: C901
     if tools:
         agent_create_kwargs["tools"] = tools
 
-    if all_capabilities:
-        agent_create_kwargs["capabilities"] = all_capabilities
+    agent_create_kwargs["capabilities"] = all_capabilities
 
     agent_create_kwargs.update(agent_kwargs)
 
@@ -1486,19 +1516,16 @@ def create_deep_agent(  # noqa: C901
     return agent
 
 
-def create_default_deps(
-    backend: BackendProtocol | None = None,
-) -> DeepAgentDeps:
+def create_default_deps() -> DeepAgentDeps:
     """Create default dependencies for a deep agent.
 
-    Args:
-        backend: File storage backend (default: StateBackend).
+    Files are not part of them: they live in the workspace the agent's
+    `workspace` capability supplies.
 
     Returns:
         DeepAgentDeps instance.
     """
-    resolved_backend: BackendProtocol = backend or StateBackend()
-    return DeepAgentDeps(backend=resolved_backend)
+    return DeepAgentDeps()
 
 
 async def run_with_files(
@@ -1507,20 +1534,20 @@ async def run_with_files(
     deps: DeepAgentDeps,
     files: list[tuple[str, bytes]] | None = None,
     *,
-    upload_dir: str = "/uploads",
+    upload_dir: str = DEFAULT_UPLOAD_DIR,
 ) -> OutputDataT:
     """Run agent with file uploads.
 
-    This is a convenience function that uploads files to the backend
-    before running the agent. The files are accessible via file tools
-    (read_file, grep, glob, execute).
+    This is a convenience function that uploads files into the run's
+    workspace before the agent starts. The files are accessible via file
+    tools (read_file, grep, glob, execute).
 
     Args:
         agent: The agent to run.
         query: The user query/prompt.
         deps: Agent dependencies.
         files: List of (filename, content) tuples to upload.
-        upload_dir: Directory to store uploads (default: "/uploads")
+        upload_dir: Directory to store uploads (default: "uploads")
 
     Returns:
         Agent output (type depends on agent's output_type).
@@ -1528,10 +1555,9 @@ async def run_with_files(
     Example:
         ```python
         from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
-        from pydantic_ai_backends import StateBackend
 
         agent = create_deep_agent()
-        deps = DeepAgentDeps(backend=StateBackend())
+        deps = DeepAgentDeps()
 
         with open("sales.csv", "rb") as f:
             result = await run_with_files(

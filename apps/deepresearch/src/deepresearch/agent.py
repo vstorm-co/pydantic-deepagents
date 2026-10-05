@@ -251,20 +251,16 @@ def _create_remember_toolset() -> FunctionToolset[Any]:
         Returns:
             Confirmation message.
         """
-        backend = ctx.deps.backend
         try:
-            if backend.exists("/workspace/MEMORY.md"):
-                content = backend.read_bytes("/workspace/MEMORY.md").decode("utf-8")
-            else:
-                content = ""
-        except Exception:
+            content = (await ctx.workspace.read_bytes("MEMORY.md")).decode("utf-8")
+        except FileNotFoundError:
             content = ""
 
         if not content.strip():
             content = "# Agent Memory\n\n"
 
         content = content.rstrip("\n") + "\n- " + fact + "\n"
-        backend.write("/workspace/MEMORY.md", content.encode("utf-8"))
+        await ctx.workspace.write_bytes("MEMORY.md", content.encode("utf-8"))
         return f"Saved to memory: {fact}"
 
     return toolset
@@ -401,7 +397,8 @@ def create_research_agent(
     return create_deep_agent(
         model=MODEL_NAME,
         instructions=MAIN_INSTRUCTIONS,
-        backend=None,
+        # Each user session runs in its own container, passed per run.
+        workspace=False,
         toolsets=[*mcp_servers, factory_toolset, remember_toolset],
         include_todo=True,
         include_filesystem=True,

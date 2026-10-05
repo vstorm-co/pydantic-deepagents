@@ -25,7 +25,7 @@ _HELP_TEXT = """\
   [bold cyan]/goal[/bold cyan]        Keep working toward a condition (/goal clear to stop)
   [bold cyan]/help[/bold cyan]        Show this help
   [bold cyan]/improve[/bold cyan]     Analyze past sessions and self-improve
-  [bold cyan]/info[/bold cyan]        Show what's wired in (tools, backend, MCP, context)
+  [bold cyan]/info[/bold cyan]        Show what's wired in (tools, workspace, MCP, context)
   [bold cyan]/load[/bold cyan]        Load a saved session
   [bold cyan]/mcp[/bold cyan]         Manage MCP servers (connect, login, import from Claude Code)
   [bold cyan]/merge[/bold cyan]       Resolve the active fork (pick a winner)
@@ -41,7 +41,6 @@ _HELP_TEXT = """\
   [bold cyan]/save[/bold cyan]        Show save status
   [bold cyan]/screenshot[/bold cyan]  Export the current screen as an SVG image
   [bold cyan]/settings[/bold cyan]    Open settings (edit config.toml)
-  [bold cyan]/shells[/bold cyan]      List background shells (run_in_background)
   [bold cyan]/skills[/bold cyan]      List available skills
   [bold cyan]/theme[/bold cyan]       Switch color theme
   [bold cyan]/todos[/bold cyan]       Toggle todo panel

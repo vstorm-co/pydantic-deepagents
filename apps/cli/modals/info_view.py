@@ -1,7 +1,7 @@
 """Info modal — /info command.
 
 Shows what the system wires into the agent: the model-callable tools, the
-higher-level extensions (memory, skills, plan, …), the storage backend, any
+higher-level extensions (memory, skills, plan, …), the workspace, any
 MCP servers, and the project context docs. Read from the CLI config and the
 runtime deps, so it reflects what is actually plugged in.
 
@@ -22,11 +22,10 @@ from textual.widgets import Static
 # Project docs surfaced under "context", in priority order.
 _CONTEXT_FILES = ("DEEP.md", "AGENTS.md", "CLAUDE.md", "SOUL.md")
 
-_BACKEND_LABELS = {
-    "LocalBackend": "local filesystem",
-    "StateBackend": "in-memory",
-    "DockerSandbox": "docker sandbox",
-    "CompositeBackend": "composite",
+_WORKSPACE_LABELS = {
+    "LocalWorkspaceBackend": "local filesystem",
+    "StateWorkspaceBackend": "in-memory",
+    "DockerWorkspaceBackend": "docker sandbox",
 }
 
 
@@ -72,20 +71,15 @@ def _extensions(cfg: object | None) -> list[str]:
     return ext
 
 
-def _backend_label(app: object) -> str:
-    deps = getattr(app, "deps", None)
-    if deps is None:
+def _workspace_label(app: object) -> str:
+    workspace = getattr(getattr(app, "agent", None), "_cli_workspace", None)
+    if workspace is None:
         return ""
-    try:
-        from pydantic_deep.deps import unwrap_backend
-
-        name = type(unwrap_backend(deps.backend)).__name__
-        return _BACKEND_LABELS.get(name, name)
-    except Exception:
-        return ""
+    name = type(workspace.backend).__name__
+    return _WORKSPACE_LABELS.get(name, name)
 
 
-def _backend_from_config(cfg: object | None) -> str:
+def _workspace_from_config(cfg: object | None) -> str:
     sandbox = str(getattr(cfg, "sandbox", "") or "")
     return {"local": "local filesystem", "docker": "docker sandbox"}.get(sandbox, sandbox)
 
@@ -125,9 +119,9 @@ def build_info_markup(app: object) -> str:
     if extensions:
         sections.append(("extensions", "  ".join(extensions)))
 
-    backend = _backend_label(app) or _backend_from_config(cfg)
-    if backend:
-        sections.append(("backend", backend))
+    workspace = _workspace_label(app) or _workspace_from_config(cfg)
+    if workspace:
+        sections.append(("workspace", workspace))
 
     mcp = _mcp_servers()
     if mcp:

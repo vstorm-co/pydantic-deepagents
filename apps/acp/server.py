@@ -6,10 +6,10 @@ enabling integration with editors like Zed.
 Usage:
     ```python
     from apps.acp.server import DeepAgentACP, AgentSessionContext
-    from pydantic_deep import create_deep_agent
+    from pydantic_deep import LocalWorkspace, create_deep_agent
 
     def build_agent(ctx: AgentSessionContext):
-        return create_deep_agent(model=ctx.model)
+        return create_deep_agent(model=ctx.model, workspace=LocalWorkspace(ctx.cwd))
 
     server = DeepAgentACP(
         agent=build_agent,
@@ -35,7 +35,7 @@ from pydantic_ai.messages import (
     ModelMessage,
     ToolCallPart,
 )
-from pydantic_ai_backends import LocalBackend
+from pydantic_ai.workspaces import LocalWorkspaceBackend
 
 from acp import (
     Agent as ACPAgent,
@@ -136,10 +136,16 @@ class DeepAgentACP(ACPAgent):
     def _get_or_create_deps(self, session_id: str) -> DeepAgentDeps:
         """Get or create deps for a session."""
         if session_id not in self._session_deps:
-            cwd = self._session_cwds.get(session_id, ".")
-            backend = LocalBackend(root_dir=cwd)
-            self._session_deps[session_id] = DeepAgentDeps(backend=backend)
+            self._session_deps[session_id] = DeepAgentDeps()
         return self._session_deps[session_id]
+
+    def _workspace_for(self, session_id: str) -> LocalWorkspaceBackend:
+        """The session's working directory, which every run of it works in.
+
+        Passed per run because one agent may serve sessions in different
+        directories, and the editor names each session's directory.
+        """
+        return LocalWorkspaceBackend(self._session_cwds.get(session_id, "."))
 
     def _build_config_options(self, session_id: str) -> list[SessionConfigOptionSelect]:
         """Build config options (model selector)."""
@@ -293,6 +299,7 @@ class DeepAgentACP(ACPAgent):
                 user_text,
                 deps=deps,
                 message_history=history,
+                workspace=self._workspace_for(session_id),
             ) as run:
                 async for node in run:
                     if self._cancelled:

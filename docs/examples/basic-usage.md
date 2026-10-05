@@ -1,7 +1,7 @@
 # Basic Usage
 
 If you read one example, read this one. It puts the fundamentals together in a
-single script — creating an agent, giving it an in-memory backend, and watching
+single script — creating an agent, letting it work in an in-memory workspace, and watching
 it plan with todos and write files. Everything else in this gallery is a
 variation on what you see here.
 
@@ -14,7 +14,7 @@ variation on what you see here.
 This example shows:
 
 - Creating a deep agent
-- Using in-memory StateBackend
+- Working in the default in-memory workspace
 - Todo toolset for planning
 - Filesystem toolset for file operations
 
@@ -24,7 +24,7 @@ This example shows:
 """Basic usage example for pydantic-deep."""
 
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -38,8 +38,8 @@ async def main():
         """,
     )
 
-    # Create dependencies with in-memory storage
-    deps = DeepAgentDeps(backend=StateBackend())
+    # Files live in the run's workspace: by default an in-memory document
+    deps = DeepAgentDeps()
 
     # Run the agent
     result = await agent.run(
@@ -60,14 +60,14 @@ async def main():
     # Check what files were created
     print("\nFiles Created:")
     print("=" * 50)
-    for path in sorted(deps.backend.files.keys()):
-        print(f"  {path}")
+    workspace = result.workspace
+    for entry in await workspace.list_dir("/src"):
+        print(f"  {entry.path}")
 
     # Show the content of created files
-    for path in sorted(deps.backend.files.keys()):
-        print(f"\n--- {path} ---")
-        content = deps.backend.read(path)
-        print(content)
+    for entry in await workspace.list_dir("/src"):
+        print(f"\n--- {entry.path} ---")
+        print(await workspace.read_text(entry.path))
 
     # Show the todo list state
     print("\nTodo List:")
@@ -81,7 +81,7 @@ async def main():
         print(f"  {status_icon} {todo.content}")
 
     # Show usage statistics
-    usage = result.usage()
+    usage = result.usage
     print(f"\nUsage Statistics:")
     print(f"  Input tokens: {usage.input_tokens}")
     print(f"  Output tokens: {usage.output_tokens}")
@@ -170,12 +170,11 @@ The agent is created with all default toolsets enabled.
 ### Dependencies
 
 ```python
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 ```
 
-- `StateBackend` stores files in memory
-- `deps.backend.files` - Dictionary of all files
 - `deps.todos` - List of todo items
+- Files are not in the deps: they live in the run's workspace, by default an in-memory `StateWorkspace`
 
 ### Running
 
@@ -184,21 +183,26 @@ result = await agent.run(prompt, deps=deps)
 ```
 
 - `result.output` - Agent's text response
-- `result.usage()` - Token usage statistics
+- `result.usage` - Token usage statistics
 - `result.all_messages()` - Full conversation history
 
 ### Accessing Files
 
 ```python
-# List all files
-deps.backend.files.keys()
+workspace = result.workspace
 
-# Read a file (with line numbers)
-deps.backend.read("/src/calculator.py")
+# List a directory
+await workspace.list_dir("/src")
+
+# Read a file
+await workspace.read_text("/src/calculator.py")
 
 # Write a file directly
-deps.backend.write("/test.py", "print('hello')")
+await workspace.write_text("/test.py", "print('hello')")
 ```
+
+A run that continues the conversation (`message_history=result.all_messages()`)
+works in the same workspace.
 
 ## Variations
 

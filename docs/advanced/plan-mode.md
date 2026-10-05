@@ -18,7 +18,7 @@ agent = create_deep_agent(
 Now just ask for a plan, and the main agent delegates to the planner:
 
 ```python
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 
 result = await agent.run(
     "Plan how to add authentication to the app. Don't write any code yet.",
@@ -29,7 +29,7 @@ print(result.output)
 
 !!! example "Check it"
     After the run, list the plans the agent wrote:
-    `print(await deps.backend.ls("/plans"))`. There's a markdown file in there —
+    `print(await result.workspace.list_dir("plans"))`. There's a markdown file in there —
     a real, structured plan you can read, edit, and hand back for execution.
 
 ## What just happened
@@ -104,7 +104,6 @@ async def handle_ask_user(question: str, options: list) -> str:
 
 
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     ask_user=handle_ask_user,
 )
 ```
@@ -145,7 +144,7 @@ The planner writes plans in a consistent shape, so they're easy to skim and easy
 | Parameter | Type | Default | What it does |
 |-----------|------|---------|--------------|
 | `include_plan` | `bool` | `True` | Register the planner sub-agent |
-| `plans_dir` | `str` | `"/plans"` | Where plan files are saved |
+| `plans_dir` | `str` | `"plans"` | Where plan files are saved, relative to the workspace's working directory |
 
 To turn plan mode off entirely:
 
@@ -154,9 +153,9 @@ agent = create_deep_agent(include_plan=False)
 ```
 
 !!! info "Multi-user apps"
-    Plans are just files in the backend. Random suffixes keep filenames from
-    colliding, but users who share one backend can read each other's plans. Give
-    each user their own backend. See the [Multi-user guide](multi-user.md).
+    Plans are just files in the run's workspace. Random suffixes keep filenames
+    from colliding, but users who share one workspace can read each other's plans.
+    Give each user their own workspace. See the [Multi-user guide](multi-user.md).
 
 ## Recap
 

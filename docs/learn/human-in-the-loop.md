@@ -14,7 +14,7 @@ from pydantic_ai.tools import (
     ToolDenied,
 )
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -24,7 +24,7 @@ async def main():
         interrupt_on={"execute": True},  # pause before any shell command
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Write a script hello.py that prints 'hello world', then run it.",
@@ -142,7 +142,7 @@ You resume by calling `agent.run()` again with `None` as the prompt — there's 
 !!! warning "A gate, not a sandbox"
     Human-in-the-loop is a safety prompt, not a security boundary. People
     rubber-stamp prompts, and approval fatigue is real. For untrusted work,
-    combine it with a `DockerSandbox` backend so even an approved command runs
+    run it in a `DockerWorkspace` so even an approved command runs
     isolated.
 
 ## Recap

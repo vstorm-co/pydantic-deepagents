@@ -7,7 +7,7 @@ Your agent can already search and fetch the web. You turned nothing on for that 
 ```python
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -16,7 +16,7 @@ async def main():
         instructions="You are a research assistant. Cite the pages you used.",
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "What changed in the latest Python release? "

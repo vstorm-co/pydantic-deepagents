@@ -34,7 +34,7 @@
 | `toolsets` | `Sequence[AbstractToolset] \| None` | `None` | Additional toolsets |
 | `mcp_servers` | `Sequence[AbstractToolset] \| None` | `None` | MCP server toolsets to attach. See [MCP](../learn/web-and-mcp.md) |
 | `capabilities` | `Sequence[AbstractCapability] \| None` | `None` | Additional capabilities to register |
-| `backend` | `BackendProtocol \| None` | `StateBackend()` | File storage backend |
+| `workspace` | `AbstractCapability \| Literal[False] \| None` | `StateWorkspace()` | Supplies each run's workspace; `False` leaves it to `agent.run(workspace=...)`. See [Workspaces](../concepts/workspaces.md) |
 | `output_type` | `OutputSpec \| None` | `None` | Pydantic model for structured output |
 | `edit_format` | `str` | `"hashline"` | Edit format used by the file edit tool |
 | `retries` | `int` | `3` | Max retries for tool calls |
@@ -174,16 +174,11 @@ agent = create_deep_agent(
 ### Signature
 
 ```python
-def create_default_deps(
-    backend: BackendProtocol | None = None,
-) -> DeepAgentDeps
+def create_default_deps() -> DeepAgentDeps
 ```
 
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `backend` | `BackendProtocol \| None` | `StateBackend()` | File storage backend |
+Files are not part of the deps: they live in the workspace the agent's
+`workspace` capability supplies.
 
 ### Returns
 
@@ -193,13 +188,8 @@ def create_default_deps(
 
 ```python
 from pydantic_deep import create_default_deps
-from pydantic_ai_backends import LocalBackend
 
-# With default StateBackend
 deps = create_default_deps()
-
-# With custom backend
-deps = create_default_deps(backend=LocalBackend("/workspace"))
 ```
 
 ---
@@ -210,9 +200,9 @@ deps = create_default_deps(backend=LocalBackend("/workspace"))
     options:
       show_source: false
 
-Convenience coroutine that uploads files to the backend before running the agent.
-The uploaded files become accessible via the file tools (`read_file`, `grep`,
-`glob`, `execute`).
+Convenience coroutine that uploads files and runs the agent. The files are
+written into the run's workspace when it starts, under `upload_dir`, and become
+accessible via the file tools (`read_file`, `grep`, `glob`, `execute`).
 
 ### Signature
 
@@ -223,7 +213,7 @@ async def run_with_files(
     deps: DeepAgentDeps,
     files: list[tuple[str, bytes]] | None = None,
     *,
-    upload_dir: str = "/uploads",
+    upload_dir: str = "uploads",
 ) -> OutputDataT
 ```
 
@@ -235,7 +225,7 @@ async def run_with_files(
 | `query` | `str` | Required | The user query/prompt |
 | `deps` | `DeepAgentDeps` | Required | Agent dependencies |
 | `files` | `list[tuple[str, bytes]] \| None` | `None` | List of `(filename, content)` tuples to upload |
-| `upload_dir` | `str` | `"/uploads"` | Directory to store uploads |
+| `upload_dir` | `str` | `"uploads"` | Directory for uploads, relative to the workspace's working directory |
 
 ### Returns
 
@@ -245,10 +235,9 @@ async def run_with_files(
 
 ```python
 from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
-from pydantic_ai_backends import StateBackend
 
 agent = create_deep_agent()
-deps = DeepAgentDeps(backend=StateBackend())
+deps = DeepAgentDeps()
 
 with open("sales.csv", "rb") as f:
     result = await run_with_files(
@@ -269,11 +258,12 @@ with open("sales.csv", "rb") as f:
 
 ### Definition
 
+Files are not part of the deps: they live in the run's workspace,
+`ctx.workspace`.
+
 ```python
 @dataclass
 class DeepAgentDeps:
-    backend: BackendProtocol = field(default_factory=StateBackend)
-    files: dict[str, FileData] = field(default_factory=dict)
     todos: list[Todo] = field(default_factory=list)
     subagents: dict[str, Any] = field(default_factory=dict)
     uploads: dict[str, UploadedFile] = field(default_factory=dict)
@@ -286,8 +276,6 @@ class DeepAgentDeps:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `backend` | `BackendProtocol` | File storage backend |
-| `files` | `dict[str, FileData]` | In-memory file cache |
 | `todos` | `list[Todo]` | Task list |
 | `subagents` | `dict[str, Any]` | Pre-configured subagent instances |
 | `uploads` | `dict[str, UploadedFile]` | Uploaded files metadata |
@@ -305,14 +293,6 @@ def get_todo_prompt(self) -> str
 
 Generate system prompt section for current todos.
 
-#### get_files_summary
-
-```python
-def get_files_summary(self) -> str
-```
-
-Generate summary of files in memory.
-
 #### get_subagents_summary
 
 ```python
@@ -320,6 +300,17 @@ def get_subagents_summary(self) -> str
 ```
 
 Generate summary of available subagents.
+
+#### upload_file / upload_files / write_pending_uploads
+
+```python
+async def upload_file(self, name: str, content: bytes, *, upload_dir: str = "uploads") -> str
+async def write_pending_uploads(self, workspace: Workspace) -> None
+```
+
+Queue a file for the next run and record its metadata for the system prompt.
+The run writes it into its workspace when it starts; call
+`write_pending_uploads` yourself to write it into a workspace outside a run.
 
 #### clone_for_subagent
 
@@ -329,18 +320,18 @@ def clone_for_subagent(self) -> DeepAgentDeps
 
 Create isolated dependencies for a subagent.
 
-- Same backend (shared)
-- Empty todos (isolated)
+- Empty todos (isolated), unless `share_todos`
 - Empty subagents (no nested delegation)
-- Same files (shared reference)
+- Same uploads, `ask_user`, checkpoint store and message queue (shared)
+
+The subagent's run works in its parent's workspace.
 
 ### Example
 
 ```python
-from pydantic_deep import DeepAgentDeps, StateBackend, Todo
+from pydantic_deep import DeepAgentDeps, Todo
 
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     todos=[
         Todo(
             content="Review code",
@@ -356,5 +347,5 @@ print(deps.get_todo_prompt())
 # Clone for subagent
 subagent_deps = deps.clone_for_subagent()
 assert subagent_deps.todos == []  # Isolated
-assert subagent_deps.backend is deps.backend  # Shared
+assert subagent_deps.uploads is deps.uploads  # Shared
 ```

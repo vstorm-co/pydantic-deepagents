@@ -549,7 +549,7 @@ toolset = ContextToolset(
 
 Skill discovery is handled by the
 [`SkillsDirectory`][pydantic_deep.features.skills.directory.SkillsDirectory] and
-[`BackendSkillsDirectory`][pydantic_deep.features.skills.backend.BackendSkillsDirectory]
+[`WorkspaceSkillsDirectory`][pydantic_deep.features.skills.workspace.WorkspaceSkillsDirectory]
 classes (frontmatter parsing and directory traversal are internal implementation
 details). Pass these directly to `SkillsToolset` or to `create_deep_agent` via
 `skill_directories`:
@@ -575,9 +575,9 @@ toolset = SkillsToolset(directories=[source])
     options:
       show_source: false
 
-### BackendSkillsDirectory
+### WorkspaceSkillsDirectory
 
-::: pydantic_deep.features.skills.backend.BackendSkillsDirectory
+::: pydantic_deep.features.skills.workspace.WorkspaceSkillsDirectory
     options:
       show_source: false
 

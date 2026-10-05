@@ -12,13 +12,13 @@ This is a comprehensive example demonstrating all pydantic-deep features in a pr
 
 | Feature | Description |
 |---------|-------------|
-| **DockerSandbox** | Isolated file operations and code execution |
+| **DockerWorkspace** | Isolated file operations and code execution, one container per session |
 | **WebSocket Streaming** | Real-time events and text deltas |
 | **Human-in-the-Loop** | Approval UI for execute commands |
 | **File Uploads** | PDF/CSV processing |
 | **Skills** | Data analysis skill |
 | **Subagents** | Joke generator for entertainment |
-| **Multi-User** | SessionManager for isolated sessions |
+| **Multi-User** | A named container per session, removed at shutdown |
 | **Custom Tools** | Mock GitHub integration |
 
 ## Project Structure
@@ -95,11 +95,11 @@ open http://localhost:8080
           │
           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    SessionManager                            │
+│              One DockerWorkspace per session                 │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  User Session 1 → DockerSandbox (Container A)       │    │
-│  │  User Session 2 → DockerSandbox (Container B)       │    │
-│  │  User Session 3 → DockerSandbox (Container C)       │    │
+│  │  User Session 1 → full-app-<id> (Container A)       │    │
+│  │  User Session 2 → full-app-<id> (Container B)       │    │
+│  │  User Session 3 → full-app-<id> (Container C)       │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -116,7 +116,7 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
     return create_deep_agent(
         model="anthropic:claude-sonnet-4-6",
         instructions=MAIN_INSTRUCTIONS,
-        backend=None,  # Backend comes from deps at runtime
+        workspace=False,  # Each run gets its session's container
 
         # Toolsets
         include_todo=True,
@@ -141,28 +141,38 @@ def create_agent() -> Agent[DeepAgentDeps, str]:
 ### Session Management
 
 ```python
+def _session_container(session_id: str) -> DockerWorkspace:
+    """The session's Docker container, with its host directory mounted at /workspace."""
+    host_dir = WORKSPACES_DIR / session_id / "workspace"
+    host_dir.mkdir(parents=True, exist_ok=True)
+    return DockerWorkspace(
+        image="python:3.12-slim",
+        volumes={str(host_dir.resolve()): "/workspace"},
+        container_name=f"full-app-{session_id}",
+    )
+
+
+async def get_or_create_session(session_id: str) -> UserSession:
+    ...
+    workspace = Workspace(_session_container(session_id).backend())
+    session = UserSession(session_id=session_id, deps=DeepAgentDeps(), workspace=workspace)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global agent, session_manager
+    global agent
 
     # Create shared agent
     agent = create_agent()
 
-    # Create session manager for Docker containers
-    session_manager = SessionManager(
-        default_runtime=None,
-        default_idle_timeout=3600,
-        workspace_root="./workspaces",  # Persistent storage for user files
-    )
-    session_manager.start_cleanup_loop(interval=300)
-
     yield
 
-    # Cleanup
-    await session_manager.shutdown()
+    # Shutdown: the files stay on the host, the containers go.
+    for session_id in list(user_sessions):
+        await _remove_session_container(session_id)
 ```
 
-With `workspace_root`, each session gets persistent storage at `./workspaces/{session_id}/workspace/`, so user files survive container restarts and app reboots.
+Each session's files live on the host at `./workspaces/{session_id}/workspace/`, so they survive container restarts and app reboots. The container is named after the session, so a restarted server reaches the same one.
 
 ### WebSocket Streaming
 
@@ -171,7 +181,7 @@ With `workspace_root`, each session gets persistent storage at `./workspaces/{se
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
 
-    async with agent.iter(message, deps=session.deps) as run:
+    async with agent.iter(message, deps=session.deps, workspace=session.workspace) as run:
         async for node in run:
             if Agent.is_model_request_node(node):
                 # Stream text deltas
@@ -354,8 +364,8 @@ You are a data analysis expert. When analyzing data:
 ### Scaling
 
 - Agent is stateless (shared across sessions)
-- Each session gets isolated Docker container
-- SessionManager handles container lifecycle
+- Each session gets an isolated Docker container, named after it
+- The app removes a session's container on reset and every container at shutdown
 - Consider container pool for faster startup
 
 ### Security

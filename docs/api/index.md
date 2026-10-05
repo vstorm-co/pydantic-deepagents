@@ -7,7 +7,7 @@ Complete API documentation for pydantic-deep.
 | Module | Description |
 |--------|-------------|
 | [`pydantic_deep.agent`](agent.md) | Agent factory and configuration |
-| [Backends](backends.md) | Storage backends (via [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)) |
+| [Workspaces](workspaces.md) | Where a run works (via Pydantic AI and [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend)) |
 | [Toolsets](toolsets.md) | Tool collections |
 | [Capabilities](capabilities.md) | Lifecycle capabilities |
 | [Processors](processors.md) | History processors |
@@ -27,15 +27,13 @@ from pydantic_deep import (
     create_default_deps,
     DeepAgentDeps,
 
-    # Backends (from pydantic-ai-backend)
-    BackendProtocol,
-    SandboxProtocol,
-    StateBackend,
-    LocalBackend,
-    CompositeBackend,
-    BaseSandbox,
-    AsyncBaseSandbox,
-    DockerSandbox,
+    # Workspaces (LocalWorkspace from Pydantic AI, the rest from pydantic-ai-backend)
+    LocalWorkspace,
+    StateWorkspace,
+    DockerWorkspace,
+    SandboxdWorkspace,
+    KubernetesWorkspace,
+    DaytonaWorkspace,
 
     # Processors
     SummarizationProcessor,
@@ -44,10 +42,6 @@ from pydantic_deep import (
     # Types
     FileData,
     FileInfo,
-    WriteResult,
-    EditResult,
-    ExecuteResponse,
-    GrepMatch,
     Todo,
     SubAgentConfig,
     CompiledSubAgent,
@@ -77,6 +71,7 @@ agent = create_deep_agent(
     subagents=[...],
     skills=[...],
     skill_directories=[...],
+    workspace=LocalWorkspace("."),  # default: StateWorkspace(), in memory
     interrupt_on={"execute": True},
 )
 ```
@@ -85,7 +80,6 @@ agent = create_deep_agent(
 
 ```python
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     todos=[],
     subagents={},
 )
@@ -107,6 +101,12 @@ result = await agent.run(
     message_history=previous_result.all_messages(),
 )
 
+# In a workspace of this run's own (overrides the agent's)
+result = await agent.run(prompt, deps=deps, workspace=session_workspace)
+
+# The files the run left
+print(await result.workspace.read_text("notes.md"))
+
 # Streaming
 async with agent.iter(prompt, deps=deps) as run:
     async for node in run:
@@ -127,28 +127,18 @@ Where:
 - `DeepAgentDeps` - Dependencies type
 - `str` - Output type (agent returns strings)
 
-## Protocols
+## Workspaces
 
-### BackendProtocol
-
-```python
-class BackendProtocol(Protocol):
-    def ls_info(self, path: str) -> list[FileInfo]: ...
-    def read(self, path: str, offset: int = 0, limit: int = 2000) -> str: ...
-    def write(self, path: str, content: str) -> WriteResult: ...
-    def edit(self, path: str, old_string: str, new_string: str, replace_all: bool = False) -> EditResult: ...
-    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]: ...
-    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None) -> list[GrepMatch] | str: ...
-```
-
-### SandboxProtocol
+Tools reach the run's workspace as `ctx.workspace`, a Pydantic AI `Workspace`:
 
 ```python
-class SandboxProtocol(BackendProtocol, Protocol):
-    def execute(self, command: str, timeout: int | None = None) -> ExecuteResponse: ...
-    @property
-    def id(self) -> str: ...
+await ctx.workspace.read_text(path)
+await ctx.workspace.write_text(path, text)
+await ctx.workspace.list_dir(path)
+await ctx.workspace.run(["python", "script.py"], timeout=30)  # where it runs commands
 ```
+
+See [Workspaces](../concepts/workspaces.md).
 
 ## Exceptions
 
@@ -158,11 +148,11 @@ pydantic-deep uses standard Python exceptions:
 |-----------|-------------|
 | `ValueError` | Invalid arguments (bad paths, missing files) |
 | `FileNotFoundError` | File doesn't exist |
-| `PermissionError` | Path traversal attempt |
+| `PermissionError` | Write to a read-only workspace, path traversal attempt |
 | `TimeoutError` | Execution timeout |
 
 ## Next Steps
 
 - [Agent API](agent.md) - Detailed agent documentation
-- [Backends API](backends.md) - Storage backend details
+- [Workspaces API](workspaces.md) - Workspace capabilities
 - [Toolsets API](toolsets.md) - Tool collection details

@@ -11,13 +11,13 @@ Two objects do the work: [`GoalState`][pydantic_deep.goal.GoalState] holds what 
 ```python hl_lines="11 12 17"
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 from pydantic_deep.goal import GoalEvaluator, GoalState, goal_continue_directive
 
 
 async def main():
     agent = create_deep_agent(model="anthropic:claude-sonnet-4-6")
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     goal = GoalState(condition="fib.py exists and prints 55 for n=10")
     evaluator = GoalEvaluator()

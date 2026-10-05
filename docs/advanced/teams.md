@@ -167,10 +167,9 @@ In a real run the model calls the *tools* (`spawn_team`, `assign_task`, …) rat
 If you don't need a full team and just want subagents to see the parent's todo list, set `share_todos` on your deps instead:
 
 ```python
-from pydantic_deep import DeepAgentDeps, StateBackend
+from pydantic_deep import DeepAgentDeps
 
 deps = DeepAgentDeps(
-    backend=StateBackend(),
     share_todos=True,   # subagents share the parent's todo list
 )
 ```

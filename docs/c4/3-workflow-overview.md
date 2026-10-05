@@ -18,10 +18,10 @@ The main workflow: user creates an agent, the agent runs a query, and returns a 
 4. Factory sets up history processors (patch + eviction)
 5. Factory creates `Agent` instance with assembled config
 6. Factory registers `dynamic_instructions` callback for per-run prompt injection
-7. User creates `DeepAgentDeps` with backend
+7. User creates `DeepAgentDeps` (the workspace comes from the agent's workspace capability, or `agent.run(workspace=...)`)
 8. User calls `agent.run(query, deps=deps)`
 9. pydantic-ai runs the agent loop (LLM -> tool calls -> LLM -> ...)
-10. Dynamic instructions inject todos, uploads, files summary, subagent info into system prompt
+10. Dynamic instructions inject todos, uploads, subagent info into system prompt
 11. Result returned to user
 
 ```mermaid
@@ -41,13 +41,13 @@ sequenceDiagram
     create_deep_agent->>Agent: Register dynamic_instructions callback
     create_deep_agent-->>User: Return configured Agent
 
-    User->>User: Create DeepAgentDeps with backend
+    User->>User: Create DeepAgentDeps
     User->>Agent: agent.run(query, deps=deps)
     Agent->>pydantic_ai: Start agent loop
 
     loop Agent Loop
         pydantic_ai->>Agent: dynamic_instructions injection
-        Agent->>Agent: Inject todos, uploads, files,<br/>subagent info into system prompt
+        Agent->>Agent: Inject todos, uploads,<br/>subagent info into system prompt
         pydantic_ai->>LLM: Send messages with system prompt
         LLM-->>pydantic_ai: Response (text or tool calls)
 
@@ -65,14 +65,14 @@ sequenceDiagram
 
 ### Workflow 2: Subagent Delegation
 
-The main agent delegates work to subagents for specialized tasks. Subagents run with isolated context but can share backend and filesystem access.
+The main agent delegates work to subagents for specialized tasks. Subagents run with isolated context but work in the parent's workspace.
 
 **Steps:**
 
 1. Main agent calls `delegate_task` tool with description and subagent name
 2. SubAgentToolset looks up subagent config (name, description, instructions)
 3. `_default_deep_agent_factory` creates a new deep agent for the subagent
-4. `deps.clone_for_subagent()` creates isolated deps (shares backend/files, restricts nesting)
+4. `deps.clone_for_subagent()` creates isolated deps (restricts nesting); the subagent's run gets the parent's workspace
 5. Subagent runs with its own system prompt + delegated task
 6. Result returned to main agent
 7. Main agent continues with subagent's output
@@ -83,7 +83,7 @@ sequenceDiagram
     participant SubAgentToolset
     participant AgentFactory as "Agent Factory"
     participant SubAgent as "Sub Agent"
-    participant Backend
+    participant Workspace
 
     MainAgent->>SubAgentToolset: delegate_task(description, subagent_name)
     SubAgentToolset->>SubAgentToolset: Lookup subagent config<br/>(name, description, instructions)
@@ -93,13 +93,13 @@ sequenceDiagram
     AgentFactory-->>SubAgentToolset: Return subagent instance
 
     SubAgentToolset->>SubAgentToolset: deps.clone_for_subagent()
-    Note over SubAgentToolset: Shares backend/files,<br/>restricts nesting depth
+    Note over SubAgentToolset: Passes the parent's workspace,<br/>restricts nesting depth
 
     SubAgentToolset->>SubAgent: Run with system prompt + delegated task
 
     loop Subagent Execution
-        SubAgent->>Backend: Read/write files as needed
-        Backend-->>SubAgent: File data
+        SubAgent->>Workspace: Read/write files as needed
+        Workspace-->>SubAgent: File data
     end
 
     SubAgent-->>SubAgentToolset: Return subagent result
@@ -122,10 +122,10 @@ Messages are processed before each LLM call to ensure clean, size-bounded histor
    - Finds orphaned ToolReturnParts with no matching ToolCallParts
    - Strips orphaned results, drops empty messages
 3. `EvictionProcessor` (async) runs second:
-   - Resolves backend from RunContext.deps
+   - Writes to the run's workspace, `ctx.workspace`
    - Calculates char limit from token_limit * 4
    - Finds ToolReturnParts exceeding limit
-   - Saves full content to backend via write()
+   - Saves full content to the workspace
    - Replaces with head/tail preview + file path reference
    - Tracks evicted IDs to prevent re-processing
 4. `ContextManagerCapability` checks token usage and optionally compresses history
@@ -145,7 +145,7 @@ flowchart LR
         subgraph EvictStage["Stage 2: EvictionProcessor (async)"]
             direction LR
             CalcLimit["Calculate char limit<br/>(token_limit * 4)"] --> FindLarge["Find oversized<br/>ToolReturnParts"]
-            FindLarge --> SaveToBackend["Save full content<br/>to backend"]
+            FindLarge --> SaveToBackend["Save full content<br/>to workspace"]
             SaveToBackend --> ReplacePreview["Replace with<br/>head/tail preview<br/>+ file path"]
         end
         EvictStage --> CompressStage
@@ -156,7 +156,7 @@ flowchart LR
         CompressStage --> Output
     end
     Output["Clean History to LLM"]
-    EvictStage --> EvictedContent["Evicted Content<br/>(stored in backend)"]
+    EvictStage --> EvictedContent["Evicted Content<br/>(stored in workspace)"]
 ```
 
 ---
@@ -226,12 +226,12 @@ sequenceDiagram
 
 ### Workflow 5: Skill Discovery and Execution
 
-Skills are discovered from directories or backends, then loaded on-demand when the agent needs them.
+Skills are discovered from local directories or the run's workspace, then loaded on-demand when the agent needs them.
 
 **Discovery Flow:**
 
 1. SkillsCapability creates SkillsToolset with directories
-2. SkillsDirectory or BackendSkillsDirectory discovers SKILL.md files
+2. SkillsDirectory (this machine) or WorkspaceSkillsDirectory (the run's workspace) discovers SKILL.md files
 3. Each SKILL.md parsed: frontmatter (name, description) + instructions
 4. Resources (.md, .json, .yaml, etc.) and scripts (.py) discovered alongside
 
@@ -262,7 +262,7 @@ sequenceDiagram
     participant Agent
     participant SkillsToolset
     participant SkillRegistry as "Skill Registry"
-    participant Backend
+    participant Workspace
 
     Agent->>SkillsToolset: get_instructions()
     SkillsToolset->>Agent: List available skills in system prompt
@@ -276,15 +276,15 @@ sequenceDiagram
 
     opt Read Reference Material
         Agent->>SkillsToolset: read_skill_resource(skill_name, resource_path)
-        SkillsToolset->>Backend: Load resource content
-        Backend-->>SkillsToolset: Resource data
+        SkillsToolset->>Workspace: Load resource content
+        Workspace-->>SkillsToolset: Resource data
         SkillsToolset-->>Agent: Resource content
     end
 
     opt Execute Script
         Agent->>SkillsToolset: run_skill_script(skill_name, script_name)
-        SkillsToolset->>Backend: Load and execute script
-        Backend-->>SkillsToolset: Script output
+        SkillsToolset->>Workspace: Run script
+        Workspace-->>SkillsToolset: Script output
         SkillsToolset-->>Agent: Execution result
     end
 ```
@@ -355,10 +355,10 @@ flowchart LR
     AgentLoop --> LLM["LLM API"]
     LLM --> ToolCalls["Tool Calls"]
     ToolCalls --> Toolsets["Toolsets"]
-    Toolsets --> Backend["Backend"]
+    Toolsets --> Workspace["Workspace"]
     Toolsets --> Subagents["Subagents"]
     Toolsets --> Memory["Memory Files"]
-    Backend --> ToolResults["Tool Results"]
+    Workspace --> ToolResults["Tool Results"]
     Subagents --> ToolResults
     Memory --> ToolResults
     ToolResults --> HistoryProcessors["History Processors"]
@@ -376,9 +376,10 @@ The system manages state across multiple dimensions:
 
 | Component | Purpose | Scope |
 |-----------|---------|-------|
-| **DeepAgentDeps** | Holds all runtime state (backend, files, todos, subagents, uploads) | Per-run |
+| **Workspace** | Files and commands, `ctx.workspace` | Per-run; a ref in the history brings the next run back to it |
+| **DeepAgentDeps** | Holds runtime state (todos, subagents, uploads) | Per-run |
 | **ContextManagerCapability** | Tracks token usage and triggers compression | Per-agent |
-| **Memory files** | Persist across sessions in the backend | Cross-session |
+| **Memory files** | Persist across sessions in the workspace | Cross-session |
 | **CheckpointStore** | Persists conversation snapshots | Cross-session |
 | **SharedTodoList** | Provides asyncio-safe shared state for teams | Per-team |
 
@@ -395,7 +396,7 @@ The system handles errors at multiple levels with specific exception types:
 | **BudgetExceededError** | CostTracking | Raised when USD budget is exceeded during execution |
 | **SkillException hierarchy** | SkillsToolset | Includes SkillNotFoundError, SkillValidationError, SkillResourceNotFoundError |
 | **Orphaned tool calls** | patch_tool_calls_processor | Auto-repairs broken history by injecting synthetic returns |
-| **Eviction failures** | EvictionProcessor | Gracefully falls back to original content if backend write fails |
+| **Eviction failures** | EvictionProcessor | Gracefully falls back to original content if the workspace write fails |
 
 ```mermaid
 flowchart TD

@@ -10,7 +10,7 @@ pass it to another function), a string means parsing, guessing, and brittle
 import asyncio
 
 from pydantic import BaseModel, Field
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 class CodeReview(BaseModel):
@@ -27,7 +27,7 @@ async def main():
         output_type=CodeReview,
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     result = await agent.run(
         "Review this function:\n\n"

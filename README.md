@@ -334,11 +334,11 @@ pip install pydantic-deep
 One function call gives you a production deep agent with planning, tool-calling, multi-agent delegation, persistent memory, unlimited context, forking, and cost tracking. Everything is a toggle:
 
 ```python
-from pydantic_ai_backends import StateBackend
-from pydantic_deep import create_deep_agent, create_default_deps
+from pydantic_deep import LocalWorkspace, create_deep_agent, create_default_deps
 
 agent = create_deep_agent(
     model="anthropic:claude-sonnet-4-6",
+    workspace=LocalWorkspace("."),  # where it works: memory (default), disk, Docker, …
     forking=True,               # ⑂ split a run into parallel branches + AI judge
     include_todo=True,          # Task planning with subtasks and dependencies
     include_subagents=True,     # Multi-agent swarm — delegate to subagents
@@ -355,7 +355,7 @@ agent = create_deep_agent(
     include_checkpoints=True,   # Save, rewind, and fork conversations
 )
 
-deps = create_default_deps(StateBackend())
+deps = create_default_deps()
 result = await agent.run("Build a REST API for user auth", deps=deps)
 ```
 
@@ -509,7 +509,7 @@ Pydantic Deep Agents uses pydantic-ai's native **Capabilities API** for all cros
 |           v                 v                 v                     |
 |    +------------+    +------------+    +------------+               |
 |    |   State    |    |   Local    |    |   Docker   |               |
-|    |  Backend   |    |  Backend   |    |  Sandbox   |               |
+|    | Workspace  |    | Workspace  |    | Workspace  |               |
 |    +------------+    +------------+    +------------+               |
 |                                                                     |
 +---------------------------------------------------------------------+
@@ -521,7 +521,7 @@ Every component is a standalone package — use only what you need:
 
 | Package | What It Does |
 |---------|--------------|
-| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage, Docker sandbox, console toolset |
+| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | Workspaces (Docker, sandboxd, Kubernetes, Daytona, in-memory) and the console toolset |
 | [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning with subtasks and dependencies |
 | [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Sync/async delegation, background tasks, cancellation |
 | [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | LLM summaries or zero-cost sliding window |

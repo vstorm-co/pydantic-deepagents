@@ -25,7 +25,7 @@ from datetime import datetime
 
 from pydantic_ai import RunContext
 
-from pydantic_deep import DeepAgentDeps, StateBackend, create_deep_agent
+from pydantic_deep import DeepAgentDeps, create_deep_agent
 
 
 # Define custom tools as functions
@@ -52,23 +52,11 @@ async def log_message(
     timestamp = datetime.now().isoformat()
     log_entry = f"[{timestamp}] [{level}] {message}\n"
 
-    # Use the backend to append to log file
-    backend = ctx.deps.backend
-
-    # Read existing log
-    existing = backend.read("/logs/agent.log")
-    if "Error:" in existing:
-        # File doesn't exist, create it
-        content = log_entry
-    else:
-        # Extract content (remove line numbers)
-        lines = []
-        for line in existing.split("\n"):
-            if "\t" in line:
-                lines.append(line.split("\t", 1)[1])
-        content = "\n".join(lines) + log_entry
-
-    backend.write("/logs/agent.log", content)
+    # Append to the log in the run's workspace
+    workspace = ctx.workspace
+    log_path = "/logs/agent.log"
+    existing = await workspace.read_text(log_path) if await workspace.exists(log_path) else ""
+    await workspace.write_text(log_path, existing + log_entry)
 
     return f"Logged: {log_entry.strip()}"
 
@@ -85,10 +73,10 @@ async def analyze_code_complexity(
     Returns:
         Complexity analysis report.
     """
-    content = ctx.deps.backend.read(file_path)
-
-    if "Error:" in content:
-        return content
+    try:
+        content = await ctx.workspace.read_text(file_path)
+    except FileNotFoundError:
+        return f"Error: {file_path} not found"
 
     # Simple complexity metrics
     lines = content.split("\n")
@@ -130,7 +118,7 @@ async def main():
         ],
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Run the agent
     result = await agent.run(
@@ -150,8 +138,7 @@ async def main():
     # Show the log file
     print("\n" + "=" * 50)
     print("Log file contents:")
-    log_content = deps.backend.read("/logs/agent.log")
-    print(log_content)
+    print(await result.workspace.read_text("/logs/agent.log"))
 
 
 if __name__ == "__main__":
@@ -205,8 +192,8 @@ async def my_tool(
     Returns:
         Description of what the tool returns.
     """
-    # Access dependencies
-    backend = ctx.deps.backend
+    # Access the workspace and dependencies
+    workspace = ctx.workspace
     todos = ctx.deps.todos
 
     # Your logic here
@@ -217,9 +204,9 @@ async def my_tool(
 
 ```python
 async def my_tool(ctx: RunContext[DeepAgentDeps]) -> str:
-    # Access the backend for file operations
-    content = ctx.deps.backend.read("/some/file.txt")
-    ctx.deps.backend.write("/output.txt", "result")
+    # Files go through the run's workspace
+    content = await ctx.workspace.read_text("/some/file.txt")
+    await ctx.workspace.write_text("/output.txt", "result")
 
     # Access todos
     for todo in ctx.deps.todos:
@@ -272,7 +259,7 @@ async def analyze_file(
     path: str,
 ) -> AnalysisResult:
     """Analyze a file and return structured results."""
-    content = ctx.deps.backend.read(path)
+    content = await ctx.workspace.read_text(path)
     # ... analysis logic ...
     return AnalysisResult(
         file_path=path,

@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+**⚠️ Breaking: deep agents now run on Pydantic AI workspaces.** Pydantic AI 2.52
+gave every run one environment to work in, `ctx.workspace`, and
+`pydantic-ai-backend` 0.2.30 replaced its backend protocol with it. Every
+feature here that read or wrote `ctx.deps.backend` now works in the run's
+workspace instead, so any Pydantic AI workspace capability works as the agent's
+environment — including the harness's E2B, Modal and Sprites. Requires
+`pydantic-ai-slim>=2.52.0`, `pydantic-ai-backend>=0.2.31` and
+`subagents-pydantic-ai>=0.2.25`. See the new "Workspaces" page, and the table on
+it for what replaces each removed name.
+
+### Changed
+
+- **`create_deep_agent(workspace=...)`** chooses where runs work:
+  `StateWorkspace()` (the default — an in-memory document, files only),
+  `LocalWorkspace(path)`, `DockerWorkspace(...)`, `SandboxdWorkspace(...)`,
+  `KubernetesWorkspace(...)`, `DaytonaWorkspace(...)` or any other workspace
+  capability. `False` attaches none, for applications that pass each run its own
+  with `agent.run(workspace=...)`. `include_execute` now defaults to on unless the
+  workspace is `StateWorkspace`, which has no commands; subagents follow the
+  parent's choice.
+- **`DeepAgentDeps` holds no files.** `backend`, `files` and `get_files_summary()`
+  are gone; read a run's files from `result.workspace` or, in a tool,
+  `ctx.workspace`. `upload_file()` queues the bytes and the run writes them into
+  its workspace when it starts (`write_pending_uploads()` does it by hand), so
+  uploads land in `uploads/` relative to the workspace's working directory rather
+  than at `/uploads`. `create_default_deps()` takes no arguments.
+- **Memory, context files, plans, evicted tool output, LiteParse screenshots and
+  hooks work in the run's workspace.** Their default directories are relative to
+  its working directory: `.deep/memory`, `.deep/large_tool_results`, `plans`,
+  `screenshots`. Command hooks need a workspace that runs commands and raise when
+  the run's workspace has none.
+- **Monitors run in the workspace**, their output going to a log under
+  `.deep/monitors/`; in a workspace without commands the tools say so.
+- **`WorkspaceSkillsDirectory` replaces `BackendSkillsDirectory`**: a folder of
+  skills inside the run's workspace, discovered through `ctx.workspace` on first
+  use in each workspace. Scripts are offered only where the workspace runs
+  commands.
+- **Forked branches work in an overlay of the parent's workspace**, flushed onto
+  it when a branch wins. `BranchIsolation.backend` is now
+  `BranchIsolation.workspace`; `LocalBranchOverlay` runs a branch's
+  `test_command` in a temporary copy of a local project; `branch_workspace`
+  gives the workspace a branch runs in.
+- **The CLI works in `LocalWorkspace` or one Docker container per project and
+  workspace name**, mounting the project at `/workspace`; a session without a
+  workspace name gets a container of its own, removed when the session ends.
+- **The ACP server and the deepresearch app** pass each session's workspace to
+  its runs.
+
+### Removed
+
+- `DeepAgentDeps(backend=...)`, `DeepAgentDeps.files`, `get_files_summary()`,
+  `unwrap_backend`, `BackendSkillsDirectory`, `BackendSkillResource`,
+  `BackendSkillScript`, `BackendSkillScriptExecutor`, and the re-exports of
+  `BackendProtocol`, `SandboxProtocol`, `LocalBackend`, `CompositeBackend`,
+  `BaseSandbox`, `AsyncBaseSandbox`, `is_async_backend`, `DockerSandbox`,
+  `SessionManager`, `ConsoleDeps`, `WriteResult`, `EditResult`,
+  `ExecuteResponse` and `GrepMatch`. A workspace has no equivalent of `CompositeBackend`'s path
+  routing: one workspace serves a run, and its example is gone.
+- **The CLI's background shells panel** (`/shells`): background processes were a
+  feature of the old local backend.
+
+### Fixed
+
+- **Tests and type checks pass on Pydantic AI 2.54**, which `main` had drifted
+  from.
+
 ## [0.3.44] - 2026-10-05
 
 ### Fixed

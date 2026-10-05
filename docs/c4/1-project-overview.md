@@ -35,7 +35,7 @@ pydantic-deep provides a single high-level factory function (`create_deep_agent`
 | Component | Technology |
 |-----------|------------|
 | Language | Python >= 3.10 |
-| Core Framework | pydantic-ai-slim >= 1.74.0 |
+| Core Framework | pydantic-ai-slim >= 2.52.0 |
 | Build Tool | hatchling |
 | Data Models | pydantic >= 2.0 |
 
@@ -44,7 +44,7 @@ pydantic-deep provides a single high-level factory function (`create_deep_agent`
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `pydantic-ai-todo` | >= 0.2.1 | Task planning with dependencies |
-| `pydantic-ai-backend` | >= 0.2.2 | File storage backends (StateBackend, LocalBackend, DockerSandbox) |
+| `pydantic-ai-backend` | >= 0.2.31 | Workspace capabilities (StateWorkspace, DockerWorkspace, sandboxes) and console tools |
 | `summarization-pydantic-ai` | >= 0.1.3 | Context compression / summarization |
 | `subagents-pydantic-ai` | >= 0.2.1 | Multi-agent delegation |
 | `pydantic-ai-shields` | >= 0.3.1 | Cost tracking, input/tool/output shields |
@@ -192,9 +192,8 @@ Each layer is composable and can be independently enabled/disabled via boolean f
 
 ### State Flow
 
-All state flows through `DeepAgentDeps`, a dependency injection container that provides:
+Files and commands live in the run's workspace, `ctx.workspace`, which a workspace capability supplies. The rest of the state flows through `DeepAgentDeps`, a dependency injection container that provides:
 - Configuration options
-- Backend storage instances
 - Planning state
 - Memory state
 - Team coordination state
@@ -236,9 +235,9 @@ The system is built on pydantic-ai's `Agent`, which provides the core LLM intera
                     │           │           │
                     ▼           ▼           ▼
         ┌───────────────┐ ┌─────────┐ ┌──────────────┐
-        │ LLM Providers │ │ Storage │ │ Web Services │
-        │ (Anthropic,   │ │ Backends│ │ (Search,     │
-        │  OpenAI, etc) │ │         │ │  Fetch)      │
+        │ LLM Providers │ │Workspace│ │ Web Services │
+        │ (Anthropic,   │ │ (files, │ │ (Search,     │
+        │  OpenAI, etc) │ │commands)│ │  Fetch)      │
         └───────────────┘ └─────────┘ └──────────────┘
 ```
 

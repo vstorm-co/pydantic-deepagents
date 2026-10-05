@@ -11,7 +11,7 @@ Let's make the agent remember. The trick is one argument: `message_history`.
 ```python hl_lines="14 19 22 24"
 import asyncio
 
-from pydantic_deep import create_deep_agent, DeepAgentDeps, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps
 
 
 async def main():
@@ -19,7 +19,7 @@ async def main():
         model="anthropic:claude-sonnet-4-6",
         instructions="You are a helpful assistant.",
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # First turn — no history yet.
     first = await agent.run("My favorite language is Python.", deps=deps)
@@ -60,9 +60,11 @@ Two lines do the work:
 
 That's a *session*: keep the latest `all_messages()` around and pass it to the next run. To persist a session across process restarts, save those messages — pydantic-ai's `ModelMessagesTypeAdapter` serializes them to JSON, and the [`FileCheckpointStore`](#persist-to-disk) below uses exactly that.
 
-!!! tip "Keep deps too"
-    Reuse the same `DeepAgentDeps` across turns so the agent keeps its
-    backend — the files it wrote in turn one are still there in turn two.
+!!! tip "The files come along"
+    The history also carries the ref of the workspace the run worked in, so
+    the next run works in the same one — the files it wrote in turn one are
+    still there in turn two, even in the default in-memory workspace. Reuse the
+    same `DeepAgentDeps` across turns to keep its todos and uploads too.
 
 ## Snapshot with checkpoints
 
@@ -95,7 +97,6 @@ import asyncio
 from pydantic_deep import (
     create_deep_agent,
     DeepAgentDeps,
-    StateBackend,
     RewindRequested,
 )
 
@@ -105,7 +106,7 @@ async def main():
         model="anthropic:claude-sonnet-4-6",
         include_checkpoints=True,
     )
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
     history = []
 
     while True:

@@ -217,7 +217,7 @@ Prevents large tool outputs from bloating context.
 **Trigger:** `ToolReturnPart` content exceeds `token_limit * 4` characters (~20K tokens = ~80KB).
 
 **Action:**
-1. Save full output to `{eviction_path}/{tool_call_id}` via backend
+1. Save full output to `{eviction_path}/{tool_call_id}` in the run's workspace
 2. Replace content with a preview (5 head + 5 tail lines) and file reference
 3. Agent can later `read_file` with `offset`/`limit` to access full output
 
@@ -422,8 +422,8 @@ flowchart LR
 8. **Callbacks for extensibility:** `on_before_compress` and `on_after_compress` allow
    custom archival and context re-injection without modifying the middleware itself.
 
-9. **Backend abstraction:** All file operations go through `BackendProtocol`, meaning
-   the same architecture works with local filesystem, in-memory state, or Docker sandbox.
+9. **Workspaces:** All file operations go through the run's workspace, `ctx.workspace`,
+   meaning the same architecture works with a local directory, in-memory state, or a sandbox.
 
 10. **Optional checkpoints for library users:** The `CheckpointMiddleware` and
     `FileCheckpointStore` remain available in `pydantic_deep/features/checkpointing.py`

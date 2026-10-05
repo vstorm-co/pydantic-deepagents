@@ -11,7 +11,7 @@ pydantic-deep supports two ways to upload files:
 
 Uploaded files are:
 
-- Stored in the backend (StateBackend, FilesystemBackend, etc.)
+- Written into the run's workspace when the run starts
 - Visible to the agent in the system prompt
 - Accessible via file tools (`read_file`, `grep`, `glob`, `execute`)
 
@@ -23,11 +23,11 @@ The simplest way to process files:
 
 ```python
 import asyncio
-from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files, StateBackend
+from pydantic_deep import create_deep_agent, DeepAgentDeps, run_with_files
 
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Upload and process files in one call
     with open("data.csv", "rb") as f:
@@ -50,11 +50,11 @@ For more control over the upload process:
 ```python
 async def main():
     agent = create_deep_agent()
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Upload files separately
-    deps.upload_file("config.json", b'{"debug": true}')
-    deps.upload_file("data.csv", csv_bytes)
+    await deps.upload_file("config.json", b'{"debug": true}')
+    await deps.upload_file("data.csv", csv_bytes)
 
     # Run agent - it sees uploaded files in system prompt
     result = await agent.run("Summarize the config and data", deps=deps)
@@ -66,17 +66,18 @@ async def main():
 
 When you upload a file:
 
-1. Content is written to the backend at `/uploads/<filename>`
-2. Metadata is tracked in `deps.uploads` dict
+1. The bytes are queued on the deps, and metadata is tracked in the `deps.uploads` dict
+2. When the next run starts, the content is written into its workspace at `uploads/<filename>`,
+   relative to the workspace's working directory
 3. Agent sees file info in dynamic system prompt
 
 ```python
-deps.upload_file("sales.csv", csv_bytes)
+await deps.upload_file("sales.csv", csv_bytes)
 
-# File stored at: /uploads/sales.csv
+# Written at the next run's start to: uploads/sales.csv
 # Metadata tracked:
 print(deps.uploads)
-# {'/uploads/sales.csv': {'name': 'sales.csv', 'path': '/uploads/sales.csv', 'size': 1024, 'line_count': 50}}
+# {'uploads/sales.csv': {'name': 'sales.csv', 'path': 'uploads/sales.csv', 'size': 1024, 'line_count': 50}}
 ```
 
 ### System Prompt
@@ -87,8 +88,8 @@ The agent sees uploaded files in its context:
 ## Uploaded Files
 
 Files uploaded by the user:
-- `/uploads/sales.csv` (1.0 KB, 50 lines)
-- `/uploads/config.json` (128 B, 5 lines)
+- `uploads/sales.csv` (1.0 KB, 50 lines)
+- `uploads/config.json` (128 B, 5 lines)
 
 Use `read_file`, `grep`, `glob` or `execute` to work with these files.
 For large files, use `offset` and `limit` in `read_file`.
@@ -103,11 +104,11 @@ The agent can use these tools to work with uploaded files:
 | `read_file` | Read file content (with offset/limit for large files) |
 | `grep` | Search for patterns in files |
 | `glob` | Find files by pattern |
-| `execute` | Run scripts that process files (with DockerSandbox) |
+| `execute` | Run scripts that process files (in a workspace that runs commands) |
 
 ## Custom Upload Directory
 
-By default, files are uploaded to `/uploads/`. You can customize this:
+By default, files are uploaded to `uploads/`. You can customize this:
 
 ```python
 # run_with_files with custom directory
@@ -116,12 +117,12 @@ result = await run_with_files(
     "Process configs",
     deps,
     files=[("app.json", config_bytes)],
-    upload_dir="/configs",  # Files go to /configs/
+    upload_dir="configs",  # Files go to configs/
 )
 
 # Direct upload with custom directory
-deps.upload_file("db.json", data, upload_dir="/data")
-# Stored at: /data/db.json
+await deps.upload_file("db.json", data, upload_dir="data")
+# Stored at: data/db.json
 ```
 
 ## Multiple Files
@@ -149,40 +150,40 @@ Binary files (images, PDFs, etc.) are handled with limited support:
 
 ```python
 # Binary file upload
-deps.upload_file("image.png", png_bytes)
+await deps.upload_file("image.png", png_bytes)
 
 # line_count will be None for binary files
-print(deps.uploads["/uploads/image.png"]["line_count"])  # None
+print(deps.uploads["uploads/image.png"]["line_count"])  # None
 ```
 
 !!! note
-    Binary files are stored but text-based analysis is limited. For full binary processing, consider using DockerSandbox with appropriate tools.
+    Binary files are stored but text-based analysis is limited. For full binary processing, give the agent a workspace that runs commands, such as `DockerWorkspace`, with appropriate tools.
 
 ## Large Files
 
 For large files, the agent should use pagination:
 
 ```python
-deps.upload_file("large_log.txt", log_bytes)  # 100,000 lines
+await deps.upload_file("large_log.txt", log_bytes)  # 100,000 lines
 
 # Agent will see:
-# - `/uploads/large_log.txt` (5.2 MB, 100000 lines)
+# - `uploads/large_log.txt` (5.2 MB, 100000 lines)
 
 # Agent can then:
-# 1. read_file("/uploads/large_log.txt", limit=100)  # First 100 lines
-# 2. read_file("/uploads/large_log.txt", offset=100, limit=100)  # Next 100
-# 3. grep("ERROR", "/uploads/large_log.txt")  # Search for patterns
+# 1. read_file("uploads/large_log.txt", limit=100)  # First 100 lines
+# 2. read_file("uploads/large_log.txt", offset=100, limit=100)  # Next 100
+# 3. grep("ERROR", "uploads/large_log.txt")  # Search for patterns
 ```
 
 ## Subagent Access
 
-Uploaded files are shared with subagents:
+Uploaded files are shared with subagents, which work in their parent's workspace:
 
 ```python
-deps.upload_file("data.csv", csv_bytes)
+await deps.upload_file("data.csv", csv_bytes)
 
 # Main agent can delegate to subagent
-# Subagent will have access to /uploads/data.csv
+# Subagent will have access to uploads/data.csv
 result = await agent.run(
     "Delegate data analysis to the data-analyst subagent",
     deps=deps,
@@ -199,7 +200,6 @@ from pydantic import BaseModel
 from pydantic_deep import (
     create_deep_agent,
     DeepAgentDeps,
-    StateBackend,
     run_with_files,
 )
 
@@ -224,7 +224,7 @@ async def main():
         """,
     )
 
-    deps = DeepAgentDeps(backend=StateBackend())
+    deps = DeepAgentDeps()
 
     # Sample data
     sales_data = b"""date,product,quantity,revenue
@@ -266,7 +266,7 @@ async def run_with_files(
     deps: DeepAgentDeps,
     files: list[tuple[str, bytes]] | None = None,
     *,
-    upload_dir: str = "/uploads",
+    upload_dir: str = "uploads",
 ) -> OutputT:
     """Run agent with file uploads.
 
@@ -275,7 +275,7 @@ async def run_with_files(
         query: The user query/prompt.
         deps: Agent dependencies.
         files: List of (filename, content) tuples to upload.
-        upload_dir: Directory to store uploads.
+        upload_dir: Directory for uploads, relative to the workspace's working directory.
 
     Returns:
         Agent output (type depends on agent's output_type).
@@ -285,22 +285,22 @@ async def run_with_files(
 ### deps.upload_file()
 
 ```python
-def upload_file(
+async def upload_file(
     self,
     name: str,
     content: bytes,
     *,
-    upload_dir: str = "/uploads",
+    upload_dir: str = "uploads",
 ) -> str:
-    """Upload a file to the backend and track it.
+    """Upload a file for the next run and track it.
 
     Args:
         name: Original filename (e.g., "sales.csv")
         content: File content as bytes
-        upload_dir: Directory to store uploads
+        upload_dir: Directory for uploads, relative to the workspace's working directory
 
     Returns:
-        The path where the file was stored.
+        The path the file will be stored at (e.g., "uploads/sales.csv")
     """
 ```
 
@@ -310,7 +310,7 @@ def upload_file(
 class UploadedFile(TypedDict):
     """Metadata for an uploaded file."""
     name: str        # Original filename
-    path: str        # Path in backend (e.g., /uploads/sales.csv)
+    path: str        # Path in the workspace (e.g., uploads/sales.csv)
     size: int        # Size in bytes
     line_count: int | None  # Number of lines (None for binary)
 ```

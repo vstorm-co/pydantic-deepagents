@@ -269,10 +269,10 @@ def test_scoped_token_storage_namespaces_by_scope_set() -> None:
 
 
 def test_http_client_factory_reaches_oauth_and_transport() -> None:
-    import httpx
+    import httpx2
 
-    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
-        return httpx.AsyncClient()
+    def factory(config: MCPServerConfig) -> httpx2.AsyncClient:
+        return httpx2.AsyncClient()
 
     cfg = MCPServerConfig(
         name="atlassian", transport="http", url="https://x/mcp", auth=MCPAuth(kind="oauth")
@@ -284,40 +284,66 @@ def test_http_client_factory_reaches_oauth_and_transport() -> None:
     # `initialize` to the first token refresh — both sides need the factory.
     assert transport.httpx_client_factory is not None
     assert oauth.httpx_client_factory is transport.httpx_client_factory
-    assert oauth.httpx_client_factory is not httpx.AsyncClient
+    assert oauth.httpx_client_factory is not httpx2.AsyncClient
 
 
 async def test_adapted_factory_returns_fresh_client_and_applies_kwargs() -> None:
-    import httpx
+    import httpx2
 
     from pydantic_deep.mcp.registry import _adapt_http_client_factory
 
     cfg = MCPServerConfig(name="a", transport="http", url="https://x/mcp")
-    made: list[httpx.AsyncClient] = []
+    made: list[httpx2.AsyncClient] = []
 
-    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
+    def factory(config: MCPServerConfig) -> httpx2.AsyncClient:
         assert config is cfg
-        client = httpx.AsyncClient(headers={"Proxy-Authorization": "Negotiate abc"})
+        client = httpx2.AsyncClient(headers={"Proxy-Authorization": "Negotiate abc"})
         made.append(client)
         return client
 
     adapted = _adapt_http_client_factory(factory, cfg)
-    auth = httpx.Auth()
+    auth = httpx2.Auth()
     first = adapted()  # the OAuth flow calls with no arguments
-    second = adapted(headers={"X-H": "1"}, timeout=httpx.Timeout(7.0), auth=auth)
+    second = adapted(headers={"X-H": "1"}, timeout=httpx2.Timeout(7.0), auth=auth)
     # Each call site `async with`es (and closes) its client, so a shared
     # instance would be dead after the first use — every call must be fresh.
     assert first is not second
     assert second.headers["X-H"] == "1"
     assert second.headers["Proxy-Authorization"] == "Negotiate abc"
     assert second.auth is auth
-    assert second.timeout == httpx.Timeout(7.0)
+    assert second.timeout == httpx2.Timeout(7.0)
     for client in made:
         await client.aclose()
 
 
+async def test_a_real_transport_connects_through_the_factory() -> None:
+    """FastMCP's HTTP transport calls the factory with `follow_redirects`, which
+    its own protocol does not declare - so only a real connection shows the
+    factory is accepted. Port 9 refuses, which is all this needs."""
+    import httpx2
+
+    from pydantic_deep.mcp.registry import probe_mcp_server
+
+    made: list[httpx2.AsyncClient] = []
+
+    def factory(config: MCPServerConfig) -> httpx2.AsyncClient:
+        client = httpx2.AsyncClient()
+        made.append(client)
+        return client
+
+    cfg = MCPServerConfig(name="corp", transport="http", url="http://127.0.0.1:9/mcp")
+    result = await probe_mcp_server(
+        build_mcp_server(cfg, lambda k: None, http_client_factory=factory), timeout=5
+    )
+
+    assert not result.ok
+    assert "unexpected keyword argument" not in (result.error or "")
+    assert made, "the transport never asked the factory for a client"
+    assert made[0].follow_redirects is True
+
+
 def test_build_http_with_factory_keeps_resolved_headers() -> None:
-    import httpx
+    import httpx2
     from fastmcp.client.transports import StreamableHttpTransport
 
     cfg = MCPServerConfig(
@@ -327,7 +353,7 @@ def test_build_http_with_factory_keeps_resolved_headers() -> None:
         headers={"X-Extra": "1"},
         auth=MCPAuth(secret_key="K", kind="bearer"),
     )
-    ts = build_mcp_server(cfg, lambda k: "tok", http_client_factory=lambda c: httpx.AsyncClient())
+    ts = build_mcp_server(cfg, lambda k: "tok", http_client_factory=lambda c: httpx2.AsyncClient())
     transport = _transport(ts)
     assert isinstance(transport, StreamableHttpTransport)
     assert transport.headers["Authorization"] == "Bearer tok"
@@ -336,27 +362,27 @@ def test_build_http_with_factory_keeps_resolved_headers() -> None:
 
 
 def test_build_sse_with_factory_uses_sse_transport() -> None:
-    import httpx
+    import httpx2
     from fastmcp.client.transports import SSETransport
 
     cfg = MCPServerConfig(name="legacy", transport="sse", url="https://x/sse")
-    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx.AsyncClient())
+    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx2.AsyncClient())
     assert isinstance(_transport(ts), SSETransport)
 
 
 def test_build_stdio_ignores_http_client_factory() -> None:
-    import httpx
+    import httpx2
 
     cfg = MCPServerConfig(name="local", transport="stdio", command="echo")
-    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx.AsyncClient())
+    ts = build_mcp_server(cfg, lambda k: None, http_client_factory=lambda c: httpx2.AsyncClient())
     assert ts is not None
 
 
 def test_registry_threads_http_client_factory() -> None:
-    import httpx
+    import httpx2
 
-    def factory(config: MCPServerConfig) -> httpx.AsyncClient:
-        return httpx.AsyncClient()
+    def factory(config: MCPServerConfig) -> httpx2.AsyncClient:
+        return httpx2.AsyncClient()
 
     reg = MCPRegistry(resolver=lambda k: None, http_client_factory=factory)
     cfg = MCPServerConfig(name="plain", transport="http", url="https://x/mcp")

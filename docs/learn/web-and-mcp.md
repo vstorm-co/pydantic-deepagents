@@ -210,7 +210,7 @@ old permissions.
 
 Behind a TLS-inspecting proxy, both the MCP transport and the OAuth flow
 (discovery, token exchange, refresh) must trust your network. Try the standard
-environment variables first — httpx honours them for every connection:
+environment variables first — the HTTP client honours them for every connection:
 
 ```bash
 export HTTPS_PROXY="http://proxy.corp.example:8080"
@@ -227,16 +227,16 @@ applies to every HTTP-based server in a registry and reaches both the transport
 and the OAuth flow:
 
 ```python
-import httpx
+import httpx2
 import ssl
 import truststore
 
 from pydantic_deep import MCPRegistry, MCPServerConfig
 
 
-def corporate_client(config: MCPServerConfig) -> httpx.AsyncClient:
+def corporate_client(config: MCPServerConfig) -> httpx2.AsyncClient:
     # Called once per connection — always return a fresh client.
-    return httpx.AsyncClient(
+    return httpx2.AsyncClient(
         proxy="http://proxy.corp.example:8080",
         verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
     )

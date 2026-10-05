@@ -44,7 +44,7 @@ def _stdio_log_file(name: str) -> Path:
 
 
 if TYPE_CHECKING:
-    import httpx
+    import httpx2
     from pydantic_ai._run_context import RunContext
     from pydantic_ai.toolsets import AbstractToolset
     from pydantic_ai.toolsets.abstract import ToolsetTool
@@ -66,8 +66,8 @@ __all__ = [
 SecretResolver = Callable[[str], "str | None"]
 """Resolves a secret key (e.g. ``"GITHUB_MCP_PAT"``) to its token, or ``None``."""
 
-HttpClientFactory = Callable[[MCPServerConfig], "httpx.AsyncClient"]
-"""Builds an ``httpx.AsyncClient`` for a server config (corporate proxy,
+HttpClientFactory = Callable[[MCPServerConfig], "httpx2.AsyncClient"]
+"""Builds an ``httpx2.AsyncClient`` for a server config (corporate proxy,
 custom CA / OS trust store, mTLS, authenticated proxy headers, …).
 
 Every HTTP-based connection goes through it — the MCP transport *and* each
@@ -126,7 +126,7 @@ def auth_satisfied(config: MCPServerConfig, resolver: SecretResolver | None = No
 
 def _adapt_http_client_factory(
     factory: HttpClientFactory, config: MCPServerConfig
-) -> Callable[..., httpx.AsyncClient]:
+) -> Callable[..., httpx2.AsyncClient]:
     """Adapt a per-config client factory to the MCP SDK's factory protocol.
 
     FastMCP invokes the factory once per connection (transport traffic and each
@@ -138,9 +138,10 @@ def _adapt_http_client_factory(
 
     def make_client(
         headers: dict[str, str] | None = None,
-        timeout: httpx.Timeout | None = None,
-        auth: httpx.Auth | None = None,
-    ) -> httpx.AsyncClient:
+        timeout: httpx2.Timeout | None = None,
+        auth: httpx2.Auth | None = None,
+        follow_redirects: bool | None = None,
+    ) -> httpx2.AsyncClient:
         client = factory(config)
         if headers:
             client.headers.update(headers)
@@ -148,6 +149,10 @@ def _adapt_http_client_factory(
             client.timeout = timeout
         if auth is not None:
             client.auth = auth
+        # Outside the SDK's factory protocol, but FastMCP's HTTP transport
+        # passes it on every connection: without it, none could open.
+        if follow_redirects is not None:
+            client.follow_redirects = follow_redirects
         return client
 
     return make_client
@@ -172,7 +177,7 @@ def _build_oauth(
     auth: MCPAuth,
     *,
     oauth_token_storage: Any | None,
-    client_factory: Callable[..., httpx.AsyncClient] | None,
+    client_factory: Callable[..., httpx2.AsyncClient] | None,
 ) -> Any:
     """Construct the FastMCP ``OAuth`` object for an ``oauth``-kind config."""
     from fastmcp.client.auth.oauth import OAuth
@@ -196,7 +201,7 @@ def _build_oauth(
 
 def _build_http_transport(
     config: MCPServerConfig,
-    client_factory: Callable[..., httpx.AsyncClient],
+    client_factory: Callable[..., httpx2.AsyncClient],
     *,
     headers: dict[str, str] | None = None,
     auth: Any | None = None,

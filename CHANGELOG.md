@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Subagents keep the parent's eviction settings.** The default subagent factory
+  built every subagent with the default `EvictionCapability`, whatever the parent
+  was given: `eviction_token_limit`, `max_binary_content` and `on_eviction` now
+  carry through, and `eviction_token_limit=None` leaves subagents without the
+  default capability as it does the parent. (#214, fixes #206)
+
+## [0.3.46] - 2026-10-06
+
+### Fixed
+
 - **A fresh install of 0.3.45 failed on import.** `pydantic-ai-backend` 0.2.32
   imported `httpx` for every workspace without declaring it in the `workspaces`
   extra, so `import pydantic_deep` raised `ModuleNotFoundError: No module named

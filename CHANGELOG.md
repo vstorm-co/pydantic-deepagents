@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A fresh install broke on import.** `pydantic-ai-backend` 0.2.30 replaced its
+  backend protocol with Pydantic AI workspaces and removed `LocalBackend`,
+  `AsyncBaseSandbox` and the rest of the names this package imports, and the
+  requirement had no upper bound, so `pip install pydantic-deep` resolved it and
+  `import pydantic_deep` raised `ImportError`. Both the `console` and `docker`
+  requirements are now `>=0.2.25,<0.2.30` until this package moves to
+  workspaces.
+
 ## [0.3.43] - 2026-08-05
 
 ### Changed

@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the span; `MessageQueue(max_pending=...)` (default 100 per priority) refuses past
   the cap with `QueueFullError`; `discard_follow_up(keep=...)` and `queued_source()`
   are public. (#233)
+- **Enterprise configuration for hosted OAuth MCP servers.** `MCPAuth` takes
+  `scopes` and a fixed `callback_port`, and `MCPRegistry(http_client_factory=...)`
+  builds the HTTP client - authenticated proxy, OS trust store, mTLS - for both the
+  MCP transport and every step of the OAuth flow. Cached tokens are kept per scope
+  set, so changing `scopes` re-authorizes. (#234, from #188 by @OchnikBartek;
+  closes #183)
 
 ## [0.3.46] - 2026-10-06
 

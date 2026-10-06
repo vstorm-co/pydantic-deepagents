@@ -307,6 +307,93 @@ class TestIgnoreTools:
         assert cap.ignore_tools == set()
 
 
+class TestToolMetadataOptOut:
+    """A tool exempting itself where it is defined (#208), not by name elsewhere."""
+
+    @staticmethod
+    async def _fire_with(
+        cap: StuckLoopDetection, metadata: dict[str, Any], args: dict[str, Any], result: Any
+    ) -> Any:
+        return await cap.after_tool_execute(
+            _ctx(),
+            call=_call("attach_file"),
+            tool_def=ToolDefinition(name="attach_file", description="", metadata=metadata),
+            args=args,
+            result=result,
+        )
+
+    async def test_a_constant_success_is_not_mistaken_for_no_effect(self):
+        """The report: three different files attached, each answering `True`."""
+        cap = StuckLoopDetection(max_repeated=3)
+        opt_out = {"stuck_loop_detection": {"noop": False}}
+
+        for name in ("a.txt", "b.txt", "c.txt"):
+            assert await self._fire_with(cap, opt_out, {"filename": name}, True) is True
+
+    async def test_opting_out_of_noop_still_catches_identical_calls(self):
+        from pydantic_ai.exceptions import ModelRetry
+
+        cap = StuckLoopDetection(max_repeated=3)
+        opt_out = {"stuck_loop_detection": {"noop": False}}
+        await self._fire_with(cap, opt_out, {"filename": "a.txt"}, True)
+        await self._fire_with(cap, opt_out, {"filename": "a.txt"}, True)
+
+        with pytest.raises(ModelRetry, match="identical arguments"):
+            await self._fire_with(cap, opt_out, {"filename": "a.txt"}, True)
+
+    async def test_false_exempts_the_tool_from_every_check(self):
+        cap = StuckLoopDetection(max_repeated=2)
+
+        for _ in range(4):
+            await self._fire_with(cap, {"stuck_loop_detection": False}, {"filename": "a.txt"}, True)
+
+    async def test_without_the_key_the_tool_is_checked_as_before(self):
+        from pydantic_ai.exceptions import ModelRetry
+
+        cap = StuckLoopDetection(max_repeated=2)
+        await self._fire_with(cap, {"other": 1}, {"filename": "a.txt"}, True)
+
+        with pytest.raises(ModelRetry, match="same result"):
+            await self._fire_with(cap, {"other": 1}, {"filename": "b.txt"}, True)
+
+    async def test_the_decorator_carries_it_to_a_real_run(self):
+        """End to end: the metadata reaches `tool_def` through `@toolset.tool`."""
+        from pydantic_ai import Agent
+        from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
+        from pydantic_ai.models.function import AgentInfo, FunctionModel
+        from pydantic_ai.toolsets import FunctionToolset
+
+        toolset: FunctionToolset[None] = FunctionToolset()
+
+        @toolset.tool(metadata={"stuck_loop_detection": {"noop": False}})
+        def attach_file(ctx: RunContext[None], filename: str) -> bool:
+            return True
+
+        files = iter(["a.txt", "b.txt", "c.txt"])
+
+        def model(messages: list[Any], info: AgentInfo) -> ModelResponse:
+            name = next(files, None)
+            if name is None:
+                return ModelResponse(parts=[TextPart("attached all")])
+            return ModelResponse(parts=[ToolCallPart("attach_file", {"filename": name})])
+
+        agent = Agent(
+            FunctionModel(model),
+            toolsets=[toolset],
+            capabilities=[StuckLoopDetection(max_repeated=3)],
+        )
+        result = await agent.run("attach three files")
+
+        returns = [
+            p
+            for m in result.all_messages()
+            for p in getattr(m, "parts", [])
+            if isinstance(p, ToolReturnPart)
+        ]
+        assert [r.content for r in returns] == [True, True, True]
+        assert result.output == "attached all"
+
+
 class TestStuckLoopError:
     """Tests for StuckLoopError exception."""
 

@@ -99,6 +99,22 @@ The knobs:
     so a legitimate poll loop doesn't read as a stuck loop:
     `StuckLoopDetection(ignore_tools={"inspect_branches"})`.
 
+### Opting a tool out where it's defined
+
+A tool can carry its own exemption in its metadata, instead of being named in
+`ignore_tools` somewhere else:
+
+```python
+@toolset.tool(metadata={"stuck_loop_detection": {"noop": False}})
+def attach_file(ctx: RunContext[Deps], email_id: str, filename: str) -> bool:
+    ...
+```
+
+`{"noop": False}` turns off only the same-result check, for a tool that answers
+the same whenever it works — attaching three different files returns `True` three
+times, and that's not a loop. Identical calls are still caught. `False` instead
+of the dict exempts the tool from every check, like `ignore_tools`.
+
 ## Handling a hard stop
 
 When you choose `action="error"`, catch `StuckLoopError` to decide what happens next. It carries a `pattern` attribute telling you which shape tripped — `"repeated"`, `"alternating"`, or `"noop"`:
@@ -124,7 +140,7 @@ except StuckLoopError as e:
 - It catches three patterns: **repeated** identical calls, **alternating** A-B-A-B, and **no-op** same-result calls.
 - `max_repeated` (default `3`) sets the threshold; the count must be at least 2.
 - `action="warn"` (default) raises `ModelRetry` so the model self-corrects; `action="error"` raises `StuckLoopError` and stops the run.
-- Add noisy-but-legitimate pollers to `ignore_tools` so they aren't flagged.
+- Add noisy-but-legitimate pollers to `ignore_tools`, or let a tool exempt itself with `metadata={"stuck_loop_detection": ...}`.
 
 Where to go next:
 

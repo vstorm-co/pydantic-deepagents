@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A tool that returns the same thing whenever it works can say so.** Stuck-loop
+  detection's no-op check compares results only, so attaching three different
+  files - each answering `True` - read as "the operation has no effect", and the
+  retry replaced the real result. A tool now opts out where it is defined:
+  `metadata={"stuck_loop_detection": {"noop": False}}` skips the result check (identical
+  calls are still caught), and `metadata={"stuck_loop_detection": False}` every check.
+  (#237, fixes #208)
 - **Team members are built like the lead's subagents.** `spawn_team` built members
   through a stale copy of the subagent factory: every member ran on a hardcoded
   Anthropic model, with web search the lead had turned off (failing the whole run

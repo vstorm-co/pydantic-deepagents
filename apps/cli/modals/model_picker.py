@@ -1,8 +1,9 @@
 """Model picker modal — opened by /model.
 
-Lists recently-used models, the live OpenRouter catalogue (fetched and cached,
-with an offline fallback), and the other providers. Type to filter or enter a
-custom model string.
+Lists recently-used models, the models local servers are serving (discovered
+when the picker opens), the live OpenRouter catalogue (fetched and cached, with
+an offline fallback), and the other providers. Type to filter or enter a custom
+model string.
 """
 
 from __future__ import annotations
@@ -67,6 +68,9 @@ class ModelPickerModal(ModalScreen[str | None]):
         self._used_fallback = False
         # Flat (model, has_key) list across all sections, for search.
         self._all_models: list[tuple[str, bool]] = []
+        # What the OpenAI-compatible endpoint and Ollama are serving; filled in
+        # the background, so a server that is down never delays the picker.
+        self._local_models: list[str] = []
 
     def compose(self) -> ComposeResult:
         with Vertical(id="model-container"):
@@ -90,6 +94,7 @@ class ModelPickerModal(ModalScreen[str | None]):
         # If we rendered from an empty/absent cache, fetch live in the background.
         if self._used_fallback:
             self._refresh_openrouter()
+        self._discover_local()
 
     # ── option building ─────────────────────────────────────────────────
 
@@ -120,6 +125,12 @@ class ModelPickerModal(ModalScreen[str | None]):
         if recent:
             header("★ Recently used")
             for model in recent:
+                add(model, has_key=True)
+
+        # Local servers - only what they answered with
+        if self._local_models:
+            header("Local (discovered)", has_key=True)
+            for model in self._local_models:
                 add(model, has_key=True)
 
         # OpenRouter — live catalogue, with an offline fallback list
@@ -159,6 +170,20 @@ class ModelPickerModal(ModalScreen[str | None]):
         models = fetch_openrouter_models()
         if models:
             self.app.call_from_thread(self._repopulate)
+
+    @work(thread=True, exclusive=True, group="local-models")
+    def _discover_local(self) -> None:
+        """List the models the OpenAI-compatible endpoint and Ollama are serving."""
+        from apps.cli.config import load_config
+        from apps.cli.local_models import ollama_models, openai_compatible_models
+
+        found = openai_compatible_models(load_config().base_url) + ollama_models()
+        if found:
+            self.app.call_from_thread(self._show_local, found)
+
+    def _show_local(self, models: list[str]) -> None:
+        self._local_models = models
+        self._repopulate()
 
     def _repopulate(self) -> None:
         """Rebuild the option list from the (now-cached) catalogue."""

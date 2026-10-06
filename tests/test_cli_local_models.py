@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.models.openai import OpenAIChatModel
 
 from apps.cli.agent import create_cli_agent
@@ -79,8 +80,22 @@ class TestResolveCliModel:
     def test_plain_model_string_passes_through(self) -> None:
         assert resolve_cli_model("anthropic:claude-sonnet-4-6") == "anthropic:claude-sonnet-4-6"
 
-    def test_ollama_is_not_treated_as_local_endpoint(self) -> None:
+    def test_ollama_with_a_configured_host_is_left_to_pydantic_ai(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://gpu-box:11434/v1")
         assert resolve_cli_model("ollama:llama3.3") == "ollama:llama3.3"
+
+    def test_ollama_without_a_host_runs_against_the_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """pydantic-ai refuses `ollama:` with no `OLLAMA_BASE_URL`; the CLI's
+        default is where Ollama listens, and where the picker discovers models."""
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+        model = resolve_cli_model("ollama:qwen3:8b")
+        assert isinstance(model, OllamaModel)
+        assert model.model_name == "qwen3:8b"
+        assert str(model.base_url) == "http://localhost:11434/v1/"
 
     def test_sentinel_is_converted(self) -> None:
         cfg = CliConfig(base_url="http://localhost:8080/v1")

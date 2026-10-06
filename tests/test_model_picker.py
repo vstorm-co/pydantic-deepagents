@@ -30,6 +30,16 @@ def seeded_openrouter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr("apps.cli.model_history.get_global_dir", lambda: tmp_path / "nohist")
 
 
+@pytest.fixture(autouse=True)
+def no_local_servers(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Nothing discovered locally, unless a test says otherwise - a developer's
+    running Ollama must not change what these tests see."""
+    discovered: list[str] = []
+    monkeypatch.setattr("apps.cli.local_models.openai_compatible_models", lambda base_url: [])
+    monkeypatch.setattr("apps.cli.local_models.ollama_models", lambda: list(discovered))
+    return discovered
+
+
 async def _open(modal: ModalScreen[Any]) -> App[None]:
     class _Harness(App[None]):
         async def on_mount(self) -> None:
@@ -88,6 +98,25 @@ class TestModelPicker:
             await pilot.pause()
 
         assert result["r"] and ":" in result["r"] and "deepseek" in result["r"]
+
+
+class TestLocalDiscovery:
+    async def test_what_a_local_server_serves_is_offered(
+        self, seeded_openrouter: None, no_local_servers: list[str]
+    ) -> None:
+        """#216: models a local server serves are listed, not typed by hand."""
+        from apps.cli.modals.model_picker import ModelPickerModal
+
+        no_local_servers.extend(["ollama:llama3.3", "ollama:qwen3:8b"])
+        app = await _open(ModelPickerModal("x"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await pilot.app.workers.wait_for_complete()
+            await pilot.pause()
+            ol = pilot.app.screen.query_one("#model-list", OptionList)
+            ids = [ol.get_option_at_index(i).id for i in range(ol.option_count)]
+
+        assert "ollama:llama3.3" in ids
+        assert "ollama:qwen3:8b" in ids
 
 
 class TestKeysPicker:

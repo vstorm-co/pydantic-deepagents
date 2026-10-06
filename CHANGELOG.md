@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The CLI's `/model` picker lists local models** under "Local (discovered)":
+  the models Ollama has pulled, and what an OpenAI-compatible server (llama.cpp,
+  LM Studio, vLLM) serves at `{base_url}/models`. Discovery runs in the
+  background with a two-second timeout; a server that is down adds nothing.
+  ([#216](https://github.com/vstorm-co/pydantic-deepagents/issues/216))
+
 - **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
   between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
   say), for several users sharing one workspace. The model never sees it. Each
@@ -56,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lead's.
 
 ### Fixed
+
+- **An `ollama:` model runs in the CLI without `OLLAMA_BASE_URL`.** Pydantic AI
+  refuses Ollama with no host, so the documented default `localhost:11434` never
+  worked; the CLI now uses it when the variable is unset.
 
 - **A tool that returns the same thing whenever it works can say so.** Stuck-loop
   detection's no-op check compares results only, so attaching three different

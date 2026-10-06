@@ -83,8 +83,7 @@ class TestCreateDeepAgent:
             edit_format=None,
             context_files=None,
             context_discovery=False,
-            memory_dir=None,
-            include_memory=False,
+            memory_store=None,
             memory_namespace="",
             web_search=False,
             web_fetch=False,
@@ -224,7 +223,9 @@ class TestCreateDeepAgent:
             name="researcher", description="explores", instructions="explore"
         )
 
-        sub_agent = self._default_factory(include_memory=True)(cfg)
+        from pydantic_ai_harness.memory import FileStore
+
+        sub_agent = self._default_factory(memory_store=FileStore(".deep/memory"))(cfg)
 
         memories = [c for c in sub_agent._root_capability.capabilities if isinstance(c, Memory)]
         assert [m.agent_name for m in memories] == ["researcher"]

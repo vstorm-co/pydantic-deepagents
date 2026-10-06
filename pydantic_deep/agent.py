@@ -28,6 +28,7 @@ from pydantic_ai.tools import DeferredToolRequests, Tool
 from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai_backends import StateWorkspace, create_console_toolset
+from pydantic_ai_harness.memory import FileStore
 from pydantic_ai_shields import CostTracking
 from pydantic_ai_summarization import ContextManagerCapability, LimitWarnerCapability
 from pydantic_ai_todo import create_todo_toolset
@@ -300,8 +301,7 @@ def _make_default_deep_agent_factory(
     edit_format: Any,
     context_files: Any,
     context_discovery: Any,
-    memory_dir: Any,
-    include_memory: bool,
+    memory_store: FileStore | None,
     memory_namespace: MemoryNamespace,
     web_search: bool,
     web_fetch: bool,
@@ -350,7 +350,7 @@ def _make_default_deep_agent_factory(
             cost_tracking=False,
             # The subagent's own notebook, not the parent's "main" one.
             include_memory=False,
-            capabilities=_subagent_memory(cfg, include_memory, memory_dir, memory_namespace),
+            capabilities=_subagent_memory(cfg, memory_store, memory_namespace),
             context_files=context_files,
             context_discovery=context_discovery,
             edit_format=edit_format,
@@ -379,20 +379,20 @@ def _inject_subagent_context_toolset(sa_config: SubAgentConfig) -> None:
 
 def _subagent_memory(
     cfg: Mapping[str, Any],
-    include_memory: bool,
-    memory_dir: str | None,
+    memory_store: FileStore | None,
     memory_namespace: MemoryNamespace,
 ) -> list[AbstractCapability[Any]]:
     """A subagent's own `Memory`, unless memory is off or `extra={"memory": False}`.
 
-    Named after the subagent, so each keeps its own notebook beside the parent's.
+    Named after the subagent, so each keeps its own notebook beside the parent's,
+    in the parent's store.
     """
     extra = cfg.get("extra") or {}
-    if not include_memory or not extra.get("memory", True):
+    if memory_store is None or not extra.get("memory", True):
         return []
     return [
         build_memory_capability(
-            memory_dir=memory_dir or DEFAULT_MEMORY_DIR,
+            store=memory_store,
             agent_name=cfg["name"],
             namespace=memory_namespace,
             max_lines=extra.get("memory_max_lines"),
@@ -403,16 +403,18 @@ def _subagent_memory(
 
 
 def _inject_subagent_memory_toolset(
-    sa_config: SubAgentConfig, memory_dir: str | None, memory_namespace: MemoryNamespace
+    sa_config: SubAgentConfig, memory_store: FileStore, memory_namespace: MemoryNamespace
 ) -> None:
-    """Give a subagent built by its own factory the memory tools.
+    """Hand a subagent with its own `agent_factory` the memory tools.
 
-    The default factory gives a subagent the whole `Memory` capability. One with
-    its own `agent_factory` or a prebuilt `agent` never passes through it, so it
-    gets the capability's toolset - the four tools, without the notebook injected
-    into its requests. Mutates `sa_config` in place (a shallow copy by then).
+    The default factory gives a subagent the whole `Memory` capability; a custom
+    factory never passes through it. The tools are added to the config's
+    `toolsets`, which the factory receives and has to pass on to its agent - they
+    work without the capability, though the notebook is not injected. A prebuilt
+    `agent` is used as it is, so it gets nothing here. Mutates `sa_config` in
+    place (a shallow copy by then).
     """
-    for capability in _subagent_memory(sa_config, True, memory_dir, memory_namespace):
+    for capability in _subagent_memory(sa_config, memory_store, memory_namespace):
         toolset = capability.get_toolset()
         if isinstance(toolset, AbstractToolset):  # pragma: no branch - `Memory`'s always is
             sa_config["toolsets"] = [*sa_config.get("toolsets", []), toolset]
@@ -1126,6 +1128,11 @@ def create_deep_agent(  # noqa: C901
             )
         )
 
+    # One store for the agent and every subagent: each `Memory` binds a copy of it
+    # to its run's workspace, and the copies share its lock, so concurrent agents
+    # writing receipts beside the notebooks do not overwrite each other's.
+    memory_store = FileStore(memory_dir or DEFAULT_MEMORY_DIR) if include_memory else None
+
     _subagent_task_manager: Any | None = None
     subagent_toolset: Any | None = None
     if include_subagents:
@@ -1139,8 +1146,7 @@ def create_deep_agent(  # noqa: C901
             edit_format=edit_format,
             context_files=context_files,
             context_discovery=context_discovery,
-            memory_dir=memory_dir,
-            include_memory=include_memory,
+            memory_store=memory_store,
             memory_namespace=memory_namespace,
             web_search=web_search,
             web_fetch=web_fetch,
@@ -1153,14 +1159,13 @@ def create_deep_agent(  # noqa: C901
         # Inject agent_factory + per-subagent context/memory/extra toolsets. These
         # operate on the shallow copies built above, never the caller's dicts.
         for sa_config in effective_subagents:
-            own_factory = (
-                sa_config.get("agent") is not None or sa_config.get("agent_factory") is not None
-            )
-            if not own_factory:
+            prebuilt = sa_config.get("agent") is not None
+            own_factory = sa_config.get("agent_factory") is not None
+            if not prebuilt and not own_factory:
                 sa_config["agent_factory"] = _default_deep_agent_factory
             _inject_subagent_context_toolset(sa_config)
-            if include_memory and own_factory:
-                _inject_subagent_memory_toolset(sa_config, memory_dir, memory_namespace)
+            if memory_store is not None and own_factory and not prebuilt:
+                _inject_subagent_memory_toolset(sa_config, memory_store, memory_namespace)
             _inject_subagent_extra_toolsets(sa_config, _sub_extra)
 
         subagent_toolset = create_subagent_toolset(
@@ -1467,18 +1472,6 @@ def create_deep_agent(  # noqa: C901
     if limit_warner is not None:
         all_capabilities.append(limit_warner)
 
-    # After compaction: the notebook is injected into each request only, and a
-    # compaction listed later would rewrite the history it sits in.
-    if include_memory:
-        all_capabilities.append(
-            build_memory_capability(
-                memory_dir=memory_dir or DEFAULT_MEMORY_DIR,
-                agent_name="main",
-                namespace=memory_namespace,
-                defer_loading=tool_search,
-            )
-        )
-
     if cost_cap is not None:
         all_capabilities.append(cost_cap)
 
@@ -1507,6 +1500,18 @@ def create_deep_agent(  # noqa: C901
     # Add user-provided capabilities
     if capabilities:
         all_capabilities.extend(capabilities)
+
+    # Last of the capabilities that touch history: the notebook is injected into
+    # each request only, and compaction or a history processor listed after it
+    # would rewrite - or summarize - the history it sits in. Never deferred with
+    # tool search: a deferred capability's hooks wait for `load_capability`, so
+    # the agent would stop being told what it remembers.
+    if memory_store is not None:
+        all_capabilities.append(
+            build_memory_capability(
+                store=memory_store, agent_name="main", namespace=memory_namespace
+            )
+        )
 
     # Tool search: defer the situational tool surface (subagents, skills,
     # memory, MCP, …) so only the core read/edit/run/track loop is loaded

@@ -15,10 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged. `MEMORY.md` is added to each request as user-role context rather than
   to the instructions, and the tools are `write_memory` (append, or replace with
   `old_text=` - what `update_memory` did), `read_memory`, `search_memory` and
-  `delete_memory`. Subagents keep their own notebooks; one with its own
-  `agent_factory` gets the memory tools. With `tool_search`, the memory tools are
-  deferred like the other situational ones. Requires `pydantic-ai-harness>=0.52.0`.
-  (from #187 by @OchnikBartek)
+  `delete_memory`. Subagents keep their own notebooks in the same store; one with
+  its own `agent_factory` is handed the memory tools in `toolsets` to pass on, and
+  a prebuilt `agent` is used as it is. `tool_search` leaves memory loaded, so the
+  notebook is still injected. Requires `pydantic-ai-harness>=0.52.0`.
+  (#236, from #187 by @OchnikBartek)
+- **A run with memory needs a workspace.** The harness refuses to start a run
+  that has none, where pydantic-deep's own memory skipped itself: an agent built
+  with `workspace=False` must be given `workspace=` per run, or
+  `include_memory=False`.
+- **Memory files are bounded.** The tools read and change files up to 65,536
+  characters; past that, `write_memory` refuses to edit from a partial read.
+  `build_memory_capability(max_memory_size=...)` raises the bound.
+- **`TestModel(call_tools="all")` now retries on memory.** It calls `read_memory`
+  with a made-up file name, which the harness answers with a retry; pass
+  `include_memory=False` to agents in tests that are not about memory.
 - **`memory_pin_marker` no longer pins.** The harness keeps the tail of `MEMORY.md`
   when it truncates and has no pinned section; setting it now warns.
 
@@ -26,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
   between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
-  say), for several users sharing one workspace. The model never sees it.
+  say), for several users sharing one workspace. The model never sees it. Each
+  `/`-separated part is letters, digits, `_`, `-` and `.`; a fixed one that is not
+  is refused when the agent is built.
 - **`build_memory_capability()`**, which builds the `Memory` capability the way
   `create_deep_agent` does.
 

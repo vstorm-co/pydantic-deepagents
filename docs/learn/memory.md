@@ -130,7 +130,7 @@ Prefer to be explicit? Skip discovery and name the paths yourself with `context_
     If the *agent* should write it, it's memory. If *you* write it, it's a context file. `MEMORY.md` has its own tools and per-agent isolation; it is **not** part of context discovery.
 
 !!! warning "One workspace, one memory — watch multi-user apps"
-    Memory and context both live in the workspace. If several users' runs share one workspace, give each its own notebook with `memory_namespace=` — a string, or a function of the run such as `lambda ctx: ctx.deps.user_id` — which files it under `{memory_dir}/{namespace}/{agent_name}/`. The model never sees or chooses the namespace. Giving each user their own workspace isolates their files as well. See [Multi-user](../advanced/multi-user.md).
+    Memory and context both live in the workspace. If several users' runs share one workspace, give each its own notebook with `memory_namespace=` — a string, or a function of the run such as `lambda ctx: ctx.deps.user_id` — which files it under `{memory_dir}/{namespace}/{agent_name}/`. The model never sees or chooses the namespace, which must be letters, digits, `_`, `-` and `.` — hash an e-mail address first. Giving each user their own workspace isolates their files as well. See [Multi-user](../advanced/multi-user.md).
 
 ## Recap
 

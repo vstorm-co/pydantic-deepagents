@@ -6,6 +6,7 @@ from typing import Any
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
+from pydantic_ai_harness.memory import FileStore
 
 from pydantic_deep import (
     DEFAULT_MAX_MEMORY_LINES,
@@ -484,7 +485,7 @@ class TestPerSubagentMemory:
         from pydantic_deep.types import SubAgentConfig
 
         config = SubAgentConfig(name="reviewer", description="Code reviewer", instructions="Review")
-        _inject_subagent_memory_toolset(config, None, "")
+        _inject_subagent_memory_toolset(config, FileStore(".deep/memory"), "")
 
         [toolset] = self._memory_toolsets(config)
         assert toolset._capability.agent_name == "reviewer"
@@ -496,7 +497,7 @@ class TestPerSubagentMemory:
         config = SubAgentConfig(
             name="worker", description="Worker", instructions="Do work", extra={"memory": False}
         )
-        _inject_subagent_memory_toolset(config, None, "")
+        _inject_subagent_memory_toolset(config, FileStore(".deep/memory"), "")
 
         assert self._memory_toolsets(config) == []
 
@@ -510,7 +511,7 @@ class TestPerSubagentMemory:
             instructions="Analyze",
             extra={"memory_max_lines": 50},
         )
-        _inject_subagent_memory_toolset(config, None, "")
+        _inject_subagent_memory_toolset(config, FileStore(".deep/memory"), "")
 
         [toolset] = self._memory_toolsets(config)
         assert toolset._capability.max_lines == 50
@@ -525,7 +526,7 @@ class TestPerSubagentMemory:
         config = SubAgentConfig(
             name="worker", description="Worker", instructions="Work", toolsets=[existing_toolset]
         )
-        _inject_subagent_memory_toolset(config, None, "")
+        _inject_subagent_memory_toolset(config, FileStore(".deep/memory"), "")
 
         assert config["toolsets"][0] is existing_toolset
         assert len(self._memory_toolsets(config)) == 1

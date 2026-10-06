@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import importlib
 import warnings
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_deep.features.memory.service import (
     DEFAULT_MEMORY_DIR,
@@ -62,14 +62,47 @@ def deprecated_memory_name(name: str, *, stacklevel: int = 3) -> Any:
     return getattr(importlib.import_module(f"{__name__}.{module}"), name)
 
 
-def __getattr__(name: str) -> Any:
-    try:
-        value = deprecated_memory_name(name)
-    except AttributeError:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
-    # Kept, so the warning is given once: `from ... import` reads the name twice.
-    globals()[name] = value
-    return value
+if TYPE_CHECKING:
+    # Typed for checkers and editors; at run time they resolve, with a warning,
+    # through `__getattr__` below - which checkers then do not see, so a misspelt
+    # name is still an error.
+    from pydantic_deep.features.memory.capability import MemoryCapability as MemoryCapability
+    from pydantic_deep.features.memory.service import (
+        DEFAULT_MAX_MEMORY_LINES as DEFAULT_MAX_MEMORY_LINES,
+    )
+    from pydantic_deep.features.memory.service import (
+        DEFAULT_PIN_END_MARKER as DEFAULT_PIN_END_MARKER,
+    )
+    from pydantic_deep.features.memory.service import (
+        format_memory_prompt as format_memory_prompt,
+    )
+    from pydantic_deep.features.memory.service import (
+        load_memory as load_memory,
+    )
+    from pydantic_deep.features.memory.toolset import (
+        READ_MEMORY_DESCRIPTION as READ_MEMORY_DESCRIPTION,
+    )
+    from pydantic_deep.features.memory.toolset import (
+        UPDATE_MEMORY_DESCRIPTION as UPDATE_MEMORY_DESCRIPTION,
+    )
+    from pydantic_deep.features.memory.toolset import (
+        WRITE_MEMORY_DESCRIPTION as WRITE_MEMORY_DESCRIPTION,
+    )
+    from pydantic_deep.features.memory.toolset import (
+        AgentMemoryToolset as AgentMemoryToolset,
+    )
+    from pydantic_deep.features.memory.types import MemoryAccessError as MemoryAccessError
+    from pydantic_deep.features.memory.types import MemoryFile as MemoryFile
+else:
+
+    def __getattr__(name: str) -> Any:
+        try:
+            value = deprecated_memory_name(name)
+        except AttributeError:
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+        # Kept, so the warning is given once: `from ... import` reads the name twice.
+        globals()[name] = value
+        return value
 
 
 __all__ = [

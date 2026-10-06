@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from pydantic_ai import RunContext
@@ -116,14 +116,48 @@ class TestWiring:
 
         assert kinds.index(Memory) > kinds.index(ContextManagerCapability)
 
-    @pytest.mark.parametrize("tool_search", [True, False])
-    def test_tool_search_defers_the_memory_tools(self, tool_search: bool) -> None:
-        capabilities = _agent(
-            _requests_seen([]), tool_search=tool_search
-        )._root_capability.capabilities
-        [memory] = [c for c in capabilities if isinstance(c, Memory)]
+    async def test_tool_search_leaves_memory_loaded(self) -> None:
+        """A deferred capability's hooks wait for `load_capability`, so deferring
+        memory with the rest stopped the notebook being injected at all."""
+        seen: list[str] = []
+        workspace = state_workspace({".deep/memory/main/MEMORY.md": "The user prefers tabs."})
+        agent = _agent(_requests_seen(seen), tool_search=True)
+        [memory] = [c for c in agent._root_capability.capabilities if isinstance(c, Memory)]
 
-        assert memory.defer_loading is tool_search
+        await agent.run("hi", deps=DeepAgentDeps(), workspace=workspace)
+
+        assert memory.defer_loading is False
+        assert any("The user prefers tabs." in text for text in seen)
+
+    def test_memory_comes_after_the_caller_s_capabilities(self) -> None:
+        """A history processor or capability listed after it would rewrite - or
+        summarize - the history the notebook is injected into."""
+        from pydantic_ai.capabilities import ProcessHistory
+
+        agent = _agent(_requests_seen([]), history_processors=[lambda messages: messages])
+        kinds = [type(c) for c in agent._root_capability.capabilities]
+
+        assert kinds.index(Memory) > kinds.index(ProcessHistory)
+
+    def test_the_agent_and_its_subagents_share_one_store(self) -> None:
+        """Separate stores over one directory each lock on their own, and their
+        receipts overwrite each other's."""
+        from pydantic_deep.types import SubAgentConfig
+
+        agent = create_deep_agent(
+            model=_requests_seen([]),
+            subagents=[SubAgentConfig(name="researcher", description="d", instructions="i")],
+            include_builtin_subagents=False,
+            web_search=False,
+            web_fetch=False,
+        )
+        [main] = [c for c in agent._root_capability.capabilities if isinstance(c, Memory)]
+        [subagents] = [t for t in agent.toolsets if t.id == "deep-subagents"]
+        researcher = cast(Any, subagents)._compiled["researcher"].agent
+        [sub] = [c for c in researcher._root_capability.capabilities if isinstance(c, Memory)]
+
+        assert sub.store is main.store
+        assert (main.agent_name, sub.agent_name) == ("main", "researcher")
 
     def test_no_memory_when_turned_off(self) -> None:
         capabilities = _agent(
@@ -141,10 +175,26 @@ class TestBuildingIt:
 
     def test_set_limits_are_passed_on(self) -> None:
         memory = build_memory_capability(
-            memory_dir=".deep/memory", agent_name="main", max_lines=50, max_tokens=500
+            memory_dir=".deep/memory",
+            agent_name="main",
+            max_lines=50,
+            max_tokens=500,
+            max_memory_size=1_000_000,
         )
 
-        assert (memory.max_lines, memory.max_tokens) == (50, 500)
+        assert (memory.max_lines, memory.max_tokens, memory.max_memory_size) == (50, 500, 1_000_000)
+
+    def test_a_fixed_namespace_the_harness_would_refuse_fails_at_build(self) -> None:
+        """Rather than at every run - and rather than being renamed, which could
+        put two tenants in one notebook."""
+        with pytest.raises(ValueError, match="memory_namespace='user@example.com'"):
+            build_memory_capability(agent_name="main", namespace="user@example.com")
+
+    @pytest.mark.parametrize("namespace", ["tenant-1", "org.a/team_b"])
+    def test_a_usable_namespace_is_kept_as_it_is(self, namespace: str) -> None:
+        assert (
+            build_memory_capability(agent_name="main", namespace=namespace).namespace == namespace
+        )
 
     def test_a_pin_marker_warns_that_it_no_longer_pins(self) -> None:
         with pytest.warns(DeprecationWarning, match="memory_pin_marker"):
@@ -158,6 +208,9 @@ class TestBuildingIt:
             ("researcher", "researcher"),
             ("code reviewer", "code-reviewer"),
             ("a/b\\c", "a-b-c"),
+            ("a..b", "a.b"),
+            ("..", "agent"),
+            (".", "agent"),
             ("!!!", "agent"),
         ],
     )
@@ -187,8 +240,9 @@ class TestTheOldApi:
 
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            with pytest.raises(AttributeError, match="no_such_name"):
-                pydantic_deep.no_such_name  # noqa: B018
+            missing = "no_such_name"
+            with pytest.raises(AttributeError, match=missing):
+                getattr(pydantic_deep, missing)
 
 
 class TestForkedBranches:
@@ -215,37 +269,49 @@ class TestForkedBranches:
 
 
 class TestSubagents:
-    def test_a_subagent_with_its_own_factory_gets_its_own_memory_tools(self) -> None:
-        """It never passes through the default factory that adds `Memory`, so it
-        is handed the capability's tools under its own name."""
-        from pydantic_ai import Agent
-        from pydantic_ai.models.test import TestModel
-        from pydantic_ai_harness.memory import MemoryToolset
-
+    @staticmethod
+    def _build(**subagent: Any) -> None:
         from pydantic_deep.types import SubAgentConfig
 
-        seen: list[Any] = []
-
-        def factory(config: Any) -> Agent[Any, str]:
-            seen.append(config)
-            return Agent(TestModel())
-
+        config = cast(
+            SubAgentConfig, {"name": "critic", "description": "d", "instructions": "i", **subagent}
+        )
         create_deep_agent(
             model=_requests_seen([]),
-            subagents=[
-                SubAgentConfig(
-                    name="critic",
-                    description="Critiques",
-                    instructions="Critique",
-                    agent_factory=factory,
-                )
-            ],
+            subagents=[config],
             include_builtin_subagents=False,
             web_search=False,
             web_fetch=False,
         )
 
-        [config] = [c for c in seen if c["name"] == "critic"]
-        assert [
-            t._capability.agent_name for t in config["toolsets"] if isinstance(t, MemoryToolset)
-        ] == ["critic"]
+    def test_a_subagent_with_its_own_factory_is_handed_the_memory_tools(self) -> None:
+        """They arrive in `cfg["toolsets"]`, and a factory that passes those on
+        gives its agent the tools under the subagent's own name."""
+        from pydantic_ai import Agent
+        from pydantic_ai.models.test import TestModel
+        from pydantic_ai_harness.memory import MemoryToolset
+
+        built: list[Agent[Any, str]] = []
+
+        def factory(config: Any) -> Agent[Any, str]:
+            agent = Agent(TestModel(), toolsets=config.get("toolsets", []))
+            built.append(agent)
+            return agent
+
+        self._build(agent_factory=factory)
+
+        [agent] = built
+        memory = [t for t in agent.toolsets if isinstance(t, MemoryToolset)]
+        assert [t._capability.agent_name for t in memory] == ["critic"]
+
+    def test_a_prebuilt_subagent_is_left_as_it_is(self) -> None:
+        """It is used as given, so there is nothing to hand the tools to."""
+        from pydantic_ai import Agent
+        from pydantic_ai.models.test import TestModel
+
+        prebuilt = Agent(TestModel())
+        before = list(prebuilt.toolsets)
+
+        self._build(agent=prebuilt)
+
+        assert list(prebuilt.toolsets) == before

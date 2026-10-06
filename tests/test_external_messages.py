@@ -40,6 +40,10 @@ def _raw_request(published: dict[str, Any], headers: str, encoding: str = "ascii
         return conn.makefile("rb").readline()
 
 
+async def _forever() -> None:
+    await asyncio.Event().wait()
+
+
 class _Recorder:
     """An `Inject` that records what reached it and answers as told."""
 
@@ -419,7 +423,7 @@ class TestInjectIntoTheApp:
             chat = app.screen
             assert isinstance(chat, ChatScreen)
             chat._run_agent("first")
-            newer = asyncio.create_task(asyncio.Event().wait())
+            newer: asyncio.Task[None] = asyncio.create_task(_forever())
             app.agent_task = newer
             await _settle(pilot)
 

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The CLI's `/model` picker lists local models** under "Local (discovered)":
+  the models Ollama has pulled, and what an OpenAI-compatible server (llama.cpp,
+  LM Studio, vLLM) serves at `{base_url}/models`. Discovery runs in the
+  background with a two-second timeout; a server that is down adds nothing.
+  ([#216](https://github.com/vstorm-co/pydantic-deepagents/issues/216))
+
 - **Messages from outside the terminal into a live CLI session.**
   `pydantic-deep tui --listen` accepts messages on a loopback HTTP endpoint
   (`POST /messages`, a bearer token in `.pydantic-deep/session-endpoint.json`,
@@ -21,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#181](https://github.com/vstorm-co/pydantic-deepagents/issues/181))
 
 ### Fixed
+
+- **An `ollama:` model runs in the CLI without `OLLAMA_BASE_URL`.** Pydantic AI
+  refuses Ollama with no host, so the documented default `localhost:11434` never
+  worked; the CLI now uses it when the variable is unset.
 
 - **Steering that arrives too late for a run is no longer lost or delayed.**
   The CLI drained one stale steering message after a run and left the rest for

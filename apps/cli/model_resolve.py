@@ -12,6 +12,10 @@ through :func:`resolve_cli_model` — the agent factory, the reminder generator,
 the goal evaluator and `/improve`. Keeping the knowledge here rather than at
 each call site is the point: a new consumer that forgets the prefix is a bug
 that only shows up for local-endpoint users.
+
+`ollama:` is resolved here too, but only without `OLLAMA_BASE_URL`: pydantic-ai
+refuses an Ollama model with no host, and the CLI's default is Ollama's own
+`localhost:11434` - the host the model picker discovers models on.
 """
 
 from __future__ import annotations
@@ -20,11 +24,15 @@ import os
 from typing import TYPE_CHECKING
 
 from apps.cli.config import CliConfig, load_config
+from apps.cli.local_models import DEFAULT_OLLAMA_HOST
 from apps.cli.providers import OPENAI_COMPATIBLE_API_KEY_ENV, OPENAI_COMPATIBLE_PREFIX
 
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
+    from pydantic_ai.models.ollama import OllamaModel
     from pydantic_ai.models.openai import OpenAIChatModel
+
+_OLLAMA_PREFIX = "ollama:"
 
 #: Stand-in key for endpoints that don't check one. `OpenAIProvider` requires
 #: *some* key and would otherwise fall back to `OPENAI_API_KEY` — which must
@@ -57,8 +65,20 @@ def resolve_openai_compatible_model(model_str: str, config: CliConfig) -> OpenAI
     return OpenAIChatModel(name, provider=provider)
 
 
+def resolve_default_ollama_model(model_str: str) -> OllamaModel:
+    """Build an `OllamaModel` for an `ollama:<name>` model string at Ollama's default host."""
+    from pydantic_ai.models.ollama import OllamaModel
+    from pydantic_ai.providers.ollama import OllamaProvider
+
+    provider = OllamaProvider(base_url=f"{DEFAULT_OLLAMA_HOST}/v1")
+    return OllamaModel(model_str[len(_OLLAMA_PREFIX) :], provider=provider)
+
+
 def resolve_cli_model(model: str | Model, config: CliConfig | None = None) -> str | Model:
-    """Return `model` unchanged, or a `Model` instance for the local-endpoint sentinel.
+    """Return `model` unchanged, or a `Model` instance where pydantic-ai needs one.
+
+    That is the local-endpoint sentinel, and an `ollama:` model when
+    `OLLAMA_BASE_URL` is unset.
 
     Args:
         model: A CLI model string, or an already-built `Model` (which callers
@@ -67,9 +87,15 @@ def resolve_cli_model(model: str | Model, config: CliConfig | None = None) -> st
         config: Config to read `base_url` from. Loaded on demand when omitted,
             so callers that don't already hold a config don't have to build one.
     """
-    if not isinstance(model, str) or not model.startswith(OPENAI_COMPATIBLE_PREFIX):
+    if not isinstance(model, str):
         return model
-    return resolve_openai_compatible_model(model, config if config is not None else load_config())
+    if model.startswith(OPENAI_COMPATIBLE_PREFIX):
+        return resolve_openai_compatible_model(
+            model, config if config is not None else load_config()
+        )
+    if model.startswith(_OLLAMA_PREFIX) and not os.environ.get("OLLAMA_BASE_URL"):
+        return resolve_default_ollama_model(model)
+    return model
 
 
-__all__ = ["resolve_cli_model", "resolve_openai_compatible_model"]
+__all__ = ["resolve_cli_model", "resolve_default_ollama_model", "resolve_openai_compatible_model"]

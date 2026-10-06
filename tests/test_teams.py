@@ -1153,11 +1153,16 @@ class TestTeamSubagentWiring:
         from pydantic_deep.features.teams.toolset import create_team_toolset as _create
 
         seen: list[Any] = []
+
+        def factory(cfg: Any) -> Agent[Any, str]:
+            seen.append(cfg)
+            return Agent(TestModel())
+
         subagents = self._subagent_toolset()
         team = _create(
             registry=subagents.registry,
             task_manager=subagents.task_manager,
-            agent_factory=lambda cfg: seen.append(cfg) or Agent(TestModel()),
+            agent_factory=factory,
         )
         await team.tools["spawn_team"].function(
             _make_ctx(),

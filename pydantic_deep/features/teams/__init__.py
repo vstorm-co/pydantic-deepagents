@@ -16,10 +16,8 @@ from pydantic_deep.features.teams.primitives import (
     TeamMessageBus,
 )
 from pydantic_deep.features.teams.toolset import create_team_toolset
-from pydantic_deep.models import DEFAULT_TEAM_MEMBER_MODEL
 
 __all__ = [
-    "DEFAULT_TEAM_MEMBER_MODEL",
     "AgentTeam",
     "SharedTodoItem",
     "SharedTodoList",

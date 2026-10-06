@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.48] - 2026-10-06
+## [Unreleased]
 
 ### Added
 
@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   LM Studio, vLLM) serves at `{base_url}/models`. Discovery runs in the
   background with a two-second timeout; a server that is down adds nothing.
   ([#216](https://github.com/vstorm-co/pydantic-deepagents/issues/216))
+
+### Fixed
+
+- **An `ollama:` model runs in the CLI without `OLLAMA_BASE_URL`.** Pydantic AI
+  refuses Ollama with no host, so the documented default `localhost:11434` never
+  worked; the CLI now uses it when the variable is unset.
+
+## [0.3.48] - 2026-10-06
+
+### Added
 
 - **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
   between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
@@ -62,10 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lead's.
 
 ### Fixed
-
-- **An `ollama:` model runs in the CLI without `OLLAMA_BASE_URL`.** Pydantic AI
-  refuses Ollama with no host, so the documented default `localhost:11434` never
-  worked; the CLI now uses it when the variable is unset.
 
 - **A tool that returns the same thing whenever it works can say so.** Stuck-loop
   detection's no-op check compares results only, so attaching three different

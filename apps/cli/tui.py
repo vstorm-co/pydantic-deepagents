@@ -23,12 +23,14 @@ def run_tui(
     working_dir: str | Path | None = None,
     sandbox: str | None = None,
     workspace: str | None = None,
+    listen: bool = False,
     **kwargs: Any,
 ) -> None:
     """Launch the Textual TUI.
 
     If agent creation fails (e.g. missing API key), the TUI launches
     anyway without an agent so the user can configure via /provider or /settings.
+    `listen` serves the session's external-message endpoint on loopback HTTP.
     """
 
     # Stop fastmcp/mcp/httpx from logging to the terminal — under the TUI their
@@ -143,6 +145,7 @@ def run_tui(
         on_context_update=_on_context_update,
         on_reminder=_on_reminder,
         agent_factory=_build_agent,
+        listen=listen,
     )
     app_ref[0] = app
     try:

@@ -28,6 +28,52 @@ A picker lists your recent sessions. Choose one and the CLI replays its messages
 !!! tip "Start clean, or rewind a step"
     `/clear` wipes the current conversation (and any active goal). `/undo` drops the last turn; `/retry` re-runs your last prompt after discarding the previous response. None of these touch saved sessions — only the live one.
 
+### Messages from outside the terminal
+
+A long session doesn't have to be steered from the terminal it runs in. A reply in a Slack thread, a Jira comment, a CI job that just went green or an n8n workflow can send the session a message, and the session handles it the way it handles what you type:
+
+- **while the agent is running**, it's queued: a follow-up by default, delivered when the run would otherwise stop, or steering, delivered before the next model request;
+- **while it's idle**, it starts a turn.
+
+It shows in the transcript and reaches the model labelled with where it came from, e.g. `[via slack] also check MR 123` or `[follow-up via ci] build is green`. The integration owns everything on its side (talking to Slack, polling, deduplication); the session only takes the message.
+
+Start the session with `--listen` and it accepts messages on a loopback HTTP endpoint:
+
+<div class="termy">
+
+```console
+$ pydantic-deep tui --listen
+```
+
+</div>
+
+It listens on `127.0.0.1` at a random port, and writes the URL and a bearer token to `.pydantic-deep/session-endpoint.json`, readable by your user only. An integration reads that file and posts:
+
+```bash
+endpoint=.pydantic-deep/session-endpoint.json
+curl -s "$(jq -r .url $endpoint)" \
+  -H "Authorization: Bearer $(jq -r .token $endpoint)" \
+  -d '{"text": "also check MR 123", "source": "slack", "mode": "auto"}'
+# {"delivery": "queued"}
+```
+
+| Field | |
+|---|---|
+| `text` | The message, up to 32,000 characters. |
+| `source` | Where it came from: up to 32 letters, digits, `_`, `.`, `:` or `-`. The model sees it. |
+| `mode` | `auto` (default) or `follow_up` queue it as a follow-up mid-run; `steer` delivers it before the next model request. An idle session starts a turn in every mode. |
+| `metadata` | Optional string pairs - a thread id, a message id. They go to the log and trace spans, never to the model. |
+
+The answer is `202` with `delivery` set to `steered`, `queued` or `started`. A session that can't take the message answers `409` and says why: no agent configured, a [fork](#live-run-forking) is active, or the queue is full. `401` means a missing or wrong token, and `400` a malformed body.
+
+Steering that arrives after the run's last model request is kept as a follow-up rather than dropped, since its sender can't see the terminal's warning. One listening session per project: a second `--listen` session publishes over the first one's file, and each removes the file on exit only if it's still its own.
+
+!!! tip "In the same process"
+    An integration running inside your own Python process can skip HTTP and call the app directly: `await app.inject_external_message("also check MR 123", source="slack", mode="auto")`. It returns the same `"steered"`, `"queued"` or `"started"`, and raises `ExternalMessageRefused` (from `apps.cli.external_messages`) where the endpoint answers `409`. Under the hood both use the [message queue](../advanced/message-queue.md).
+
+!!! warning "The token is the only lock"
+    Anyone who can read the endpoint file, or the token in it, can talk to your agent - and the agent can run commands. The file is created `0600` and the server only listens on loopback, but keep the token out of logs and shared shells, and start the session without `--listen` when nothing needs to reach it.
+
 ## Live Run Forking
 
 [Live Run Forking](../advanced/forking.md) is *git branch, but for cognition*: split the current run into parallel branches that share history up to the fork point, let each explore a different approach, then merge the winner. The CLI exposes the whole workflow through slash commands and live branch panels.
@@ -139,6 +185,7 @@ For the programmatic API — `MCPServerConfig`, `MCPRegistry`, `build_mcp_server
 ## Recap
 
 - **Sessions** auto-save after every turn to `.pydantic-deep/sessions/<id>/`; `/load` resumes any past conversation. There's no `/save` to remember.
+- **`tui --listen`** lets Slack, CI or a webhook message a live session over loopback HTTP, with the token in `.pydantic-deep/session-endpoint.json`; in-process code calls `app.inject_external_message()`.
 - **`/fork`** splits the current run into parallel branches; `/fork-config` tunes the next fork; `>>label msg` steers one branch; `/merge` flushes the winner. `/fork diff` opens an external diff tool to compare branches.
 - **`/mcp`** manages MCP servers interactively — enable/disable (`e`), login (`l`), test (`t`), add (`a`), and import from Claude Code (`i`). State persists across restarts.
 

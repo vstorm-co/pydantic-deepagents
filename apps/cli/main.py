@@ -194,6 +194,17 @@ def tui(
             ),
         ),
     ] = None,
+    listen: Annotated[
+        bool,
+        typer.Option(
+            "--listen",
+            help=(
+                "Accept messages from integrations (Slack, CI, webhooks) on a "
+                "loopback HTTP endpoint; its URL and token go to "
+                ".pydantic-deep/session-endpoint.json."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Launch the Textual-based TUI (rich interactive interface)."""
     from apps.cli.init import ensure_initialized
@@ -210,6 +221,7 @@ def tui(
         working_dir=working_dir or os.getcwd(),
         sandbox=sandbox,
         workspace=workspace,
+        listen=listen,
     )
 
 

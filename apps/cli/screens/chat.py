@@ -38,6 +38,7 @@ from textual.css.query import NoMatches
 from textual.screen import Screen
 
 from apps.cli.debug_log import get_logger
+from apps.cli.external_messages import Delivery, ExternalMessageRefused, ExternalMode
 from apps.cli.messages import (
     AgentComplete,
     AgentError,
@@ -1322,7 +1323,31 @@ class ChatScreen(Screen):
                 msg_list.scroll_end(animate=False)
             _stale_queue = app.queue
             if _stale_queue is not None:
-                stale = await _stale_queue.drain_steering()
+                from pydantic_deep.features.message_queue import (
+                    QueueFullError,
+                    queued_source,
+                )
+
+                # Each drain returns one batch, so drain until empty: steering
+                # left behind would surface at the start of some later turn.
+                late: list[Any] = []
+                while batch := await _stale_queue.drain_steering():
+                    late.extend(batch)
+                stale = []
+                # Steering from outside that arrived too late for this run is
+                # kept as a follow-up: its sender cannot see the warning below.
+                for message in late:
+                    if queued_source(message) is None:
+                        stale.append(message)
+                        continue
+                    try:
+                        await _stale_queue.follow_up(
+                            message.content,
+                            delivery_mode=message.delivery_mode,
+                            metadata=message.metadata,
+                        )
+                    except QueueFullError:
+                        stale.append(message)
                 if stale:
                     n = len(stale)
                     label = "steering message" if n == 1 else "steering messages"
@@ -1334,9 +1359,6 @@ class ChatScreen(Screen):
                         )
                 from pydantic_deep.features.message_queue import (
                     format_follow_up as _fmt_fu,
-                )
-                from pydantic_deep.features.message_queue import (
-                    queued_source,
                 )
 
                 # Follow-ups a human typed for the cancelled task are stale; one
@@ -1379,6 +1401,52 @@ class ChatScreen(Screen):
                 with contextlib.suppress(Exception):
                     self.query_one(QueuedWidget).clear_steering()
                 self._sync_activity_dock()
+
+    async def submit_external(
+        self, text: str, *, source: str, mode: ExternalMode, metadata: dict[str, str]
+    ) -> Delivery:
+        """Deliver a message from an integration; see `DeepApp.inject_external_message`."""
+        from pydantic_deep.features.message_queue import (
+            QueuedMessage,
+            QueueFullError,
+            queued_source,
+        )
+
+        app = self.app
+        if not text.strip():
+            raise ExternalMessageRefused("the message is empty")
+        if app.active_fork is not None:  # type: ignore[attr-defined]
+            raise ExternalMessageRefused("a fork is active - resolve it with /merge first")
+        if getattr(app, "agent", None) is None:
+            raise ExternalMessageRefused("no agent is configured")
+
+        tagged = {**metadata, "source": source}
+        task = app.agent_task  # type: ignore[attr-defined]
+        if task is not None and not task.done():
+            queue = app.queue  # type: ignore[attr-defined]
+            if queue is None:
+                raise ExternalMessageRefused("this session has no message queue")
+            steering = mode == "steer"
+            try:
+                if steering:
+                    await queue.steer(text, metadata=tagged)
+                else:
+                    await queue.follow_up(text, metadata=tagged)
+            except QueueFullError as exc:
+                raise ExternalMessageRefused(str(exc)) from exc
+            self._increment_queue_badge(steering=steering)
+            app.notify(f"{'steering' if steering else 'follow-up'} queued via {source}")
+            return "steered" if steering else "queued"
+
+        # The queue's own label, so the model reads a started turn's source the
+        # way it reads a queued one's.
+        label = queued_source(QueuedMessage(text, "follow_up", metadata=tagged))
+        prompt = f"[via {label}] {text}"
+        get_logger().info(f"external message from {label} starts a turn", **metadata)
+        app.last_user_prompt = prompt  # type: ignore[attr-defined]
+        self.query_one(MessageList).append_user_message(prompt)
+        self._run_agent(prompt)
+        return "started"
 
     def _increment_queue_badge(self, *, steering: bool) -> None:
         with contextlib.suppress(Exception):

@@ -156,6 +156,9 @@ discarded = await queue.discard_follow_up(keep=lambda m: queued_source(m) is not
 
 This is what the CLI does when you hit `Esc`: what you typed for the cancelled task is dropped, while anything submitted from outside survives and starts a fresh turn. Its sender has no way to learn it was dropped, so dropping it would read as the agent ignoring them.
 
+!!! tip "A live CLI session takes messages too"
+    The terminal app wires this up for you: `pydantic-deep tui --listen` accepts messages for its queue on a token-protected loopback endpoint, and `inject_external_message()` does the same in process. See [Messages from outside the terminal](../cli/sessions-forking-mcp.md#messages-from-outside-the-terminal).
+
 ## Subagents can steer the parent
 
 Because the queue lives on `DeepAgentDeps`, anything with `ctx.deps` can use it — including a subagent. By default `clone_for_subagent()` hands subagents the *same* queue, so a child can talk back to the parent:

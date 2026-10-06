@@ -7,7 +7,7 @@ import contextlib
 import os
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,13 @@ from textual.reactive import reactive
 from apps.cli.commands import dispatch_command
 from apps.cli.config import load_config
 from apps.cli.debug_log import get_logger
+from apps.cli.external_messages import (
+    Delivery,
+    ExternalMessage,
+    ExternalMessageRefused,
+    ExternalMode,
+    SessionEndpoint,
+)
 from apps.cli.forking import CLIForkSession
 from apps.cli.screens.chat import ChatScreen
 from apps.cli.styles.themes import register_themes
@@ -104,6 +111,7 @@ class DeepApp(App):
         on_context_update: Any | None = None,
         on_reminder: Any | None = None,
         agent_factory: Callable[[], tuple[Any, Any]] | None = None,
+        listen: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -137,6 +145,9 @@ class DeepApp(App):
         # holds a weak reference, so an untracked create_task can be GC'd
         # mid-flight and its exceptions silently dropped.
         self._background_tasks: set[asyncio.Task[Any]] = set()
+        #: Serve `inject_external_message` on loopback HTTP (`tui --listen`).
+        self._listen = listen
+        self._endpoint: SessionEndpoint | None = None
 
         # Register custom themes
 
@@ -227,6 +238,8 @@ class DeepApp(App):
         self.app_version = self._version
         self._seed_fork_settings_from_config()
         self.push_screen(ChatScreen())
+        if self._listen:
+            self._start_endpoint()
         # Sync state to widgets after screen is pushed
         self.call_later(self._sync_widgets)
         # Show startup error if agent creation failed
@@ -238,6 +251,63 @@ class DeepApp(App):
                 self.call_later(self._show_onboarding)
             else:
                 self.call_later(self._show_startup_error)
+
+    def _start_endpoint(self) -> None:
+        def _inject(message: ExternalMessage) -> Delivery:
+            delivery: Delivery = self.call_from_thread(
+                self.inject_external_message,
+                message.text,
+                source=message.source,
+                mode=message.mode,
+                metadata=message.metadata,
+            )
+            return delivery
+
+        try:
+            endpoint = SessionEndpoint(_inject, Path(self.working_dir) / ".pydantic-deep")
+            endpoint.start()
+        except OSError as exc:
+            self.notify(f"Could not start the session endpoint: {exc}", severity="error")
+            return
+        self._endpoint = endpoint
+        self.notify(f"Listening for external messages on {endpoint.url}", timeout=8)
+
+    def on_unmount(self) -> None:
+        if self._endpoint is not None:
+            self._endpoint.stop()
+            self._endpoint = None
+
+    async def inject_external_message(
+        self,
+        text: str,
+        *,
+        source: str,
+        mode: ExternalMode = "auto",
+        metadata: Mapping[str, str] | None = None,
+    ) -> Delivery:
+        """Submit a message from outside the terminal into this session.
+
+        The supported way for an integration - a Slack thread, a Jira comment, a
+        CI monitor - to steer or continue a live session. While a run is active
+        the message is queued: `steer` delivers it before the next model request,
+        `follow_up` and `auto` when the run would otherwise stop. An idle session
+        starts a turn with it, whatever the mode. It appears in the transcript and
+        reaches the model labelled with `source`; `metadata` goes to the logs and
+        trace spans with the source.
+
+        Returns:
+            `"steered"`, `"queued"` or `"started"`.
+
+        Raises:
+            ExternalMessageRefused: The session cannot take it now - no agent, a
+                fork is active, the queue is full, or the message is empty.
+        """
+        chat = next((s for s in self.screen_stack if isinstance(s, ChatScreen)), None)
+        if chat is None:
+            raise ExternalMessageRefused("the session is not ready yet")
+        return await chat.submit_external(
+            text, source=source, mode=mode, metadata=dict(metadata or {})
+        )
 
     def _sync_widgets(self) -> None:
         """Sync app state to header and status bar widgets."""

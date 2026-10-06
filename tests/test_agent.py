@@ -326,10 +326,10 @@ class TestBasePrompt:
 class TestSubmodelInheritance:
     """Submodels inherit the primary model when not explicitly configured."""
 
-    def _capture_summarization(self, monkeypatch: pytest.MonkeyPatch, **kwargs: Any) -> str | None:
+    def _capture_summarization(self, monkeypatch: pytest.MonkeyPatch, **kwargs: Any) -> Any:
         from pydantic_ai_summarization import ContextManagerCapability
 
-        seen: dict[str, str | None] = {}
+        seen: dict[str, Any] = {}
         orig = ContextManagerCapability.__init__
 
         def spy(self: Any, *a: Any, **k: Any) -> Any:
@@ -346,6 +346,21 @@ class TestSubmodelInheritance:
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         sm = self._capture_summarization(monkeypatch, model="anthropic:claude-sonnet-4-6")
         assert sm == "anthropic:claude-sonnet-4-6"
+
+    def test_summarization_inherits_a_primary_model_instance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An OpenAI-compatible gateway is a `Model`, not a string: compaction
+        fell back to a default on another provider the deployment cannot reach."""
+        from pydantic_ai.models.openai import OpenAIChatModel
+        from pydantic_ai.providers.openai import OpenAIProvider
+
+        gateway = OpenAIChatModel(
+            "qwen2.5",
+            provider=OpenAIProvider(base_url="http://localhost:8080/v1", api_key="local"),
+        )
+        sm = self._capture_summarization(monkeypatch, model=gateway)
+        assert sm is gateway
 
     def test_explicit_summarization_model_wins(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")

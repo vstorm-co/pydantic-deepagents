@@ -138,7 +138,7 @@ and an **AgentMiddleware** (`after_tool_call`).
 | `model_name` | `None` | Model identifier for auto-detecting `max_tokens` (e.g., `"anthropic:claude-sonnet-4-6"`) |
 | `compress_threshold` | 0.9 | Fraction at which auto-compression triggers |
 | `keep` | `("messages", 0)` | How much context to retain after compression. Default 0 = only summary survives |
-| `summarization_model` | `"anthropic:claude-haiku-4-5-20251001"` | Model used for summary generation (passthrough from CLI/agent) |
+| `summarization_model` | the agent's primary model | Model used for summary generation, a string or a `Model` instance (passthrough from CLI/agent) |
 | `token_counter` | `count_tokens_approximately` | Sync or async callable for counting tokens |
 | `messages_path` | `None` | Path to `messages.json` for persistent history |
 | `on_usage_update` | `None` | Callback: `(pct, current, max)` |

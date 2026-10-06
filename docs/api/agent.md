@@ -25,7 +25,7 @@
 | `model` | `str \| Model \| None` | `None` (resolves to [`DEFAULT_MODEL`][pydantic_deep.agent.DEFAULT_MODEL] = `"anthropic:claude-opus-4-6"`) | LLM model identifier |
 | `fallback_model` | `str \| Model \| list[str \| Model] \| None` | `None` | Fallback model(s) tried on transient errors. See [Fallback Models](../advanced/fallback-models.md) |
 | `model_settings` | `dict[str, Any] \| None` | `None` | Model settings passed to the underlying model |
-| `summarization_model` | `str \| None` | `None` (defaults to `DEFAULT_SUMMARIZATION_MODEL`) | Model used by the context manager for compression |
+| `summarization_model` | `str \| Model \| None` | `None` (the primary `model`, a string or an instance) | Model used by the context manager for compression |
 | `base_prompt` | `str \| None` | `None` (defaults to `BASE_PROMPT`) | Base system prompt to build on |
 | `instructions` | `str \| None` | `None` | System prompt for the agent (replaces `BASE_PROMPT` when set) |
 | `output_style` | `str \| OutputStyle \| None` | `None` | Output style (built-in name or custom) |

@@ -476,7 +476,7 @@ def _build_context_capabilities(
     *,
     on_context_update: Any | None,
     context_manager_max_tokens: int | None,
-    summarization_model: str | None,
+    summarization_model: str | Model | None,
     on_before_compress: Any | None,
     on_after_compress: Any | None,
 ) -> tuple[ContextManagerCapability, LimitWarnerCapability]:
@@ -510,7 +510,7 @@ def create_deep_agent(
     model: str | Model | None = None,
     fallback_model: str | Model | list[str | Model] | None = None,
     model_settings: dict[str, Any] | None = None,
-    summarization_model: str | None = None,
+    summarization_model: str | Model | None = None,
     instructions: str | None = None,
     output_style: str | OutputStyle | None = None,
     styles_dir: str | list[str] | None = None,
@@ -592,7 +592,7 @@ def create_deep_agent(
     model: str | Model | None = None,
     fallback_model: str | Model | list[str | Model] | None = None,
     model_settings: dict[str, Any] | None = None,
-    summarization_model: str | None = None,
+    summarization_model: str | Model | None = None,
     instructions: str | None = None,
     output_style: str | OutputStyle | None = None,
     styles_dir: str | list[str] | None = None,
@@ -674,7 +674,7 @@ def create_deep_agent(  # noqa: C901
     model: str | Model | None = None,
     fallback_model: str | Model | list[str | Model] | None = None,
     model_settings: dict[str, Any] | None = None,
-    summarization_model: str | None = None,
+    summarization_model: str | Model | None = None,
     instructions: str | None = None,
     output_style: str | OutputStyle | None = None,
     styles_dir: str | list[str] | None = None,
@@ -882,10 +882,10 @@ def create_deep_agent(  # noqa: C901
             evicted from history by `EvictionCapability`.
         stuck_loop_detection: Whether to enable `StuckLoopDetection`, which
             warns/errors on repetitive tool-call loops (default True).
-        summarization_model: Model to use for LLM-based context compression
-            summaries. Defaults to `anthropic:claude-haiku-4-5-20251001`. When set,
-            the middleware uses its own default. Passed through to
-            `ContextManagerMiddleware.summarization_model`.
+        summarization_model: Model for LLM-based context compression summaries,
+            a model string or a `Model` instance. Defaults to the primary
+            `model` - a string or an instance alike. Passed through to
+            `ContextManagerCapability.summarization_model`.
         context_files: List of paths to context files in the workspace
             (e.g., ["DEEP.md", "SOUL.md"]).
             Files are loaded from the run's workspace (`ctx.workspace`)
@@ -1061,11 +1061,10 @@ def create_deep_agent(  # noqa: C901
 
     # Submodels inherit the primary model when not explicitly set — never a
     # hardcoded provider-specific default, which breaks on a single-provider
-    # setup (e.g. a Vertex-only run with no Anthropic key). Captured here as a
-    # string before the primary is (optionally) wrapped in a FallbackModel.
-    _primary_model_name = model if isinstance(model, str) else None
-    if _primary_model_name is not None:
-        summarization_model = summarization_model or _primary_model_name
+    # setup (e.g. a Vertex-only run with no Anthropic key, or a `Model` built
+    # for an OpenAI-compatible gateway). Captured before the primary is
+    # (optionally) wrapped in a FallbackModel.
+    summarization_model = summarization_model or model
 
     # Wrap primary model with FallbackModel when requested.
     if fallback_model is not None:

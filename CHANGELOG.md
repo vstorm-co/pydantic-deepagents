@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Context compression used a different provider when `model` was a `Model`
+  instance.** Only a model string was inherited, so an agent built on, say, an
+  `OpenAIChatModel` for an OpenAI-compatible gateway summarized with
+  `DEFAULT_SUMMARIZATION_MODEL` - a provider the deployment may have no key
+  for. `summarization_model` now defaults to the primary model either way, and
+  accepts a `Model` instance itself.
+
 ## [0.3.49] - 2026-10-06
 
 ### Added

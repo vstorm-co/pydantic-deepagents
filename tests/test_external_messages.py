@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 import pytest
 
+from apps.cli.app import DeepApp
 from apps.cli.external_messages import (
     ENDPOINT_FILE,
     Delivery,
@@ -20,7 +21,23 @@ from apps.cli.external_messages import (
     ExternalMessageRefused,
     SessionEndpoint,
 )
+from pydantic_deep.features.message_queue import MessageQueue
 from tests.test_tui import _queue_app, _settle
+
+
+def _queue_of(app: DeepApp) -> MessageQueue:
+    assert app.queue is not None
+    queue: MessageQueue = app.queue
+    return queue
+
+
+def _raw_request(published: dict[str, Any], headers: str, encoding: str = "ascii") -> bytes:
+    """Send a request httpx refuses to build; return the status line."""
+    port = int(published["url"].split(":")[2].split("/")[0])
+    request = f"POST /messages HTTP/1.1\r\nHost: 127.0.0.1\r\n{headers}\r\n"
+    with socket.create_connection(("127.0.0.1", port), timeout=5) as conn:
+        conn.sendall(request.encode(encoding))
+        return conn.makefile("rb").readline()
 
 
 class _Recorder:
@@ -146,25 +163,49 @@ class TestEndpoint:
     def test_an_oversized_body_is_not_read(
         self, endpoint: SessionEndpoint, inject: _Recorder, tmp_path: Path
     ) -> None:
-        response = _post(tmp_path, {"text": "x" * 70_000, "source": "ci"})
+        response = _post(tmp_path, {"text": "x" * 300_000, "source": "ci"})
 
         assert response.status_code == 413
         assert inject.messages == []
 
+    @pytest.mark.parametrize("length", ["many", "-1"])
     def test_an_invalid_content_length_is_refused(
-        self, endpoint: SessionEndpoint, tmp_path: Path
+        self, endpoint: SessionEndpoint, tmp_path: Path, length: str
     ) -> None:
+        """`-1` passed the size check and `read(-1)` waited for EOF forever."""
         published = _published(tmp_path)
-        port = int(published["url"].split(":")[2].split("/")[0])
-        request = (
-            "POST /messages HTTP/1.1\r\nHost: 127.0.0.1\r\n"
-            f"Authorization: Bearer {published['token']}\r\nContent-Length: many\r\n\r\n"
+        status_line = _raw_request(
+            published,
+            f"Authorization: Bearer {published['token']}\r\nContent-Length: {length}\r\n",
         )
-        with socket.create_connection(("127.0.0.1", port), timeout=5) as conn:
-            conn.sendall(request.encode())
-            status_line = conn.makefile("rb").readline()
 
         assert b" 400 " in status_line
+
+    def test_a_non_ascii_token_is_a_401_not_a_traceback(
+        self, endpoint: SessionEndpoint, tmp_path: Path, capfd: pytest.CaptureFixture[str]
+    ) -> None:
+        """`compare_digest` raises on a non-ASCII str; the stdlib printed it over the TUI."""
+        status_line = _raw_request(
+            _published(tmp_path),
+            "Authorization: Bearer \u00e9\r\nContent-Length: 0\r\n",
+            encoding="latin-1",
+        )
+
+        assert b" 401 " in status_line
+        assert "Traceback" not in capfd.readouterr().err
+
+    def test_whitespace_text_is_malformed(self, endpoint: SessionEndpoint, tmp_path: Path) -> None:
+        assert _post(tmp_path, {"text": " \n ", "source": "ci"}).status_code == 400
+
+    def test_any_metadata_key_is_accepted(
+        self, endpoint: SessionEndpoint, inject: _Recorder, tmp_path: Path
+    ) -> None:
+        response = _post(
+            tmp_path, {"text": "hi", "source": "slack", "metadata": {"msg": "1", "self": "2"}}
+        )
+
+        assert response.status_code == 202
+        assert inject.messages[0].metadata == {"msg": "1", "self": "2"}
 
     def test_other_paths_are_not_found(self, endpoint: SessionEndpoint, tmp_path: Path) -> None:
         published = _published(tmp_path)
@@ -205,6 +246,22 @@ class TestEndpointFile:
         served.stop()
 
 
+class TestGitIgnore:
+    def test_the_token_file_is_ignored(self, endpoint: SessionEndpoint, tmp_path: Path) -> None:
+        assert (tmp_path / ".gitignore").read_text() == f"{ENDPOINT_FILE}\n"
+
+    def test_an_existing_ignore_file_is_appended_to_once(
+        self, inject: _Recorder, tmp_path: Path
+    ) -> None:
+        (tmp_path / ".gitignore").write_text("sessions/")
+        for _ in range(2):
+            served = SessionEndpoint(inject, tmp_path)
+            served.start()
+            served.stop()
+
+        assert (tmp_path / ".gitignore").read_text() == f"sessions/\n{ENDPOINT_FILE}\n"
+
+
 class TestInjectIntoTheApp:
     async def test_an_idle_session_starts_a_turn_labelled_with_the_source(self) -> None:
         from apps.cli.screens.chat import ChatScreen
@@ -215,7 +272,7 @@ class TestInjectIntoTheApp:
             chat = app.screen
             assert isinstance(chat, ChatScreen)
             started: list[str] = []
-            chat._run_agent = started.append  # type: ignore[method-assign]
+            chat._run_agent = started.append  # type: ignore[method-assign, assignment]
 
             delivery = await app.inject_external_message("check MR 123", source="slack")
 
@@ -241,9 +298,11 @@ class TestInjectIntoTheApp:
             )
 
             assert result == delivery
-            assert app.queue.pending_count() == pending
+            assert _queue_of(app).pending_count() == pending
             queued = await (
-                app.queue.drain_steering() if mode == "steer" else app.queue.drain_follow_up()
+                _queue_of(app).drain_steering()
+                if mode == "steer"
+                else _queue_of(app).drain_follow_up()
             )
             assert queued[0].metadata == {"ts": "17", "source": "slack"}
             barrier.set()
@@ -309,6 +368,96 @@ class TestInjectIntoTheApp:
         with pytest.raises(ExternalMessageRefused, match="not ready"):
             await app.inject_external_message("hi", source="ci")
 
+    async def test_a_turn_on_its_way_is_not_doubled(self) -> None:
+        """A goal evaluation awaiting its model leaves `agent_task` empty, but a
+        turn follows it; an external message must queue behind it, not start a
+        second run on the same history."""
+        from apps.cli.screens.chat import ChatScreen
+
+        app = _queue_app()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+            runs: list[str] = []
+            barrier = asyncio.Event()
+
+            def _start(text: str) -> None:
+                runs.append(text)
+                app.agent_task = asyncio.create_task(barrier.wait())
+
+            chat._run_agent = _start  # type: ignore[method-assign]
+            evaluating = asyncio.Event()
+
+            async def _slow_goal_evaluation() -> None:
+                await evaluating.wait()
+                chat._run_agent("goal not met yet - keep going")
+
+            # `pilot.pause()` waits for the pump this blocks, so plain sleeps here.
+            chat.call_later(_slow_goal_evaluation)
+            await asyncio.sleep(0.05)
+            injected = asyncio.create_task(
+                app.inject_external_message("build is green", source="ci")
+            )
+            await asyncio.sleep(0.05)
+            assert not injected.done()
+            evaluating.set()
+            delivery = await injected
+
+            assert delivery == "queued"
+            assert runs == ["goal not met yet - keep going"]
+            barrier.set()
+            assert app.agent_task is not None
+            await app.agent_task
+
+    async def test_a_finished_run_does_not_clear_a_newer_ones_handle(self) -> None:
+        from apps.cli.screens.chat import ChatScreen
+
+        app = _queue_app()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+            chat._run_agent("first")
+            newer = asyncio.create_task(asyncio.Event().wait())
+            app.agent_task = newer
+            await _settle(pilot)
+
+            assert app.agent_task is newer
+            newer.cancel()
+
+    async def test_it_is_delivered_with_a_modal_open(self) -> None:
+        from apps.cli.modals.confirm import ConfirmModal
+        from apps.cli.screens.chat import ChatScreen
+
+        app = _queue_app()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+            started: list[str] = []
+            chat._run_agent = started.append  # type: ignore[method-assign, assignment]
+            app.push_screen(ConfirmModal("sure?"))
+            await pilot.pause()
+
+            delivery = await app.inject_external_message("build is green", source="ci")
+
+        assert delivery == "started"
+        assert started == ["[via ci] build is green"]
+
+    async def test_a_closing_session_refuses(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from apps.cli.screens.chat import ChatScreen
+
+        app = _queue_app()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            chat = app.screen
+            assert isinstance(chat, ChatScreen)
+            monkeypatch.setattr(chat, "call_later", lambda *_a, **_k: False)
+
+            with pytest.raises(ExternalMessageRefused, match="closing"):
+                await app.inject_external_message("hi", source="ci")
+
     async def test_external_steering_too_late_for_the_run_becomes_a_follow_up(self) -> None:
         """Steering that lands after the run's last model request would be
         dropped with a warning only the terminal shows; the sender never sees it."""
@@ -322,7 +471,7 @@ class TestInjectIntoTheApp:
             assert isinstance(chat, ChatScreen)
             scheduled: list[str] = []
             run_turn = chat._run_agent
-            chat._run_agent = scheduled.append  # type: ignore[method-assign]
+            chat._run_agent = scheduled.append  # type: ignore[method-assign, assignment]
             notes: list[str] = []
             app.notify = lambda msg, **_kw: notes.append(str(msg))  # type: ignore[method-assign]
 
@@ -334,8 +483,8 @@ class TestInjectIntoTheApp:
                 if not landed["done"]:
                     landed["done"] = True
                     # The local one first: each drain returns one message.
-                    app.queue._steering.append(QueuedMessage("typed too late", "steering"))
-                    app.queue._steering.append(
+                    _queue_of(app)._steering.append(QueuedMessage("typed too late", "steering"))
+                    _queue_of(app)._steering.append(
                         QueuedMessage("check MR 123", "steering", metadata={"source": "slack"})
                     )
 
@@ -344,7 +493,7 @@ class TestInjectIntoTheApp:
             run_turn("investigate the failing test")
             await _settle(pilot)
 
-            assert app.queue.pending_count() == (0, 0)
+            assert _queue_of(app).pending_count() == (0, 0)
 
         assert scheduled == ["[follow-up via slack] check MR 123"]
         assert any("1 steering message not delivered" in n for n in notes)
@@ -365,7 +514,7 @@ class TestInjectIntoTheApp:
 
             def _land_late_steering() -> None:
                 real_notify()
-                app.queue._steering.append(
+                _queue_of(app)._steering.append(
                     QueuedMessage("check MR 123", "steering", metadata={"source": "slack"})
                 )
 
@@ -390,7 +539,7 @@ class TestListeningApp:
             chat = app.screen
             assert isinstance(chat, ChatScreen)
             started: list[str] = []
-            chat._run_agent = started.append  # type: ignore[method-assign]
+            chat._run_agent = started.append  # type: ignore[method-assign, assignment]
 
             response = await asyncio.to_thread(
                 _post, state_dir, {"text": "build is green", "source": "ci"}

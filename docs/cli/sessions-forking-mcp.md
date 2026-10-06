@@ -47,7 +47,7 @@ $ pydantic-deep tui --listen
 
 </div>
 
-It listens on `127.0.0.1` at a random port, and writes the URL and a bearer token to `.pydantic-deep/session-endpoint.json`, readable by your user only. An integration reads that file and posts:
+It listens on `127.0.0.1` at a random port, and writes the URL and a bearer token to `.pydantic-deep/session-endpoint.json`, readable by your user only and listed in `.pydantic-deep/.gitignore`, so a `git add -A` while the session runs doesn't commit it. An integration reads that file and posts:
 
 ```bash
 endpoint=.pydantic-deep/session-endpoint.json
@@ -59,12 +59,14 @@ curl -s "$(jq -r .url $endpoint)" \
 
 | Field | |
 |---|---|
-| `text` | The message, up to 32,000 characters. |
+| `text` | The message: up to 32,000 characters, not only whitespace. |
 | `source` | Where it came from: up to 32 letters, digits, `_`, `.`, `:` or `-`. The model sees it. |
 | `mode` | `auto` (default) or `follow_up` queue it as a follow-up mid-run; `steer` delivers it before the next model request. An idle session starts a turn in every mode. |
-| `metadata` | Optional string pairs - a thread id, a message id. They go to the log and trace spans, never to the model. |
+| `metadata` | Optional string pairs - a thread id, a message id. They go to the session log (`.pydantic-deep/logs/`), never to the model. |
 
-The answer is `202` with `delivery` set to `steered`, `queued` or `started`. A session that can't take the message answers `409` and says why: no agent configured, a [fork](#live-run-forking) is active, or the queue is full. `401` means a missing or wrong token, and `400` a malformed body.
+The answer is `202` with `delivery` set to `steered`, `queued` or `started`. A session that can't take the message answers `409` and says why: no agent configured, a [fork](#live-run-forking) is active, the queue is full, or the session is still starting or already closing. `401` means a missing or wrong token, `400` a malformed body, and `413` a body over 256 KiB.
+
+A message waits behind whatever the session is already doing before it's delivered - a follow-up turn about to start, or a `/goal` check deciding whether to continue - so it's queued for that turn rather than starting a second one beside it.
 
 Steering that arrives after the run's last model request is kept as a follow-up rather than dropped, since its sender can't see the terminal's warning. One listening session per project: a second `--listen` session publishes over the first one's file, and each removes the file on exit only if it's still its own.
 

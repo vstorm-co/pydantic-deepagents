@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   readable by the owner only), and `DeepApp.inject_external_message()` is the
   same in process. A Slack thread, a Jira comment, CI or a webhook can steer a
   running session or queue a follow-up, and starts a turn in an idle one; the
-  message is labelled with its `source`. A session that cannot take it - no
-  agent, an active fork, a full queue - refuses with the reason.
+  message is labelled with its `source`, and waits behind a turn the session
+  is about to start rather than running beside it. A session that cannot take
+  it - no agent, an active fork, a full queue - refuses with the reason.
   ([#181](https://github.com/vstorm-co/pydantic-deepagents/issues/181))
 
 ### Fixed

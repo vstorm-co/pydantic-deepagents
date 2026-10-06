@@ -829,7 +829,9 @@ class ChatScreen(Screen):
         app.agent_task = task
 
         def _on_done(t: asyncio.Task[None]) -> None:
-            app.agent_task = None
+            # Only this run's own handle: a newer run may already be live.
+            if app.agent_task is t:
+                app.agent_task = None
             exc = t.exception()
             if exc:
                 app.notify(f"Agent error: {exc}", severity="error", timeout=10)  # type: ignore
@@ -1348,6 +1350,8 @@ class ChatScreen(Screen):
                         )
                     except QueueFullError:
                         stale.append(message)
+                    else:
+                        self._increment_queue_badge(steering=False)
                 if stale:
                     n = len(stale)
                     label = "steering message" if n == 1 else "steering messages"
@@ -1405,7 +1409,33 @@ class ChatScreen(Screen):
     async def submit_external(
         self, text: str, *, source: str, mode: ExternalMode, metadata: dict[str, str]
     ) -> Delivery:
-        """Deliver a message from an integration; see `DeepApp.inject_external_message`."""
+        """Deliver a message from an integration; see `DeepApp.inject_external_message`.
+
+        The decision runs on this screen's message pump, behind whatever it is
+        already handling: a follow-up turn scheduled with `call_later`, or a
+        goal evaluation still awaiting its model, both leave `agent_task` empty
+        while a turn is on its way. Typed input waits for them the same way.
+        Must not be awaited from this screen's own handlers.
+        """
+        outcome: asyncio.Future[Delivery] = asyncio.get_running_loop().create_future()
+
+        async def _deliver() -> None:
+            try:
+                delivery = await self._deliver_external(
+                    text, source=source, mode=mode, metadata=metadata
+                )
+            except Exception as exc:
+                outcome.set_exception(exc)
+            else:
+                outcome.set_result(delivery)
+
+        if not self.call_later(_deliver):
+            raise ExternalMessageRefused("the session is closing")
+        return await outcome
+
+    async def _deliver_external(
+        self, text: str, *, source: str, mode: ExternalMode, metadata: dict[str, str]
+    ) -> Delivery:
         from pydantic_deep.features.message_queue import (
             QueuedMessage,
             QueueFullError,
@@ -1436,13 +1466,15 @@ class ChatScreen(Screen):
                 raise ExternalMessageRefused(str(exc)) from exc
             self._increment_queue_badge(steering=steering)
             app.notify(f"{'steering' if steering else 'follow-up'} queued via {source}")
-            return "steered" if steering else "queued"
+            delivery: Delivery = "steered" if steering else "queued"
+            get_logger().info(f"external message from {source}: {delivery}", metadata=metadata)
+            return delivery
 
         # The queue's own label, so the model reads a started turn's source the
         # way it reads a queued one's.
         label = queued_source(QueuedMessage(text, "follow_up", metadata=tagged))
         prompt = f"[via {label}] {text}"
-        get_logger().info(f"external message from {label} starts a turn", **metadata)
+        get_logger().info(f"external message from {label}: started", metadata=metadata)
         app.last_user_prompt = prompt  # type: ignore[attr-defined]
         self.query_one(MessageList).append_user_message(prompt)
         self._run_agent(prompt)

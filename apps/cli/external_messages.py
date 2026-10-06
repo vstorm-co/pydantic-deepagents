@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import tempfile
 import threading
 from collections.abc import Callable
 from http import HTTPStatus
@@ -48,7 +49,10 @@ Delivery = Literal["steered", "queued", "started"]
 ENDPOINT_FILE = "session-endpoint.json"
 """Where a listening session publishes its URL and token, in `.pydantic-deep/`."""
 
-_MAX_BODY_BYTES = 64 * 1024
+# Room for the longest text even when every character is escaped as `\uXXXX`.
+_MAX_BODY_BYTES = 256 * 1024
+_POLL_SECONDS = 0.05
+_REQUEST_TIMEOUT_SECONDS = 10
 
 
 class ExternalMessageRefused(Exception):
@@ -65,7 +69,7 @@ class ExternalMessageRefused(Exception):
 class ExternalMessage(BaseModel):
     """The body of `POST /messages`."""
 
-    text: str = Field(min_length=1, max_length=32_000)
+    text: str = Field(min_length=1, max_length=32_000, pattern=r"\S")
     source: str = Field(pattern=r"^[\w.:-]{1,32}$")
     mode: ExternalMode = "auto"
     metadata: dict[str, str] = Field(default_factory=dict)
@@ -86,9 +90,13 @@ class SessionEndpoint:
         self._inject = inject
         self._file = state_dir / ENDPOINT_FILE
         self._token = secrets.token_urlsafe(32)
-        self._server = ThreadingHTTPServer(("127.0.0.1", 0), _handler_for(self))
+        self._server = _Server(("127.0.0.1", 0), _handler_for(self))
+        # A short poll keeps `stop()`, which runs on the app's loop, quick.
         self._thread = threading.Thread(
-            target=self._server.serve_forever, name="session-endpoint", daemon=True
+            target=self._server.serve_forever,
+            args=(_POLL_SECONDS,),
+            name="session-endpoint",
+            daemon=True,
         )
 
     @property
@@ -114,14 +122,19 @@ class SessionEndpoint:
         get_logger().info(f"session endpoint listening on {self.url}")
 
     def _publish(self) -> None:
-        self._file.parent.mkdir(parents=True, exist_ok=True)
-        # Written private before it holds the token, then moved into place, so
-        # the token is never readable by anyone else - even for a moment.
-        staging = self._file.with_suffix(f".{os.getpid()}.tmp")
-        fd = os.open(staging, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as fh:
-            json.dump({"url": self.url, "token": self._token, "pid": os.getpid()}, fh)
-        os.replace(staging, self._file)
+        state_dir = self._file.parent
+        state_dir.mkdir(parents=True, exist_ok=True)
+        _ignore_in_git(state_dir)
+        # A fresh 0600 file, written before it holds the token and then moved
+        # into place, so the token is never readable by anyone else.
+        fd, staging = tempfile.mkstemp(dir=state_dir, prefix=".session-endpoint-")
+        try:
+            with os.fdopen(fd, "w") as fh:
+                json.dump({"url": self.url, "token": self._token, "pid": os.getpid()}, fh)
+            os.replace(staging, self._file)
+        except OSError:
+            Path(staging).unlink(missing_ok=True)
+            raise
 
     def stop(self) -> None:
         """Stop serving and withdraw the file, unless a newer session replaced it."""
@@ -136,14 +149,37 @@ class SessionEndpoint:
 
     def authorized(self, header: str | None) -> bool:
         scheme, _, token = (header or "").partition(" ")
-        return scheme.lower() == "bearer" and secrets.compare_digest(token, self._token)
+        # Bytes: `compare_digest` raises on a non-ASCII str.
+        return scheme.lower() == "bearer" and secrets.compare_digest(
+            token.encode(), self._token.encode()
+        )
 
     def deliver(self, message: ExternalMessage) -> Delivery:
         return self._inject(message)
 
 
+def _ignore_in_git(state_dir: Path) -> None:
+    """Keep the token file out of commits: the session runs in a work tree."""
+    ignore = state_dir / ".gitignore"
+    lines = ignore.read_text().splitlines() if ignore.exists() else []
+    if ENDPOINT_FILE not in lines:
+        with ignore.open("a") as fh:
+            fh.write(("\n" if lines and lines[-1] else "") + ENDPOINT_FILE + "\n")
+
+
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        # The default prints the traceback to stderr, over the live TUI.
+        get_logger().error("session endpoint: request failed", exc_info=True)
+
+
 def _handler_for(endpoint: SessionEndpoint) -> type[BaseHTTPRequestHandler]:
     class _Handler(BaseHTTPRequestHandler):
+        # An idle connection holds a thread; it gets this long to send a request.
+        timeout = _REQUEST_TIMEOUT_SECONDS
+
         def do_POST(self) -> None:
             if self.path != "/messages":
                 self._reply(HTTPStatus.NOT_FOUND, {"error": "not found"})
@@ -154,6 +190,8 @@ def _handler_for(endpoint: SessionEndpoint) -> type[BaseHTTPRequestHandler]:
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
+                length = -1
+            if length < 0:
                 self._reply(HTTPStatus.BAD_REQUEST, {"error": "invalid Content-Length"})
                 return
             if length > _MAX_BODY_BYTES:

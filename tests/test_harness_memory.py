@@ -315,3 +315,36 @@ class TestSubagents:
         self._build(agent=prebuilt)
 
         assert list(prebuilt.toolsets) == before
+
+
+class TestTeamMembers:
+    async def test_a_member_remembers_under_the_lead_s_namespace_and_its_own_name(self) -> None:
+        """Members are built by the subagent factory, so the per-tenant namespace
+        reaches them: a member with the lead's un-namespaced "main" notebook would
+        share it across every tenant of a shared workspace."""
+        from pydantic_deep.features.teams import TeamMemberSpec
+        from tests.workspaces import run_context
+
+        def tenant(ctx: RunContext[Any]) -> str:
+            return "tenant-a"
+
+        agent = create_deep_agent(
+            model=_requests_seen([]),
+            include_teams=True,
+            include_builtin_subagents=False,
+            web_search=False,
+            web_fetch=False,
+            memory_namespace=tenant,
+        )
+        toolsets = {t.id: cast(Any, t) for t in agent.toolsets if t.id is not None}
+        [main] = [c for c in agent._root_capability.capabilities if isinstance(c, Memory)]
+
+        await (
+            toolsets["deep-team"]
+            .tools["spawn_team"]
+            .function(run_context(DeepAgentDeps()), "build", [TeamMemberSpec(name="coder")])
+        )
+
+        member = toolsets["deep-subagents"].registry.get_compiled("coder").agent
+        [memory] = [c for c in member._root_capability.capabilities if isinstance(c, Memory)]
+        assert (memory.agent_name, memory.namespace, memory.store) == ("coder", tenant, main.store)

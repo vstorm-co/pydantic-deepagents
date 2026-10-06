@@ -53,6 +53,10 @@ A typical flow is `spawn_team` → `assign_task` (per member) → `check_teammat
     code, another writes the tests, a third reviews — not from running the same
     agent three times.
 
+Each member is built the way the lead's subagents are: on the lead's model unless
+its spec names one, with the lead's web tools, shell and workspace, and with any
+`subagent_extra_toolsets` — the domain tools you give delegates.
+
 ## How it fits together
 
 When the agent calls `spawn_team`, the toolset builds an [`AgentTeam`][pydantic_deep.features.teams.AgentTeam] holding two pieces of shared state and registers each [`TeamMember`][pydantic_deep.features.teams.TeamMember] as a subagent. `assign_task` then drops the task onto the shared TODO list and kicks off the subagent's `task()` tool in async mode.

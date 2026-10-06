@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal
 
@@ -50,6 +51,10 @@ class StuckLoopError(Exception):
     def __init__(self, pattern: str, message: str) -> None:
         self.pattern = pattern
         super().__init__(message)
+
+
+METADATA_KEY = "stuck_loop_detection"
+"""The tool-metadata key a tool sets to opt out of stuck-loop checks."""
 
 
 def _hash_args(args: dict[str, Any]) -> str:
@@ -93,6 +98,15 @@ class StuckLoopDetection(AbstractCapability[DeepAgentDeps]):
             Use for polling primitives that are intentionally called
             many times with identical arguments - e.g.
             `{"inspect_branches"}` when forking is enabled.
+
+    A tool can also say so where it is defined, through its metadata:
+    `metadata={"stuck_loop_detection": False}` exempts it from every check, and
+    `metadata={"stuck_loop_detection": {"noop": False}}` from the result check
+    only - for a tool whose result is the same whenever it works, such as an
+    `attach_file` returning `True`, while identical calls still count:
+
+        @toolset.tool(metadata={"stuck_loop_detection": {"noop": False}})
+        def attach_file(ctx: RunContext[...], email_id: str, filename: str) -> bool: ...
     """
 
     max_repeated: int = 3
@@ -182,14 +196,19 @@ class StuckLoopDetection(AbstractCapability[DeepAgentDeps]):
         result: Any,
     ) -> Any:
         """Track tool calls and detect stuck patterns."""
-        if call.tool_name in self.ignore_tools:
+        setting = (tool_def.metadata or {}).get(METADATA_KEY, True)
+        if call.tool_name in self.ignore_tools or setting is False:
             return result
+        # Only `noop` can be turned off on its own: the other two read the same
+        # call history, so a tool is either in it or exempt from both.
+        tracks_results = not (isinstance(setting, Mapping) and setting.get("noop") is False)
 
         call_key = (call.tool_name, _hash_args(args))
         self._call_history.append(call_key)
 
-        result_key = (call.tool_name, _hash_result(result))
-        self._result_history.append(result_key)
+        if tracks_results:
+            result_key = (call.tool_name, _hash_result(result))
+            self._result_history.append(result_key)
 
         if self.detect_repeated:
             msg = self._check_repeated()
@@ -201,7 +220,7 @@ class StuckLoopDetection(AbstractCapability[DeepAgentDeps]):
             if msg is not None:
                 self._react("alternating", msg)
 
-        if self.detect_noop:
+        if self.detect_noop and tracks_results:
             msg = self._check_noop()
             if msg is not None:
                 self._react("noop", msg)

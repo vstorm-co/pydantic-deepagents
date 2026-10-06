@@ -1254,33 +1254,14 @@ def create_deep_agent(  # noqa: C901
                 if _task_tool is not None:
                     _team_kwargs["task_fn"] = _task_tool.function
 
-            # Factory that creates deep agents for team members
-            _team_model = model
-            _team_edit_fmt = edit_format
+            # Members are built as subagents are, so they inherit the same things:
+            # the lead's model, web tools, eviction, shell and workspace - and
+            # `subagent_extra_toolsets`, the domain tools a delegate is given.
+            def _team_member_factory(cfg: dict[str, Any]) -> Any:
+                toolsets = [*(cfg.get("toolsets") or []), *_sub_extra]
+                return _default_deep_agent_factory({**cfg, "toolsets": toolsets})
 
-            def _deep_agent_factory(cfg: dict[str, Any]) -> Any:  # pragma: no cover
-                _team_task_instructions = cfg.get("instructions") or ""
-                _team_instructions = (
-                    DEFAULT_INSTRUCTIONS + "\n\n" + _team_task_instructions
-                    if _team_task_instructions
-                    else DEFAULT_INSTRUCTIONS
-                )
-                return create_deep_agent(
-                    model=cfg.get("model", _team_model),
-                    instructions=_team_instructions,
-                    include_filesystem=True,
-                    include_todo=True,
-                    include_subagents=False,
-                    include_skills=False,
-                    include_plan=False,
-                    include_teams=False,
-                    include_monitoring=False,
-                    context_manager=False,
-                    cost_tracking=False,
-                    edit_format=_team_edit_fmt,
-                )
-
-            _team_kwargs["agent_factory"] = _deep_agent_factory
+            _team_kwargs["agent_factory"] = _team_member_factory
 
         team_toolset = create_team_toolset(**_team_kwargs)
         all_toolsets.append(team_toolset)

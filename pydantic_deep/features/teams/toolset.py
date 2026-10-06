@@ -150,8 +150,11 @@ def create_team_toolset(  # noqa: C901
                     name=member.name,
                     description=f"[Team {team_name}] {member.description}",
                     instructions=member.instructions,
-                    model=member.model,
                 )
+                # Left out rather than `None`: the factory reads a missing
+                # model as "the team lead's".
+                if member.model is not None:
+                    config["model"] = member.model
                 if agent_factory is not None:
                     config["agent_factory"] = agent_factory
                 compiled = _compile_subagent(config, member.model)

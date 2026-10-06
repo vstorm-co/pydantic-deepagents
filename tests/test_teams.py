@@ -490,7 +490,8 @@ class TestTeamMember:
             description="QA tester",
             instructions="Test thoroughly",
         )
-        assert member.model == "anthropic:claude-sonnet-4-6"
+        # None runs the member on the team lead's model (#198).
+        assert member.model is None
         assert member.toolsets == []
 
 
@@ -1106,6 +1107,70 @@ class TestTeamSubagentWiring:
 
         assert "coder" in subagents.registry.list_agents()
         assert subagents.registry.get_compiled("coder") is not None
+
+    @pytest.mark.asyncio
+    async def test_a_member_is_built_like_a_subagent_of_the_lead(self):
+        """#198: members came from a stale copy of the subagent factory - on a
+        hardcoded Anthropic model, with web search the lead had turned off, and
+        without the shell or the domain tools a delegate is given."""
+        from pydantic_ai.capabilities import WebSearch
+        from pydantic_ai.toolsets import FunctionToolset
+
+        domain = FunctionToolset(id="domain-tools")
+        agent = create_deep_agent(
+            model=TEST_MODEL,
+            include_subagents=True,
+            include_teams=True,
+            include_builtin_subagents=False,
+            web_search=False,
+            web_fetch=False,
+            subagent_extra_toolsets=[domain],
+            include_skills=False,
+            include_plan=False,
+            include_monitoring=False,
+            cost_tracking=False,
+        )
+        toolsets: dict[str, Any] = {
+            ts_id: cast(Any, ts) for ts in agent.toolsets if (ts_id := ts.id) is not None
+        }
+        await (
+            toolsets["deep-team"]
+            .tools["spawn_team"]
+            .function(
+                _make_ctx(), "build", [TeamMemberSpec(name="coder", instructions="You code.")]
+            )
+        )
+
+        member = toolsets["deep-subagents"].registry.get_compiled("coder").agent
+        assert member.model == agent.model
+        assert not [c for c in member._root_capability.capabilities if isinstance(c, WebSearch)]
+        assert any(ts is domain for ts in member.toolsets)
+
+    @pytest.mark.asyncio
+    async def test_a_member_named_with_a_model_keeps_it(self):
+        from pydantic_ai import Agent
+
+        from pydantic_deep.features.teams.toolset import create_team_toolset as _create
+
+        seen: list[Any] = []
+
+        def factory(cfg: Any) -> Agent[Any, str]:
+            seen.append(cfg)
+            return Agent(TestModel())
+
+        subagents = self._subagent_toolset()
+        team = _create(
+            registry=subagents.registry,
+            task_manager=subagents.task_manager,
+            agent_factory=factory,
+        )
+        await team.tools["spawn_team"].function(
+            _make_ctx(),
+            "build",
+            [TeamMemberSpec(name="a", model="test"), TeamMemberSpec(name="b")],
+        )
+
+        assert [cfg.get("model") for cfg in seen] == ["test", None]
 
     @pytest.mark.asyncio
     async def test_assign_task_reaches_the_member(self):

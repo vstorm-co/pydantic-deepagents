@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
+  between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
+  say), for several users sharing one workspace. The model never sees it. Each
+  `/`-separated part is letters, digits, `_`, `-` and `.`; a fixed one that is not
+  is refused when the agent is built.
+- **`build_memory_capability()`**, which builds the `Memory` capability the way
+  `create_deep_agent` does.
+
 ### Changed
 
 - **Memory is the `pydantic-ai-harness` `Memory` capability.** Each agent keeps a
@@ -33,22 +43,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`memory_pin_marker` no longer pins.** The harness keeps the tail of `MEMORY.md`
   when it truncates and has no pinned section; setting it now warns.
 
-### Added
-
-- **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
-  between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
-  say), for several users sharing one workspace. The model never sees it. Each
-  `/`-separated part is letters, digits, `_`, `-` and `.`; a fixed one that is not
-  is refused when the agent is built.
-- **`build_memory_capability()`**, which builds the `Memory` capability the way
-  `create_deep_agent` does.
-
 ### Deprecated
 
 - **pydantic-deep's own memory API** - `AgentMemoryToolset`, `MemoryCapability`,
   `MemoryFile`, `MemoryAccessError`, `load_memory`, `format_memory_prompt`,
   `DEFAULT_MAX_MEMORY_LINES`, `DEFAULT_PIN_END_MARKER` and the memory tool
   descriptions. They still import, with a `DeprecationWarning`, and nothing uses them.
+
+### Removed
+
+- **`DEFAULT_TEAM_MEMBER_MODEL`.** A member without a model now runs on the team
+  lead's.
+
+### Fixed
+
+- **A tool that returns the same thing whenever it works can say so.** Stuck-loop
+  detection's no-op check compares results only, so attaching three different
+  files - each answering `True` - read as "the operation has no effect", and the
+  retry replaced the real result. A tool now opts out where it is defined:
+  `metadata={"stuck_loop_detection": {"noop": False}}` skips the result check (identical
+  calls are still caught), and `metadata={"stuck_loop_detection": False}` every check.
+  (#237, fixes #208)
+- **Team members are built like the lead's subagents.** `spawn_team` built members
+  through a stale copy of the subagent factory: every member ran on a hardcoded
+  Anthropic model, with web search the lead had turned off (failing the whole run
+  without `ANTHROPIC_API_KEY` or the `duckduckgo` extra), and without the shell or
+  the domain tools a delegate gets. Members now use the subagent factory: the
+  lead's model unless `TeamMemberSpec.model` names one, the lead's web tools,
+  eviction, shell and workspace, and `subagent_extra_toolsets`. (#238, fixes #198)
+
 
 ## [0.3.47] - 2026-10-06
 

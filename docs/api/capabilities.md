@@ -19,11 +19,12 @@ conceptual overview.
     options:
       show_source: false
 
-## MemoryCapability
+## Memory
 
-::: pydantic_deep.features.memory.MemoryCapability
-    options:
-      show_source: false
+Memory is the `pydantic-ai-harness` `Memory` capability, built by
+[`build_memory_capability`][pydantic_deep.features.memory.store.build_memory_capability].
+See the [Memory API](memory.md). The deprecated `MemoryCapability` still imports,
+with a `DeprecationWarning`.
 
 ## BrowserCapability
 

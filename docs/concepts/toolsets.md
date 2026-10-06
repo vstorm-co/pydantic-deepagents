@@ -174,13 +174,15 @@ agent = create_deep_agent(include_teams=True)
 
 ### MemoryToolset
 
-Persistent agent memory across sessions. See [Memory](../learn/memory.md).
+Persistent agent memory across sessions, from the `pydantic-ai-harness` `Memory`
+capability. See [Memory](../learn/memory.md).
 
 | Tool | Description |
 |------|-------------|
-| `read_memory` | Read full memory content |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find and replace text in memory |
+| `write_memory` | Append to a file, or replace one unique fragment (`old_text=`) |
+| `read_memory` | Read one memory file |
+| `search_memory` | Search across the notebook's files |
+| `delete_memory` | Delete a file (never `MEMORY.md`) |
 
 ```python
 agent = create_deep_agent(include_memory=True)

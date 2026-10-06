@@ -471,44 +471,36 @@ class TestCreateDeepAgentMemory:
 
 
 class TestPerSubagentMemory:
-    """Tests for per-subagent memory injection via extra field."""
+    """A subagent built by its own factory gets the memory tools as a toolset."""
 
-    def test_subagent_gets_memory_when_enabled(self):
-        """Per-subagent memory injection adds an AgentMemoryToolset."""
+    @staticmethod
+    def _memory_toolsets(config: Any) -> list[Any]:
+        from pydantic_ai_harness.memory import MemoryToolset
+
+        return [t for t in config.get("toolsets", []) if isinstance(t, MemoryToolset)]
+
+    def test_subagent_gets_its_own_memory_tools(self):
         from pydantic_deep.agent import _inject_subagent_memory_toolset
         from pydantic_deep.types import SubAgentConfig
 
-        config = SubAgentConfig(
-            name="reviewer",
-            description="Code reviewer",
-            instructions="Review code",
-        )
-        _inject_subagent_memory_toolset(config, None)
+        config = SubAgentConfig(name="reviewer", description="Code reviewer", instructions="Review")
+        _inject_subagent_memory_toolset(config, None, "")
 
-        assert "toolsets" in config
-        toolset_types = [type(t).__name__ for t in config["toolsets"]]
-        assert "AgentMemoryToolset" in toolset_types
+        [toolset] = self._memory_toolsets(config)
+        assert toolset._capability.agent_name == "reviewer"
 
     def test_subagent_memory_disabled_via_extra(self):
-        """Injection is skipped when extra.memory=False."""
         from pydantic_deep.agent import _inject_subagent_memory_toolset
         from pydantic_deep.types import SubAgentConfig
 
         config = SubAgentConfig(
-            name="worker",
-            description="Worker",
-            instructions="Do work",
-            extra={"memory": False},
+            name="worker", description="Worker", instructions="Do work", extra={"memory": False}
         )
-        _inject_subagent_memory_toolset(config, None)
+        _inject_subagent_memory_toolset(config, None, "")
 
-        # Should NOT have AgentMemoryToolset
-        if "toolsets" in config:
-            toolset_types = [type(t).__name__ for t in config["toolsets"]]
-            assert "AgentMemoryToolset" not in toolset_types
+        assert self._memory_toolsets(config) == []
 
     def test_subagent_memory_custom_max_lines(self):
-        """Per-subagent memory_max_lines via extra field is honoured."""
         from pydantic_deep.agent import _inject_subagent_memory_toolset
         from pydantic_deep.types import SubAgentConfig
 
@@ -518,17 +510,12 @@ class TestPerSubagentMemory:
             instructions="Analyze",
             extra={"memory_max_lines": 50},
         )
-        _inject_subagent_memory_toolset(config, None)
+        _inject_subagent_memory_toolset(config, None, "")
 
-        assert "toolsets" in config
-        memory_toolsets: list[Any] = [
-            t for t in config["toolsets"] if type(t).__name__ == "AgentMemoryToolset"
-        ]
-        assert len(memory_toolsets) == 1
-        assert memory_toolsets[0]._max_lines == 50
+        [toolset] = self._memory_toolsets(config)
+        assert toolset._capability.max_lines == 50
 
     def test_subagent_preserves_existing_toolsets(self):
-        """Existing toolsets are preserved when memory is added."""
         from pydantic_ai.toolsets import FunctionToolset
 
         from pydantic_deep.agent import _inject_subagent_memory_toolset
@@ -536,17 +523,12 @@ class TestPerSubagentMemory:
 
         existing_toolset = FunctionToolset(id="custom")
         config = SubAgentConfig(
-            name="worker",
-            description="Worker",
-            instructions="Work",
-            toolsets=[existing_toolset],
+            name="worker", description="Worker", instructions="Work", toolsets=[existing_toolset]
         )
-        _inject_subagent_memory_toolset(config, None)
+        _inject_subagent_memory_toolset(config, None, "")
 
-        assert len(config["toolsets"]) >= 2
-        toolset_types = [type(t).__name__ for t in config["toolsets"]]
-        assert "FunctionToolset" in toolset_types
-        assert "AgentMemoryToolset" in toolset_types
+        assert config["toolsets"][0] is existing_toolset
+        assert len(self._memory_toolsets(config)) == 1
 
     def test_no_subagent_memory_when_include_memory_false(self):
         """create_deep_agent(include_memory=False) does not inject subagent memory

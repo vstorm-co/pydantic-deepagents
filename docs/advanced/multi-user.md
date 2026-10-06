@@ -118,6 +118,8 @@ The workspace covers most state, but two things live outside it. Scope them per 
 | Checkpoints | `checkpoint_store=` on `DeepAgentDeps` | Users see each other's checkpoints |
 | Message history | your own store, keyed by user | Conversations bleed together |
 
+If users must share one workspace, keep their memory apart with `memory_namespace=` — for example `create_deep_agent(memory_namespace=lambda ctx: ctx.deps.user_id)` — which files each user's notebook under its own segment. Their other files are still shared.
+
 Checkpoints use a separate store. Message history is yours to keep — `agent.run()` doesn't remember anything between calls. A history also carries the ref of the workspace its run worked in, which is what lets an agent *with* a workspace capability come back to the same one; with `workspace=False`, the workspace you pass always wins.
 
 ## Putting it together (FastAPI)

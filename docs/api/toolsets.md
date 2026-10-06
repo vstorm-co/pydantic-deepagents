@@ -446,43 +446,32 @@ Or via `create_deep_agent(include_teams=True)`.
 
 ---
 
-## MemoryToolset
+## Memory
 
-Persistent agent memory. See [Memory](../learn/memory.md).
+Persistent agent memory, from the `pydantic-ai-harness` `Memory` capability. See
+[Memory](../learn/memory.md) and the [Memory API](memory.md).
 
 ### Tools
 
 | Tool | Description |
 |------|-------------|
-| `read_memory` | Read full memory content |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find and replace text in memory |
+| `write_memory` | Append to a file, or replace one unique fragment (`old_text=`) |
+| `read_memory` | Read one memory file |
+| `search_memory` | Search across the notebook's files |
+| `delete_memory` | Delete a file (never `MEMORY.md`) |
 
-### Constructor
+### Building it
 
 ```python
-from pydantic_deep.features.memory import AgentMemoryToolset
+from pydantic_deep import build_memory_capability, create_deep_agent
 
-toolset = AgentMemoryToolset(
-    agent_name="main",
-    memory_dir="/.deep/memory",
-    max_lines=200,
-    descriptions={
-        "write_memory": "Save important findings to persistent memory",
-    },
-)
+memory = build_memory_capability(memory_dir=".deep/memory", agent_name="main", max_lines=200)
+agent = create_deep_agent(include_memory=False, capabilities=[memory])
 ```
 
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `agent_name` | `str` | `"main"` | Agent name (used for path and prompt label) |
-| `memory_dir` | `str` | `"/.deep/memory"` | Base directory for memory files |
-| `max_lines` | `int` | `200` | Max lines to inject into system prompt |
-| `descriptions` | `dict[str, str] \| None` | `None` | Custom tool descriptions (keys: `read_memory`, `write_memory`, `update_memory`) |
-
-Or via `create_deep_agent(include_memory=True)`.
+Or via `create_deep_agent(include_memory=True)`, which does this for the main agent
+and each subagent. The deprecated `AgentMemoryToolset` still imports, with a
+`DeprecationWarning`.
 
 ---
 

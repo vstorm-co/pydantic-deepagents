@@ -121,17 +121,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Capabilities (`pydantic_deep/features/<name>/capability.py`)**
 - `SkillsCapability`: Injects skills system prompt and manages skill discovery
 - `ContextFilesCapability`: Auto-discovers and injects context files (DEEP.md, AGENTS.md, CLAUDE.md, SOUL.md)
-- `MemoryCapability`: Persistent memory management with read/write/update tools
 - `BrowserCapability`, `StuckLoopDetection`, `PeriodicReminderCapability`,
   `HooksCapability`, `EvictionCapability`, `PatchToolCallsCapability`
 - All extend pydantic-ai's `AbstractCapability`
 
 **Persistent Memory (`pydantic_deep/features/memory/`)**
-- `MemoryFile`: Loaded memory (agent_name, path, content)
-- `AgentMemoryToolset`: FunctionToolset with read_memory, write_memory, update_memory
-- `get_instructions()`: Injects memory into system prompt (first N lines)
-- `load_memory()`, `format_memory_prompt()`, `get_memory_path()`
-- Default path: `{memory_dir}/{agent_name}/MEMORY.md`
+- The `pydantic-ai-harness` `Memory` capability over a `FileStore` in the run's workspace
+- `build_memory_capability()` (`store.py`): builds it for the main agent and each subagent
+- Tools: `write_memory` (append, or replace with `old_text=`), `read_memory`, `search_memory`, `delete_memory`
+- `MEMORY.md` is injected into each request as user-role context; listed after compaction
+- Path: `{memory_dir}/{namespace}/{agent_name}/MEMORY.md`; `memory_namespace=` isolates users sharing a workspace
+- `AgentMemoryToolset`, `MemoryCapability`, `MemoryFile`, `load_memory()`, `format_memory_prompt()` are deprecated (import with a warning)
 
 **Context Files (`pydantic_deep/features/context/`)**
 - `ContextFile`: Loaded context file (name, path, content)

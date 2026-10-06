@@ -118,7 +118,7 @@ pydantic-deepagents/
 │   ├── capabilities/           # pydantic-ai capability adapters
 │   │   ├── context.py          # ContextFilesCapability
 │   │   ├── hooks.py            # HooksCapability (lifecycle hooks)
-│   │   ├── memory.py           # MemoryCapability
+│   │   ├── memory.py           # Memory (pydantic-ai-harness)
 │   │   ├── plan.py             # PlanCapability
 │   │   ├── skills.py           # SkillsCapability
 │   │   └── teams.py            # TeamCapability

@@ -122,7 +122,7 @@ Toolsets are assembled in order into `all_toolsets`:
 3. **SubAgentToolset** — `create_subagent_toolset(...)` with nesting depth
 4. **SkillsToolset** — `SkillsToolset(directories=...)`
 5. **ContextToolset** — If `context_files` or `context_discovery` set
-6. **AgentMemoryToolset** — For each agent (main + subagents)
+6. **Memory** (`pydantic-ai-harness`) — A capability for each agent (main + subagents)
 7. **CheckpointToolset** — If `include_checkpoints` is True
 8. **TeamToolset** — If `include_teams` is True
 9. **HistorySearchToolset** — If `include_history_archive` + `context_manager`

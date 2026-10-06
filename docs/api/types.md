@@ -398,17 +398,8 @@ class OutputStyle:
 
 ## Memory Types
 
-### MemoryFile
-
-Loaded agent memory file.
-
-```python
-@dataclass
-class MemoryFile:
-    agent_name: str                  # "main", "code-reviewer", etc.
-    path: str                        # Path in the run's workspace
-    content: str                     # Memory file content
-```
+Memory's files and types are the `pydantic-ai-harness` memory store's. The
+deprecated `MemoryFile` still imports, with a `DeprecationWarning`.
 
 ---
 

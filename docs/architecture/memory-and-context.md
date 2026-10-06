@@ -14,7 +14,7 @@ and session management work across the **summarization-pydantic-ai** and **pydan
 | **StuckLoopDetection** | pydantic-deep | Detects repetitive tool call patterns and breaks agent loops |
 | **LimitWarnerCapability** | summarization-pydantic-ai | Warns the model when context limits approach (70% URGENT, 100% CRITICAL) |
 | **PatchToolCallsCapability** | pydantic-deep | Fixes orphaned tool calls/results in conversation history |
-| **AgentMemoryToolset** | pydantic-deep | Persistent agent memory (`MEMORY.md`) across sessions |
+| **Memory** | pydantic-ai-harness | Persistent agent memory (`MEMORY.md`) across sessions |
 | **HistoryArchiveSearch** | pydantic-deep | Search tool for pre-compression history (reads `messages.json`) |
 | **CLI Commands** | cli | `/compact`, `/context`, `--resume`, `--fork` |
 
@@ -30,7 +30,7 @@ graph TD
 
     subgraph "pydantic-deep"
         EP[EvictionProcessor]
-        MEM[AgentMemoryToolset]
+        MEM[Memory]
         HAS[HistoryArchiveSearch]
         AF[agent.py — create_deep_agent]
         DEPS[DeepAgentDeps]
@@ -225,26 +225,32 @@ This mirrors Claude Code's pattern of clearing tool outputs first, then summariz
 
 ---
 
-### 3. AgentMemoryToolset (pydantic-deep)
+### 3. Memory (pydantic-ai-harness)
 
-Persistent cross-session memory stored in `MEMORY.md` files.
+Persistent cross-session memory: the harness `Memory` capability over a
+`FileStore` in the run's workspace.
 
-**File path:** `{memory_dir}/{agent_name}/MEMORY.md`
-(e.g., `.pydantic-deep/main/MEMORY.md`)
+**File path:** `{memory_dir}/{namespace}/{agent_name}/MEMORY.md`, plus any topic
+files beside it (e.g., `.pydantic-deep/main/MEMORY.md`; no namespace by default).
 
-**System prompt injection:** On each run, the first 200 lines of `MEMORY.md` are
-injected into the system prompt as a `## Agent Memory` section.
+**Injection:** On each model request, a bounded excerpt of `MEMORY.md` (200 lines,
+about 2,000 tokens) and the names of the other files are added as user-role
+context to that request only - so it is listed after compaction, which would
+otherwise rewrite the history it sits in.
 
 **Tools:**
 
 | Tool | Description |
 |------|-------------|
-| `read_memory()` | Read full memory content |
-| `write_memory(content)` | Append to memory |
-| `update_memory(old_text, new_text)` | Find and replace in memory |
+| `write_memory(content, old_text=...)` | Append to a file, or replace one unique fragment |
+| `read_memory(file)` | Read one memory file |
+| `search_memory(query)` | Search the notebook's files |
+| `delete_memory(file)` | Delete a file (never `MEMORY.md`) |
 
-Memory is independent from conversation history — it persists across sessions
-and survives compression. The agent decides what to remember.
+Memory is independent from conversation history - it persists across sessions
+and survives compression. The agent decides what to remember. Because it lives
+in the workspace, a forked branch's notes are staged in its overlay like its
+files, and each user's workspace holds that user's memory.
 
 ---
 

@@ -45,6 +45,9 @@ dependencies = [
     "pydantic-ai-slim[web-fetch,duckduckgo]>=2.52.0",
     "pydantic-ai-todo>=0.2.7",
     "pydantic-ai-backend[console,workspaces]>=0.2.33",
+    # Memory is the harness `Memory` capability. Each harness release pins the
+    # Pydantic AI it ships with, so the floor is the first one on workspaces.
+    "pydantic-ai-harness>=0.52.0",
     "summarization-pydantic-ai>=0.1.11",
     "subagents-pydantic-ai>=0.2.25",
     "pydantic-ai-shields>=0.3.4",

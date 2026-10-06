@@ -295,6 +295,7 @@ class TestAgentIntegration:
             model=TEST_MODEL,
             eviction_token_limit=100,
             include_todo=False,
+            include_memory=False,
             include_filesystem=False,
             include_subagents=False,
             include_skills=False,

@@ -84,6 +84,8 @@ class TestCreateDeepAgent:
             context_files=None,
             context_discovery=False,
             memory_dir=None,
+            include_memory=False,
+            memory_namespace="",
             web_search=False,
             web_fetch=False,
             eviction_token_limit=20_000,
@@ -213,45 +215,19 @@ class TestCreateDeepAgent:
             assert "agent_factory" not in cfg
             assert cfg["toolsets"] == []
 
-    def test_subagent_factory_single_memory_toolset(self):
-        """Regression for #155: the default subagent factory must not register a
-        second AgentMemoryToolset.
-
-        `_inject_subagent_memory_toolset` adds one memory toolset under the
-        subagent's own name; the factory previously also passed
-        `include_memory=True`, so `create_deep_agent` added a second 'deep-memory'
-        toolset (under the wrong "main" name), causing a `read_memory` collision.
-        """
-        from pydantic_deep.agent import _inject_subagent_memory_toolset
-        from pydantic_deep.features.memory import AgentMemoryToolset
+    def test_subagent_factory_gives_one_memory_named_after_the_subagent(self):
+        """Regression for #155: a subagent has one memory, its own, never the
+        parent's "main" notebook beside it."""
+        from pydantic_ai_harness import Memory
 
         cfg: SubAgentConfig = SubAgentConfig(
-            name="researcher", description="explores", instructions="explore", toolsets=[]
+            name="researcher", description="explores", instructions="explore"
         )
-        _inject_subagent_memory_toolset(cfg, None)
 
-        sub_agent = self._default_factory()(cfg)
+        sub_agent = self._default_factory(include_memory=True)(cfg)
 
-        seen: set[int] = set()
-        found: list[Any] = []
-
-        def _walk(toolsets: Any) -> None:
-            for ts in toolsets:
-                if id(ts) in seen:
-                    continue
-                seen.add(id(ts))
-                found.append(ts)
-                for attr in ("toolsets", "_toolsets", "wrapped"):
-                    inner = getattr(ts, attr, None)
-                    if isinstance(inner, (list, tuple)):
-                        _walk(inner)
-                    elif inner is not None and inner is not ts:
-                        _walk([inner])
-
-        _walk(list(getattr(sub_agent, "toolsets", []) or []))
-        memory_toolsets = [t for t in found if isinstance(t, AgentMemoryToolset)]
-        assert len(memory_toolsets) == 1
-        assert memory_toolsets[0]._agent_name == "researcher"
+        memories = [c for c in sub_agent._root_capability.capabilities if isinstance(c, Memory)]
+        assert [m.agent_name for m in memories] == ["researcher"]
 
     def test_create_with_interrupt_on(self):
         """Test creating an agent with interrupt_on config."""
@@ -683,7 +659,9 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_uploads_files(self):
         """Test that run_with_files uploads files before running agent."""
-        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
+        agent = create_deep_agent(
+            model=TEST_MODEL, web_search=False, web_fetch=False, include_memory=False
+        )
         deps = DeepAgentDeps()
 
         files = [
@@ -705,7 +683,9 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_custom_upload_dir(self):
         """Test run_with_files with custom upload directory."""
-        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
+        agent = create_deep_agent(
+            model=TEST_MODEL, web_search=False, web_fetch=False, include_memory=False
+        )
         deps = DeepAgentDeps()
 
         files = [("test.txt", b"content")]
@@ -723,7 +703,9 @@ class TestRunWithFiles:
     @pytest.mark.anyio
     async def test_run_with_files_no_files(self):
         """Test run_with_files with no files."""
-        agent = create_deep_agent(model=TEST_MODEL, web_search=False, web_fetch=False)
+        agent = create_deep_agent(
+            model=TEST_MODEL, web_search=False, web_fetch=False, include_memory=False
+        )
         deps1 = DeepAgentDeps()
         deps2 = DeepAgentDeps()
 

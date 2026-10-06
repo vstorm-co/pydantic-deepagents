@@ -62,7 +62,7 @@ Every tool works in the run's workspace, `ctx.workspace`.
 
 **Per-subagent injection:**
 - Each subagent gets its own `ContextToolset` if `context_files` is set
-- Each subagent gets its own `AgentMemoryToolset` if `include_memory=True`
+- Each subagent gets its own harness `Memory` if `include_memory=True` (named after it; a subagent with its own factory gets the memory tools)
 - Each subagent gets `_default_deep_agent_factory` for recursive deep agent creation
 
 ### 4. SkillsToolset
@@ -295,26 +295,31 @@ class ContextToolset(FunctionToolset[Any]):
 
 **Source:** `pydantic_deep/features/memory/`
 
-**Tools:**
-- `read_memory` — Read full MEMORY.md content
-- `write_memory` — Append new content to memory
-- `update_memory` — Find and replace text in memory
+**What it is:** the `pydantic-ai-harness` `Memory` capability over a `FileStore` in the
+run's workspace, built by `build_memory_capability()`.
 
-**Storage:** Each agent gets `{memory_dir}/{agent_name}/MEMORY.md`
+**Tools:**
+- `write_memory` — Append to a file, or replace one unique fragment (`old_text=`)
+- `read_memory` — Read one memory file
+- `search_memory` — Search the notebook's files
+- `delete_memory` — Delete a file (never `MEMORY.md`)
+
+**Storage:** `{memory_dir}/{namespace}/{agent_name}/MEMORY.md` in the workspace, plus topic files
 
 **Defaults:**
-- `memory_dir` = `/.deep/memory`
-- `max_lines` = 200 (injected into system prompt)
+- `memory_dir` = `.deep/memory`
+- 200 lines / about 2,000 tokens of `MEMORY.md` injected per request
 
-**Instruction injection:** First N lines of memory are auto-loaded into the system prompt via `get_instructions()`.
+**Injection:** a bounded excerpt of `MEMORY.md` is added to each request as user-role context,
+on that request only.
 
 ```python
-class AgentMemoryToolset(FunctionToolset[Any]):
-    agent_name: str           # "main", "code-reviewer", etc.
-    memory_dir: str           # "/.deep/memory"
-    max_lines: int            # 200
-
-    async def get_instructions(ctx) -> list[str] | None
+build_memory_capability(
+    memory_dir=".deep/memory",
+    agent_name="main",          # "main", "code-reviewer", etc.
+    namespace="",               # or a function of the run, e.g. a user id
+    defer_loading=False,        # True with tool_search
+)
 ```
 
 ### 9. TeamToolset
@@ -467,16 +472,18 @@ class HookResult:
 - **Handler hooks:** Async Python function `(HookInput) -> HookResult`
 - **Background hooks:** Fire-and-forget via `asyncio.create_task()`
 
-### 3. MemoryCapability
+### 3. Memory (pydantic-ai-harness)
 
-**Source:** `pydantic_deep/features/memory/capability.py`
+**Source:** `pydantic_ai_harness.Memory`, built by `pydantic_deep/features/memory/store.py`
 
-Wraps `AgentMemoryToolset` with both tools and instruction injection.
+The harness capability: the memory tools, and `MEMORY.md` injected into each request.
+The deprecated `MemoryCapability` still imports, with a warning.
 
-**Parameters:**
-- `agent_name: str` — Default: `"main"`
-- `memory_dir: str` — Default: `/.deep/memory`
-- `max_lines: int` — Default: 200
+**Parameters (`build_memory_capability`):**
+- `agent_name: str` — `"main"`, or a subagent's name
+- `memory_dir: str` — Default: `.deep/memory`
+- `namespace` — Default: none; a string or a function of the run
+- `max_lines: int`, `max_tokens: int` — Default: the harness's (200, about 2,000)
 
 **Provides:** `get_toolset()` + `get_instructions()`
 
@@ -728,13 +735,11 @@ classDiagram
         -_context_discovery: bool
     }
 
-    class AgentMemoryToolset {
-        +read_memory()
+    class MemoryToolset {
         +write_memory()
-        +update_memory()
-        +get_instructions(ctx) list
-        -_agent_name: str
-        -_memory_dir: str
+        +read_memory()
+        +search_memory()
+        +delete_memory()
     }
 
     class TeamToolset {
@@ -752,7 +757,7 @@ classDiagram
     FunctionToolset <|-- PlanToolset
     FunctionToolset <|-- CheckpointToolset
     FunctionToolset <|-- ContextToolset
-    FunctionToolset <|-- AgentMemoryToolset
+    Memory --> MemoryToolset
     FunctionToolset <|-- TeamToolset
 ```
 
@@ -792,13 +797,12 @@ classDiagram
         +after_model_request()
     }
 
-    class MemoryCapability {
+    class Memory {
+        +store: FileStore
         +agent_name: str
-        +memory_dir: str
-        +max_lines: int
-        -_toolset: AgentMemoryToolset
-        +get_toolset() AbstractToolset
-        +get_instructions() Any
+        +namespace: str
+        +get_toolset() MemoryToolset
+        +before_model_request()
     }
 
     class PlanCapability {
@@ -824,7 +828,7 @@ classDiagram
 
     AbstractCapability <|-- ContextFilesCapability
     AbstractCapability <|-- HooksCapability
-    AbstractCapability <|-- MemoryCapability
+    AbstractCapability <|-- Memory
     AbstractCapability <|-- PlanCapability
     AbstractCapability <|-- SkillsCapability
     AbstractCapability <|-- TeamCapability
@@ -912,7 +916,7 @@ class XxxCapability(AbstractCapability[Any]):
 |------------|:---:|:---:|
 | ContextFilesCapability | No | Yes |
 | HooksCapability | No | No (lifecycle hooks instead) |
-| MemoryCapability | Yes | Yes |
+| Memory (harness) | Yes | Yes |
 | PlanCapability | Yes | No |
 | SkillsCapability | Yes | Yes |
 | TeamCapability | Yes | No |

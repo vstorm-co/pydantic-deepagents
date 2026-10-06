@@ -73,13 +73,14 @@ agent = create_deep_agent(
 )
 ```
 
-You didn't ask for memory — it ships enabled. Every agent gets three tools and a slice of `MEMORY.md` folded into its system prompt automatically:
+You didn't ask for memory — it ships enabled. Memory is the harness's [`Memory`](https://pydantic.dev/docs/ai/harness/) capability: each agent keeps a notebook of Markdown files, `MEMORY.md` is added to every request, and four tools work on the rest:
 
 | Tool | What it does |
 |------|--------------|
-| `read_memory` | Read the full memory file |
-| `write_memory` | Append new content to memory |
-| `update_memory` | Find-and-replace an existing entry |
+| `write_memory` | Append to a file, or replace one unique piece of text in it (`old_text=`) |
+| `read_memory` | Read one memory file |
+| `search_memory` | Search across the notebook's files |
+| `delete_memory` | Delete a file — never `MEMORY.md` itself |
 
 The agent calls these on its own when it decides something is worth keeping. You can turn the whole thing off with `include_memory=False`, or move the files with `memory_dir=` (default: `.deep/memory`, relative to the workspace's working directory).
 
@@ -94,7 +95,7 @@ This is the load-bearing line. Memory lives at `{memory_dir}/{agent_name}/MEMORY
 The default workspace is different: `StateWorkspace()` keeps files in memory, and each run that starts a new conversation gets a new, empty document. A run that *continues* one (`message_history=result.all_messages()`) works in the same document — so in memory, the agent remembers within a conversation, not across them.
 
 !!! note "Injected, not just available"
-    Existing memory is pasted into the system prompt at the start of every run (the most recent ~200 lines), so the agent often answers from memory *without* calling `read_memory` at all. The tool is there for when it needs the full file.
+    A bounded excerpt of `MEMORY.md` — up to 200 lines, about 2,000 tokens — and the names of the other files are added to every request, so the agent often answers from memory *without* calling `read_memory` at all. The block goes in as user-role context on the current request only, so copies don't pile up in the history.
 
 ## Context files: what *you* hand the agent
 
@@ -129,11 +130,11 @@ Prefer to be explicit? Skip discovery and name the paths yourself with `context_
     If the *agent* should write it, it's memory. If *you* write it, it's a context file. `MEMORY.md` has its own tools and per-agent isolation; it is **not** part of context discovery.
 
 !!! warning "One workspace, one memory — watch multi-user apps"
-    Memory and context both live in the workspace, keyed only by agent name. If several users' runs share one workspace, they share one `MEMORY.md`. Give each user their own workspace. See [Multi-user](../advanced/multi-user.md).
+    Memory and context both live in the workspace. If several users' runs share one workspace, give each its own notebook with `memory_namespace=` — a string, or a function of the run such as `lambda ctx: ctx.deps.user_id` — which files it under `{memory_dir}/{namespace}/{agent_name}/`. The model never sees or chooses the namespace. Giving each user their own workspace isolates their files as well. See [Multi-user](../advanced/multi-user.md).
 
 ## Recap
 
-- **Memory** is on by default: `read_memory` / `write_memory` / `update_memory`, plus auto-injection of the latest lines into the prompt — the agent remembers across runs on its own.
+- **Memory** is on by default: the harness `Memory` capability, with `write_memory` / `read_memory` / `search_memory` / `delete_memory` and `MEMORY.md` added to every request — the agent remembers across runs on its own.
 - **The workspace is the persistence.** Memory lives at `{memory_dir}/{agent_name}/MEMORY.md`; reuse the workspace and it carries over, swap it and it doesn't.
 - **Context files** (`AGENTS.md`, `CLAUDE.md`, `DEEP.md`, `SOUL.md`) are project rules *you* write; `context_discovery=True` finds them, or list them with `context_files=`.
 - Rule of thumb: the agent owns memory, you own context files — and `SOUL.md` stays with the main agent only.

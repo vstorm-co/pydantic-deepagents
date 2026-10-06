@@ -183,17 +183,12 @@ from pydantic_deep.features.liteparse import (
     LiteparseToolset,
 )
 from pydantic_deep.features.memory import (
-    DEFAULT_MAX_MEMORY_LINES,
     DEFAULT_MEMORY_DIR,
     DEFAULT_MEMORY_FILENAME,
-    DEFAULT_PIN_END_MARKER,
-    AgentMemoryToolset,
-    MemoryAccessError,
-    MemoryCapability,
-    MemoryFile,
-    format_memory_prompt,
+    MemoryNamespace,
+    build_memory_capability,
+    deprecated_memory_name,
     get_memory_path,
-    load_memory,
 )
 from pydantic_deep.features.monitoring import (
     MonitorEvent,
@@ -349,7 +344,6 @@ __all__ = [
     "BrowserCapability",
     "SkillsCapability",
     "ContextFilesCapability",
-    "MemoryCapability",
     "StuckLoopDetection",
     "StuckLoopError",
     "PeriodicReminderCapability",
@@ -405,17 +399,12 @@ __all__ = [
     "DEFAULT_CONTEXT_FILENAMES",
     "DEFAULT_MAX_CONTEXT_CHARS",
     "SUBAGENT_CONTEXT_ALLOWLIST",
-    # Memory (persistent agent memory)
-    "AgentMemoryToolset",
-    "MemoryAccessError",
-    "MemoryFile",
-    "load_memory",
+    # Memory (the harness `Memory` capability)
+    "MemoryNamespace",
+    "build_memory_capability",
     "get_memory_path",
-    "format_memory_prompt",
     "DEFAULT_MEMORY_DIR",
     "DEFAULT_MEMORY_FILENAME",
-    "DEFAULT_MAX_MEMORY_LINES",
-    "DEFAULT_PIN_END_MARKER",
     # Eviction
     "EvictionCapability",
     "create_content_preview",
@@ -535,3 +524,14 @@ __all__ = [
     "count_retry_parts",
     "count_stuck_loop_hits",
 ]
+
+
+def __getattr__(name: str) -> object:
+    """pydantic-deep's own memory API, deprecated in favour of the harness `Memory`."""
+    try:
+        value = deprecated_memory_name(name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    # Kept, so the warning is given once: `from ... import` reads the name twice.
+    globals()[name] = value
+    return value

@@ -86,6 +86,9 @@ class TestCreateDeepAgent:
             memory_dir=None,
             web_search=False,
             web_fetch=False,
+            eviction_token_limit=20_000,
+            max_binary_content=3,
+            on_eviction=None,
             include_execute=True,
         )
         defaults.update(parent_kwargs)
@@ -112,6 +115,42 @@ class TestCreateDeepAgent:
         on_types = _sub_caps(parent_web_search=True, parent_web_fetch=True)
         assert WebSearch in on_types
         assert WebFetch in on_types
+
+    def test_default_subagent_factory_propagates_eviction_config(self):
+        """Regression for #206: default subagent factory must inherit parent's
+        eviction settings. Otherwise every subagent gets a default
+        EvictionCapability at /large_tool_results, which fails on sandboxed
+        backends and silently degrades large tool results.
+        """
+        from pydantic_deep.features.eviction import EvictionCapability
+
+        marker = object()
+
+        def _sub_eviction(
+            limit: int | None, binary: int | None, on_eviction: Any
+        ) -> list[EvictionCapability]:
+            factory = self._default_factory(
+                eviction_token_limit=limit,
+                max_binary_content=binary,
+                on_eviction=on_eviction,
+            )
+            sub_agent = factory({"instructions": "sub instructions", "model": TEST_MODEL})
+            return [
+                c
+                for c in sub_agent._root_capability.capabilities
+                if isinstance(c, EvictionCapability)
+            ]
+
+        caps = _sub_eviction(5_000, 1, marker)
+        assert len(caps) == 1
+        assert caps[0].token_limit == 5_000
+        assert caps[0].max_binary_content == 1
+        assert caps[0].on_eviction is marker
+
+        # eviction_token_limit=None suppresses the default capability, so a
+        # consumer who replaced the parent's capability gets no surprise
+        # defaults in subagents either.
+        assert _sub_eviction(None, 3, None) == []
 
     async def test_default_subagent_factory_inherits_include_execute(self):
         """A subagent works in its parent's workspace, so it runs commands

@@ -107,6 +107,55 @@ await queue.steer("context line 2", delivery_mode="all")
 
 The mode is read from the *head* message, and an `"all"` head never swallows a later message that asked to be delivered on its own — so you can mix the two freely.
 
+## Say where it came from
+
+Every message takes free-form `metadata`, and one key is special: `source`. Name the channel a message arrived on and the queue carries that through to the label the agent reads.
+
+```python
+await queue.steer("also check MR 123", metadata={"source": "slack", "ts": "1784850124.802469"})
+await queue.follow_up("then close PIPE-1234", metadata={"source": "jira"})
+```
+
+The agent sees `[steering via slack] also check MR 123` and `[follow-up via jira] then close PIPE-1234`. That matters once more than one thing can talk to your agent: a human leaning in and a CI monitor shouting about a red build deserve different weight, and the label is what lets the model tell them apart.
+
+Messages with no `source` are treated as local — a follow-up you typed yourself is delivered verbatim, exactly as before.
+
+The label also lands in logs and on the enclosing span (`pydantic_deep.message_queue.steering.sources`), so you can see in a trace which channel changed the agent's mind. The rest of `metadata` is yours: it never reaches the model, so `ts`, `message_id` and friends are for your own dedup and logging.
+
+!!! warning "`source` is sanitized"
+    It ends up inside a bracketed label in the prompt, so whatever you pass is
+    reduced to word characters plus `.`, `:` and `-`, then truncated. An external
+    system can't smuggle prompt text in through the channel name.
+
+## Backpressure
+
+The queue holds at most `DEFAULT_MAX_PENDING` (100) pending messages per priority. Past that, `steer()` and `follow_up()` raise [`QueueFullError`][pydantic_deep.features.message_queue.QueueFullError] instead of accepting the message:
+
+```python
+from pydantic_deep.features.message_queue import MessageQueue, QueueFullError
+
+queue = MessageQueue(max_pending=20)   # or None to remove the cap
+
+try:
+    await queue.follow_up(reply.text, metadata={"source": "slack"})
+except QueueFullError:
+    await slack.react(reply, "warning")   # tell the sender it didn't land
+```
+
+It fails loudly on purpose. A retrying webhook or a busy thread can produce messages faster than the agent consumes them, and every one that lands eventually costs tokens — so a bridge needs to know a submission was refused rather than watch it vanish.
+
+### Pruning what a cancelled run made stale
+
+When a run is cancelled, the follow-ups queued for it are usually stale — but not all of them. Use [`discard_follow_up`][pydantic_deep.features.message_queue.MessageQueue.discard_follow_up] with a predicate to keep the ones that were never about that run:
+
+```python
+from pydantic_deep.features.message_queue import queued_source
+
+discarded = await queue.discard_follow_up(keep=lambda m: queued_source(m) is not None)
+```
+
+This is what the CLI does when you hit `Esc`: what you typed for the cancelled task is dropped, while anything submitted from outside survives and starts a fresh turn. Its sender has no way to learn it was dropped, so dropping it would read as the agent ignoring them.
+
 ## Subagents can steer the parent
 
 Because the queue lives on `DeepAgentDeps`, anything with `ctx.deps` can use it — including a subagent. By default `clone_for_subagent()` hands subagents the *same* queue, so a child can talk back to the parent:
@@ -130,6 +179,8 @@ Want isolation instead? Give the cloned deps a fresh `MessageQueue()` and the ch
 - Share one queue with both `create_deep_agent(message_queue=…)` and `DeepAgentDeps(message_queue=…)`.
 - Steering works on plain `agent.run`; follow-ups need [`run_with_queue`][pydantic_deep.features.message_queue.run_with_queue] to re-enter the loop.
 - `delivery_mode="all"` batches messages; the default drip-feeds one at a time.
+- `metadata={"source": …}` labels the delivery for the model (`[steering via slack]`) and shows up in logs and span attributes.
+- The queue is bounded (100 per priority); enqueueing past the cap raises `QueueFullError` so the sender learns the message was refused.
 
 Where to go next:
 

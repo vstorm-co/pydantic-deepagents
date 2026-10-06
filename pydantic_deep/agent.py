@@ -307,6 +307,9 @@ def _make_default_deep_agent_factory(
     memory_dir: Any,
     web_search: bool,
     web_fetch: bool,
+    eviction_token_limit: int | None,
+    max_binary_content: int | None,
+    on_eviction: Any,
     include_execute: bool,
 ) -> Callable[[dict[str, Any]], Any]:
     """Build the default subagent factory closure.
@@ -353,6 +356,9 @@ def _make_default_deep_agent_factory(
             context_discovery=context_discovery,
             edit_format=edit_format,
             extra_toolsets=tuple(cfg.get("toolsets") or []),
+            eviction_token_limit=eviction_token_limit,
+            max_binary_content=max_binary_content,
+            on_eviction=on_eviction,
         )
 
     return _factory
@@ -1112,6 +1118,9 @@ def create_deep_agent(  # noqa: C901
             memory_dir=memory_dir,
             web_search=web_search,
             web_fetch=web_fetch,
+            eviction_token_limit=eviction_token_limit,
+            max_binary_content=max_binary_content,
+            on_eviction=on_eviction,
             include_execute=include_execute,
         )
 

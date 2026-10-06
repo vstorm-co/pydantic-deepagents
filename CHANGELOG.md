@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Subagents keep the parent's eviction settings.** The default subagent factory
+  built every subagent with the default `EvictionCapability`, whatever the parent
+  was given: `eviction_token_limit`, `max_binary_content` and `on_eviction` now
+  carry through, and `eviction_token_limit=None` leaves subagents without the
+  default capability as it does the parent. (#214, fixes #206)
+- **A follow-up queued as a run ends is delivered.** A message arriving after the
+  TUI's post-run drain still saw the run as active and sat queued until some later
+  run ended; the worker now drains follow-ups when it stops. A cancelled run
+  discards only follow-ups typed locally, so ones from an external `source` start
+  a fresh turn. (#233, from #197 by @OchnikBartek)
+
+### Added
+
+- **Message-queue `source` labels and backpressure.** A message's
+  `metadata["source"]` reaches the model (`[steering via slack] ...`), the logs and
+  the span; `MessageQueue(max_pending=...)` (default 100 per priority) refuses past
+  the cap with `QueueFullError`; `discard_follow_up(keep=...)` and `queued_source()`
+  are public. (#233)
+
 ## [0.3.46] - 2026-10-06
 
 ### Fixed

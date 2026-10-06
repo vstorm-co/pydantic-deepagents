@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Memory is the `pydantic-ai-harness` `Memory` capability.** Each agent keeps a
+  notebook of Markdown files in the run's workspace, at the same
+  `{memory_dir}/{agent_name}/MEMORY.md` as before, so existing notebooks are read
+  unchanged. `MEMORY.md` is added to each request as user-role context rather than
+  to the instructions, and the tools are `write_memory` (append, or replace with
+  `old_text=` - what `update_memory` did), `read_memory`, `search_memory` and
+  `delete_memory`. Subagents keep their own notebooks; one with its own
+  `agent_factory` gets the memory tools. With `tool_search`, the memory tools are
+  deferred like the other situational ones. Requires `pydantic-ai-harness>=0.52.0`.
+  (from #187 by @OchnikBartek)
+- **`memory_pin_marker` no longer pins.** The harness keeps the tail of `MEMORY.md`
+  when it truncates and has no pinned section; setting it now warns.
+
+### Added
+
+- **`memory_namespace=`** on `create_deep_agent` and `DeepAgentSpec`: a segment
+  between `memory_dir` and the agent's name, fixed or resolved per run (a user id,
+  say), for several users sharing one workspace. The model never sees it.
+- **`build_memory_capability()`**, which builds the `Memory` capability the way
+  `create_deep_agent` does.
+
+### Deprecated
+
+- **pydantic-deep's own memory API** - `AgentMemoryToolset`, `MemoryCapability`,
+  `MemoryFile`, `MemoryAccessError`, `load_memory`, `format_memory_prompt`,
+  `DEFAULT_MAX_MEMORY_LINES`, `DEFAULT_PIN_END_MARKER` and the memory tool
+  descriptions. They still import, with a `DeprecationWarning`, and nothing uses them.
+
 ## [0.3.47] - 2026-10-06
 
 ### Fixed

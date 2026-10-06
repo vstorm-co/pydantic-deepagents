@@ -212,3 +212,40 @@ class TestForkedBranches:
         merged = await parent.read_text(".deep/memory/main/MEMORY.md")
         assert "Shared fact." in merged
         assert "Branch-only fact." in merged
+
+
+class TestSubagents:
+    def test_a_subagent_with_its_own_factory_gets_its_own_memory_tools(self) -> None:
+        """It never passes through the default factory that adds `Memory`, so it
+        is handed the capability's tools under its own name."""
+        from pydantic_ai import Agent
+        from pydantic_ai.models.test import TestModel
+        from pydantic_ai_harness.memory import MemoryToolset
+
+        from pydantic_deep.types import SubAgentConfig
+
+        seen: list[Any] = []
+
+        def factory(config: Any) -> Agent[Any, str]:
+            seen.append(config)
+            return Agent(TestModel())
+
+        create_deep_agent(
+            model=_requests_seen([]),
+            subagents=[
+                SubAgentConfig(
+                    name="critic",
+                    description="Critiques",
+                    instructions="Critique",
+                    agent_factory=factory,
+                )
+            ],
+            include_builtin_subagents=False,
+            web_search=False,
+            web_fetch=False,
+        )
+
+        [config] = [c for c in seen if c["name"] == "critic"]
+        assert [
+            t._capability.agent_name for t in config["toolsets"] if isinstance(t, MemoryToolset)
+        ] == ["critic"]

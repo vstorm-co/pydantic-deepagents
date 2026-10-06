@@ -25,6 +25,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.output import OutputSpec
 from pydantic_ai.tools import DeferredToolRequests, Tool
+from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai_backends import StateWorkspace, create_console_toolset
 from pydantic_ai_shields import CostTracking
@@ -94,7 +95,6 @@ if TYPE_CHECKING:
     from pydantic_ai.capabilities.abstract import ValidatedToolArgs
     from pydantic_ai.messages import ToolCallPart
     from pydantic_ai.tools import ToolDefinition
-    from pydantic_ai.toolsets import AbstractToolset
 
     from pydantic_deep.features.checkpointing import CheckpointFrequency
     from pydantic_deep.features.message_queue import MessageQueue
@@ -414,7 +414,7 @@ def _inject_subagent_memory_toolset(
     """
     for capability in _subagent_memory(sa_config, True, memory_dir, memory_namespace):
         toolset = capability.get_toolset()
-        if toolset is not None:  # pragma: no branch - `Memory` always has one
+        if isinstance(toolset, AbstractToolset):  # pragma: no branch - `Memory`'s always is
             sa_config["toolsets"] = [*sa_config.get("toolsets", []), toolset]
 
 

@@ -74,18 +74,13 @@ def build_memory_capability(
             DeprecationWarning,
             stacklevel=3,
         )
-    limits: dict[str, int] = {}
-    # Forwarded only when set: the harness fields are plain ints, so `None`
-    # would be refused rather than mean "the default".
-    if max_lines is not None:
-        limits["max_lines"] = max_lines
-    if max_tokens is not None:
-        limits["max_tokens"] = max_tokens
     return Memory(
         FileStore(memory_dir),
         agent_name=sanitize_agent_name(agent_name),
         namespace=namespace,
         id=MEMORY_CAPABILITY_ID,
         defer_loading=defer_loading,
-        **limits,
+        # The harness fields are plain ints, so `None` means its own default here.
+        max_lines=Memory.max_lines if max_lines is None else max_lines,
+        max_tokens=Memory.max_tokens if max_tokens is None else max_tokens,
     )

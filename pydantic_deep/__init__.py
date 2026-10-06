@@ -47,6 +47,8 @@ Example:
     ```
 """
 
+from typing import Any
+
 from pydantic_ai.capabilities import LocalWorkspace
 from pydantic_ai_backends import (
     BUILTIN_RUNTIMES,
@@ -526,7 +528,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> Any:
     """pydantic-deep's own memory API, deprecated in favour of the harness `Memory`."""
     try:
         value = deprecated_memory_name(name)

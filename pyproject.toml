@@ -44,7 +44,7 @@ dependencies = [
     # builds for a model without a native search tool.
     "pydantic-ai-slim[web-fetch,duckduckgo]>=2.52.0",
     "pydantic-ai-todo>=0.2.7",
-    "pydantic-ai-backend[console,workspaces]>=0.2.33",
+    "pydantic-ai-backend[console,workspaces]>=0.2.37",
     # Memory is the harness `Memory` capability. Each harness release pins the
     # Pydantic AI it ships with, so the floor is the first one on workspaces.
     "pydantic-ai-harness>=0.52.0",
@@ -57,7 +57,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Docker sandbox support
-sandbox = ["pydantic-ai-backend[docker,workspaces]>=0.2.33"]
+sandbox = ["pydantic-ai-backend[docker,workspaces]>=0.2.37"]
 # YAML support for skills (pyyaml-based frontmatter parsing)
 yaml = ["pyyaml>=6.0"]
 # CLI tools + TUI (terminal assistant)

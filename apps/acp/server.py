@@ -362,7 +362,7 @@ class DeepAgentACP(ACPAgent):
                             async for event in tool_stream:
                                 ename = type(event).__name__
                                 if ename == "FunctionToolResultEvent":
-                                    r = event.result
+                                    r = event.part
                                     # Truncate long results for display
                                     content_str = str(r.content) if r.content else ""
                                     if len(content_str) > 500:

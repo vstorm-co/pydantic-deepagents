@@ -1297,7 +1297,7 @@ async def _stream_tool_calls(
             elif isinstance(event, FunctionToolResultEvent):
                 tool_call_id = event.tool_call_id
                 tool_name = tool_names_by_id.get(tool_call_id, "unknown")
-                result_content = event.result.content
+                result_content = event.part.content
                 logger.info(f"  TOOL RESULT: {tool_name} -> {str(result_content)[:100]}...")
 
                 await websocket.send_json(

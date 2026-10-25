@@ -200,7 +200,7 @@ async for event in agent.run_stream_events(prompt, deps=deps):
 
     elif isinstance(event, FunctionToolResultEvent):
         # Tool returned result
-        print(f"  -> {event.result.content[:50]}...")
+        print(f"  -> {str(event.part.content)[:50]}...")
 
     elif isinstance(event, AgentRunResultEvent):
         # Agent finished

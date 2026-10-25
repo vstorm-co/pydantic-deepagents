@@ -104,7 +104,7 @@ elif isinstance(event, FunctionToolCallEvent):
     print(f"\n[tool] {event.part.tool_name}")
 ```
 
-When the agent decides to act — write a file, update its todos, search the web — you get a `FunctionToolCallEvent` *before* the tool runs. `event.part.tool_name` tells you which one, and `event.part.args` holds the arguments. There's a matching `FunctionToolResultEvent` once the tool returns, with `event.result.content`.
+When the agent decides to act — write a file, update its todos, search the web — you get a `FunctionToolCallEvent` *before* the tool runs. `event.part.tool_name` tells you which one, and `event.part.args` holds the arguments. There's a matching `FunctionToolResultEvent` once the tool returns, with `event.part.content`.
 
 ### Step 4: grab the final result
 

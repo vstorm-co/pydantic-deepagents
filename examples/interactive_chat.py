@@ -135,7 +135,7 @@ def handle_tool_call(state: StreamState, event: FunctionToolCallEvent) -> None:
 
 def handle_tool_result(event: FunctionToolResultEvent) -> None:
     """Handle tool result event."""
-    content = str(event.result.content)
+    content = str(event.part.content)
     display = truncate(content, 200).replace("\n", " ")
     result_preview = truncate(display, 80)
     print(f"    {DIM}→ {result_preview}{RESET}", flush=True)

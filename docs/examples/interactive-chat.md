@@ -189,7 +189,7 @@ async def process_stream(
 
         elif isinstance(event, FunctionToolResultEvent):
             # Show tool result
-            result = str(event.result.content)[:80]
+            result = str(event.part.content)[:80]
             print(f"    {DIM}→ {result}{RESET}", flush=True)
 
         elif isinstance(event, AgentRunResultEvent):
@@ -307,7 +307,7 @@ async for event in agent.run_stream_events(prompt, deps=deps):
 
     elif isinstance(event, FunctionToolResultEvent):
         # Tool returned
-        print(f"Result: {event.result.content}")
+        print(f"Result: {event.part.content}")
 ```
 
 ### Slash Commands

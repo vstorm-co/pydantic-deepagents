@@ -64,6 +64,13 @@ def main() -> None:
         {"value": "openai:gpt-4.1", "name": "GPT-4.1"},
         {"value": "google:gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
     ]
+    # New ACP sessions select the first option. Keep it aligned with the
+    # resolved default, including models outside the built-in picker list.
+    default_option = next(
+        (model for model in models if model["value"] == default_model),
+        {"value": default_model, "name": default_model},
+    )
+    models = [default_option, *(model for model in models if model["value"] != default_model)]
 
     def build_agent(ctx: AgentSessionContext):
         return create_deep_agent(

@@ -87,6 +87,10 @@ python -m apps.acp --model anthropic:claude-opus-4-6  # Specific model
 python -m apps.acp --cwd /path/to/project             # Working directory
 ```
 
+Model selection uses `--model` first, then `PYDANTIC_DEEP_MODEL`, then API key
+auto-detection. Each new session starts with that model selected in the picker,
+including custom model IDs outside the built-in list.
+
 ## Custom Agent Factory
 
 ```python

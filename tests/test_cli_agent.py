@@ -564,3 +564,73 @@ class TestBranchRunner:
 
         assert not (tmp_path / "branch.txt").exists()
         assert [change.path for change in overlay.changes()] == [str(tmp_path / "branch.txt")]
+
+
+class TestTemperatureSettings:
+    """Regression tests for #254: no implicit temperature in headless runs.
+
+    `create_cli_agent(non_interactive=True)` used to force temperature=0.0.
+    Anthropic rejects a temperature change while thinking is on (the CLI
+    default), so the first headless request failed with a 400; models that
+    accept only their own fixed temperature (e.g. Moonshot Kimi) rejected it
+    too. Only a temperature the user actually asked for may be sent.
+    """
+
+    def test_non_interactive_has_no_implicit_temperature(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+        )
+        assert "temperature" not in (agent.model_settings or {})
+
+    def test_interactive_has_no_implicit_temperature(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=False,
+        )
+        assert "temperature" not in (agent.model_settings or {})
+
+    def test_non_interactive_explicit_temperature_is_sent(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            temperature=0.0,
+        )
+        assert (agent.model_settings or {})["temperature"] == 0.0
+
+    def test_non_interactive_model_settings_temperature_is_sent(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            model_settings={"temperature": 0.3},
+        )
+        assert (agent.model_settings or {})["temperature"] == 0.3
+
+    def test_non_interactive_config_temperature_is_sent(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".pydantic-deep" / "config.toml"
+        config_file.parent.mkdir()
+        config_file.write_text("temperature = 0.2\n")
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            config_path=config_file,
+        )
+        assert (agent.model_settings or {})["temperature"] == 0.2
+
+    def test_explicit_temperature_beats_config(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".pydantic-deep" / "config.toml"
+        config_file.parent.mkdir()
+        config_file.write_text("temperature = 0.2\n")
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            config_path=config_file,
+            temperature=0.9,
+        )
+        assert (agent.model_settings or {})["temperature"] == 0.9

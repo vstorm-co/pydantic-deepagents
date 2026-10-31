@@ -423,10 +423,12 @@ def create_cli_agent(  # noqa: C901
     _liteparse = include_liteparse if include_liteparse is not None else config.include_liteparse
     effective_liteparse = _liteparse if not lean else False
 
-    # Model settings — explicit param > model_settings dict > non-interactive > config
+    # Model settings — explicit param > model_settings dict > config.
+    # No implicit temperature: Anthropic rejects a temperature change while
+    # thinking is on (the CLI default), and some models accept only their own
+    # fixed temperature, so an unspecified temperature stays unspecified and
+    # the model's default applies.
     effective_model_settings: dict[str, Any] = {}
-    if non_interactive:
-        effective_model_settings["temperature"] = 0.0
     if config.temperature is not None and "temperature" not in (model_settings or {}):
         effective_model_settings["temperature"] = config.temperature
     if config.reasoning_effort and "openai_reasoning_effort" not in (model_settings or {}):

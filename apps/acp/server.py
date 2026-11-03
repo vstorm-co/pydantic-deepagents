@@ -30,11 +30,12 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, AgentRun
 from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
 from pydantic_ai.messages import (
     ModelMessage,
     ToolCallPart,
+    repair_messages,
 )
 from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
 from pydantic_ai_backends import ConfinedWorkspace
@@ -297,6 +298,7 @@ class DeepAgentACP(ACPAgent):
 
         # Run agent with streaming
 
+        run: AgentRun[DeepAgentDeps, str] | None = None
         try:
             active_tool_calls: set[str] = set()
 
@@ -381,6 +383,19 @@ class DeepAgentACP(ACPAgent):
                 self._session_histories[session_id] = list(run.result.all_messages())
 
         except Exception as e:
+            # The turn failed partway through. Keep the messages it did
+            # complete — the user prompt, finished model responses, tool
+            # calls that already ran — so the next turn still sees what
+            # actually happened instead of losing the whole exchange.
+            # repair_messages closes out a tool call whose result never
+            # arrived; without that, the next prompt would be refused for
+            # containing unprocessed tool calls. Messages left with no
+            # parts (an interrupted response placeholder) carry no
+            # conversation content and are dropped.
+            if run is not None:
+                self._session_histories[session_id] = [
+                    message for message in repair_messages(run.all_messages()) if message.parts
+                ]
             logger.exception("Agent run failed: %s", e)
             await send(update_agent_message(text_block(f"Error: {e}")))
 

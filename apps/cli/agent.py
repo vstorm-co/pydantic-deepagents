@@ -23,6 +23,7 @@ from pydantic_deep.deps import DeepAgentDeps
 from pydantic_deep.features.forking.capability import LiveForkCapability
 from pydantic_deep.features.hooks import Hook, HookEvent, HookInput, HookResult
 from pydantic_deep.features.message_queue import MessageQueue
+from pydantic_deep.models import DEFAULT_OPENAI_MODEL
 from pydantic_deep.prompts import build_system_prompt
 
 if TYPE_CHECKING:
@@ -425,6 +426,9 @@ def create_cli_agent(  # noqa: C901
 
     # Model settings — explicit param > model_settings dict > non-interactive > config
     effective_model_settings: dict[str, Any] = {}
+    if effective_model == DEFAULT_OPENAI_MODEL:
+        # Preserve sampling settings for the reasoning-model provider default.
+        effective_model_settings["openai_reasoning_effort"] = "none"
     if non_interactive:
         effective_model_settings["temperature"] = 0.0
     if config.temperature is not None and "temperature" not in (model_settings or {}):

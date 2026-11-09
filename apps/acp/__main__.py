@@ -14,6 +14,7 @@ from pathlib import Path
 
 from acp import run_agent
 from apps.acp.server import AgentSessionContext, DeepAgentACP
+from pydantic_deep.models import DEFAULT_OPENAI_MODEL
 
 
 def main() -> None:
@@ -48,7 +49,7 @@ def main() -> None:
         elif os.environ.get("OPENROUTER_API_KEY"):
             default_model = "openrouter:anthropic/claude-sonnet-4"
         elif os.environ.get("OPENAI_API_KEY"):
-            default_model = "openai:gpt-4.1"
+            default_model = DEFAULT_OPENAI_MODEL
         elif os.environ.get("GOOGLE_API_KEY"):
             default_model = "google:gemini-2.5-pro"
         else:

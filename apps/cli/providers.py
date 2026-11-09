@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pydantic_deep.models import DEFAULT_OPENAI_MODEL
+
 
 @dataclass(frozen=True)
 class ProviderInfo:
@@ -50,7 +52,7 @@ PROVIDERS: tuple[ProviderInfo, ...] = (
         "OpenAI (GPT)",
         "OPENAI_API_KEY",
         "https://platform.openai.com/api-keys",
-        "openai:gpt-4.1",
+        DEFAULT_OPENAI_MODEL,
     ),
     ProviderInfo(
         "google",

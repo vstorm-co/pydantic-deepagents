@@ -64,7 +64,7 @@ Whichever key it finds maps to a sensible default model:
 |----------------------|---------------|
 | `ANTHROPIC_API_KEY` | `anthropic:claude-sonnet-4-6` |
 | `OPENROUTER_API_KEY` | `openrouter:anthropic/claude-sonnet-4` |
-| `OPENAI_API_KEY` | `openai:gpt-4.1` |
+| `OPENAI_API_KEY` | `openai:gpt-6-luna` |
 | `GOOGLE_API_KEY` | `google:gemini-2.5-pro` |
 
 Want to pin a specific model instead of the default? Pass it on the command line:

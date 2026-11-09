@@ -19,6 +19,7 @@ from apps.cli.agent import (
     create_cli_agent,
 )
 from apps.cli.prompts import CLI_SYSTEM_PROMPT, build_cli_instructions
+from apps.cli.providers import PROVIDER_DEFAULT_MODELS
 from pydantic_deep.features.hooks import HookEvent, HookInput, HookResult
 
 TEST_MODEL = TestModel()
@@ -26,6 +27,17 @@ TEST_MODEL = TestModel()
 
 class TestCreateCliAgent:
     """Tests for create_cli_agent()."""
+
+    def test_openai_provider_default_preserves_sampling(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        model = PROVIDER_DEFAULT_MODELS["openai"]
+        assert model == "openai:gpt-6-luna"
+        agent, _ = create_cli_agent(model=model, working_dir=str(tmp_path), non_interactive=True)
+        assert isinstance(agent.model_settings, dict)
+        assert agent.model_settings.get("openai_reasoning_effort") == "none"
+        assert agent.model_settings["temperature"] == 0.0
 
     def test_creates_agent_and_deps(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(

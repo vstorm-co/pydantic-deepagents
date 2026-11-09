@@ -646,6 +646,7 @@ async def test_detect_vote_models_spans_multiple_vendors_when_keys_present(
     monkeypatch.setenv("GOOGLE_API_KEY", "x")
     models = _detect_vote_models("anthropic:claude-haiku-4-5-20251001")
     assert len(models) == 3
+    assert models[1] == "openai:gpt-6-luna"
     vendors = {m.split(":", 1)[0] for m in models}
     # At least two distinct vendor families when 3+ native keys are present.
     assert len(vendors) >= 2

@@ -17,6 +17,9 @@ from typing import Final
 DEFAULT_MODEL: Final = "anthropic:claude-opus-4-6"
 """Primary model for the top-level deep agent."""
 
+DEFAULT_OPENAI_MODEL: Final = "openai:gpt-6-luna"
+"""OpenAI provider default and cheap fork vote-panel model."""
+
 DEFAULT_SUBAGENT_MODEL: Final = "anthropic:claude-sonnet-4-6"
 """Model for delegated subagents."""
 
@@ -50,7 +53,7 @@ DEFAULT_IMPROVE_MODEL: Final = "openrouter:anthropic/claude-sonnet-4"
 #: (env var, cheap model) checked in order; the first present key wins a slot.
 NATIVE_CHEAP_MODELS: Final[tuple[tuple[str, str], ...]] = (
     ("ANTHROPIC_API_KEY", "anthropic:claude-haiku-4-5"),
-    ("OPENAI_API_KEY", "openai:gpt-4o-mini"),
+    ("OPENAI_API_KEY", DEFAULT_OPENAI_MODEL),
     ("MISTRAL_API_KEY", "mistral:mistral-small-latest"),
     ("GROQ_API_KEY", "groq:llama-3.1-8b-instant"),
     ("COHERE_API_KEY", "cohere:command-r"),

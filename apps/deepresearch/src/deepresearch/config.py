@@ -135,4 +135,17 @@ def create_mcp_servers() -> list[AbstractToolset]:
             )
         )
 
+
+    # Helve — remote MCP server for web search and extraction (requires HELVE_API_KEY)
+    helve_key = os.getenv("HELVE_API_KEY")
+    if helve_key:
+        servers.append(
+            MCPServerStreamableHTTP(
+                url="https://helve.dev/mcp",
+                headers={"Authorization": f"Bearer {helve_key}"},
+                tool_prefix="helve",
+                max_retries=3,
+            )
+        )
+
     return servers

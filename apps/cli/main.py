@@ -300,7 +300,10 @@ def run(
     ] = None,
     temperature: Annotated[
         float | None,
-        typer.Option("--temperature", help="Sampling temperature (default: 0.0)"),
+        typer.Option(
+            "--temperature",
+            help="Sampling temperature (from config; unset uses model default)",
+        ),
     ] = None,
     sandbox: Annotated[
         str | None,

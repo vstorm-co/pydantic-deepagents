@@ -123,6 +123,20 @@ class TestRunCommand:
         result = runner.invoke(app, ["run", "--help"])
         assert result.exit_code == 0
         assert "headless" in result.output.lower()
+        assert "default: 0.0" not in result.output
+
+    def test_temperature_omitted_by_default_and_forwarded_when_set(self) -> None:
+        with patch("apps.cli.run.execute_headless", new_callable=AsyncMock) as mock_exec:
+            mock_exec.return_value = 0
+            default_res = runner.invoke(app, ["run", "Do something", "--sandbox", "docker"])
+            assert default_res.exit_code == 0
+            assert mock_exec.call_args.kwargs["temperature"] is None
+
+            explicit_res = runner.invoke(
+                app, ["run", "Do something", "--sandbox", "docker", "--temperature", "0.0"]
+            )
+            assert explicit_res.exit_code == 0
+            assert mock_exec.call_args.kwargs["temperature"] == 0.0
 
 
 # ── execute_headless tests ─────────────────────────────────────────

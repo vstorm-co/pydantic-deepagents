@@ -2874,15 +2874,15 @@ email = [
 
 [[package]]
 name = "pydantic-ai-backend"
-version = "0.2.40"
+version = "0.2.41"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "wcmatch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/97/a1a8b5cd0736eed965ab0b015f8b762bdffecb3897a3a80d5c01f8849480/pydantic_ai_backend-0.2.40.tar.gz", hash = "sha256:eb01fc676a1cb445aef0d64aab83473353df2889672cf3550490991afc13a32a", size = 2907331, upload-time = "2026-11-26T14:31:38.832Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/26/76f92515d9b1e3587b6cc2482a3c1b21ae47ecb8984f02eaa4c1c2ee9915/pydantic_ai_backend-0.2.41.tar.gz", hash = "sha256:34448d0461cd232ceed932214b4f24ca2aad73d414aa779427f4baa5a671585b", size = 2907516, upload-time = "2026-11-26T23:34:45.33Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/6e/a30bd97d3caa5b11ecaa2030209a69d6ad4b585e2f562c10773bc70c71fc/pydantic_ai_backend-0.2.40-py3-none-any.whl", hash = "sha256:0fce484fbb33de006eb24b14a30f1ce73b0657689833fd0d7be5ba8f5b3a4128", size = 226225, upload-time = "2026-11-26T14:31:37.48Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/03/fc757d43c004faf2c52096bc0d2e8e47cff7e7833d47d3131e819c5514a0/pydantic_ai_backend-0.2.41-py3-none-any.whl", hash = "sha256:a8111915c4e09baf40ca6ef5cb556280321571671e825c1bc865265001abf074", size = 226225, upload-time = "2026-11-26T23:34:43.768Z" },
 ]
 
 [package.optional-dependencies]
@@ -3124,7 +3124,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-deep"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
@@ -3246,8 +3246,8 @@ requires-dist = [
     { name = "prompt-toolkit", marker = "extra == 'cli'", specifier = ">=3.0.0" },
     { name = "py-key-value-aio", extras = ["filetree"], marker = "extra == 'mcp'", specifier = ">=0.5.0" },
     { name = "pydantic", specifier = ">=2.12" },
-    { name = "pydantic-ai-backend", extras = ["console", "workspaces"], specifier = ">=0.2.40" },
-    { name = "pydantic-ai-backend", extras = ["docker", "workspaces"], marker = "extra == 'sandbox'", specifier = ">=0.2.40" },
+    { name = "pydantic-ai-backend", extras = ["console", "workspaces"], specifier = ">=0.2.41" },
+    { name = "pydantic-ai-backend", extras = ["docker", "workspaces"], marker = "extra == 'sandbox'", specifier = ">=0.2.41" },
     { name = "pydantic-ai-harness", specifier = ">=0.75.0,<0.76" },
     { name = "pydantic-ai-shields", specifier = ">=0.3.4" },
     { name = "pydantic-ai-slim", extras = ["anthropic", "openai", "openrouter", "web-fetch", "duckduckgo"], marker = "extra == 'cli'", specifier = ">=2.75.0" },

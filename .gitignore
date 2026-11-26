@@ -90,8 +90,8 @@ dmypy.json
 # MkDocs documentation
 site/
 
-# UV
-uv.lock
+# Local dependency lock for the standalone DeepResearch app
+/apps/deepresearch/uv.lock
 
 # Coverage directory
 .coverage/

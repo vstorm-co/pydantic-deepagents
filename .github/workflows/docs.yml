@@ -28,10 +28,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --group docs
+        run: uv sync --locked --group docs
 
       - name: Build documentation
-        run: uv run mkdocs build
+        run: uv run --no-sync mkdocs build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

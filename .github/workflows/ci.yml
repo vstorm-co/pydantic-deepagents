@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 env:
   COLUMNS: 150
 
@@ -17,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.13"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -28,13 +31,13 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group lint
+        run: uv sync --locked --python ${{ matrix.python-version }} --group lint
 
       - name: Run ruff format check
-        run: uv run ruff format --check
+        run: uv run --no-sync ruff format --check
 
       - name: Run ruff lint
-        run: uv run ruff check
+        run: uv run --no-sync ruff check
 
   typecheck:
     name: Type Check
@@ -49,13 +52,13 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --all-extras --group dev --group lint
+        run: uv sync --locked --all-extras --group dev --group lint
 
       - name: Run Pyright
-        run: uv run pyright
+        run: uv run --no-sync pyright
 
       - name: Run MyPy
-        run: uv run mypy pydantic_deep tests
+        run: uv run --no-sync mypy pydantic_deep tests
 
   test:
     name: Test Python ${{ matrix.python-version }}
@@ -63,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -74,13 +77,13 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --all-extras --group dev
+        run: uv sync --locked --python ${{ matrix.python-version }} --all-extras --group dev
 
       - name: Run tests with coverage
         run: |
-          uv run coverage run -m pytest
-          uv run coverage report
-          uv run coverage lcov -o coverage.lcov
+          uv run --no-sync coverage run -m pytest
+          uv run --no-sync coverage report
+          uv run --no-sync coverage lcov -o coverage.lcov
 
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.12'
@@ -101,10 +104,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --python 3.12 --group lint
+        run: uv sync --locked --python 3.12 --group lint
 
       - name: Run Bandit security scanner
-        run: uv run bandit -r pydantic_deep -x tests -ll
+        run: uv run --no-sync bandit -r pydantic_deep -x tests -ll
 
   docs:
     name: Build Documentation
@@ -119,10 +122,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --group docs
+        run: uv sync --locked --group docs
 
       - name: Build docs
-        run: uv run mkdocs build
+        run: uv run --no-sync mkdocs build
 
   install:
     # Every job above syncs the development environment, which holds far more

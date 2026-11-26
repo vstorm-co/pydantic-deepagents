@@ -3,7 +3,7 @@ services:
   excalidraw-canvas:
     image: ghcr.io/yctimlin/mcp_excalidraw-canvas:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   # ---- DeepResearch app ----
   # Option A: local dev — run natively with `uv run deepresearch`, use only excalidraw-canvas
@@ -12,7 +12,7 @@ services:
   # deepresearch:
   #   build: .
   #   ports:
-  #     - "8080:8080"
+  #     - "127.0.0.1:8080:8080"
   #   env_file:
   #     - .env
   #   environment:

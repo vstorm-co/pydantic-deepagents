@@ -31,7 +31,7 @@
   <a href="https://pypi.org/project/pydantic-deep/"><img src="https://img.shields.io/pypi/v/pydantic-deep.svg" alt="PyPI version"></a>
   <a href="https://pepy.tech/projects/pydantic-deep"><img src="https://static.pepy.tech/badge/pydantic-deep/month" alt="PyPI Downloads"></a>
   <a href="https://github.com/vstorm-co/pydantic-deepagents/stargazers"><img src="https://img.shields.io/github/stars/vstorm-co/pydantic-deepagents?style=flat&logo=github&color=yellow" alt="GitHub Stars"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white" alt="Python 3.11+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://coveralls.io/github/vstorm-co/pydantic-deepagents?branch=main"><img src="https://coveralls.io/repos/github/vstorm-co/pydantic-deepagents/badge.svg?branch=main" alt="Coverage Status"></a>
   <a href="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml"><img src="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -484,7 +484,8 @@ Web search (Tavily, Brave, Jina), sandboxed code execution, Excalidraw diagrams,
 
 ```bash
 cd apps/deepresearch && uv sync && cp .env.example .env
-uv run deepresearch    # → http://localhost:8080
+# Set DEEPRESEARCH_PASSWORD and your model API key in .env before starting.
+uv run deepresearch    # http://localhost:8080, sign in as deepresearch
 ```
 
 > See [apps/deepresearch/README.md](apps/deepresearch/README.md) for full setup.

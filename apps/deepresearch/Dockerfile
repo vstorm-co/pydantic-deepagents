@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 # System deps: Node.js (npx MCP servers) + Docker CLI (per-session sandbox containers)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl gnupg ca-certificates \
+        curl gnupg ca-certificates libpango-1.0-0 libpangoft2-1.0-0 \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && curl -fsSL https://download.docker.com/linux/debian/gpg \
         | gpg --dearmor -o /usr/share/keyrings/docker.gpg \
@@ -17,19 +17,6 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-# Install from PyPI (no local editable deps)
-RUN uv pip install --system \
-    "pydantic-deep[web]" \
-    "pydantic-ai[mcp]" \
-    "pydantic-ai-middleware" \
-    "pydantic-ai-backend[docker]" \
-    "summarization-pydantic-ai" \
-    "subagents-pydantic-ai" \
-    "pydantic-ai-todo" \
-    "python-dotenv>=1.0" \
-    "markdown>=3.5" \
-    "weasyprint>=60.0"
-
 # Copy application source
 COPY src/ src/
 COPY static/ static/
@@ -37,11 +24,12 @@ COPY skills/ skills/
 COPY workspace/ workspace/
 COPY pyproject.toml ./
 
-# Install deepresearch itself
-RUN uv pip install --system --no-deps -e .
+# Install the app with the same dependencies as a native deployment.
+RUN uv pip install --system -e ".[export]"
 
 RUN mkdir -p workspaces
 
+ENV DEEPRESEARCH_HOST=0.0.0.0
 EXPOSE 8080
 
 CMD ["python", "-m", "deepresearch.app"]

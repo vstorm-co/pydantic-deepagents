@@ -36,7 +36,8 @@ uv sync --extra export
 
 ```bash
 cp .env.example .env
-# Edit .env — add OPENAI_API_KEY and at least one search API key
+# Edit .env — set DEEPRESEARCH_PASSWORD and your model/search credentials
+python -c 'import secrets; print(secrets.token_urlsafe())'  # generate a password
 ```
 
 ### 3. Start Docker + Excalidraw canvas
@@ -59,13 +60,19 @@ EXCALIDRAW_ENABLED=0 uv run deepresearch
 uv run deepresearch
 ```
 
-Open [http://localhost:8080](http://localhost:8080) in your browser.
+Open [http://localhost:8080](http://localhost:8080) and sign in as `deepresearch`
+with the password you configured. Each instance is for one operator and serves
+all sessions to that operator. For remote access, put it behind HTTPS and keep
+the app and canvas ports private. API clients use HTTP Basic authentication.
+
+HTML and SVG previews display static content in a sandbox. PDF export renders
+offline. Install WeasyPrint's native dependencies to enable export on your OS.
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| **Web Search** | Tavily, Brave Search, Jina URL reader, Firecrawl |
+| **Web Search** | Tavily, Brave Search, You.com, Jina URL reader, Firecrawl |
 | **Browser Automation** | Playwright MCP for JS-heavy pages |
 | **File Operations** | Read, write, edit, glob, grep in isolated Docker sandbox |
 | **Code Execution** | Python with pandas, numpy, matplotlib, scikit-learn pre-installed |
@@ -85,6 +92,10 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `DEEPRESEARCH_PASSWORD` | Yes | Password for the `deepresearch` operator |
+| `DEEPRESEARCH_HOST` | No | Bind address (default `127.0.0.1`) |
+| `YDC_ENABLED` | No | Set to `1` for keyless You.com search or `0` to disable |
+| `YDC_API_KEY` | No | Enables authenticated You.com MCP |
 | `MODEL_NAME` | No | LLM model (default: `anthropic:claude-sonnet-4-6`) |
 | `TAVILY_API_KEY` | Recommended | Tavily AI search |
 | `BRAVE_API_KEY` | No | Brave Search |
@@ -95,7 +106,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 | `EXCALIDRAW_SERVER_URL` | No | Canvas server URL for MCP sync (default: `http://localhost:3000`) |
 | `EXCALIDRAW_CANVAS_URL` | No | Canvas URL for UI iframe (default: `http://localhost:3000`) |
 
-At least one search provider (Tavily, Brave, or Jina) is recommended for web research capabilities.
+At least one search provider (Tavily, Brave, You.com, or Jina) is recommended for web research capabilities.
 
 ## MCP Servers Setup
 

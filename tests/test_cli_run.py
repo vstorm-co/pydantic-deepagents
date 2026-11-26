@@ -166,6 +166,16 @@ class TestExecuteHeadless:
     def mock_deps(self) -> MagicMock:
         return MagicMock()
 
+    @pytest.mark.parametrize(("status_code", "expected"), [(400, 1), (401, 1), (429, 0), (503, 0)])
+    async def test_headless_model_error_exit_code(
+        self, mock_agent: MagicMock, mock_deps: MagicMock, status_code: int, expected: int
+    ) -> None:
+        from pydantic_ai.exceptions import ModelHTTPError
+
+        mock_agent.run.side_effect = ModelHTTPError(status_code, "test-model")
+        with patch("apps.cli.run.create_cli_agent", return_value=(mock_agent, mock_deps)):
+            assert await execute_headless(task="Task", working_dir="/tmp") == expected
+
     async def test_the_session_workspace_is_cleaned_up(
         self, mock_agent: MagicMock, mock_deps: MagicMock
     ) -> None:

@@ -8,8 +8,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from pydantic_ai.mcp import MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.toolsets import AbstractToolset
+from fastmcp.client.transports import StdioTransport
+from pydantic_ai.mcp import MCPToolset
+from pydantic_ai.toolsets import PrefixedToolset
 
 logger = logging.getLogger(__name__)
 
@@ -42,25 +43,35 @@ def _docker_available() -> bool:
         return False
 
 
-def create_mcp_servers() -> list[AbstractToolset]:
+def _stdio(
+    name: str, command: str, args: list[str], env: dict[str, str] | None = None
+) -> PrefixedToolset[object]:
+    transport = StdioTransport(command, args, env=env)
+    return PrefixedToolset(MCPToolset(transport, id=name, max_retries=3), name)
+
+
+def _http(name: str, url: str, headers: dict[str, str]) -> PrefixedToolset[object]:
+    return PrefixedToolset(MCPToolset(url, headers=headers, id=name, max_retries=3), name)
+
+
+def create_mcp_servers() -> list[PrefixedToolset[object]]:
     """Create MCP server toolsets based on available API keys.
 
     Returns a list of MCP servers that can be passed as toolsets to the agent.
     Servers are started/stopped automatically by pydantic-ai when the agent
     enters/exits its async context manager.
     """
-    servers: list[AbstractToolset] = []
+    servers: list[PrefixedToolset[object]] = []
 
     # Tavily — AI-optimized web search (requires TAVILY_API_KEY)
     tavily_key = os.getenv("TAVILY_API_KEY")
     if tavily_key:
         servers.append(
-            MCPServerStdio(
+            _stdio(
+                "tavily",
                 "npx",
                 ["-y", "tavily-mcp@latest"],
                 env={"TAVILY_API_KEY": tavily_key},
-                tool_prefix="tavily",
-                max_retries=3,
             )
         )
 
@@ -68,12 +79,11 @@ def create_mcp_servers() -> list[AbstractToolset]:
     brave_key = os.getenv("BRAVE_API_KEY")
     if brave_key:
         servers.append(
-            MCPServerStdio(
+            _stdio(
+                "brave",
                 "npx",
                 ["-y", "@anthropic-ai/brave-search-mcp@latest"],
                 env={"BRAVE_API_KEY": brave_key},
-                tool_prefix="brave",
-                max_retries=3,
             )
         )
 
@@ -82,19 +92,24 @@ def create_mcp_servers() -> list[AbstractToolset]:
     jina_key = os.getenv("JINA_API_KEY")
     if jina_key:
         servers.append(
-            MCPServerStreamableHTTP(
-                url="https://r.jina.ai/mcp",
-                headers={"Authorization": f"Bearer {jina_key}"},
-                tool_prefix="jina",
-                max_retries=3,
-            )
+            _http("jina", "https://r.jina.ai/mcp", {"Authorization": f"Bearer {jina_key}"})
         )
+
+    you_key = os.getenv("YDC_API_KEY")
+    if os.getenv("YDC_ENABLED", "1" if you_key else "0") == "1":
+        if you_key:
+            servers.append(
+                _http("you", "https://api.you.com/mcp", {"Authorization": f"Bearer {you_key}"})
+            )
+        else:
+            servers.append(_http("you", "https://api.you.com/mcp?profile=free", {}))
 
     # Excalidraw — live canvas with real-time sync via mcp-excalidraw-server
     excalidraw_server_url = os.getenv("EXCALIDRAW_SERVER_URL", "http://host.docker.internal:3000")
     if os.getenv("EXCALIDRAW_ENABLED", "1") == "1" and _docker_available():
         servers.append(
-            MCPServerStdio(
+            _stdio(
+                "excalidraw",
                 "docker",
                 [
                     "run",
@@ -106,7 +121,6 @@ def create_mcp_servers() -> list[AbstractToolset]:
                     "ENABLE_CANVAS_SYNC=true",
                     "ghcr.io/yctimlin/mcp_excalidraw:latest",
                 ],
-                tool_prefix="excalidraw",
             )
         )
     elif os.getenv("EXCALIDRAW_ENABLED", "1") == "1":
@@ -115,10 +129,10 @@ def create_mcp_servers() -> list[AbstractToolset]:
     # Playwright — browser automation for JS-heavy pages (requires PLAYWRIGHT_MCP=1)
     if os.getenv("PLAYWRIGHT_MCP"):
         servers.append(
-            MCPServerStdio(
+            _stdio(
+                "playwright",
                 "npx",
                 ["-y", "@playwright/mcp@latest", "--headless"],
-                tool_prefix="playwright",
             )
         )
 
@@ -126,12 +140,11 @@ def create_mcp_servers() -> list[AbstractToolset]:
     firecrawl_key = os.getenv("FIRECRAWL_API_KEY")
     if firecrawl_key:
         servers.append(
-            MCPServerStdio(
+            _stdio(
+                "firecrawl",
                 "npx",
                 ["-y", "firecrawl-mcp@latest"],
                 env={"FIRECRAWL_API_KEY": firecrawl_key},
-                tool_prefix="firecrawl",
-                max_retries=3,
             )
         )
 

@@ -3,7 +3,7 @@
 > **Package Name:** `pydantic-deep`  
 > **Version:** 0.3.3  
 > **License:** MIT  
-> **Python Requirement:** >= 3.10
+> **Python Requirement:** >= 3.11
 
 ---
 
@@ -34,7 +34,7 @@ pydantic-deep provides a single high-level factory function (`create_deep_agent`
 
 | Component | Technology |
 |-----------|------------|
-| Language | Python >= 3.10 |
+| Language | Python >= 3.11 |
 | Core Framework | pydantic-ai-slim >= 2.52.0 |
 | Build Tool | hatchling |
 | Data Models | pydantic >= 2.0 |

@@ -68,7 +68,10 @@ docker compose up -d excalidraw-canvas
 uv run deepresearch
 ```
 
-Open [http://localhost:8080](http://localhost:8080) and ask a research question.
+Set a strong `DEEPRESEARCH_PASSWORD` in `.env`. Open [http://localhost:8080](http://localhost:8080)
+and sign in as `deepresearch`. Each instance serves one operator and binds to
+the loopback interface by default. Use HTTPS for remote deployments. Set
+`YDC_ENABLED=1` to opt into keyless You.com search, or configure `YDC_API_KEY`.
 
 !!! example "Check it"
     Try *"Compare the top three open-source vector databases and draw me a

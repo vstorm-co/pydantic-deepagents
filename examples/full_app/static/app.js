@@ -615,7 +615,7 @@ function showApprovalDialog(requests) {
 
     for (const req of requests) {
         html += `
-            <div class="approval-item" data-id="${req.tool_call_id}">
+            <div class="approval-item">
                 <div class="approval-tool">
                     <span class="tool-icon"><i class="ri-settings-5-line"></i></span>
                     <strong>${escapeHtml(req.tool_name)}</strong>
@@ -922,7 +922,7 @@ function addMessage(content, type, attachments = []) {
             const isImage = (a.type || '').startsWith('image/');
             let thumb = '';
             if (isImage && a.data) {
-                thumb = `<img src="data:${a.type};base64,${a.data}" class="msg-attach-thumb" alt="">`;
+                thumb = `<img src="data:${escapeHtml(a.type)};base64,${escapeHtml(a.data)}" class="msg-attach-thumb" alt="">`;
             }
             return `<div class="msg-attach-chip">${thumb || `<i class="${iconClass}"></i>`}<span class="msg-attach-name">${escapeHtml(a.name)}</span><span class="msg-attach-size">${formatBytes(a.size)}</span></div>`;
         }).join('');
@@ -955,7 +955,22 @@ function formatMessage(content) {
         return `%%CODEBLOCK_${idx}%%`;
     });
 
-    // Escape HTML (but not our placeholders)
+    const links = [];
+    const keepLink = (source, label, href) => {
+        let url;
+        try {
+            url = new URL(href, window.location.origin);
+        } catch {
+            return source;
+        }
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return source;
+        const isDiagram = url.origin === 'https://excalidraw.com' && url.hash.startsWith('#json=');
+        const cssClass = isDiagram ? ' class="excalidraw-link"' : '';
+        const icon = isDiagram ? '<i class="ri-artboard-line"></i> ' : '';
+        const anchor = `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer"${cssClass}>${icon}${escapeHtml(label)}</a>`;
+        return `%%LINK_${links.push(anchor) - 1}%%`;
+    };
+    processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, keepLink);
     processed = escapeHtml(processed);
 
     // Headers (must be at start of line)
@@ -1029,9 +1044,6 @@ function formatMessage(content) {
     processed = processed.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     processed = processed.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    // Links [text](url)
-    processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
     // Line breaks (but not inside block elements we just created)
     processed = processed.replace(/\n/g, '<br>');
 
@@ -1049,6 +1061,7 @@ function formatMessage(content) {
 
     // Linkify file paths
     processed = linkifyFilePaths(processed);
+    processed = processed.replace(/%%LINK_(\d+)%%/g, (marker, index) => links[index] ?? marker);
 
     // Trigger Prism highlighting after DOM update
     setTimeout(() => {
@@ -1074,10 +1087,12 @@ function copyCodeBlock(btn) {
 }
 
 function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 function handleFileSelect(e) {
@@ -1088,7 +1103,7 @@ function handleFileSelect(e) {
 }
 
 async function uploadFile(file) {
-    uploadStatus.innerHTML = `<i class="ri-loader-4-line spin"></i> Uploading ${file.name}...`;
+    uploadStatus.innerHTML = `<i class="ri-loader-4-line spin"></i> Uploading ${escapeHtml(file.name)}...`;
     uploadStatus.className = '';
 
     const formData = new FormData();
@@ -1108,7 +1123,7 @@ async function uploadFile(file) {
                 sessionId = data.session_id;
                 localStorage.setItem('sessionId', sessionId);
             }
-            uploadStatus.innerHTML = `<i class="ri-check-line"></i> Uploaded: ${data.filename}`;
+            uploadStatus.innerHTML = `<i class="ri-check-line"></i> Uploaded: ${escapeHtml(data.filename)}`;
             uploadStatus.className = 'success';
             refreshFiles();
             addMessage(`File uploaded: ${data.filename} (${formatBytes(data.size)})`, 'system');
@@ -1151,7 +1166,7 @@ async function refreshFiles() {
                 const fullPath = `/uploads/${name}`;
                 const iconClass = getFileIconClass(name);
                 return `
-                    <div class="file-item clickable" onclick="openFilePreview('${escapeHtml(fullPath)}')" title="Click to preview">
+                    <div class="file-item clickable" data-open-file="${escapeHtml(fullPath)}" title="Click to preview">
                         <i class="${iconClass}"></i>
                         <span>${escapeHtml(name)}</span>
                     </div>
@@ -1226,7 +1241,7 @@ function renderFileTree(node, depth, parentPath = '/workspace') {
             const iconClass = getFileIconClass(name);
             html += `
                 <div class="file-item clickable" style="padding-left: ${indent + 8}px"
-                     onclick="openFilePreview('${escapeHtml(value.__path)}')" title="${escapeHtml(value.__path)}">
+                     data-open-file="${escapeHtml(value.__path)}" title="${escapeHtml(value.__path)}">
                     <i class="${iconClass}"></i>
                     <span>${escapeHtml(name)}</span>
                 </div>
@@ -1238,7 +1253,7 @@ function renderFileTree(node, depth, parentPath = '/workspace') {
 
             html += `
                 <div class="folder-item ${isExpanded ? 'expanded' : ''}" style="padding-left: ${indent + 8}px"
-                     onclick="toggleFolder('${escapeHtml(currentPath)}')">
+                     data-toggle-folder="${escapeHtml(currentPath)}">
                     <i class="folder-chevron ${chevronIcon}"></i>
                     <i class="folder-icon ${folderIcon}"></i>
                     <span>${escapeHtml(name)}</span>
@@ -1338,7 +1353,7 @@ function renderTasksPanel(todos) {
     if (!tasksCollapsed) {
         let html = '';
         for (const todo of todos) {
-            const st = todo.status || 'pending';
+            const st = ['completed', 'in_progress'].includes(todo.status) ? todo.status : 'pending';
             const icons = {
                 completed:   'ri-checkbox-circle-fill',
                 in_progress: 'ri-loader-4-line',
@@ -1523,7 +1538,7 @@ function renderPreview(filename, content) {
 
     // 1. Live Preview mode for HTML/SVG
     if (currentPreviewMode === 'preview' && PREVIEWABLE_EXTENSIONS.includes(ext)) {
-        renderLivePreview(content, ext);
+        renderLivePreview();
         return;
     }
 
@@ -1553,7 +1568,7 @@ function renderPreview(filename, content) {
     // 5. PDF Reader (Simple Embed) — use binary endpoint for full path support
     if (ext === 'pdf') {
         previewContainer.innerHTML = `
-            <embed class="embed-container" src="/files/binary/${encodeURIComponent(currentPreviewPath)}?session_id=${sessionId}" type="application/pdf">
+            <embed class="embed-container" src="/files/binary/${encodeURIComponent(currentPreviewPath)}?session_id=${encodeURIComponent(sessionId)}" type="application/pdf">
         `;
         return;
     }
@@ -1585,51 +1600,15 @@ function renderPreview(filename, content) {
 
 /**
  * Render live preview of HTML/SVG in an iframe
- * Uses /preview endpoint to serve files directly from container,
- * allowing relative CSS/JS/images to resolve naturally.
+ * The server also sandboxes direct navigation to the preview URL.
  */
-function renderLivePreview(content, ext) {
+function renderLivePreview() {
     const iframe = document.createElement('iframe');
     iframe.className = 'live-preview-frame';
-    iframe.sandbox = 'allow-scripts allow-same-origin'; // Security: sandboxed iframe
-
-    previewContainer.innerHTML = '';
-    previewContainer.appendChild(iframe);
-
-    if (ext === 'svg') {
-        // SVG: write directly with wrapper (no external resources needed)
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {
-                        margin: 0;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                        background: #1a1a1a;
-                    }
-                    svg {
-                        max-width: 90%;
-                        max-height: 90vh;
-                    }
-                </style>
-            </head>
-            <body>${content}</body>
-            </html>
-        `);
-        iframeDoc.close();
-    } else {
-        // HTML: load via /preview endpoint so relative paths work
-        // e.g., /preview/{session_id}/workspace/index.html
-        // When HTML requests style.css, browser resolves to /preview/{session_id}/workspace/style.css
-        const previewUrl = `/preview/${sessionId}${currentPreviewPath}`;
-        iframe.src = previewUrl;
-    }
+    iframe.setAttribute('sandbox', '');
+    const path = currentPreviewPath.split('/').map(encodeURIComponent).join('/');
+    iframe.src = `/preview/${encodeURIComponent(sessionId)}${path.startsWith('/') ? path : '/' + path}`;
+    previewContainer.replaceChildren(iframe);
 }
 
 /**
@@ -1777,7 +1756,7 @@ function linkifyFilePaths(html) {
     return html.replace(pathPattern, (match, path) => {
         const cleanPath = path.replace(/[.,;:!?)]+$/, '');
         const trailing = path.slice(cleanPath.length);
-        return `<span class="file-link" onclick="openFilePreview('${cleanPath}')" title="Click to preview">${escapeHtml(cleanPath)}</span>${trailing}`;
+        return `<span class="file-link" data-open-file="${cleanPath}" title="Click to preview">${cleanPath}</span>${trailing}`;
     });
 }
 
@@ -2053,7 +2032,7 @@ function handleMiddlewareEvent(data) {
         if (toolsEl) {
             const badge = document.createElement('div');
             badge.className = 'middleware-badge';
-            badge.innerHTML = `<i class="ri-shield-check-line"></i> ${escapeHtml(data.tool_name)} <span class="mw-count">#${data.total_calls}</span>`;
+            badge.innerHTML = `<i class="ri-shield-check-line"></i> ${escapeHtml(data.tool_name)} <span class="mw-count">#${Number(data.total_calls)}</span>`;
             toolsEl.appendChild(badge);
         }
     }
@@ -2297,16 +2276,16 @@ function renderTimeline() {
                 <div class="timeline-content">
                     <div class="timeline-label">${escapeHtml(cp.label)}</div>
                     <div class="timeline-meta">
-                        <span title="Turn ${cp.turn}"><i class="ri-repeat-line"></i> ${cp.turn}</span>
-                        <span title="${cp.message_count} messages"><i class="ri-chat-3-line"></i> ${cp.message_count}</span>
+                        <span title="Turn ${Number(cp.turn)}"><i class="ri-repeat-line"></i> ${Number(cp.turn)}</span>
+                        <span title="${Number(cp.message_count)} messages"><i class="ri-chat-3-line"></i> ${Number(cp.message_count)}</span>
                         ${toolName ? `<span class="timeline-tool" title="Last tool: ${escapeHtml(toolName)}"><i class="ri-tools-line"></i> ${escapeHtml(toolName)}</span>` : ''}
                         ${time ? `<span class="timeline-time"><i class="ri-time-line"></i> ${time}</span>` : ''}
                     </div>
                     <div class="timeline-actions">
-                        <button class="timeline-btn rewind" onclick="rewindToCheckpoint('${cp.id}', '${escapeHtml(cp.label)}')" title="Rewind to this point">
+                        <button class="timeline-btn rewind" data-rewind="${escapeHtml(cp.id)}" data-label="${escapeHtml(cp.label)}" title="Rewind to this point">
                             <i class="ri-arrow-go-back-line"></i> Rewind
                         </button>
-                        <button class="timeline-btn fork" onclick="forkFromCheckpoint('${cp.id}')" title="Fork into new session">
+                        <button class="timeline-btn fork" data-fork="${escapeHtml(cp.id)}" title="Fork into new session">
                             <i class="ri-git-branch-line"></i> Fork
                         </button>
                     </div>
@@ -2320,13 +2299,14 @@ function renderTimeline() {
 }
 
 async function rewindToCheckpoint(checkpointId, label) {
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(checkpointId)) return;
     if (!confirm(`Rewind to checkpoint "${label}"? Messages after this point will be discarded.`)) {
         return;
     }
 
     try {
         const response = await fetch(
-            `/checkpoints/${checkpointId}/rewind?session_id=${encodeURIComponent(sessionId)}`,
+            `/checkpoints/${encodeURIComponent(checkpointId)}/rewind?session_id=${encodeURIComponent(sessionId)}`,
             { method: 'POST' }
         );
 
@@ -2355,16 +2335,17 @@ async function rewindToCheckpoint(checkpointId, label) {
 }
 
 async function forkFromCheckpoint(checkpointId) {
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(checkpointId)) return;
     try {
         const response = await fetch(
-            `/checkpoints/${checkpointId}/fork?session_id=${encodeURIComponent(sessionId)}`,
+            `/checkpoints/${encodeURIComponent(checkpointId)}/fork?session_id=${encodeURIComponent(sessionId)}`,
             { method: 'POST' }
         );
 
         if (response.ok) {
             const data = await response.json();
             // Open new session in a new tab
-            const newUrl = `${window.location.origin}/?session_id=${data.new_session_id}`;
+            const newUrl = `${window.location.origin}/?session_id=${encodeURIComponent(data.new_session_id)}`;
             window.open(newUrl, '_blank');
             addMessage(
                 `Forked new session from checkpoint (${data.message_count} messages). Opened in new tab.`,
@@ -2378,3 +2359,13 @@ async function forkFromCheckpoint(checkpointId) {
         alert('Fork failed: ' + e.message);
     }
 }
+document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const action = event.target.closest('[data-open-file], [data-toggle-folder], [data-rewind], [data-fork]');
+    if (!action) return;
+    const { openFile, toggleFolder: folder, rewind, fork, label } = action.dataset;
+    if (openFile !== undefined) openFilePreview(openFile);
+    else if (folder !== undefined) toggleFolder(folder);
+    else if (rewind !== undefined) rewindToCheckpoint(rewind, label);
+    else if (fork !== undefined) forkFromCheckpoint(fork);
+});

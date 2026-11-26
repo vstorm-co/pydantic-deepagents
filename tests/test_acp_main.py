@@ -4,8 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from acp import text_block
-from acp.schema import SessionConfigOptionSelect, SessionConfigSelectOption
+from acp.schema import SessionConfigOptionSelect, SessionConfigSelectOption, TextContentBlock
 from pydantic_ai import Agent
 
 from apps.acp import __main__ as acp_main
@@ -22,7 +21,7 @@ from tests.workspaces import state_workspace
             "openai-chat:deepseek-chat",
             "openai-chat:deepseek-chat",
         ),
-        ("openai:gpt-4.1", {}, "openai:gpt-4.1", "GPT-4.1"),
+        ("openai:gpt-6-luna", {}, "openai:gpt-6-luna", "GPT-6 Luna"),
         (
             None,
             {"PYDANTIC_DEEP_MODEL": "openai-chat:deepseek-chat", "ANTHROPIC_API_KEY": "test"},
@@ -50,8 +49,8 @@ from tests.workspaces import state_workspace
         (
             None,
             {"OPENAI_API_KEY": "test", "GOOGLE_API_KEY": "test"},
-            "openai:gpt-4.1",
-            "GPT-4.1",
+            "openai:gpt-6-luna",
+            "GPT-6 Luna",
         ),
         (None, {"GOOGLE_API_KEY": "test"}, "google:gemini-2.5-pro", "Gemini 2.5 Pro"),
         (None, {}, "anthropic:claude-sonnet-4-6", "Claude Sonnet 4.6"),
@@ -108,7 +107,7 @@ def test_new_sessions_use_configured_model(
             options = [o for o in selector.options if isinstance(o, SessionConfigSelectOption)]
             assert len({option.value for option in options}) == len(options)
             assert next(option.name for option in options if option.value == model) == name
-            result = await server.prompt([text_block("Hello")], session.session_id)
+            result = await server.prompt([TextContentBlock(text="Hello")], session.session_id)
             assert result.stop_reason == "end_turn"
             assert create_agent.call_args.kwargs["model"] == model
             switched = await server.set_config_option("model", session.session_id, "google:test")

@@ -585,7 +585,11 @@ class SkillsToolset(FunctionToolset):
             skill_description = description
             if skill_description is None:
                 sig = get_signature(f)
-                desc, _ = doc_descriptions(f, sig, docstring_format="auto")
+                desc, _ = doc_descriptions(
+                    f,
+                    docstring_format="auto",
+                    has_return_annotation=sig.return_annotation is not sig.empty,
+                )
                 skill_description = desc
 
             wrapper: SkillWrapper[Any] = SkillWrapper(

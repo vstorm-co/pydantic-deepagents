@@ -39,7 +39,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-your-key' > .pydantic-deep/.env
 The server auto-detects the provider from available keys:
 - `ANTHROPIC_API_KEY` → `anthropic:claude-sonnet-4-6`
 - `OPENROUTER_API_KEY` → `openrouter:anthropic/claude-sonnet-4`
-- `OPENAI_API_KEY` → `openai:gpt-4.1`
+- `OPENAI_API_KEY` → `openai:gpt-6-luna`
 - `GOOGLE_API_KEY` → `google:gemini-2.5-pro`
 
 ## Zed Configuration

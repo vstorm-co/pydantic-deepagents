@@ -34,7 +34,9 @@ class TestCreateCliAgent:
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
         model = PROVIDER_DEFAULT_MODELS["openai"]
         assert model == "openai:gpt-6-luna"
-        agent, _ = create_cli_agent(model=model, working_dir=str(tmp_path), non_interactive=True)
+        agent, _ = create_cli_agent(
+            model=model, working_dir=str(tmp_path), non_interactive=True, temperature=0.0
+        )
         assert isinstance(agent.model_settings, dict)
         assert agent.model_settings.get("openai_reasoning_effort") == "none"
         assert agent.model_settings["temperature"] == 0.0

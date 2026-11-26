@@ -71,3 +71,58 @@ async def test_prompt_reports_tool_result_and_continues(tmp_path):
 
     # The turn finished, so its messages are kept for the next one.
     assert len(server._session_histories[session.session_id]) == 4
+
+
+async def test_prompt_retains_completed_tool_work_after_model_failure(tmp_path):
+    from pydantic_ai.messages import ToolReturnPart, UserPromptPart
+
+    request_count = 0
+
+    async def stream(
+        messages: list[ModelMessage], info: AgentInfo
+    ) -> AsyncIterator[str | DeltaToolCalls]:
+        nonlocal request_count
+        request_count += 1
+        if request_count == 1:
+            async for event in _call_tool_then_answer(messages, info):
+                yield event
+        elif request_count == 2:
+            raise RuntimeError("model failed after the tool returned")
+        else:
+            parts = [part for message in messages for part in message.parts]
+            assert any(
+                isinstance(part, UserPromptPart) and part.content == "First turn" for part in parts
+            )
+            assert any(
+                isinstance(part, ToolReturnPart) and part.content == "value for release-code"
+                for part in parts
+            )
+            yield "History is intact."
+
+    agent: Agent[Any, str] = Agent(FunctionModel(stream_function=stream))
+
+    @agent.tool_plain
+    def lookup(key: str) -> str:
+        return f"value for {key}"
+
+    server = DeepAgentACP(agent=agent)
+    client = _RecordingClient()
+    server.on_connect(client)
+    session = await server.new_session(cwd=str(tmp_path))
+
+    await server.prompt([TextContentBlock(text="First turn")], session.session_id)
+    assert any(
+        isinstance(update, AgentMessageChunk)
+        and isinstance(update.content, TextContentBlock)
+        and update.content.text.startswith("Error:")
+        for update in client.updates
+    )
+    client.updates.clear()
+
+    await server.prompt([TextContentBlock(text="Second turn")], session.session_id)
+    assert any(
+        isinstance(update, AgentMessageChunk)
+        and isinstance(update.content, TextContentBlock)
+        and update.content.text == "History is intact."
+        for update in client.updates
+    )

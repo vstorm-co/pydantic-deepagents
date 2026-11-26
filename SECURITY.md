@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.3.x (latest) | ✅ |
-| < 0.3.0 | ❌ |
+| 0.4.x (latest) | ✅ |
+| < 0.4.0 | ❌ |
 
 Only the latest minor release receives security fixes. We recommend always using the latest version.
 

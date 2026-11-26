@@ -134,12 +134,12 @@ def test_build_oauth_server() -> None:
 
 
 def test_build_oauth_server_with_persistent_storage(tmp_path: Path) -> None:
-    from key_value.aio.stores.disk import DiskStore
+    from key_value.aio.stores.filetree import FileTreeStore
 
     cfg = MCPServerConfig(
         name="figma", transport="http", url="https://mcp.figma.com/mcp", auth=MCPAuth(kind="oauth")
     )
-    store = DiskStore(directory=str(tmp_path / "oauth"))
+    store = FileTreeStore(data_directory=tmp_path / "oauth")
     ts = build_mcp_server(cfg, lambda k: None, oauth_token_storage=store)
     assert _transport(ts).url == "https://mcp.figma.com/mcp"
     assert getattr(_transport(ts), "auth", None) is not None
@@ -159,9 +159,9 @@ def test_build_oauth_with_client_name() -> None:
 
 
 def test_registry_threads_oauth_storage(tmp_path: Path) -> None:
-    from key_value.aio.stores.disk import DiskStore
+    from key_value.aio.stores.filetree import FileTreeStore
 
-    store = DiskStore(directory=str(tmp_path / "oauth"))
+    store = FileTreeStore(data_directory=tmp_path / "oauth")
     reg = MCPRegistry(resolver=lambda k: None, oauth_token_storage=store)
     cfg = MCPServerConfig(
         name="figma", transport="http", url="https://mcp.figma.com/mcp", auth=MCPAuth(kind="oauth")
@@ -220,7 +220,7 @@ def test_build_oauth_scopes_namespace_token_storage(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     import fastmcp.client.auth.oauth as oauth_mod
-    from key_value.aio.stores.disk import DiskStore
+    from key_value.aio.stores.filetree import FileTreeStore
     from key_value.aio.wrappers.prefix_keys import PrefixKeysWrapper
 
     captured: dict[str, Any] = {}
@@ -230,7 +230,7 @@ def test_build_oauth_scopes_namespace_token_storage(
             captured.update(kwargs)
 
     monkeypatch.setattr(oauth_mod, "OAuth", _FakeOAuth)
-    store = DiskStore(directory=str(tmp_path / "oauth"))
+    store = FileTreeStore(data_directory=tmp_path / "oauth")
 
     scoped = MCPServerConfig(
         name="a",

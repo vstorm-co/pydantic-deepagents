@@ -223,9 +223,9 @@ class TestCreateDeepAgent:
             name="researcher", description="explores", instructions="explore"
         )
 
-        from pydantic_ai_harness.memory import FileStore
+        from pydantic_ai_harness.memory import FileMemoryStore
 
-        sub_agent = self._default_factory(memory_store=FileStore(".deep/memory"))(cfg)
+        sub_agent = self._default_factory(memory_store=FileMemoryStore(".deep/memory"))(cfg)
 
         memories = [c for c in sub_agent._root_capability.capabilities if isinstance(c, Memory)]
         assert [m.agent_name for m in memories] == ["researcher"]

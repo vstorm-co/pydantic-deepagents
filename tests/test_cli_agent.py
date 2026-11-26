@@ -19,6 +19,7 @@ from apps.cli.agent import (
     create_cli_agent,
 )
 from apps.cli.prompts import CLI_SYSTEM_PROMPT, build_cli_instructions
+from apps.cli.providers import PROVIDER_DEFAULT_MODELS
 from pydantic_deep.features.hooks import HookEvent, HookInput, HookResult
 
 TEST_MODEL = TestModel()
@@ -26,6 +27,19 @@ TEST_MODEL = TestModel()
 
 class TestCreateCliAgent:
     """Tests for create_cli_agent()."""
+
+    def test_openai_provider_default_preserves_sampling(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        model = PROVIDER_DEFAULT_MODELS["openai"]
+        assert model == "openai:gpt-6-luna"
+        agent, _ = create_cli_agent(
+            model=model, working_dir=str(tmp_path), non_interactive=True, temperature=0.0
+        )
+        assert isinstance(agent.model_settings, dict)
+        assert agent.model_settings.get("openai_reasoning_effort") == "none"
+        assert agent.model_settings["temperature"] == 0.0
 
     def test_creates_agent_and_deps(self, tmp_path: Path) -> None:
         agent, deps = create_cli_agent(
@@ -564,3 +578,134 @@ class TestBranchRunner:
 
         assert not (tmp_path / "branch.txt").exists()
         assert [change.path for change in overlay.changes()] == [str(tmp_path / "branch.txt")]
+
+
+class TestNonInteractiveTemperature:
+    """`non_interactive=True` leaves sampling temperature unset unless configured or passed."""
+
+    def test_non_interactive_omits_temperature_by_default(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            sandbox="docker",
+        )
+        assert "temperature" not in (agent.model_settings or {})
+
+    def test_non_interactive_respects_explicit_temperature(self, tmp_path: Path) -> None:
+        agent, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            sandbox="docker",
+            temperature=0.0,
+        )
+        assert agent.model_settings is not None
+        assert agent.model_settings["temperature"] == 0.0
+
+    def test_non_interactive_respects_config_temperature_and_override(self, tmp_path: Path) -> None:
+        config_file = tmp_path / ".pydantic-deep" / "config.toml"
+        config_file.parent.mkdir()
+        config_file.write_text("temperature = 0.4\n")
+
+        from_config, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            sandbox="docker",
+            config_path=config_file,
+        )
+        assert from_config.model_settings is not None
+        assert from_config.model_settings["temperature"] == 0.4
+
+        overridden, _ = create_cli_agent(
+            model=TEST_MODEL,
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            sandbox="docker",
+            config_path=config_file,
+            temperature=0.0,
+        )
+        assert overridden.model_settings is not None
+        assert overridden.model_settings["temperature"] == 0.0
+
+    async def test_non_interactive_anthropic_request_omits_temperature_with_thinking(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import json
+
+        import httpx2
+        from pydantic_ai_backends import StateWorkspace
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-fake")
+        captured: list[dict[str, Any]] = []
+        sse_events = [
+            (
+                "message_start",
+                {
+                    "type": "message_start",
+                    "message": {
+                        "id": "msg_test",
+                        "type": "message",
+                        "role": "assistant",
+                        "model": "claude-opus-4-6",
+                        "content": [],
+                        "stop_reason": None,
+                        "stop_sequence": None,
+                        "usage": {"input_tokens": 1, "output_tokens": 0},
+                    },
+                },
+            ),
+            (
+                "content_block_start",
+                {
+                    "type": "content_block_start",
+                    "index": 0,
+                    "content_block": {"type": "text", "text": ""},
+                },
+            ),
+            (
+                "content_block_delta",
+                {
+                    "type": "content_block_delta",
+                    "index": 0,
+                    "delta": {"type": "text_delta", "text": "ok"},
+                },
+            ),
+            ("content_block_stop", {"type": "content_block_stop", "index": 0}),
+            (
+                "message_delta",
+                {
+                    "type": "message_delta",
+                    "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+                    "usage": {"output_tokens": 1},
+                },
+            ),
+            ("message_stop", {"type": "message_stop"}),
+        ]
+        sse_body = "".join(
+            f"event: {name}\ndata: {json.dumps(payload)}\n\n" for name, payload in sse_events
+        ).encode()
+
+        async def _capture(self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
+            captured.append(json.loads(request.content))
+            return httpx2.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=sse_body,
+                request=request,
+            )
+
+        monkeypatch.setattr(httpx2.AsyncClient, "send", _capture)
+        agent, deps = create_cli_agent(
+            model="anthropic:claude-opus-4-6",
+            working_dir=str(tmp_path),
+            non_interactive=True,
+            sandbox="docker",
+        )
+        result = await agent.run("hi", deps=deps, workspace=StateWorkspace().backend())
+
+        assert result.output == "ok"
+        assert len(captured) == 1
+        assert "temperature" not in captured[0]
+        assert captured[0]["thinking"] == {"type": "adaptive"}

@@ -15,7 +15,6 @@ install: .uv .pre-commit ## Install the package, dependencies, and pre-commit fo
 
 .PHONY: install-all-python
 install-all-python: ## Install and synchronize an interpreter for every python version
-	UV_PROJECT_ENVIRONMENT=.venv310 uv sync --python 3.10 --frozen --all-extras --group dev --group lint --group docs
 	UV_PROJECT_ENVIRONMENT=.venv311 uv sync --python 3.11 --frozen --all-extras --group dev --group lint --group docs
 	UV_PROJECT_ENVIRONMENT=.venv312 uv sync --python 3.12 --frozen --all-extras --group dev --group lint --group docs
 	UV_PROJECT_ENVIRONMENT=.venv313 uv sync --python 3.13 --frozen --all-extras --group dev --group lint --group docs
@@ -36,7 +35,7 @@ lint: ## Lint the code
 
 .PHONY: typecheck-pyright
 typecheck-pyright:
-	@# To typecheck for a specific version of python, run 'make install-all-python' then set environment variable PYRIGHT_PYTHON=3.10 or similar
+	@# To typecheck for a specific version of python, run 'make install-all-python' then set environment variable PYRIGHT_PYTHON=3.11 or similar
 	PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright $(if $(PYRIGHT_PYTHON),--pythonversion $(PYRIGHT_PYTHON))
 
 .PHONY: typecheck-mypy
@@ -55,13 +54,12 @@ security: ## Run Bandit security scanner on production code
 
 .PHONY: test
 test: ## Run tests and collect coverage data
-	@# To test using a specific version of python, run 'make install-all-python' then set environment variable PYTEST_PYTHON=3.10 or similar
+	@# To test using a specific version of python, run 'make install-all-python' then set environment variable PYTEST_PYTHON=3.11 or similar
 	COLUMNS=150 $(if $(PYTEST_PYTHON),UV_PROJECT_ENVIRONMENT=.venv$(subst .,,$(PYTEST_PYTHON))) uv run $(if $(PYTEST_PYTHON),--python $(PYTEST_PYTHON)) coverage run -m pytest --durations=20
 	@uv run coverage report
 
 .PHONY: test-all-python
-test-all-python: ## Run tests on Python 3.10 to 3.13
-	COLUMNS=150 UV_PROJECT_ENVIRONMENT=.venv310 uv run --python 3.10 coverage run -p -m pytest
+test-all-python: ## Run tests on Python 3.11 to 3.13
 	COLUMNS=150 UV_PROJECT_ENVIRONMENT=.venv311 uv run --python 3.11 coverage run -p -m pytest
 	COLUMNS=150 UV_PROJECT_ENVIRONMENT=.venv312 uv run --python 3.12 coverage run -p -m pytest
 	COLUMNS=150 UV_PROJECT_ENVIRONMENT=.venv313 uv run --python 3.13 coverage run -p -m pytest

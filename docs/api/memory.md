@@ -1,7 +1,7 @@
 # Memory API
 
 Persistent agent memory is the `pydantic-ai-harness` [`Memory`](https://pydantic.dev/docs/ai/harness/)
-capability over a `FileStore` in the run's workspace. Enable it via
+capability over a `FileMemoryStore` in the run's workspace. Enable it via
 `include_memory=True` (default) on
 [`create_deep_agent`][pydantic_deep.agent.create_deep_agent], which builds it with
 [`build_memory_capability`][pydantic_deep.features.memory.store.build_memory_capability].

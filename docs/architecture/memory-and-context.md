@@ -228,7 +228,7 @@ This mirrors Claude Code's pattern of clearing tool outputs first, then summariz
 ### 3. Memory (pydantic-ai-harness)
 
 Persistent cross-session memory: the harness `Memory` capability over a
-`FileStore` in the run's workspace.
+`FileMemoryStore` in the run's workspace.
 
 **File path:** `{memory_dir}/{namespace}/{agent_name}/MEMORY.md`, plus any topic
 files beside it (e.g., `.pydantic-deep/main/MEMORY.md`; no namespace by default).

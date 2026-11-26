@@ -5,10 +5,10 @@ from __future__ import annotations
 import contextvars
 import os
 import warnings
-from collections.abc import AsyncIterator, Callable, Mapping, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from pydantic_ai import Agent, UsageLimits
 from pydantic_ai._agent_graph import HistoryProcessor
@@ -28,7 +28,7 @@ from pydantic_ai.tools import DeferredToolRequests, Tool
 from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai_backends import StateWorkspace, create_console_toolset
-from pydantic_ai_harness.memory import FileStore
+from pydantic_ai_harness.memory import FileMemoryStore
 from pydantic_ai_shields import CostTracking
 from pydantic_ai_summarization import ContextManagerCapability, LimitWarnerCapability
 from pydantic_ai_todo import create_todo_toolset
@@ -37,11 +37,6 @@ from subagents_pydantic_ai import (
     UsageLimitsFactory,
     create_subagent_toolset,
 )
-
-# `overload` from typing_extensions (not typing): its registry is readable via
-# get_overloads() on every Python version, whereas typing.overload only
-# registers overloads on 3.11+. The DeepAgentSpec drift-guard test relies on it.
-from typing_extensions import overload
 
 from pydantic_deep.deps import DEFAULT_UPLOAD_DIR, DeepAgentDeps
 from pydantic_deep.features.checkpointing import (
@@ -135,6 +130,15 @@ class _HopResettingFallbackModel(FallbackModel):
     while keeping `ContextVar`'s per-task isolation for concurrent runs.
     """
 
+    def __init__(
+        self,
+        primary: str | Model,
+        fallbacks: list[str | Model],
+        fallback_on: Callable[[Exception], Awaitable[bool]],
+    ) -> None:
+        super().__init__(primary, *fallbacks, fallback_on=fallback_on)
+        self.fallback_on = fallback_on
+
     async def request(self, *args: Any, **kwargs: Any) -> Any:
         _fallback_hop_cv.set(0)
         return await super().request(*args, **kwargs)
@@ -150,7 +154,7 @@ def _wrap_with_fallback_and_hooks(
     primary: str | Model,
     fallbacks: list[str | Model],
     fallback_hooks: list[Any],
-) -> FallbackModel:
+) -> _HopResettingFallbackModel:
     """Build a FallbackModel with auth-error filtering and optional hook dispatch.
 
     Auth errors (401/403/unauthorized/forbidden) always return False so the
@@ -196,7 +200,7 @@ def _wrap_with_fallback_and_hooks(
             )
         return True
 
-    return _HopResettingFallbackModel(primary, *fallbacks, fallback_on=_fallback_on)
+    return _HopResettingFallbackModel(primary, fallbacks, _fallback_on)
 
 
 class _DepsTodoProxy:
@@ -301,7 +305,7 @@ def _make_default_deep_agent_factory(
     edit_format: Any,
     context_files: Any,
     context_discovery: Any,
-    memory_store: FileStore | None,
+    memory_store: FileMemoryStore | None,
     memory_namespace: MemoryNamespace,
     web_search: bool,
     web_fetch: bool,
@@ -379,7 +383,7 @@ def _inject_subagent_context_toolset(sa_config: SubAgentConfig) -> None:
 
 def _subagent_memory(
     cfg: Mapping[str, Any],
-    memory_store: FileStore | None,
+    memory_store: FileMemoryStore | None,
     memory_namespace: MemoryNamespace,
 ) -> list[AbstractCapability[Any]]:
     """A subagent's own `Memory`, unless memory is off or `extra={"memory": False}`.
@@ -403,7 +407,7 @@ def _subagent_memory(
 
 
 def _inject_subagent_memory_toolset(
-    sa_config: SubAgentConfig, memory_store: FileStore, memory_namespace: MemoryNamespace
+    sa_config: SubAgentConfig, memory_store: FileMemoryStore, memory_namespace: MemoryNamespace
 ) -> None:
     """Hand a subagent with its own `agent_factory` the memory tools.
 
@@ -1130,7 +1134,7 @@ def create_deep_agent(  # noqa: C901
     # One store for the agent and every subagent: each `Memory` binds a copy of it
     # to its run's workspace, and the copies share its lock, so concurrent agents
     # writing receipts beside the notebooks do not overwrite each other's.
-    memory_store = FileStore(memory_dir or DEFAULT_MEMORY_DIR) if include_memory else None
+    memory_store = FileMemoryStore(memory_dir or DEFAULT_MEMORY_DIR) if include_memory else None
 
     _subagent_task_manager: Any | None = None
     subagent_toolset: Any | None = None

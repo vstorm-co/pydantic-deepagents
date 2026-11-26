@@ -64,7 +64,7 @@ Whichever key it finds maps to a sensible default model:
 |----------------------|---------------|
 | `ANTHROPIC_API_KEY` | `anthropic:claude-sonnet-4-6` |
 | `OPENROUTER_API_KEY` | `openrouter:anthropic/claude-sonnet-4` |
-| `OPENAI_API_KEY` | `openai:gpt-4.1` |
+| `OPENAI_API_KEY` | `openai:gpt-6-luna` |
 | `GOOGLE_API_KEY` | `google:gemini-2.5-pro` |
 
 Want to pin a specific model instead of the default? Pass it on the command line:
@@ -74,6 +74,10 @@ python -m apps.acp                                     # auto-detect
 python -m apps.acp --model anthropic:claude-opus-4-6   # pin a model
 python -m apps.acp --cwd /path/to/project              # set the working dir
 ```
+
+Model selection uses `--model` first, then `PYDANTIC_DEEP_MODEL`, then API key
+auto-detection. Each new session starts with that model selected in the picker,
+including custom model IDs outside the built-in list.
 
 ## Wire it into Zed
 

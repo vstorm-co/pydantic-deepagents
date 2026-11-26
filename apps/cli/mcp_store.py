@@ -1,7 +1,7 @@
 """Persistence + wiring for MCP servers in the CLI.
 
-User-defined servers and per-builtin enabled-state live in
-``.pydantic-deep/mcp.json``; auth tokens live in the keystore (``keys.toml``,
+User-defined servers and built-in settings live in the user directory;
+auth tokens live in the keystore (``keys.toml``,
 git-ignored). This module merges the built-in catalogue with user config into a
 single :class:`~pydantic_deep.mcp.MCPRegistry`, backed by a keystore + env
 secret resolver.
@@ -12,9 +12,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+from hashlib import sha256
 from pathlib import Path
 
-from apps.cli.config import get_project_dir
+from apps.cli.config import get_global_dir, get_project_dir
 from apps.cli.keystore import get_stored_keys, remove_key, save_key
 from pydantic_deep.mcp import (
     MCPNotInstalledError,
@@ -42,8 +43,10 @@ logger = logging.getLogger(__name__)
 
 
 def mcp_config_path() -> Path:
-    """Path to the per-project MCP config file."""
-    return get_project_dir() / "mcp.json"
+    """Return the user's MCP settings for the canonical project directory."""
+    project = get_project_dir().parent.resolve()
+    project_key = sha256(os.fsencode(project)).hexdigest()
+    return get_global_dir() / "mcp" / f"{project_key}.json"
 
 
 def mcp_secret_resolver() -> SecretResolver:
@@ -59,25 +62,25 @@ def mcp_oauth_storage() -> object | None:
     """Persistent, user-level OAuth token store for hosted MCP servers.
 
     Tokens (e.g. for the hosted Figma server) are cached on disk under
-    ``~/.pydantic-deep/mcp-oauth`` and keyed by server URL, so authorizing once
+    ``~/.pydantic-deep/mcp-oauth-json`` and keyed by server URL, so authorizing once
     (via ``/mcp`` test) works for the agent too and survives restarts. Returns
     ``None`` — with a logged warning, since the resulting in-memory fallback
-    means a browser re-auth on every restart — if the disk store backend isn't
+    means a browser re-auth on every restart — if the file store backend isn't
     installed or the store directory can't be created.
     """
     try:
-        from key_value.aio.stores.disk import DiskStore
+        from key_value.aio.stores.filetree import FileTreeStore
     except Exception:
         logger.warning(
-            "MCP OAuth tokens will not persist: the disk store backend is not "
-            "installed (pip install 'py-key-value-aio[disk]'); using in-memory "
+            "MCP OAuth tokens will not persist: the file store backend is not "
+            "installed (pip install 'py-key-value-aio[filetree]'); using in-memory "
             "storage, so hosted servers re-authorize on every restart."
         )
         return None
-    path = Path.home() / ".pydantic-deep" / "mcp-oauth"
+    path = Path.home() / ".pydantic-deep" / "mcp-oauth-json"
     try:
-        path.mkdir(parents=True, exist_ok=True)
-        return DiskStore(directory=str(path))
+        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        return FileTreeStore(data_directory=path)
     except Exception as exc:
         logger.warning(
             "MCP OAuth tokens will not persist: cannot initialise the disk store "
@@ -136,7 +139,7 @@ def save_mcp_registry(registry: MCPRegistry) -> None:
             user_servers.append(config.to_dict())
 
     path = mcp_config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     payload = {"builtin_state": builtin_state, "user_servers": user_servers}
     path.write_text(json.dumps(payload, indent=2) + "\n")
 
@@ -193,7 +196,7 @@ def import_claude_code_servers(project_dir: Path | None = None) -> list[MCPServe
         if isinstance(entry, dict) and isinstance(entry.get("mcpServers"), dict):
             merged.update(entry["mcpServers"])
 
-    return parse_mcp_servers(merged, enabled=True)
+    return parse_mcp_servers(merged, enabled=False)
 
 
 def build_mcp_servers_for_agent(on_degraded: object | None = None) -> list:

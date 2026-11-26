@@ -39,7 +39,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-your-key' > .pydantic-deep/.env
 The server auto-detects the provider from available keys:
 - `ANTHROPIC_API_KEY` → `anthropic:claude-sonnet-4-6`
 - `OPENROUTER_API_KEY` → `openrouter:anthropic/claude-sonnet-4`
-- `OPENAI_API_KEY` → `openai:gpt-4.1`
+- `OPENAI_API_KEY` → `openai:gpt-6-luna`
 - `GOOGLE_API_KEY` → `google:gemini-2.5-pro`
 
 ## Zed Configuration
@@ -86,6 +86,10 @@ python -m apps.acp                                    # Auto-detect model
 python -m apps.acp --model anthropic:claude-opus-4-6  # Specific model
 python -m apps.acp --cwd /path/to/project             # Working directory
 ```
+
+Model selection uses `--model` first, then `PYDANTIC_DEEP_MODEL`, then API key
+auto-detection. Each new session starts with that model selected in the picker,
+including custom model IDs outside the built-in list.
 
 ## Custom Agent Factory
 

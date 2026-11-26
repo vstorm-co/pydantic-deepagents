@@ -1,7 +1,6 @@
 """Extended tests for agent factory to reach 100% coverage."""
 
-from collections.abc import Awaitable
-from typing import Any, cast
+from typing import Any
 
 import pytest
 from pydantic_ai.exceptions import ModelAPIError
@@ -12,6 +11,7 @@ from pydantic_deep import (
     DeepAgentDeps,
     create_deep_agent,
 )
+from pydantic_deep.agent import _HopResettingFallbackModel
 from pydantic_deep.features.skills import Skill as SkillDataclass
 from pydantic_deep.features.skills import SkillsToolset
 
@@ -415,13 +415,8 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
-        # _exception_handlers is a private pydantic-ai FallbackModel attribute; there is
-        # no public equivalent that lets us unit-test the fallback_on callable directly.
-        _fallback_on = cast(
-            "Awaitable[bool]",
-            agent.model._exception_handlers[0](ModelAPIError("test-model", "rate limit")),
-        )
+        assert isinstance(agent.model, _HopResettingFallbackModel)
+        _fallback_on = agent.model.fallback_on(ModelAPIError("test-model", "rate limit"))
         result = await _fallback_on
         assert result is True
         assert len(received) == 1
@@ -444,13 +439,8 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
-        # _exception_handlers is a private pydantic-ai FallbackModel attribute; there is
-        # no public equivalent that lets us unit-test the fallback_on callable directly.
-        _fallback_on = cast(
-            "Awaitable[bool]",
-            agent.model._exception_handlers[0](ValueError("not an api error")),
-        )
+        assert isinstance(agent.model, _HopResettingFallbackModel)
+        _fallback_on = agent.model.fallback_on(ValueError("not an api error"))
         result = await _fallback_on
         assert result is False
         assert received == []
@@ -472,30 +462,13 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
+        assert isinstance(agent.model, _HopResettingFallbackModel)
         # Auth errors must not be forwarded to the next model - they are permanent.
         for auth_msg in ("401 unauthorized", "403 forbidden", "unauthorized access"):
-            _fallback_on = cast(
-                "Awaitable[bool]",
-                agent.model._exception_handlers[0](ModelAPIError("test-model", auth_msg)),
-            )
+            _fallback_on = agent.model.fallback_on(ModelAPIError("test-model", auth_msg))
             result = await _fallback_on
             assert result is False, f"Expected False for auth error: {auth_msg!r}"
         assert received == []
-
-    def test_fallback_model_always_uses_auth_filtering_without_hooks(self) -> None:
-        """FallbackModel is always wrapped with auth-filtering fallback_on, even when
-        no MODEL_FALLBACK_TRIGGERED hook is registered."""
-        agent = create_deep_agent(
-            model=TEST_MODEL,
-            fallback_model=FALLBACK_MODEL,
-            web_search=False,
-            web_fetch=False,
-            thinking=False,
-        )
-        assert isinstance(agent.model, FallbackModel)
-        # A custom fallback_on must be installed regardless of hooks.
-        assert agent.model._exception_handlers, "expected a custom fallback_on handler"
 
     async def test_auth_error_not_forwarded_without_hooks(self) -> None:
         """Auth errors (401/403) must not trigger fallback even with no hooks registered."""
@@ -506,11 +479,8 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
-        _fallback_on = cast(
-            "Awaitable[bool]",
-            agent.model._exception_handlers[0](ModelAPIError("m", "401 unauthorized")),
-        )
+        assert isinstance(agent.model, _HopResettingFallbackModel)
+        _fallback_on = agent.model.fallback_on(ModelAPIError("m", "401 unauthorized"))
         result = await _fallback_on
         assert result is False, "auth error must not trigger fallback (no hooks case)"
 
@@ -532,17 +502,17 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
-        _fallback_on_raw = agent.model._exception_handlers[0]
+        assert isinstance(agent.model, _HopResettingFallbackModel)
+        _fallback_on_raw = agent.model.fallback_on
         api_error = ModelAPIError("test-model", "rate limit exceeded")
 
         # First call: primary fails → hook fires (there is a fallback to try).
-        result1 = await cast("Awaitable[bool]", _fallback_on_raw(api_error))
+        result1 = await _fallback_on_raw(api_error)
         assert result1 is True
         assert len(received) == 1
 
         # Second call: last fallback fails (chain exhausted) → hook must NOT fire.
-        result2 = await cast("Awaitable[bool]", _fallback_on_raw(api_error))
+        result2 = await _fallback_on_raw(api_error)
         assert result2 is True
         assert len(received) == 1, "hook fired for exhausted chain - should be silent"
 
@@ -570,18 +540,18 @@ class TestFallbackModel:
             web_fetch=False,
             thinking=False,
         )
-        assert isinstance(agent.model, FallbackModel)
-        _fallback_on_raw = agent.model._exception_handlers[0]
+        assert isinstance(agent.model, _HopResettingFallbackModel)
+        _fallback_on_raw = agent.model.fallback_on
         api_error = ModelAPIError("test-model", "rate limit exceeded")
 
         # First request: primary → fallback exhausts the two-model chain (hop = 2).
-        await cast("Awaitable[bool]", _fallback_on_raw(api_error))
-        await cast("Awaitable[bool]", _fallback_on_raw(api_error))
+        await _fallback_on_raw(api_error)
+        await _fallback_on_raw(api_error)
         assert len(received) == 1
 
         # New request, same context: hop (2) >= total_models (2) → reset to 0 and
         # the primary's failure fires the hook again.
-        result = await cast("Awaitable[bool]", _fallback_on_raw(api_error))
+        result = await _fallback_on_raw(api_error)
         assert result is True
         assert len(received) == 2, "hop counter did not reset after exhaustion"
 
@@ -685,10 +655,7 @@ class TestFallbackModel:
         )
 
         with set_current_run_context(run_context(workspace=Workspace(backend))):
-            _fallback_on = cast(
-                "Awaitable[bool]",
-                model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
-            )
+            _fallback_on = model.fallback_on(ModelAPIError("primary-model", "rate limit exceeded"))
             assert await _fallback_on is True
         assert len(backend.executed) == 1
         assert "model_fallback_triggered" in backend.executed[0]
@@ -706,9 +673,8 @@ class TestFallbackModel:
             [Hook(event=HookEvent.MODEL_FALLBACK_TRIGGERED, command="cat")],
         )
         with caplog.at_level("WARNING"):
-            falls_back = await cast(
-                "Awaitable[bool]",
-                model._exception_handlers[0](ModelAPIError("primary-model", "rate limit exceeded")),
+            falls_back = await model.fallback_on(
+                ModelAPIError("primary-model", "rate limit exceeded")
             )
         assert falls_back is True
         assert "runs commands" in caplog.text

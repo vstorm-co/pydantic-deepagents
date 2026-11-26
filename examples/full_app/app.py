@@ -1297,7 +1297,7 @@ async def _stream_tool_calls(
             elif isinstance(event, FunctionToolResultEvent):
                 tool_call_id = event.tool_call_id
                 tool_name = tool_names_by_id.get(tool_call_id, "unknown")
-                result_content = event.result.content
+                result_content = event.part.content
                 logger.info(f"  TOOL RESULT: {tool_name} -> {str(result_content)[:100]}...")
 
                 await websocket.send_json(
@@ -1459,6 +1459,11 @@ async def get_file_content(filepath: str, session_id: str = Query(..., descripti
     )
 
 
+_UNTRUSTED_FILE_HEADERS = {
+    "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+    "X-Content-Type-Options": "nosniff",
+}
+
 _CONTENT_TYPES = {
     "png": "image/png",
     "jpg": "image/jpeg",
@@ -1491,7 +1496,7 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
         decoded_path.split(".")[-1].lower(), "application/octet-stream"
     )
     data = await _read_session_file(user_sessions[session_id], decoded_path)
-    return Response(content=data, media_type=content_type)
+    return Response(content=data, media_type=content_type, headers=_UNTRUSTED_FILE_HEADERS)
 
 
 @app.get("/todos")
@@ -1777,12 +1782,7 @@ async def health():
 async def preview_file(session_id: str, filepath: str):
     """Serve raw files from container for live preview.
 
-    This endpoint serves files WITHOUT line numbers, with proper Content-Type,
-    allowing HTML files to load relative CSS/JS/images naturally.
-
-    Example: /preview/abc123/workspace/index.html
-             -> loads HTML, which requests style.css
-             -> browser resolves to /preview/abc123/workspace/style.css
+    HTML and SVG previews use an opaque origin and block active content.
     """
     from fastapi.responses import Response
 
@@ -1828,7 +1828,7 @@ async def preview_file(session_id: str, filepath: str):
     content_type = content_types.get(ext, "application/octet-stream")
 
     data = await _read_session_file(session, filepath)
-    return Response(content=data, media_type=content_type)
+    return Response(content=data, media_type=content_type, headers=_UNTRUSTED_FILE_HEADERS)
 
 
 if __name__ == "__main__":

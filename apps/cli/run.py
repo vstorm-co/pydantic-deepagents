@@ -170,6 +170,8 @@ async def execute_headless(  # noqa: C901
                 result = await run_coro
         except _TRANSPORT_ERRORS as exc:
             _print_error(f"Model/transport error, ending run early: {exc}", output_json)
+            if isinstance(exc, ModelHTTPError) and 400 <= exc.status_code < 500:
+                return 0 if exc.status_code in {408, 409, 429} else 1
             return 0
 
         if output_json:

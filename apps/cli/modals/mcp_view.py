@@ -305,9 +305,8 @@ class MCPViewModal(ModalScreen[None]):
     def action_import_claude_code(self) -> None:
         """Import MCP servers already configured in Claude Code (.mcp.json / ~/.claude.json).
 
-        Existing custom servers with the same name are overwritten (tokens in
-        env/headers carry over, so imported servers work right away). Built-in
-        names are skipped to avoid clobbering curated defaults.
+        New entries are disabled until the user enables them. Existing names
+        stay bound to the server the user already configured.
         """
         try:
             imported = import_claude_code_servers()
@@ -324,7 +323,7 @@ class MCPViewModal(ModalScreen[None]):
         skipped = []
         for config in imported:
             existing = self._registry.get(config.name)
-            if existing is not None and existing.builtin:
+            if existing is not None:
                 skipped.append(config.name)
                 continue
             self._registry.add(config)
@@ -335,7 +334,7 @@ class MCPViewModal(ModalScreen[None]):
             self._refresh_list()
         msg = f"Imported {added} server(s) from Claude Code"
         if skipped:
-            msg += f" (skipped built-in name(s): {', '.join(skipped)})"
+            msg += f" (skipped existing name(s): {', '.join(skipped)})"
         self.app.notify(msg)
 
     def action_delete(self) -> None:

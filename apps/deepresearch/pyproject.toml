@@ -1,11 +1,10 @@
 [project]
 name = "deepresearch"
-version = "0.1.0"
+version = "0.2.0"
 description = "Autonomous research agent powered by pydantic-deep + MCP"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic-deep[web]",
-    "pydantic-ai[mcp]",
+    "pydantic-deep[web,mcp]>=0.4.0",
     "pydantic-ai-shields",
     "pydantic-ai-backend[docker]",
     "summarization-pydantic-ai",
@@ -15,15 +14,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-export = ["markdown>=3.5", "weasyprint>=60.0"]
+export = ["markdown>=3.5", "nh3>=0.3.8", "weasyprint>=70.0"]
 
 [tool.uv.sources]
-pydantic-deep = { path = "..", editable = true }
-pydantic-ai-backend = { path = "../../pydantic-ai-backend", editable = true }
-pydantic-ai-shields = { path = "../../pydantic-ai-middleware", editable = true }
-summarization-pydantic-ai = { path = "../../pydantic-ai-summarization", editable = true }
-subagents-pydantic-ai = { path = "../../pydantic-ai-subagents", editable = true }
-pydantic-ai-todo = { path = "../../pydantic-ai-todo", editable = true }
+pydantic-deep = { path = "../..", editable = true }
 
 [project.scripts]
 deepresearch = "deepresearch.app:main"

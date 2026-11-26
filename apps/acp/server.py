@@ -33,7 +33,9 @@ from uuid import uuid4
 from pydantic_ai import Agent
 from pydantic_ai._agent_graph import CallToolsNode, ModelRequestNode
 from pydantic_ai.messages import (
+    FunctionToolResultEvent,
     ModelMessage,
+    RetryPromptPart,
     ToolCallPart,
 )
 from pydantic_ai.workspaces import LocalWorkspaceBackend, Workspace
@@ -48,24 +50,22 @@ from acp import (
     PromptResponse,
     SetSessionConfigOptionResponse,
     SetSessionModeResponse,
-    start_tool_call,
-    text_block,
-    tool_content,
-    update_agent_message,
-    update_agent_message_text,
-    update_tool_call,
 )
 from acp.interfaces import Client
 from acp.schema import (
     AgentCapabilities,
+    AgentMessageChunk,
     ClientCapabilities,
+    ContentToolCallContent,
     Implementation,
     PromptCapabilities,
     SessionConfigOptionSelect,
     SessionConfigSelectOption,
     TextContentBlock,
+    ToolCallProgress,
+    ToolCallStart,
 )
-from pydantic_deep import DeepAgentDeps
+from pydantic_deep import DeepAgentDeps, __version__
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +193,7 @@ class DeepAgentACP(ACPAgent):
             protocolVersion=protocol_version,
             agentInfo=Implementation(
                 name="pydantic-deep",
-                version="0.3.3",
+                version=__version__,
             ),
             agentCapabilities=AgentCapabilities(
                 prompt_capabilities=PromptCapabilities(
@@ -290,7 +290,7 @@ class DeepAgentACP(ACPAgent):
         history = self._session_histories.get(session_id, [])
 
         # Helper to send updates to the editor
-        async def send(update: Any) -> None:
+        async def send(update: AgentMessageChunk | ToolCallStart | ToolCallProgress) -> None:
             await self._conn.session_update(
                 session_id=session_id, update=update, source="pydantic-deep"
             )
@@ -306,82 +306,95 @@ class DeepAgentACP(ACPAgent):
                 message_history=history,
                 workspace=self._workspace_for(session_id),
             ) as run:
-                async for node in run:
-                    if self._cancelled:
-                        break
+                try:
+                    async for node in run:
+                        if self._cancelled:
+                            break
 
-                    # Only stream ModelRequestNode (text + tool call starts)
-                    if isinstance(node, ModelRequestNode):
-                        async with node.stream(run.ctx) as request_stream:
-                            # Phase 1: wait for FinalResultEvent, capture tool calls
-                            final_result_found = False
-                            async for event in request_stream:
-                                if hasattr(event, "part") and isinstance(
-                                    getattr(event, "part", None), ToolCallPart
-                                ):
-                                    tc = event.part
-                                    if tc.tool_call_id not in active_tool_calls:
-                                        active_tool_calls.add(tc.tool_call_id)
-                                        kind = _TOOL_KIND_MAP.get(tc.tool_name, "other")
-                                        title = tc.tool_name
-                                        if isinstance(tc.args, dict):
-                                            if "path" in tc.args:
-                                                title = f"{tc.tool_name}: {tc.args['path']}"
-                                            elif "pattern" in tc.args:
-                                                title = f"{tc.tool_name}: {tc.args['pattern']}"
-                                            elif "command" in tc.args:
-                                                cmd = str(tc.args["command"])[:60]
-                                                title = f"{tc.tool_name}: {cmd}"
-                                            elif "description" in tc.args:
-                                                desc = str(tc.args["description"])[:60]
-                                                title = f"{tc.tool_name}: {desc}"
+                        # Only stream ModelRequestNode (text + tool call starts)
+                        if isinstance(node, ModelRequestNode):
+                            async with node.stream(run.ctx) as request_stream:
+                                # Phase 1: wait for FinalResultEvent, capture tool calls
+                                final_result_found = False
+                                async for event in request_stream:
+                                    if hasattr(event, "part") and isinstance(
+                                        getattr(event, "part", None), ToolCallPart
+                                    ):
+                                        tc = event.part
+                                        if tc.tool_call_id not in active_tool_calls:
+                                            active_tool_calls.add(tc.tool_call_id)
+                                            kind = _TOOL_KIND_MAP.get(tc.tool_name, "other")
+                                            title = tc.tool_name
+                                            if isinstance(tc.args, dict):
+                                                if "path" in tc.args:
+                                                    title = f"{tc.tool_name}: {tc.args['path']}"
+                                                elif "pattern" in tc.args:
+                                                    title = f"{tc.tool_name}: {tc.args['pattern']}"
+                                                elif "command" in tc.args:
+                                                    cmd = str(tc.args["command"])[:60]
+                                                    title = f"{tc.tool_name}: {cmd}"
+                                                elif "description" in tc.args:
+                                                    desc = str(tc.args["description"])[:60]
+                                                    title = f"{tc.tool_name}: {desc}"
+                                            await send(
+                                                ToolCallStart(
+                                                    toolCallId=tc.tool_call_id,
+                                                    status="in_progress",
+                                                    title=title,
+                                                    kind=kind,
+                                                )
+                                            )
+                                    # FinalResultEvent means text streaming can begin
+                                    if type(event).__name__ == "FinalResultEvent":
+                                        final_result_found = True
+                                        break
+
+                                # Phase 2: stream final text as deltas
+                                if final_result_found:
+                                    prev_len = 0
+                                    async for cumulative_text in request_stream.stream_text():
+                                        delta = cumulative_text[prev_len:]
+                                        if delta:
+                                            await send(
+                                                AgentMessageChunk(
+                                                    content=TextContentBlock(text=delta)
+                                                )
+                                            )
+                                        prev_len = len(cumulative_text)
+
+                        # CallToolsNode: execute tools and send results
+                        elif isinstance(node, CallToolsNode):
+                            async with node.stream(run.ctx) as tool_stream:
+                                async for event in tool_stream:
+                                    if isinstance(event, FunctionToolResultEvent):
+                                        r = event.part
+                                        # Truncate long results for display
+                                        content_str = str(r.content) if r.content else ""
+                                        if len(content_str) > 500:
+                                            content_str = content_str[:500] + "..."
                                         await send(
-                                            start_tool_call(
-                                                tool_call_id=tc.tool_call_id,
-                                                title=title,
-                                                kind=kind,
+                                            ToolCallProgress(
+                                                toolCallId=r.tool_call_id,
+                                                status="failed"
+                                                if isinstance(r, RetryPromptPart)
+                                                else "completed",
+                                                content=[
+                                                    ContentToolCallContent(
+                                                        content=TextContentBlock(text=content_str)
+                                                    )
+                                                ]
+                                                if content_str
+                                                else None,
                                             )
                                         )
-                                # FinalResultEvent means text streaming can begin
-                                if type(event).__name__ == "FinalResultEvent":
-                                    final_result_found = True
-                                    break
 
-                            # Phase 2: stream final text as deltas
-                            if final_result_found:
-                                prev_len = 0
-                                async for cumulative_text in request_stream.stream_text():
-                                    delta = cumulative_text[prev_len:]
-                                    if delta:
-                                        await send(update_agent_message_text(delta))
-                                    prev_len = len(cumulative_text)
-
-                    # CallToolsNode: execute tools and send results
-                    elif isinstance(node, CallToolsNode):
-                        async with node.stream(run.ctx) as tool_stream:
-                            async for event in tool_stream:
-                                ename = type(event).__name__
-                                if ename == "FunctionToolResultEvent":
-                                    r = event.result
-                                    # Truncate long results for display
-                                    content_str = str(r.content) if r.content else ""
-                                    if len(content_str) > 500:
-                                        content_str = content_str[:500] + "..."
-                                    await send(
-                                        update_tool_call(
-                                            tool_call_id=r.tool_call_id,
-                                            status="completed",
-                                            content=[tool_content(text_block(content_str))]
-                                            if content_str
-                                            else None,
-                                        )
-                                    )
-
-                # Save history for next turn
-                self._session_histories[session_id] = list(run.result.all_messages())
+                finally:
+                    # Keep the conversation the graph recorded even without a final result.
+                    if run.new_messages():
+                        self._session_histories[session_id] = list(run.all_messages())
 
         except Exception as e:
             logger.exception("Agent run failed: %s", e)
-            await send(update_agent_message(text_block(f"Error: {e}")))
+            await send(AgentMessageChunk(content=TextContentBlock(text=f"Error: {e}")))
 
         return PromptResponse(stopReason="end_turn")

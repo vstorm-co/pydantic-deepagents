@@ -1442,7 +1442,7 @@ function showApprovalDialog(requests) {
 
     for (const req of requests) {
         html += `
-            <div class="approval-item" data-id="${req.tool_call_id}">
+            <div class="approval-item">
                 <div class="approval-tool">
                     <span class="tool-icon"><i class="ri-settings-5-line"></i></span>
                     <strong>${escapeHtml(req.tool_name)}</strong>
@@ -1730,7 +1730,7 @@ function addMessage(content, type, attachments = []) {
             const isImage = (a.type || '').startsWith('image/');
             let thumb = '';
             if (isImage && a.data) {
-                thumb = `<img src="data:${a.type};base64,${a.data}" class="msg-attach-thumb" alt="">`;
+                thumb = `<img src="data:${escapeHtml(a.type)};base64,${escapeHtml(a.data)}" class="msg-attach-thumb" alt="">`;
             }
             return `<div class="msg-attach-chip">${thumb || `<i class="${iconClass}"></i>`}<span class="msg-attach-name">${escapeHtml(a.name)}</span><span class="msg-attach-size">${formatBytes(a.size)}</span></div>`;
         }).join('');
@@ -1764,7 +1764,24 @@ function formatMessage(content) {
         return `%%CODEBLOCK_${idx}%%`;
     });
 
-    // Escape HTML (but not our placeholders)
+    const links = [];
+    const keepLink = (source, label, href) => {
+        let url;
+        try {
+            url = new URL(href, window.location.origin);
+        } catch {
+            return source;
+        }
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return source;
+        const isDiagram = url.origin === 'https://excalidraw.com' && url.hash.startsWith('#json=');
+        const cssClass = isDiagram ? ' class="excalidraw-link"' : '';
+        const icon = isDiagram ? '<i class="ri-artboard-line"></i> ' : '';
+        const anchor = `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer"${cssClass}>${icon}${escapeHtml(label)}</a>`;
+        return `%%LINK_${links.push(anchor) - 1}%%`;
+    };
+    processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, keepLink);
+    processed = processed.replace(/https:\/\/excalidraw\.com\/#json=[^\s<>"']+/g,
+        (url) => keepLink(url, 'Open in Excalidraw', url));
     processed = escapeHtml(processed);
 
     // Headers (must be at start of line)
@@ -1837,9 +1854,6 @@ function formatMessage(content) {
     processed = processed.replace(/~~([^~]+)~~/g, '<del>$1</del>');
     processed = processed.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    // Links [text](url)
-    processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
     // Line breaks
     processed = processed.replace(/\n/g, '<br>');
 
@@ -1857,9 +1871,7 @@ function formatMessage(content) {
 
     // Linkify file paths
     processed = linkifyFilePaths(processed);
-
-    // Linkify Excalidraw URLs — render as diagram links with icon
-    processed = linkifyExcalidrawUrls(processed);
+    processed = processed.replace(/%%LINK_(\d+)%%/g, (marker, index) => links[index] ?? marker);
 
     // Trigger Prism highlighting after DOM update
     setTimeout(() => {
@@ -1885,10 +1897,12 @@ function copyCodeBlock(btn) {
 }
 
 function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 function handleFileSelect(e) {
@@ -1953,7 +1967,7 @@ async function refreshFiles() {
                 const fullPath = `/uploads/${name}`;
                 const iconClass = getFileIconClass(name);
                 return `
-                    <div class="file-item clickable" onclick="openFilePreview('${escapeHtml(fullPath)}')" title="Click to preview">
+                    <div class="file-item clickable" data-open-file="${escapeHtml(fullPath)}" title="Click to preview">
                         <i class="${iconClass}"></i>
                         <span>${escapeHtml(name)}</span>
                     </div>
@@ -2026,7 +2040,7 @@ function renderFileTree(node, depth, parentPath = '/workspace') {
             const iconClass = getFileIconClass(name);
             html += `
                 <div class="file-item clickable" style="padding-left: ${indent + 8}px"
-                     onclick="openFilePreview('${escapeHtml(value.__path)}')" title="${escapeHtml(value.__path)}">
+                     data-open-file="${escapeHtml(value.__path)}" title="${escapeHtml(value.__path)}">
                     <i class="${iconClass}"></i>
                     <span>${escapeHtml(name)}</span>
                 </div>
@@ -2038,7 +2052,7 @@ function renderFileTree(node, depth, parentPath = '/workspace') {
 
             html += `
                 <div class="folder-item ${isExpanded ? 'expanded' : ''}" style="padding-left: ${indent + 8}px"
-                     onclick="toggleFolder('${escapeHtml(currentPath)}')">
+                     data-toggle-folder="${escapeHtml(currentPath)}">
                     <i class="folder-chevron ${chevronIcon}"></i>
                     <i class="folder-icon ${folderIcon}"></i>
                     <span>${escapeHtml(name)}</span>
@@ -2130,7 +2144,7 @@ function renderTasksPanel(todos) {
     if (!tasksCollapsed) {
         let html = '';
         for (const todo of todos) {
-            const st = todo.status || 'pending';
+            const st = ['completed', 'in_progress'].includes(todo.status) ? todo.status : 'pending';
             const icons = {
                 completed:   'ri-checkbox-circle-fill',
                 in_progress: 'ri-loader-4-line',
@@ -2271,7 +2285,7 @@ function renderPreview(filename, content) {
     const ext = filename.split('.').pop().toLowerCase();
 
     if (currentPreviewMode === 'preview' && PREVIEWABLE_EXTENSIONS.includes(ext)) {
-        renderLivePreview(content, ext);
+        renderLivePreview();
         return;
     }
 
@@ -2293,7 +2307,7 @@ function renderPreview(filename, content) {
 
     if (ext === 'pdf') {
         previewContainer.innerHTML = `
-            <embed class="embed-container" src="/files/binary/${encodeURIComponent(currentPreviewPath)}?session_id=${sessionId}" type="application/pdf">
+            <embed class="embed-container" src="/files/binary/${encodeURIComponent(currentPreviewPath)}?session_id=${encodeURIComponent(sessionId)}" type="application/pdf">
         `;
         return;
     }
@@ -2321,44 +2335,13 @@ function renderPreview(filename, content) {
     }
 }
 
-function renderLivePreview(content, ext) {
+function renderLivePreview() {
     const iframe = document.createElement('iframe');
     iframe.className = 'live-preview-frame';
-    iframe.sandbox = 'allow-scripts allow-same-origin';
-
-    previewContainer.innerHTML = '';
-    previewContainer.appendChild(iframe);
-
-    if (ext === 'svg') {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {
-                        margin: 0;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        min-height: 100vh;
-                        background: #1a1a1a;
-                    }
-                    svg {
-                        max-width: 90%;
-                        max-height: 90vh;
-                    }
-                </style>
-            </head>
-            <body>${content}</body>
-            </html>
-        `);
-        iframeDoc.close();
-    } else {
-        const previewUrl = `/preview/${sessionId}${currentPreviewPath}`;
-        iframe.src = previewUrl;
-    }
+    iframe.setAttribute('sandbox', '');
+    const path = currentPreviewPath.split('/').map(encodeURIComponent).join('/');
+    iframe.src = `/preview/${encodeURIComponent(sessionId)}${path.startsWith('/') ? path : '/' + path}`;
+    previewContainer.replaceChildren(iframe);
 }
 
 function stripLineNumbers(content) {
@@ -2520,7 +2503,7 @@ function showBackgroundTaskToast(data) {
     toast.innerHTML = `
         <div class="toast-icon"><i class="${statusIcon}"></i></div>
         <div class="toast-body">
-            <div class="toast-title">${escapeHtml(data.subagent_name)} — ${statusLabel}${durationText}</div>
+            <div class="toast-title">${escapeHtml(data.subagent_name)} — ${escapeHtml(statusLabel)}${durationText}</div>
             <div class="toast-desc">${escapeHtml(data.description || '').substring(0, 80)}</div>
         </div>
         <button class="toast-close" onclick="this.closest('.toast').remove()"><i class="ri-close-line"></i></button>
@@ -2551,7 +2534,7 @@ function _insertSubagentResultCard(data, statusClass, statusIcon, statusLabel, d
         <div class="subagent-result-header">
             <span class="tool-icon-badge" style="background:${catColor}22;color:${catColor}"><i class="ri-robot-2-line"></i></span>
             <span class="subagent-result-name" style="color:${catColor}">${escapeHtml(data.subagent_name)}</span>
-            <span class="subagent-result-status ${statusClass}"><i class="${statusIcon}"></i> ${statusLabel}${durationText}</span>
+            <span class="subagent-result-status ${statusClass}"><i class="${statusIcon}"></i> ${escapeHtml(statusLabel)}${durationText}</span>
         </div>
         <div class="subagent-result-desc">${escapeHtml(data.description || '')}</div>
         ${data.result_preview ? `
@@ -2616,21 +2599,8 @@ function linkifyFilePaths(html) {
     return html.replace(pathPattern, (match, path) => {
         const cleanPath = path.replace(/[.,;:!?)]+$/, '');
         const trailing = path.slice(cleanPath.length);
-        return `<span class="file-link" onclick="openFilePreview('${cleanPath}')" title="Click to preview">${escapeHtml(cleanPath)}</span>${trailing}`;
+        return `<span class="file-link" data-open-file="${cleanPath}" title="Click to preview">${cleanPath}</span>${trailing}`;
     });
-}
-
-function linkifyExcalidrawUrls(html) {
-    // Turn excalidraw.com shareable URLs into clickable links
-    let result = html.replace(
-        /\[([^\]]*)\]\((https:\/\/excalidraw\.com\/#json=[^\)]+)\)/g,
-        '<a href="$2" target="_blank" class="excalidraw-link"><i class="ri-artboard-line"></i> $1</a>'
-    );
-    result = result.replace(
-        /(https:\/\/excalidraw\.com\/#json=[^\s<"']+)/g,
-        '<a href="$1" target="_blank" class="excalidraw-link"><i class="ri-artboard-line"></i> Open in Excalidraw</a>'
-    );
-    return result;
 }
 
 // --- Config Panel ---
@@ -2920,7 +2890,7 @@ function handleMiddlewareEvent(data) {
         if (toolsEl) {
             const badge = document.createElement('div');
             badge.className = 'middleware-badge';
-            badge.innerHTML = `<i class="ri-shield-check-line"></i> ${escapeHtml(data.tool_name)} <span class="mw-count">#${data.total_calls}</span>`;
+            badge.innerHTML = `<i class="ri-shield-check-line"></i> ${escapeHtml(data.tool_name)} <span class="mw-count">#${Number(data.total_calls)}</span>`;
             toolsEl.appendChild(badge);
         }
     }
@@ -3154,16 +3124,16 @@ function renderTimeline() {
                 <div class="timeline-content">
                     <div class="timeline-label">${escapeHtml(cp.label)}</div>
                     <div class="timeline-meta">
-                        <span title="Turn ${cp.turn}"><i class="ri-repeat-line"></i> ${cp.turn}</span>
-                        <span title="${cp.message_count} messages"><i class="ri-chat-3-line"></i> ${cp.message_count}</span>
+                        <span title="Turn ${Number(cp.turn)}"><i class="ri-repeat-line"></i> ${Number(cp.turn)}</span>
+                        <span title="${Number(cp.message_count)} messages"><i class="ri-chat-3-line"></i> ${Number(cp.message_count)}</span>
                         ${toolName ? `<span class="timeline-tool" title="Last tool: ${escapeHtml(toolName)}"><i class="ri-tools-line"></i> ${escapeHtml(toolName)}</span>` : ''}
                         ${time ? `<span class="timeline-time"><i class="ri-time-line"></i> ${time}</span>` : ''}
                     </div>
                     <div class="timeline-actions">
-                        <button class="timeline-btn rewind" onclick="rewindToCheckpoint('${cp.id}', '${escapeHtml(cp.label)}')" title="Rewind to this point">
+                        <button class="timeline-btn rewind" data-rewind="${escapeHtml(cp.id)}" data-label="${escapeHtml(cp.label)}" title="Rewind to this point">
                             <i class="ri-arrow-go-back-line"></i> Rewind
                         </button>
-                        <button class="timeline-btn fork" onclick="forkFromCheckpoint('${cp.id}')" title="Fork into new session">
+                        <button class="timeline-btn fork" data-fork="${escapeHtml(cp.id)}" title="Fork into new session">
                             <i class="ri-git-branch-line"></i> Fork
                         </button>
                     </div>
@@ -3177,13 +3147,14 @@ function renderTimeline() {
 }
 
 async function rewindToCheckpoint(checkpointId, label) {
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(checkpointId)) return;
     if (!confirm(`Rewind to checkpoint "${label}"? Messages after this point will be discarded.`)) {
         return;
     }
 
     try {
         const response = await fetch(
-            `/checkpoints/${checkpointId}/rewind?session_id=${encodeURIComponent(sessionId)}`,
+            `/checkpoints/${encodeURIComponent(checkpointId)}/rewind?session_id=${encodeURIComponent(sessionId)}`,
             { method: 'POST' }
         );
 
@@ -3211,15 +3182,16 @@ async function rewindToCheckpoint(checkpointId, label) {
 }
 
 async function forkFromCheckpoint(checkpointId) {
+    if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(checkpointId)) return;
     try {
         const response = await fetch(
-            `/checkpoints/${checkpointId}/fork?session_id=${encodeURIComponent(sessionId)}`,
+            `/checkpoints/${encodeURIComponent(checkpointId)}/fork?session_id=${encodeURIComponent(sessionId)}`,
             { method: 'POST' }
         );
 
         if (response.ok) {
             const data = await response.json();
-            const newUrl = `${window.location.origin}/?session_id=${data.new_session_id}`;
+            const newUrl = `${window.location.origin}/?session_id=${encodeURIComponent(data.new_session_id)}`;
             window.open(newUrl, '_blank');
             addMessage(
                 `Forked new session from checkpoint (${data.message_count} messages). Opened in new tab.`,
@@ -3417,14 +3389,14 @@ function renderSessionsList() {
         const isActive = s.session_id === sessionId;
         const title = escapeHtml(s.title || 'New Session');
         const time = _timeAgo(s.updated_at);
-        const count = s.message_count || 0;
+        const count = Number(s.message_count) || 0;
         return `
-            <div class="session-item${isActive ? ' session-active' : ''}" data-sid="${s.session_id}" onclick="switchSession('${s.session_id}')">
+            <div class="session-item${isActive ? ' session-active' : ''}" data-switch-session="${escapeHtml(s.session_id)}">
                 <div class="session-item-main">
                     <span class="session-title">${title}</span>
                     <span class="session-meta">${time} · ${count} msgs</span>
                 </div>
-                <button class="session-delete-btn" onclick="event.stopPropagation(); deleteSession('${s.session_id}')" title="Delete">
+                <button class="session-delete-btn" data-delete-session="${escapeHtml(s.session_id)}" title="Delete">
                     <i class="ri-delete-bin-line"></i>
                 </button>
             </div>
@@ -3555,9 +3527,9 @@ function populateWelcomeSessions() {
             ${recent.map(s => {
                 const title = escapeHtml(s.title || 'New Session');
                 const time = _timeAgo(s.updated_at);
-                const count = s.message_count || 0;
+                const count = Number(s.message_count) || 0;
                 return `
-                    <button class="welcome-session-card" onclick="switchSession('${s.session_id}')">
+                    <button class="welcome-session-card" data-switch-session="${escapeHtml(s.session_id)}">
                         <span class="wsc-title">${title}</span>
                         <span class="wsc-meta">${time} · ${count} msgs</span>
                     </button>
@@ -3567,3 +3539,16 @@ function populateWelcomeSessions() {
     `;
 }
 
+
+document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const action = event.target.closest('[data-open-file], [data-toggle-folder], [data-rewind], [data-fork], [data-switch-session], [data-delete-session]');
+    if (!action) return;
+    const { openFile, toggleFolder: folder, rewind, fork, label, switchSession: session, deleteSession: remove } = action.dataset;
+    if (openFile !== undefined) openFilePreview(openFile);
+    else if (folder !== undefined) toggleFolder(folder);
+    else if (rewind !== undefined) rewindToCheckpoint(rewind, label);
+    else if (fork !== undefined) forkFromCheckpoint(fork);
+    else if (session !== undefined) switchSession(session);
+    else if (remove !== undefined) deleteSession(remove);
+});

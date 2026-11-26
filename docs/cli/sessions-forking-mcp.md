@@ -170,14 +170,14 @@ Drive it with single keys:
 | `d` | Remove a custom server |
 | `Esc` | Close (and reconfigure the agent if anything changed) |
 
-User servers and per-built-in enabled state persist to `.pydantic-deep/mcp.json`; tokens live in `.pydantic-deep/keys.toml`. Enabled, authenticated servers are wired into the agent automatically when you close the modal.
+Each project's MCP servers and enabled settings are stored under `~/.pydantic-deep/mcp/` in a file keyed by the project's absolute path. Enabled servers are wired into the agent when you close the modal. Review and re-add any servers from an older project-local `.pydantic-deep/mcp.json`. The CLI no longer loads that file. Claude Code imports start disabled and preserve existing entries with the same names.
 
 !!! note "OAuth servers sign in via `t`"
-    A server with `oauth` auth (like the hosted Figma server) needs no pasted token — press `t` and a browser opens for sign-in. The token is cached under `~/.pydantic-deep/mcp-oauth` and reused across restarts.
+    A server with `oauth` auth (like the hosted Figma server) needs no pasted token — press `t` and a browser opens for sign-in. The token is cached under `~/.pydantic-deep/mcp-oauth-json` and reused across restarts. Sign in again after upgrading from 0.3.x.
 
 ### Import from Claude Code
 
-Already have MCP servers configured in [Claude Code](https://code.claude.com/docs/en/mcp)? Press `i` in `/mcp` to import them. The CLI reads the same `mcpServers` JSON across Claude Code's three scopes (local > project > user), expands `${VAR}` references, and carries over tokens already in `env`/`headers` — so imported servers work right away. Built-in names are never overwritten.
+Already have MCP servers configured in [Claude Code](https://code.claude.com/docs/en/mcp)? Press `i` in `/mcp` to import them. The CLI reads the same `mcpServers` JSON across Claude Code's three scopes (local > project > user), expands `${VAR}` references, and carries over tokens already in `env`/`headers` with each entry. Review imported settings before enabling a server.
 
 !!! info "File-configured servers only"
     Import pulls in servers added with `claude mcp add`. It does **not** import claude.ai connectors — those live in your Anthropic account, not a local config file.

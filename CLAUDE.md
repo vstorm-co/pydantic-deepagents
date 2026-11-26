@@ -38,7 +38,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `create_deep_agent()`: Main factory function for creating configured agents
 - `create_default_deps()`: Helper for creating DeepAgentDeps with sensible defaults
 - Built on top of pydantic-ai's Agent class
-- Requires pydantic-ai>=2.52.0 (workspaces)
+- Requires pydantic-ai>=2.75.0
 - `workspace=`: the capability that supplies each run's workspace; default `StateWorkspace()` (in-memory, no commands), `False` leaves it to `agent.run(workspace=...)`
 
 **Dependencies (`pydantic_deep/deps.py`)**
@@ -126,7 +126,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - All extend pydantic-ai's `AbstractCapability`
 
 **Persistent Memory (`pydantic_deep/features/memory/`)**
-- The `pydantic-ai-harness` `Memory` capability over a `FileStore` in the run's workspace
+- The `pydantic-ai-harness` `Memory` capability over a `FileMemoryStore` in the run's workspace
 - `build_memory_capability()` (`store.py`): builds it for the main agent and each subagent
 - Tools: `write_memory` (append, or replace with `old_text=`), `read_memory`, `search_memory`, `delete_memory`
 - `MEMORY.md` is injected into each request as user-role context; listed after compaction
@@ -317,7 +317,7 @@ agent = create_deep_agent(history_processors=[processor])
 - **Async-First**: Most operations are async, use `await` appropriately
 - **Type Safety**: Full type annotations with Pyright strict mode
 - **Sandbox Support**: DockerWorkspace requires the `sandbox` optional dependency
-- **Minimum pydantic-ai version**: Requires pydantic-ai>=2.52.0 for workspaces
+- **Minimum pydantic-ai version**: Requires pydantic-ai>=2.75.0
 
 ## Documentation Development
 

@@ -1,6 +1,6 @@
 """Build the harness `Memory` capability from pydantic-deep's memory options.
 
-Memory is `pydantic_ai_harness.Memory` over a `FileStore`: Markdown files in the
+Memory is `pydantic_ai_harness.Memory` over a `FileMemoryStore`: Markdown files in the
 run's workspace, `{memory_dir}/{namespace}/{agent_name}/MEMORY.md`, which is the
 layout pydantic-deep's own memory used - so existing notebooks are read as they
 are. Living in the workspace is what keeps it isolated the way files are: each
@@ -17,7 +17,7 @@ from typing import Any
 
 from pydantic_ai import RunContext
 from pydantic_ai_harness import Memory
-from pydantic_ai_harness.memory import FileStore
+from pydantic_ai_harness.memory import FileMemoryStore
 
 from pydantic_deep.features.memory.service import DEFAULT_MEMORY_DIR
 
@@ -75,7 +75,7 @@ def check_namespace(namespace: str) -> str:
 def build_memory_capability(
     *,
     agent_name: str,
-    store: FileStore | None = None,
+    store: FileMemoryStore | None = None,
     memory_dir: str = DEFAULT_MEMORY_DIR,
     namespace: MemoryNamespace = "",
     max_lines: int | None = None,
@@ -91,7 +91,7 @@ def build_memory_capability(
         agent_name: The agent's own segment in the store; sanitized for the harness.
         store: The store to remember in. Agents writing to one directory should
             share one: its copies share a lock, which keeps the receipts beside the
-            notebooks consistent. A new `FileStore(memory_dir)` when `None`.
+            notebooks consistent. A new `FileMemoryStore(memory_dir)` when `None`.
         memory_dir: Directory in the run's workspace, when `store` is not given.
         namespace: A per-tenant segment above the agent's, fixed or resolved per
             run. The model never sees or chooses it.
@@ -114,7 +114,7 @@ def build_memory_capability(
             stacklevel=3,
         )
     return Memory(
-        store if store is not None else FileStore(memory_dir),
+        store if store is not None else FileMemoryStore(memory_dir),
         agent_name=sanitize_agent_name(agent_name),
         namespace=check_namespace(namespace) if isinstance(namespace, str) else namespace,
         id=MEMORY_CAPABILITY_ID,

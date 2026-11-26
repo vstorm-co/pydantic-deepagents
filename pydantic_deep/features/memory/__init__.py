@@ -1,6 +1,6 @@
 """Memory feature - agents that remember across runs.
 
-Memory is the harness `Memory` capability over a `FileStore` in the run's
+Memory is the harness `Memory` capability over a `FileMemoryStore` in the run's
 workspace (`store.py`): `{memory_dir}/{namespace}/{agent_name}/MEMORY.md` and any
 topic files beside it. `service.py` keeps the layout's defaults and path helper.
 

@@ -18,7 +18,10 @@ from pydantic_deep.mcp import MCPProbeResult, MCPServerConfig
 @pytest.fixture
 def project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect the project dir (mcp.json + keys.toml) to a temp location."""
-    monkeypatch.setattr(mcp_store, "get_project_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        mcp_store, "get_project_dir", lambda: tmp_path / "project" / ".pydantic-deep"
+    )
+    monkeypatch.setattr(mcp_store, "get_global_dir", lambda: tmp_path / "user-settings")
     from apps.cli import keystore
 
     monkeypatch.setattr(keystore, "get_project_dir", lambda: tmp_path)
@@ -34,6 +37,18 @@ def test_load_default_registry_has_builtins(project_dir: Path) -> None:
     assert "github" in names and "deepwiki" in names
     # All builtins disabled by default.
     assert all(not c.enabled for c in reg.list_servers())
+
+
+def test_registry_ignores_workspace_local_settings(project_dir: Path) -> None:
+    path = project_dir / "project" / ".pydantic-deep" / "mcp.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        '{"user_servers": [{"name": "project-search", "transport": "http",'
+        '"url": "https://search.example/mcp", "enabled": true}]}'
+    )
+    registry = mcp_store.load_mcp_registry(resolver=lambda _: None)
+    assert registry.get("project-search") is None
+    assert mcp_store.build_mcp_servers_for_agent() == []
 
 
 def test_save_and_reload_roundtrip(project_dir: Path) -> None:
@@ -148,8 +163,8 @@ def test_mcp_oauth_storage_persistent(
     home.mkdir()
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
     store = mcp_store.mcp_oauth_storage()
-    assert store is not None  # disk extra installed in dev env
-    assert (home / ".pydantic-deep" / "mcp-oauth").exists()
+    assert store is not None  # filetree extra installed in dev env
+    assert (home / ".pydantic-deep" / "mcp-oauth-json").exists()
 
 
 def test_mcp_oauth_storage_missing_backend(
@@ -160,8 +175,8 @@ def test_mcp_oauth_storage_missing_backend(
     real_import = builtins.__import__
 
     def _fake_import(name: str, *args: object, **kwargs: object) -> Any:
-        if name == "key_value.aio.stores.disk":
-            raise ImportError("no disk backend")
+        if name == "key_value.aio.stores.filetree":
+            raise ImportError("no file backend")
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", _fake_import)
@@ -230,6 +245,7 @@ def test_import_claude_code_merges_scopes(
     imported = mcp_store.import_claude_code_servers(project_dir=proj)
     by_name = {s.name: s for s in imported}
     assert set(by_name) == {"userserver", "localserver", "shared", "projserver"}
+    assert all(not server.enabled for server in imported)
     # local scope wins over user scope for the duplicate name.
     assert by_name["shared"].url == "https://local-version/mcp"
 

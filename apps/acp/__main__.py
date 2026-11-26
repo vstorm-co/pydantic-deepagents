@@ -14,6 +14,7 @@ from pathlib import Path
 
 from acp import run_agent
 from apps.acp.server import AgentSessionContext, DeepAgentACP
+from pydantic_deep.models import DEFAULT_OPENAI_MODEL
 
 
 def main() -> None:
@@ -48,7 +49,7 @@ def main() -> None:
         elif os.environ.get("OPENROUTER_API_KEY"):
             default_model = "openrouter:anthropic/claude-sonnet-4"
         elif os.environ.get("OPENAI_API_KEY"):
-            default_model = "openai:gpt-4.1"
+            default_model = DEFAULT_OPENAI_MODEL
         elif os.environ.get("GOOGLE_API_KEY"):
             default_model = "google:gemini-2.5-pro"
         else:
@@ -61,9 +62,16 @@ def main() -> None:
         {"value": "openrouter:anthropic/claude-sonnet-4", "name": "Claude Sonnet 4 (OpenRouter)"},
         {"value": "openrouter:openai/gpt-4.1", "name": "GPT-4.1 (OpenRouter)"},
         {"value": "openrouter:google/gemini-2.5-pro", "name": "Gemini 2.5 Pro (OpenRouter)"},
-        {"value": "openai:gpt-4.1", "name": "GPT-4.1"},
+        {"value": DEFAULT_OPENAI_MODEL, "name": "GPT-6 Luna"},
         {"value": "google:gemini-2.5-pro", "name": "Gemini 2.5 Pro"},
     ]
+    # New ACP sessions select the first option. Keep it aligned with the
+    # resolved default, including models outside the built-in picker list.
+    default_option = next(
+        (model for model in models if model["value"] == default_model),
+        {"value": default_model, "name": default_model},
+    )
+    models = [default_option, *(model for model in models if model["value"] != default_model)]
 
     def build_agent(ctx: AgentSessionContext):
         return create_deep_agent(

@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-27
+
+### Security
+
+- Require Python 3.11 or later for supported Pydantic AI and Harness versions.
+  Raise the minimum Pydantic, Pydantic AI, Harness and backend versions, and
+  lock development dependencies for reproducible checks. (#246, #260)
+- DeepResearch requires an operator password for HTTP and WebSocket access,
+  binds to loopback by default, verifies session paths and renders PDFs without
+  loading external resources. Set `DEEPRESEARCH_PASSWORD` before starting and
+  sign in as `deepresearch`.
+- The CLI stores each project's MCP settings in the user configuration
+  directory. Review and re-add existing servers through `/mcp`. Claude Code
+  imports are disabled until enabled. The OAuth cache now uses JSON storage.
+  Sign in again for previously connected providers.
+- Sandbox HTML and SVG previews, safely render dynamic values, verify Prism
+  with Subresource Integrity, and grant CI jobs read-only access by default.
+
+### Added
+
+- DeepResearch can use You.com MCP with an API key or when
+  `YDC_ENABLED=1` explicitly enables the keyless profile. (#247)
+
+### Fixed
+
+- ACP respects the configured model for new sessions, streams completed tool
+  results, and preserves recorded conversation history when a run fails.
+  (#248, #249, #250, #251, #252)
+- Headless CLI runs leave temperature unset unless explicitly configured and
+  return an error exit code for permanent model request rejections. (#254, #259)
+- Use GPT-6 Luna for the native OpenAI CLI and ACP defaults and the OpenAI fork
+  vote model ahead of the retirement of the previous defaults. (#257)
+
 ## [0.3.50] - 2026-10-06
 
 ### Fixed

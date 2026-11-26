@@ -295,7 +295,7 @@ class ContextToolset(FunctionToolset[Any]):
 
 **Source:** `pydantic_deep/features/memory/`
 
-**What it is:** the `pydantic-ai-harness` `Memory` capability over a `FileStore` in the
+**What it is:** the `pydantic-ai-harness` `Memory` capability over a `FileMemoryStore` in the
 run's workspace, built by `build_memory_capability()`.
 
 **Tools:**
@@ -798,7 +798,7 @@ classDiagram
     }
 
     class Memory {
-        +store: FileStore
+        +store: FileMemoryStore
         +agent_name: str
         +namespace: str
         +get_toolset() MemoryToolset

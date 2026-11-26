@@ -27,7 +27,7 @@ import shutil
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +38,6 @@ load_dotenv()
 import urllib.parse  # noqa: E402
 
 import httpx  # noqa: E402
-import markdown as md_lib  # noqa: E402
 import uvicorn  # noqa: E402
 from fastapi import (  # noqa: E402
     FastAPI,
@@ -49,7 +48,6 @@ from fastapi import (  # noqa: E402
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import HTMLResponse, JSONResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import TypeAdapter  # noqa: E402
@@ -64,6 +62,7 @@ from pydantic_ai import (  # noqa: E402
 )
 from pydantic_ai._agent_graph import End, UserPromptNode  # noqa: E402
 from pydantic_ai.agent import Agent  # noqa: E402
+from pydantic_ai.mcp import MCPToolset  # noqa: E402
 from pydantic_ai.messages import (  # noqa: E402
     FunctionToolCallEvent,
     FunctionToolResultEvent,
@@ -81,7 +80,7 @@ from pydantic_ai.tools import (  # noqa: E402
     ToolApproved,
     ToolDenied,
 )
-from pydantic_ai.toolsets import AbstractToolset  # noqa: E402
+from pydantic_ai.toolsets import PrefixedToolset  # noqa: E402
 from pydantic_ai.workspaces import Workspace, WorkspaceRef  # noqa: E402
 from subagents_pydantic_ai.types import TaskStatus  # noqa: E402
 
@@ -93,6 +92,7 @@ from pydantic_deep import (  # noqa: E402
     fork_from_checkpoint,
 )
 
+from .access import OperatorAccess, operator_password  # noqa: E402
 from .agent import create_research_agent  # noqa: E402
 from .config import (  # noqa: E402
     APP_DIR,
@@ -175,6 +175,14 @@ _TEXT_EXTS = {
 
 _PREVIEW_LINES = 15
 _PREVIEW_CHARS = 800
+
+_UNTRUSTED_FILE_HEADERS = {
+    "Content-Security-Policy": (
+        "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+    ),
+    "X-Content-Type-Options": "nosniff",
+}
+
 
 _CONTENT_TYPES: dict[str, str] = {
     "html": "text/html",
@@ -266,10 +274,10 @@ def _log_event(session: UserSession | None, event: dict[str, Any]) -> None:
     """Append a WebSocket event to the session's JSONL event log."""
     if session is None:
         return
-    events_dir = WORKSPACES_DIR / session.session_id
+    events_dir = _session_directory(session.session_id)
     events_dir.mkdir(parents=True, exist_ok=True)
     events_file = events_dir / "events.jsonl"
-    event_with_ts = {**event, "_ts": datetime.now(timezone.utc).isoformat()}
+    event_with_ts = {**event, "_ts": datetime.now(UTC).isoformat()}
     try:
         with open(events_file, "a") as f:
             f.write(json.dumps(event_with_ts, default=str) + "\n")
@@ -279,10 +287,10 @@ def _log_event(session: UserSession | None, event: dict[str, Any]) -> None:
 
 def _save_session_meta(session: UserSession, title: str | None = None) -> None:
     """Write or update session metadata to meta.json."""
-    meta_dir = WORKSPACES_DIR / session.session_id
+    meta_dir = _session_directory(session.session_id)
     meta_dir.mkdir(parents=True, exist_ok=True)
     meta_file = meta_dir / "meta.json"
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     if meta_file.exists():
         try:
@@ -308,7 +316,7 @@ def _save_session_meta(session: UserSession, title: str | None = None) -> None:
 def _persist_history(session: UserSession) -> None:
     """Serialize message_history to disk for agent continuity on reload."""
 
-    history_dir = WORKSPACES_DIR / session.session_id
+    history_dir = _session_directory(session.session_id)
     history_dir.mkdir(parents=True, exist_ok=True)
     history_file = history_dir / "history.json"
     try:
@@ -321,7 +329,7 @@ def _persist_history(session: UserSession) -> None:
 def _restore_history(session_id: str) -> list[ModelMessage] | None:
     """Restore message_history from disk if available."""
 
-    history_file = WORKSPACES_DIR / session_id / "history.json"
+    history_file = _session_directory(session_id) / "history.json"
     if not history_file.exists():
         return None
     try:
@@ -468,21 +476,24 @@ agent: Agent[DeepAgentDeps, str] | None = None
 user_sessions: dict[str, UserSession] = {}
 
 
-def _session_host_dir(session_id: str) -> Path:
-    """The host directory a session's container mounts at /workspace.
-
-    The id arrives from the client, so it must be one this app issues - a UUID -
-    and the directory must stay inside `WORKSPACES_DIR`; anything else would
-    mount a directory of the client's choosing into a container.
-    """
+def _session_directory(session_id: str) -> Path:
+    """Resolve an issued session ID to its own immediate directory."""
     try:
         canonical = str(uuid.UUID(session_id))
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid session id") from None
     root = WORKSPACES_DIR.resolve()
-    host_dir = (root / canonical / "workspace").resolve()
-    if not host_dir.is_relative_to(root):
+    directory = root / canonical
+    if session_id != canonical or directory.resolve() != directory:
         raise HTTPException(status_code=400, detail="Invalid session id")
+    return directory
+
+
+def _session_host_dir(session_id: str) -> Path:
+    """Return the directory mounted in the session's container."""
+    host_dir = _session_directory(session_id) / "workspace"
+    if host_dir.resolve() != host_dir:
+        raise HTTPException(status_code=400, detail="Invalid session workspace")
     host_dir.mkdir(parents=True, exist_ok=True)
     return host_dir
 
@@ -525,7 +536,7 @@ async def _save_canvas(session_id: str) -> None:
             if resp.status_code == 200:
                 data = resp.json()
                 elements = data.get("elements", [])
-                canvas_file = WORKSPACES_DIR / session_id / "canvas.json"
+                canvas_file = _session_directory(session_id) / "canvas.json"
                 canvas_file.parent.mkdir(parents=True, exist_ok=True)
                 canvas_file.write_text(json.dumps(elements))
                 logger.info(f"Canvas SAVE: {len(elements)} elements for session {session_id}")
@@ -545,7 +556,7 @@ async def _load_canvas(session_id: str) -> None:
             logger.info(f"Canvas CLEAR: status={clear_resp.status_code}")
 
             # Load saved elements
-            canvas_file = WORKSPACES_DIR / session_id / "canvas.json"
+            canvas_file = _session_directory(session_id) / "canvas.json"
             if canvas_file.exists():
                 elements = json.loads(canvas_file.read_text())
                 if elements:
@@ -583,6 +594,7 @@ async def get_or_create_session(session_id: str) -> UserSession:
     """Get existing session or create a new one with isolated Docker container."""
     global user_sessions
 
+    _session_directory(session_id)
     if session_id in user_sessions:
         return user_sessions[session_id]
 
@@ -608,7 +620,7 @@ async def get_or_create_session(session_id: str) -> UserSession:
         logger.info(f"Restored {len(restored)} messages for session {session_id}")
 
     # Restore todos from meta if available
-    meta_file = WORKSPACES_DIR / session_id / "meta.json"
+    meta_file = _session_directory(session_id) / "meta.json"
     if meta_file.exists():
         try:
             meta = json.loads(meta_file.read_text())
@@ -624,14 +636,14 @@ async def get_or_create_session(session_id: str) -> UserSession:
 
 def _get_failed_server_names(
     exc: BaseException,
-    servers: list[AbstractToolset],
+    servers: list[PrefixedToolset[object]],
 ) -> set[str]:
     """Extract MCP server prefixes that likely caused a startup failure.
 
     When we can't pinpoint the exact server, return all prefixes so the
     retry removes every MCP server (the app still works without them).
     """
-    all_names = {getattr(s, "tool_prefix", "") for s in servers} - {""}
+    all_names = {s.prefix for s in servers} - {""}
     # If only one MCP server, it's obviously the culprit
     if len(all_names) == 1:
         return all_names
@@ -644,7 +656,7 @@ def _get_failed_server_names(
     if "docker" in msg or "stdio" in msg or "broken" in msg:
         # Likely the Docker-based Excalidraw server
         for s in servers:
-            if getattr(s, "tool_prefix", "") == "excalidraw":
+            if s.prefix == "excalidraw":
                 matched.add("excalidraw")
     return matched or all_names
 
@@ -652,13 +664,14 @@ def _get_failed_server_names(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize agent with MCP servers and session manager."""
+    operator_password()
     global agent
 
     mcp_servers = create_mcp_servers()
     agent = create_research_agent(mcp_servers=mcp_servers, middleware=[audit_cap, permission_cap])
 
-    def _print_banner(servers: list) -> None:
-        names = [getattr(s, "tool_prefix", "unknown") for s in servers]
+    def _print_banner(servers: list[PrefixedToolset[object]]) -> None:
+        names = [s.prefix for s in servers]
         print("=" * 60)
         print("DeepResearch — Full-Featured Research Agent")
         print("=" * 60)
@@ -687,7 +700,7 @@ async def lifespan(app: FastAPI):
             ", ".join(failed) or "unknown",
         )
         # Rebuild agent without problematic MCP servers
-        remaining = [s for s in mcp_servers if getattr(s, "tool_prefix", "") not in failed]
+        remaining = [s for s in mcp_servers if s.prefix not in failed]
         agent = create_research_agent(mcp_servers=remaining, middleware=[audit_cap, permission_cap])
         _print_banner(remaining)
         async with agent:
@@ -707,13 +720,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DeepResearch", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(OperatorAccess)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -761,11 +768,18 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
 
             # Session management
             session_id = message_data.get("session_id")
+            if session_id is not None and not isinstance(session_id, str):
+                await websocket.send_json({"type": "error", "content": "Invalid session id"})
+                continue
             if session is None:
                 if not session_id:
                     session_id = str(uuid.uuid4())
                     await websocket.send_json({"type": "session_created", "session_id": session_id})
-                session = await get_or_create_session(session_id)
+                try:
+                    session = await get_or_create_session(session_id)
+                except HTTPException as exc:
+                    await websocket.send_json({"type": "error", "content": exc.detail})
+                    continue
 
                 # Monkey-patch send_json to also log events to JSONL
                 _original_send = websocket.send_json
@@ -840,7 +854,7 @@ async def websocket_chat(websocket: WebSocket):  # noqa: C901
             _log_event(session, {"type": "user_message", "content": user_message})
 
             # Set session title from first user message
-            meta_file = WORKSPACES_DIR / session.session_id / "meta.json"
+            meta_file = _session_directory(session.session_id) / "meta.json"
             if meta_file.exists():
                 try:
                     meta = json.loads(meta_file.read_text())
@@ -1208,7 +1222,7 @@ async def _emit_todos_update(websocket: WebSocket, session: UserSession) -> None
     todos_data = session.latest_todos
     await websocket.send_json({"type": "todos_update", "todos": todos_data})
     # Persist in session meta
-    meta_dir = WORKSPACES_DIR / session.session_id
+    meta_dir = _session_directory(session.session_id)
     meta_file = meta_dir / "meta.json"
     if meta_file.exists():
         try:
@@ -1275,7 +1289,7 @@ async def _stream_tool_calls(  # noqa: C901
             elif isinstance(event, FunctionToolResultEvent):
                 tool_call_id = event.tool_call_id
                 tool_name = tool_names_by_id.get(tool_call_id, "unknown")
-                result_content = event.result.content
+                result_content = event.part.content
 
                 logger.info(f"  TOOL RESULT: {tool_name} -> {str(result_content)[:100]}...")
 
@@ -1470,7 +1484,7 @@ async def get_file_binary(filepath: str, session_id: str = Query(..., descriptio
         result = await session.workspace.read_bytes(decoded_path)
     except (FileNotFoundError, IsADirectoryError) as e:
         raise HTTPException(status_code=404, detail=f"File not found: {decoded_path}") from e
-    return Response(content=result, media_type=content_type)
+    return Response(content=result, media_type=content_type, headers=_UNTRUSTED_FILE_HEADERS)
 
 
 @app.get("/todos")
@@ -1619,9 +1633,8 @@ async def get_config():
     mcp_names = []
     if agent:
         for ts in agent.toolsets:
-            prefix = getattr(ts, "tool_prefix", None)
-            if prefix:
-                mcp_names.append(prefix)
+            if isinstance(ts, PrefixedToolset) and isinstance(ts.wrapped, MCPToolset):
+                mcp_names.append(ts.prefix)
 
     return JSONResponse(
         content={
@@ -1725,7 +1738,11 @@ async def list_sessions():
         for d in WORKSPACES_DIR.iterdir():
             if not d.is_dir():
                 continue
-            meta_file = d / "meta.json"
+            try:
+                directory = _session_directory(d.name)
+            except HTTPException:
+                continue
+            meta_file = directory / "meta.json"
             if meta_file.exists():
                 try:
                     meta = json.loads(meta_file.read_text())
@@ -1740,7 +1757,7 @@ async def list_sessions():
 @app.get("/sessions/{session_id}/events")
 async def get_session_events(session_id: str):
     """Return all logged WebSocket events for replay."""
-    events_file = WORKSPACES_DIR / session_id / "events.jsonl"
+    events_file = _session_directory(session_id) / "events.jsonl"
     if not events_file.exists():
         raise HTTPException(status_code=404, detail="No events found for this session")
 
@@ -1762,14 +1779,13 @@ async def delete_session(session_id: str):
     """Delete a session and its data."""
     global user_sessions
 
+    session_dir = _session_directory(session_id)
     # Remove the container if active
     if session_id in user_sessions:
         await _remove_session_container(session_id)
         del user_sessions[session_id]
 
-    # Remove files
-    session_dir = WORKSPACES_DIR / session_id
-    if session_dir.exists():
+    if session_dir.is_dir():
         shutil.rmtree(session_dir)
         return JSONResponse(content={"status": "deleted", "session_id": session_id})
 
@@ -1810,13 +1826,16 @@ async def export_report(
         )
 
     def _md_to_html(md_content: str) -> str:
+        import markdown
+        import nh3
+
         _css = (
             "body{font-family:system-ui;max-width:800px;margin:2rem auto;padding:0 1rem;"
             "line-height:1.6;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid "
             "#ddd;padding:8px;}pre{background:#f5f5f5;padding:1rem;overflow-x:auto;border-radius:"
             "4px;}code{background:#f5f5f5;padding:2px 4px;border-radius:3px;}"
         )
-        body = md_lib.markdown(md_content, extensions=["tables", "fenced_code"])
+        body = nh3.clean(markdown.markdown(md_content, extensions=["tables", "fenced_code"]))
         return (
             f"<!DOCTYPE html>\n<html><head><meta charset='utf-8'>"
             f"<title>Research Report</title>\n<style>{_css}</style>\n"
@@ -1828,19 +1847,22 @@ async def export_report(
             return Response(
                 content=_md_to_html(content),
                 media_type="text/html",
-                headers={"Content-Disposition": "attachment; filename=report.html"},
+                headers={
+                    **_UNTRUSTED_FILE_HEADERS,
+                    "Content-Disposition": "attachment; filename=report.html",
+                },
             )
         except ImportError as exc:
             raise HTTPException(
                 status_code=501,
-                detail=("HTML export requires 'markdown' package. Install: pip install markdown"),
+                detail="HTML export requires the DeepResearch export extra.",
             ) from exc
 
     if fmt == "pdf":
         try:
-            from weasyprint import HTML
+            from .pdf import render_pdf
 
-            pdf_bytes = HTML(string=_md_to_html(content)).write_pdf()
+            pdf_bytes = await asyncio.to_thread(render_pdf, _md_to_html(content))
             return Response(
                 content=pdf_bytes,
                 media_type="application/pdf",
@@ -1849,10 +1871,7 @@ async def export_report(
         except ImportError as exc:
             raise HTTPException(
                 status_code=501,
-                detail=(
-                    "PDF export requires 'weasyprint' and 'markdown'."
-                    " Install: pip install pydantic-deep[export]"
-                ),
+                detail="PDF export requires the DeepResearch export extra.",
             ) from exc
 
     raise HTTPException(status_code=400, detail=f"Unsupported format: {fmt}. Use: md, html, pdf")
@@ -1880,13 +1899,13 @@ async def preview_file(session_id: str, filepath: str):
         result = await session.workspace.read_bytes(filepath)
     except (FileNotFoundError, IsADirectoryError) as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
-    return Response(content=result, media_type=content_type)
+    return Response(content=result, media_type=content_type, headers=_UNTRUSTED_FILE_HEADERS)
 
 
 def main():
     """Run the DeepResearch server."""
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host=os.getenv("DEEPRESEARCH_HOST", "127.0.0.1"), port=8080)
 
 
 if __name__ == "__main__":

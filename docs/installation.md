@@ -36,7 +36,7 @@ If you are using pydantic-deep as a library (not just the CLI):
 
 ### Requirements
 
-- Python 3.11+
+- Python 3.11.5+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
 ### Install with uv (recommended)
@@ -179,7 +179,7 @@ asyncio.run(main())
 If you get import errors, ensure you have the correct Python version:
 
 ```bash
-python --version  # Should be 3.11+
+python --version  # Should be 3.11.5+
 ```
 
 ### API Key Not Found

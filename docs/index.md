@@ -6,7 +6,7 @@
   <a href="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml"><img src="https://github.com/vstorm-co/pydantic-deepagents/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://codecov.io/gh/vstorm-co/pydantic-deepagents"><img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage"></a>
   <a href="https://pypi.org/project/pydantic-deep/"><img src="https://img.shields.io/pypi/v/pydantic-deep.svg" alt="PyPI"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11.5%2B%20%7C%203.12%20%7C%203.13-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://www.bestpractices.dev/projects/12495"><img src="https://www.bestpractices.dev/projects/12495/badge" alt="OpenSSF Best Practices"></a>
 </p>

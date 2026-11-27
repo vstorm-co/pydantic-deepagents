@@ -1,12 +1,12 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11.5"
 resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten'",
-    "(python_full_version < '3.14' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten')",
 ]
 
 [[package]]
@@ -1213,8 +1213,8 @@ name = "httpcore2"
 version = "2.16.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11", marker = "python_full_version < '3.12' or python_full_version >= '3.15' or sys_platform != 'emscripten'" },
-    { name = "truststore", marker = "python_full_version < '3.12' or python_full_version >= '3.15' or sys_platform != 'emscripten'" },
+    { name = "h11" },
+    { name = "truststore" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/92/9d/df40b41f7db0370f82019820709244e7b660c52aa3da3c9e5c4e8141f6e6/httpcore2-2.16.2.tar.gz", hash = "sha256:6c519d0f7b44f7269fa9bbb4d2763db395a4a2370f046d8e8e0a4b38227815d2", size = 70064, upload-time = "2026-11-16T10:12:19.491Z" }
 wheels = [
@@ -1297,8 +1297,8 @@ name = "importlib-metadata"
 version = "10.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "lazy-importer", marker = "(python_full_version < '3.15' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')" },
-    { name = "zipp", marker = "(python_full_version < '3.15' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')" },
+    { name = "lazy-importer" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a6/91/0ef39e4ef4407de276289a3759977ac3a8cc546f59c55d725750eae3f41b/importlib_metadata-10.2.0.tar.gz", hash = "sha256:9413a2029fd9ca5669d27f1386071bbfe3c7ebca0545692ec975088241fe1d79", size = 72457, upload-time = "2026-11-09T19:09:10.915Z" }
 wheels = [
@@ -2861,15 +2861,15 @@ email = [
 
 [[package]]
 name = "pydantic-ai-backend"
-version = "0.2.41"
+version = "0.2.42"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "wcmatch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/26/76f92515d9b1e3587b6cc2482a3c1b21ae47ecb8984f02eaa4c1c2ee9915/pydantic_ai_backend-0.2.41.tar.gz", hash = "sha256:34448d0461cd232ceed932214b4f24ca2aad73d414aa779427f4baa5a671585b", size = 2907516, upload-time = "2026-11-26T23:34:45.33Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/c1/0409be16e5b9640b7455fbd93ecc2b7f551093bb503cfd6d4ad26ed26645/pydantic_ai_backend-0.2.42.tar.gz", hash = "sha256:860823198a6a6a3f55d5d9838d82279781b94d98198abb735237875b724feeff", size = 2909263, upload-time = "2026-11-27T00:05:01.964Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/03/fc757d43c004faf2c52096bc0d2e8e47cff7e7833d47d3131e819c5514a0/pydantic_ai_backend-0.2.41-py3-none-any.whl", hash = "sha256:a8111915c4e09baf40ca6ef5cb556280321571671e825c1bc865265001abf074", size = 226225, upload-time = "2026-11-26T23:34:43.768Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/04/9aa8ee07b110619da05c06225a127078fc1897ed1802437354d6d2cd1aef/pydantic_ai_backend-0.2.42-py3-none-any.whl", hash = "sha256:4da63801d8729dc594fe08a79b7e55d28bd00f92716a1f5109d8acb1ea4a8f1d", size = 226226, upload-time = "2026-11-27T00:05:00.293Z" },
 ]
 
 [package.optional-dependencies]
@@ -3234,8 +3234,8 @@ requires-dist = [
     { name = "prompt-toolkit", marker = "extra == 'cli'", specifier = ">=3.0.0" },
     { name = "py-key-value-aio", extras = ["filetree"], marker = "extra == 'mcp'", specifier = ">=0.5.0" },
     { name = "pydantic", specifier = ">=2.12" },
-    { name = "pydantic-ai-backend", extras = ["console", "workspaces"], specifier = ">=0.2.41" },
-    { name = "pydantic-ai-backend", extras = ["docker", "workspaces"], marker = "extra == 'sandbox'", specifier = ">=0.2.41" },
+    { name = "pydantic-ai-backend", extras = ["console", "workspaces"], specifier = ">=0.2.42" },
+    { name = "pydantic-ai-backend", extras = ["docker", "workspaces"], marker = "extra == 'sandbox'", specifier = ">=0.2.42" },
     { name = "pydantic-ai-harness", specifier = ">=0.75.0,<0.76" },
     { name = "pydantic-ai-shields", specifier = ">=0.3.4" },
     { name = "pydantic-ai-slim", extras = ["anthropic", "openai", "openrouter", "web-fetch", "duckduckgo"], marker = "extra == 'cli'", specifier = ">=2.75.0" },
@@ -3944,8 +3944,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "python_full_version < '3.12' or python_full_version >= '3.15' or sys_platform != 'emscripten'" },
-    { name = "jeepney", marker = "python_full_version < '3.12' or python_full_version >= '3.15' or sys_platform != 'emscripten'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
